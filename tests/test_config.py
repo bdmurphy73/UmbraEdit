@@ -237,7 +237,7 @@ def testConfig_Localisation(fncPath: Path, tstPaths: TstPaths):
 
     i18nDir = fncPath / "i18n"
     i18nDir.mkdir()
-    conf._nwLangPath = i18nDir
+    conf._ueLangPath = i18nDir
 
     copyfile(tstPaths.filesDir / "ue_en_GB.qm", i18nDir / "ue_en_GB.qm")
     writeFile(i18nDir / "ue_en_GB.ts", "")

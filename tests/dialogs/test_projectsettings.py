@@ -119,7 +119,7 @@ def testGuiProjectSettings_SettingsPage(
     (fncPath / "ue_de.qm").touch()
     (fncPath / "project_en.json").touch()
     (fncPath / "project_de.json").touch()
-    CONFIG._nwLangPath = fncPath
+    CONFIG._ueLangPath = fncPath
 
     # Create new project
     buildTestProject(NWProject(), projPath)

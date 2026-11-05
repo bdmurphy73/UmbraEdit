@@ -171,7 +171,7 @@ def testGuiPreferences_Settings(
 
     (fncPath / "ue_en_US.qm").touch()
     (fncPath / "project_en_US.json").touch()
-    CONFIG._nwLangPath = fncPath
+    CONFIG._ueLangPath = fncPath
     SHARED.theme._allThemes = {
         "theme1": ThemeEntry(name="Theme 1", dark=False, path=fncPath),
         "theme2": ThemeEntry(name="Theme 2", dark=False, path=fncPath),

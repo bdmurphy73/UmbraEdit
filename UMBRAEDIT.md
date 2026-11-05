@@ -1,6 +1,6 @@
 # UmbraEdit — Project Scan & Structure
 
-Copyright (C) 2026 B.D. Murphy.
+Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 Documentation for the UmbraEdit project (renamed from novelWriter).
 
 This document is a structural scan of the **UmbraEdit** codebase. It is intended for developers who want to modify or extend the project.
@@ -16,6 +16,7 @@ This document is a structural scan of the **UmbraEdit** codebase. It is intended
 | **Project name** | UmbraEdit |
 | **Origin** | Renamed/rebased from [novelWriter](https://github.com/vkbo/novelWriter) (vkbo / saga-soft) |
 | **Inherited version** | 26.3b1 (novelWriter v26 series; see `umbraedit/__init__.py`) |
+| **Base version** | Based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io), GPL v3.0 |
 | **Language** | Python 3.11+ |
 | **UI framework** | Qt6 via PyQt6 |
 | **Platforms** | Linux, Windows, macOS |

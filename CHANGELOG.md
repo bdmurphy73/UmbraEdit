@@ -1,10 +1,33 @@
 # UmbraEdit Changelog
 
-Copyright (C) 2026 B.D. Murphy.
-Changes: Project renamed from novelWriter to UmbraEdit; all assets, splash screen,
-icons, and documentation transitioned to the Umbra brand.
+Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 
-## Version 1.0.0 [2026-11-05]
+UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io)
+and is licenced under the same GPL v3.0 license.
+
+## Version 2026.11.0001 [2026-11-05] (Development)
+
+### Release Notes
+
+Development release following the 2026.11 release cycle.
+
+### Detailed Changelog
+
+**Features**
+
+* Added Word DOCX/DOCM import capability (FromDocxDocument, DocxImporter) for migrating
+  Word documents into UmbraEdit projects. Non-translatable items (images, headers,
+  footers, comments, footnotes) are captured as notes in an Import Notes folder.
+  By B.D. Murphy.
+
+**Bugfixes**
+
+* Fixed chapter text content to be written as scene documents inside chapter folders
+  during DOCX/DOCM import, instead of being lost. By B.D. Murphy.
+
+---
+
+## Version 2026.11 [2026-11-05]
 
 ### Release Notes
 
@@ -12,17 +35,20 @@ icons, and documentation transitioned to the Umbra brand.
 toolchain. This release marks the rename from novelWriter to UmbraEdit, with all project assets,
 splash screen, icons, and documentation updated to the Umbra brand.
 
+UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io)
+and is licenced under the same GPL v3.0 license.
+
 **Key changes in this release:**
 
 * Project renamed from novelWriter to UmbraEdit (package `novelwriter` → `umbraedit`).
 * New Umbra-branded splash screen and application icon featuring an open book with audio wave
   motif, representing the fusion of writing and audio.
-* Version updated to 1.0.0, release date 2026-11-05.
+* Version updated to YYYY/MM format (2026.11), release date 2026-11-05.
 * Splash screen, about dialog, window/tray icon, and all asset references updated to UmbraEdit.
 * Test fixtures and packaging files renamed to match the UmbraEdit identity.
 * All 735 existing tests pass on Python 3.12 with PyQt6 6.11.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_1_0_0.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_2026_11.html).
 
 ### Detailed Changelog
 
@@ -32,7 +58,7 @@ See the website for complete [Release Notes](https://umbraedit.io/releases/relea
   identity across the entire application.
 * New Umbra-branded splash screen with book-and-audio-wave motif.
 * New Umbra-branded application icon (window/tray/dock).
-* Updated version to 1.0.0 with release date 2026-11-05.
+* Updated version to YYYY/MM format (2026.11) with release date 2026-11-05.
 
 **Bugfixes**
 

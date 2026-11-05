@@ -4,7 +4,7 @@ UmbraEdit - Splash Screen
 
 This file is a part of UmbraEdit.
 
-Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
+Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-Additional Copyright (C) 2026 B.D. Murphy.
+Additional Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 Changes: SPLASH_IMG path changed from assets/images/splash.png to root-level NW_Splash.png
 so the splash screen artwork can be replaced independently.
 """  # noqa

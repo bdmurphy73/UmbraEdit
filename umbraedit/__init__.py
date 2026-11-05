@@ -4,7 +4,7 @@ UmbraEdit - Init File
 
 This file is a part of UmbraEdit.
 
-Copyright (C) 2018 Veronica Berglyd Olsen and UmbraEdit contributors.
+Copyright (C) 2018 Veronica Berglyd Olsen and novelWriter contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,8 +20,8 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 Additional Copyright (C) 2026 B.D. Murphy.
-Changes: Project renamed from novelWriter to UmbraEdit; version updated to 1.0.0;
-__hexversion__ updated to 0x01000000; __date__ updated to 2026-11-05.
+Changes: Project renamed from novelWriter to UmbraEdit; version updated to YYYY/MM format;
+__hexversion__ updated; __date__ updated.
 """  # noqa
 
 from __future__ import annotations
@@ -54,9 +54,9 @@ __license__    = "GPLv3"
 __author__     = "Veronica Berglyd Olsen"
 __maintainer__ = "Veronica Berglyd Olsen"
 __email__      = "code@vkbo.net"
-__version__    = "1.0.0"  # Changed by B.D. Murphy 2026: was "26.3b1" (novelWriter version)
-__hexversion__ = "0x01000000"  # Changed by B.D. Murphy 2026: was "0x260300b1"
-__date__       = "2026-11-05"  # Changed by B.D. Murphy 2026: was "2026-10-20"
+__version__    = "2026.11.0001"  # Changed by B.D. Murphy 2026: YYYY/MM.#### development version
+__hexversion__ = "0x01000000"  # Changed by B.D. Murphy 2026
+__date__       = "2026-11-05"  # Changed by B.D. Murphy 2026
 __status__     = "Stable"
 __domain__     = "umbraedit.io"
 # fmt: on

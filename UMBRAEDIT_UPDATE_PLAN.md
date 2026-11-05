@@ -1,6 +1,6 @@
 # UmbraEdit — Toolchain & Dependency Update Plan
 
-Copyright (C) 2026 B.D. Murphy.
+Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 Plan for upgrading UmbraEdit (Python/PyQt6) toolchain and dependencies.
 
 **Goal:** Bring UmbraEdit (Python/PyQt6) up to the latest stable versions of its tools and dependencies, starting from the current baseline.

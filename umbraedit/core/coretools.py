@@ -4,7 +4,7 @@ UmbraEdit - Project Document Tools
 
 This file is a part of UmbraEdit.
 
-Copyright (C) 2022 Veronica Berglyd Olsen and UmbraEdit contributors.
+Copyright (C) 2022 Veronica Berglyd Olsen, B.D. Murphy and novelWriter contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

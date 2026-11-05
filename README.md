@@ -12,6 +12,9 @@ for comments, synopsis, and cross-referencing. It's designed to be a simple text
 for easy organisation of text and notes, using human readable text files as storage for robustness.
 The project format is well suited both for version control software and file synchronisation tools.
 
+UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io) and is
+licenced under the same GPL v3.0 license.
+
 For more details, and how to install and use UmbraEdit, please see the main website and
 documentation.
 

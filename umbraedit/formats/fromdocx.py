@@ -6,10 +6,7 @@ This file is a part of UmbraEdit.
 
 Copyright (C) 2018 Veronica Berglyd Olsen and UmbraEdit contributors.
 
-Additional Copyright (C) 2026 B.D. Murphy.
-Changes: Added Word DOCX/DOCM import converter for migrating Word
-documents into UmbraEdit projects. Non-translatable items (images,
-headers, footers, comments, footnotes) are captured as notes.
+Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

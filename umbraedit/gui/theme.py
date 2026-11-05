@@ -4,7 +4,7 @@ UmbraEdit - Theme and Icons Classes
 
 This file is a part of UmbraEdit.
 
-Copyright (C) 2019 Veronica Berglyd Olsen and UmbraEdit contributors.
+Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

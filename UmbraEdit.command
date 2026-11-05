@@ -2,7 +2,7 @@
 # UmbraEdit Launcher for macOS
 # Double-click to launch, or run: ./UmbraEdit.command
 #
-# Copyright (C) 2026 B.D. Murphy.
+# Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 # Created: macOS launcher script for UmbraEdit (renamed from novelWriter).
 
 cd "$(dirname "$0")"

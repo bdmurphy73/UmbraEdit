@@ -676,18 +676,23 @@ class DocxImporter:
         if not self._project:
             return
 
-        # If this is a chapter, create a folder
+        # If this is a chapter, create a folder and write the chapter text
+        # as a scene document inside the folder
         if scene.is_chapter:
             self._current_chapter = scene.heading
             cHandle = self._project.newFolder(scene.heading, self._novel_root)
             if cHandle:
                 cItem = self._project.tree[cHandle]
                 cItem.setClass(nwItemClass.NOVEL)
-                # Write chapter info as a note inside the chapter folder
-                chNote = self._project.newFile(f"{scene.heading} Notes", cHandle)
-                if chNote:
-                    aDoc = self._project.storage.getDocument(chNote)
-                    aDoc.writeDocument(f"## {scene.heading}\n\n%Synopsis: Imported chapter\n\n")
+                # Write chapter text as the main scene document inside the folder
+                sHandle = self._project.newFile(scene.heading, cHandle)
+                if sHandle:
+                    sItem = self._project.tree[sHandle]
+                    sItem.setLayout(nwItemLayout.DOCUMENT)
+                    sItem.setMainHeading(scene.level)
+                    aDoc = self._project.storage.getDocument(sHandle)
+                    aDoc.writeDocument(scene.text)
+                    self._project.index.scanText(sHandle, scene.text)
             return
 
         # Determine parent (chapter folder or novel root)

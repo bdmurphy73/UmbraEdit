@@ -69,7 +69,7 @@ STYLE_MAP: dict[str, tuple[int, bool]] = {
     "Title": (0, False),      # Book title (front matter)
     "Subtitle": (0, False),   # Subtitle (front matter)
     "WAChapter": (1, True),   # Chapter heading -> new chapter folder
-    "WAChpNrm": (3, False),   # Chapter-normal text (scene)
+    "WAChpNrm": (3, False),   # Chapter-normal text (scene content)
     "WANChpPgr": (3, False),  # Chapter paragraph (scene content)
     "WANrmlPgr": (3, False),  # Normal paragraph (scene content)
     "WASection": (4, False),  # Section break within a chapter
@@ -102,13 +102,13 @@ class ImportNote:
 
 @dataclass
 class ImportScene:
-    """A scene/chapter entry from the Word document."""
+    """A scene document entry from the Word document."""
 
     heading: str
     level: int
     text: str
     style: str
-    is_chapter: bool = False
+    is_chapter: bool = False  # True if this is a chapter heading (folder)
 
 
 @dataclass
@@ -158,7 +158,6 @@ class FromDocxDocument:
 
         try:
             self._load_relationships()
-            self._load_images()
             self._load_headers_footers()
             self._parse_document()
             self._parse_comments()
@@ -196,7 +195,6 @@ class FromDocxDocument:
             self._rels[rid] = target
             # Cache image data
             if "image" in rel_type:
-                # Target is relative to word/ folder
                 target_path = f"word/{target}" if not target.startswith("word/") else target
                 try:
                     data = self._zip.read(target_path)  # type: ignore[union-attr]
@@ -208,15 +206,10 @@ class FromDocxDocument:
                 except KeyError:
                     logger.warning("Could not read image: %s", target_path)
 
-    def _load_images(self) -> None:
-        """Placeholder - images are loaded during relationship parsing."""
-        pass
-
     def _load_headers_footers(self) -> None:
         """Load header and footer XML files."""
         for rid, target in self._rels.items():
             if "header" in target and target.endswith(".xml"):
-                # Target is relative to word/ folder
                 target_path = f"word/{target}" if not target.startswith("word/") else target
                 try:
                     xml_text = self._read_xml(target_path)
@@ -253,7 +246,38 @@ class FromDocxDocument:
         current_text: list[str] = []
         current_style: str | None = None
         current_level: int = 0
-        pending_notes: list[ImportNote] = []
+
+        def save_current_chapter() -> None:
+            """Save the accumulated chapter content as an ImportScene."""
+            nonlocal current_chapter, current_text, current_style, current_level
+            if current_chapter is None:
+                return
+            # Split text at >>> section breaks into multiple scenes
+            full_text = "\n".join(current_text)
+            parts = full_text.split(">>>")
+            for idx, part in enumerate(parts):
+                part = part.strip()
+                if not part:
+                    continue
+                if idx == 0:
+                    # First part gets the chapter heading
+                    scene_heading = current_chapter
+                else:
+                    # Subsequent parts are scenes within the chapter
+                    scene_heading = f"{current_chapter} - Scene {idx}"
+                self._result.scenes.append(
+                    ImportScene(
+                        heading=scene_heading,
+                        level=current_level,
+                        text=part,
+                        style=current_style or "Normal",
+                        is_chapter=(idx == 0),  # Only first part is the chapter folder
+                    )
+                )
+            current_chapter = None
+            current_text = []
+            current_style = None
+            current_level = 0
 
         for para in body.findall(_wtag("p")):
             para_result = self._parse_paragraph(para)
@@ -264,7 +288,7 @@ class FromDocxDocument:
             text = para_result["text"]
             level, is_chapter = STYLE_MAP.get(style, (3, False))
 
-            # Collect non-translatable items as notes
+            # Collect non-translatable items as notes (images)
             if para_result["images"]:
                 for img_rid in para_result["images"]:
                     img = next((i for i in self._result.images if i.rid == img_rid), None)
@@ -277,24 +301,11 @@ class FromDocxDocument:
                             mime=img.mime,
                         )
                         self._result.notes.append(note)
-                        pending_notes.append(note)
-
-            # Footnotes and comments are captured from their dedicated XML files
-            # in _parse_footnotes and _parse_comments to avoid duplication
 
             # Handle chapter headings - start a new chapter
             if is_chapter:
                 # Save previous chapter if any
-                if current_chapter is not None:
-                    self._result.scenes.append(
-                        ImportScene(
-                            heading=current_chapter,
-                            level=current_level,
-                            text="\n".join(current_text),
-                            style=current_style or "Normal",
-                            is_chapter=True,
-                        )
-                    )
+                save_current_chapter()
 
                 # Clean up chapter heading - remove comment/footnote markers
                 clean_heading = re.sub(r"\[(?:COMMENT|FOOTNOTE):\w+\]", "", text.strip())
@@ -303,12 +314,12 @@ class FromDocxDocument:
                 current_style = style
                 current_level = level
 
-                # Add chapter title as a note within the chapter
+                # Add chapter title
                 if text.strip():
                     current_text.append(f"# {text.strip()}")
                     current_text.append("")
 
-            # Handle section breaks
+            # Handle section breaks - split into separate scenes
             elif style == "WASection":
                 current_text.append(">>>")
                 current_text.append("")
@@ -329,18 +340,10 @@ class FromDocxDocument:
                     current_text.append("")
 
         # Save the last chapter
-        if current_chapter is not None:
-            self._result.scenes.append(
-                ImportScene(
-                    heading=current_chapter,
-                    level=current_level,
-                    text="\n".join(current_text),
-                    style=current_style or "Normal",
-                    is_chapter=True,
-                )
-            )
-        elif current_text:
-            # No chapters found, treat all content as one scene
+        save_current_chapter()
+
+        # If no chapters were found, treat all content as one scene
+        if not self._result.scenes and current_text:
             self._result.scenes.append(
                 ImportScene(
                     heading="Imported Content",

@@ -33,7 +33,7 @@ from PyQt6.QtWidgets import QSplashScreen
 
 logger = logging.getLogger(__name__)
 
-SPLASH_IMG = Path(__file__).parent / "assets" / "images" / "splash.png"
+SPLASH_IMG = Path(__file__).parent.parent / "NW_Splash.png"
 
 
 class NSplashScreen(QSplashScreen):

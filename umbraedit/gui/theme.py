@@ -1109,7 +1109,7 @@ class GuiIcons:
         """
         # If we just want the app icons, return right away
         if name == "umbraedit":
-            return QIcon(str(CONFIG.assetPath("icons") / "umbraedit.svg"))
+            return QIcon(str(CONFIG.assetPath("icons") / "UmbraEdit.jpg"))
         elif name == "proj_nwx":
             return QIcon(str(CONFIG.assetPath("icons") / "x-umbraedit-project.svg"))
 

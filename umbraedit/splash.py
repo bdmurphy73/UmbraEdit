@@ -18,6 +18,10 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+Additional Copyright (C) 2026 B.D. Murphy.
+Changes: SPLASH_IMG path changed from assets/images/splash.png to root-level NW_Splash.png
+so the splash screen artwork can be replaced independently.
 """  # noqa
 
 from __future__ import annotations
@@ -33,7 +37,7 @@ from PyQt6.QtWidgets import QSplashScreen
 
 logger = logging.getLogger(__name__)
 
-SPLASH_IMG = Path(__file__).parent.parent / "NW_Splash.png"
+SPLASH_IMG = Path(__file__).parent.parent / "NW_Splash.png"  # Changed by B.D. Murphy 2026: was assets/images/splash.png
 
 
 class NSplashScreen(QSplashScreen):

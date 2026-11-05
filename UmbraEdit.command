@@ -1,6 +1,9 @@
 #!/bin/zsh
 # UmbraEdit Launcher for macOS
 # Double-click to launch, or run: ./UmbraEdit.command
+#
+# Copyright (C) 2026 B.D. Murphy.
+# Created: macOS launcher script for UmbraEdit (renamed from novelWriter).
 
 cd "$(dirname "$0")"
 

@@ -1,5 +1,8 @@
 # UmbraEdit — Project Scan & Structure
 
+Copyright (C) 2026 B.D. Murphy.
+Documentation for the UmbraEdit project (renamed from novelWriter).
+
 This document is a structural scan of the **UmbraEdit** codebase. It is intended for developers who want to modify or extend the project.
 
 > UmbraEdit was created by cloning **novelWriter** (vkbo/saga-soft) into this folder and renaming the project to `UmbraEdit`. The full upstream git history is preserved (see §6).

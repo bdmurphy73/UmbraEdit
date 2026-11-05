@@ -18,6 +18,9 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+Additional Copyright (C) 2026 B.D. Murphy.
+Changes: App icon "umbraedit" now loads UmbraEdit.jpg instead of umbraedit.svg.
 """  # noqa
 
 from __future__ import annotations
@@ -1109,7 +1112,7 @@ class GuiIcons:
         """
         # If we just want the app icons, return right away
         if name == "umbraedit":
-            return QIcon(str(CONFIG.assetPath("icons") / "UmbraEdit.jpg"))
+            return QIcon(str(CONFIG.assetPath("icons") / "UmbraEdit.jpg"))  # Changed by B.D. Murphy 2026: was umbraedit.svg
         elif name == "proj_nwx":
             return QIcon(str(CONFIG.assetPath("icons") / "x-umbraedit-project.svg"))
 

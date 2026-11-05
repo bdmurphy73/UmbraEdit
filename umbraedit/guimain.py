@@ -18,6 +18,9 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+Additional Copyright (C) 2026 B.D. Murphy.
+Changes: Application icon changed from umbraedit.svg to UmbraEdit.jpg (as-is, unmodified).
 """  # noqa
 
 from __future__ import annotations
@@ -110,10 +113,10 @@ class GuiMain(QMainWindow):
         self._setWindowSize(CONFIG.mainWinSize)
         self._updateWindowTitle()
 
-        nwIcon = Path(__file__).parent.parent / "UmbraEdit.jpg"
+        nwIcon = Path(__file__).parent.parent / "UmbraEdit.jpg"  # Changed by B.D. Murphy 2026: use UmbraEdit.jpg as-is
         self.nwIcon = QIcon(str(nwIcon)) if safeIsFile(nwIcon) else QIcon()
         self.setWindowIcon(self.nwIcon)
-        QApplication.setWindowIcon(self.nwIcon)
+        QApplication.setWindowIcon(self.nwIcon)  # Changed by B.D. Murphy 2026: UmbraEdit.jpg as app icon
 
         # Build the GUI
         # =============

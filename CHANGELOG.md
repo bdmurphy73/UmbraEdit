@@ -1,5 +1,9 @@
 # UmbraEdit Changelog
 
+Copyright (C) 2026 B.D. Murphy.
+Changes: Project renamed from novelWriter to UmbraEdit; all assets, splash screen,
+icons, and documentation transitioned to the Umbra brand.
+
 ## Version 1.0.0 [2026-11-05]
 
 ### Release Notes

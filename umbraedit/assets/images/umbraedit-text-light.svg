@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  UmbraEdit - Text Logo (Light Theme)
+  ====================================
+  Copyright (C) 2026 B.D. Murphy.
+  Changes: Replaced novelWriter text logo with UmbraEdit text logo.
+-->
 <svg width="460" height="60" version="1.1" viewBox="0 0 460 60" xmlns="http://www.w3.org/2000/svg">
   <text x="20" y="42" font-family="Helvetica" font-size="36" font-weight="bold" fill="#1a1a2e">UmbraEdit</text>
 </svg>

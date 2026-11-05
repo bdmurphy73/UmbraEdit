@@ -77,5 +77,6 @@ GEMINI.md
 /debug/
 
 # Clean up accidentally committed files
+# Added by B.D. Murphy 2026: exclude files accidentally committed during branding transition
 Splh.jpeg
 Oldwelcome.webp

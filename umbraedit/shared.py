@@ -248,6 +248,13 @@ class SharedData(QObject):
             return False
         return self.project.saveProject(autoSave=autoSave)
 
+    def saveProjectAs(self, newPath: str | Path, newName: str) -> bool:
+        """Save the current project to a new location with a new name."""
+        if not self.project.isValid:
+            logger.error("There is no project open")
+            return False
+        return self.project.saveProjectAs(newPath, newName)
+
     def closeProject(self) -> None:
         """Close the current project."""
         self._closeToolDialogs()

@@ -25,6 +25,13 @@ Development release following the 2026.11 release cycle.
 * Fixed chapter text content to be written as scene documents inside chapter folders
   during DOCX/DOCM import, instead of being lost. By B.D. Murphy.
 
+**Features**
+
+* Added "Save Project As" (Ctrl+Alt+S) to the Project menu. Saves the current project
+  to a new location with an optional new name. All document files, metadata, and the
+  project XML are copied to the new location, and the new project is added to the
+  recent projects list as a separate entry. By B.D. Murphy.
+
 ---
 
 ## Version 2026.11 [2026-11-05]

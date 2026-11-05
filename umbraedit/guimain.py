@@ -39,6 +39,7 @@ from PyQt6.QtGui import QCloseEvent, QCursor, QGuiApplication, QIcon
 from PyQt6.QtWidgets import (
     QApplication,
     QHBoxLayout,
+    QInputDialog,
     QMainWindow,
     QMessageBox,
     QSplitter,
@@ -466,6 +467,35 @@ class GuiMain(QMainWindow):
         if SHARED.hasProject:
             return SHARED.saveProject(autoSave=autoSave)
         return False
+
+    def saveProjectAs(self) -> None:
+        """Save the current project to a new location (Save As)."""
+        if not SHARED.hasProject:
+            return
+
+        # First save current project to make sure everything is current
+        if not self.saveProject(autoSave=False):
+            return
+
+        # Get destination folder
+        folder = SHARED.getProjectFolder(self, str(CONFIG.homePath()))
+        if not folder:
+            return
+
+        # Get new project name
+        currentName = SHARED.project.data.name
+        newName, ok = QInputDialog.getText(
+            self,
+            self.tr("Save Project As"),
+            self.tr("Project Name:"),
+            text=currentName,
+        )
+        if not ok or not newName.strip():
+            return
+        newName = newName.strip()
+
+        # Save the project to the new location
+        SHARED.saveProjectAs(folder, newName)
 
     ##
     #  Tree Item Actions

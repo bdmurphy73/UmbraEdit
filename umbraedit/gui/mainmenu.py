@@ -210,6 +210,12 @@ class GuiMainMenu(QMenuBar):
         self.aSaveProject.triggered.connect(qtWeakLambda(self.mainGui.saveProject))
         self.mainGui.addAction(self.aSaveProject)
 
+        # Project > Save Project As
+        self.aSaveProjectAs = qtAddAction(self.projMenu, self.tr("Save Project As"))
+        self.aSaveProjectAs.setShortcut("Ctrl+Alt+S")
+        self.aSaveProjectAs.triggered.connect(qtWeakLambda(self.mainGui.saveProjectAs))
+        self.mainGui.addAction(self.aSaveProjectAs)
+
         # Project > Close Project
         self.aCloseProject = qtAddAction(self.projMenu, self.tr("Close Project"))
         self.aCloseProject.setShortcut("Ctrl+Shift+W")

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 
 from enum import Enum
 from functools import partial
@@ -44,13 +45,13 @@ from umbraedit.common import (
     minmax,
     safeIsFile,
 )
-from umbraedit.constants import nwLabels, nwStyles, trConst
+from umbraedit.constants import nwFiles, nwLabels, nwStyles, trConst
 from umbraedit.core.index import Index
 from umbraedit.core.options import OptionState
 from umbraedit.core.projectdata import ProjectData
 from umbraedit.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLReadState
 from umbraedit.core.sessions import SessionLog
-from umbraedit.core.storage import ProjectStorage, ProjectStorageOpen
+from umbraedit.core.storage import ProjectStorage, ProjectStorageCreate, ProjectStorageOpen
 from umbraedit.core.tree import ProjectTree
 from umbraedit.enum import nwItemClass, nwItemLayout, nwItemType, nwProjectKind
 from umbraedit.error import logException
@@ -489,6 +490,128 @@ class NWProject:
         self._reportErrors(self.tr("Issues encountered when saving project:"))
 
         SHARED.newStatusMessage(self.tr("Saved Project: {0}").format(self._data.name))
+        self.setProjectChanged(False)
+
+        return True
+
+    def saveProjectAs(self, newPath: str | Path, newName: str) -> bool:
+        """Save the current project to a new location with a new name.
+
+        Creates a new project folder at the given path, copies all document
+        and metadata files from the current project, and writes the project
+        XML with the new name. The new location is added to the recent
+        projects list as a separate entry from the original location.
+        """
+        if not self._storage.isOpen():
+            SHARED.error(self.tr("There is no project open."))
+            return False
+
+        newPath = Path(newPath).resolve()
+
+        # First save all current documents to make sure everything is current
+        saveTime = time()
+        self.updateCounts()
+        self.countStatus()
+
+        for docHandle in self._tree.allDocs():
+            doc = self._storage.getDocument(docHandle)
+            if doc and doc.nwItem:
+                text = doc.readDocument()
+                doc.writeDocument(text)
+
+        # Save old paths before creating new storage (createNewProject
+        # overwrites _storagePath, _runtimePath, etc.)
+        oldContentPath = self._storage.contentPath
+        oldRuntimePath = self._storage._runtimePath
+        oldMetaPath = oldRuntimePath / "meta" if oldRuntimePath else None
+
+        # Create new project storage at the new location
+        status = self._storage.createNewProject(newPath)
+        if status != ProjectStorageCreate.READY:
+            if status == ProjectStorageCreate.NOT_EMPTY:
+                SHARED.error(
+                    self.tr("The target folder is not empty. Please choose another folder.")
+                )
+            else:
+                SHARED.error(self.tr("Failed to create project storage."))
+            return False
+
+        # Update project data: new UUID and name
+        self._data.setUuid("")
+        self._data.setName(newName)
+
+        # Copy all document files from old content to new content
+        newContentPath = self._storage.contentPath
+        if oldContentPath and newContentPath:
+            for mdFile in oldContentPath.glob("*.md"):
+                destFile = newContentPath / mdFile.name
+                try:
+                    shutil.copy2(mdFile, destFile)
+                except Exception as exc:
+                    logger.error(
+                        "Failed to copy document file %s: %s", mdFile.name, exc
+                    )
+                    SHARED.error(
+                        self.tr("Failed to copy document file: {0}").format(mdFile.name)
+                    )
+                    return False
+
+        # Copy all meta files from old meta to new meta
+        newMetaPath = self._storage._runtimePath / "meta" if self._storage._runtimePath else None
+        if oldMetaPath and newMetaPath:
+            if oldMetaPath.is_dir():
+                newMetaPath.mkdir(exist_ok=True)
+                for metaFile in oldMetaPath.glob("*"):
+                    if metaFile.is_file():
+                        destFile = newMetaPath / metaFile.name
+                        try:
+                            shutil.copy2(metaFile, destFile)
+                        except Exception as exc:
+                            logger.error(
+                                "Failed to copy meta file %s: %s", metaFile.name, exc
+                            )
+
+        # Copy manifest.json if it exists
+        oldManifestPath = (
+            self._storage._runtimePath / nwFiles.MANIFEST_FILE
+            if oldRuntimePath
+            else None
+        )
+        newManifestPath = (
+            self._storage._runtimePath / nwFiles.MANIFEST_FILE
+            if self._storage._runtimePath
+            else None
+        )
+        if oldManifestPath and newManifestPath and oldManifestPath.exists():
+            try:
+                shutil.copy2(oldManifestPath, newManifestPath)
+            except Exception as exc:
+                logger.error("Failed to copy manifest file: %s", exc)
+
+        # Write project XML
+        self._data.setIndexRevision(self._index.indexRevision)
+        saveTime = time()
+        editTime = self._data.editTime + max(round(saveTime - self._session.start), 0)
+        content = self._tree.pack()
+        xmlWriter = self._storage.getXmlWriter()
+        if not isinstance(xmlWriter, ProjectXMLWriter):
+            return False
+
+        if not xmlWriter.write(self._data, content, saveTime, editTime):
+            self._reportErrors(self.tr("Issues encountered when saving project:"))
+            return False
+
+        # Save other project data
+        self._options.saveSettings()
+        self._index.saveIndex()
+
+        self._storage.runPostSaveTasks(saveTime=saveTime, autoSave=False)
+
+        # Update recent projects with the new location (separate from original)
+        CONFIG.recentProjects.update(str(newPath), self._data, saveTime)
+
+        self._reportErrors(self.tr("Issues encountered when saving project:"))
+        SHARED.newStatusMessage(self.tr("Saved Project As: {0}").format(newName))
         self.setProjectChanged(False)
 
         return True

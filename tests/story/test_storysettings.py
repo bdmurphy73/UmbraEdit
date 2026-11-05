@@ -1,10 +1,10 @@
 """
-novelWriter - Story View Settings Tests
+UmbraEdit - Story View Settings Tests
 =======================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,9 +30,9 @@ from typing import Any
 
 import pytest
 
-from novelwriter.constants import nwFiles
-from novelwriter.core.project import NWProject
-from novelwriter.story.storysettings import OutlineColumn, OutlineViewSettings, StoryViewCollection, StoryViewSettings
+from umbraedit.constants import nwFiles
+from umbraedit.core.project import NWProject
+from umbraedit.story.storysettings import OutlineColumn, OutlineViewSettings, StoryViewCollection, StoryViewSettings
 
 from tests.helpers import MockRnd, buildTestProject
 from tests.mocked import MockGuiMain, causeOSError
@@ -378,18 +378,18 @@ def testStoryViewSettings_Collection(
     views.setStoryViewsState(viewIDTwo, "bod", [viewIDTwo, viewIDOne])
     assert views.highlight == "bod"
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
-    assert data["novelWriter.storyViews"]["highlight"] == "bod"
+    assert data["UmbraEdit.storyViews"]["highlight"] == "bod"
 
     # A changed view state is saved, and the flag reset
     viewOne.setState("columns", {"title": 200})
     views.setStoryViewsState(viewIDTwo, "bod", [viewIDTwo, viewIDOne])
     assert viewOne.stateChanged is False
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
-    assert data["novelWriter.storyViews"][viewIDOne]["state"] == {"columns": {"title": 200}}
+    assert data["UmbraEdit.storyViews"][viewIDOne]["state"] == {"columns": {"title": 200}}
 
     # Check the file content
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
-    assert list(data["novelWriter.storyViews"].keys()) == ["lastView", "highlight", viewIDOne, viewIDTwo]
+    assert list(data["UmbraEdit.storyViews"].keys()) == ["lastView", "highlight", viewIDOne, viewIDTwo]
 
     # Remove a view
     views.removeStoryView(viewIDOne)
@@ -397,7 +397,7 @@ def testStoryViewSettings_Collection(
     assert [v.viewID for v in views.storyViews()] == [viewIDTwo]
 
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
-    assert list(data["novelWriter.storyViews"].keys()) == ["lastView", "highlight", viewIDTwo]
+    assert list(data["UmbraEdit.storyViews"].keys()) == ["lastView", "highlight", viewIDTwo]
     views.setStoryView(viewOne)
 
     # Load views file into new object
@@ -412,8 +412,8 @@ def testStoryViewSettings_Collection(
     # Unknown kinds are preserved on save, and non-object entries are skipped
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
     unknown = {"kind": "unknown", "name": "Future View", "settings": {"unknown.value": 42}}
-    data["novelWriter.storyViews"]["future"] = unknown
-    data["novelWriter.storyViews"]["garbage"] = "not a view entry"
+    data["UmbraEdit.storyViews"]["future"] = unknown
+    data["UmbraEdit.storyViews"]["garbage"] = "not a view entry"
     viewsFile.write_text(json.dumps(data), encoding="utf-8")
 
     future = StoryViewCollection(project)
@@ -422,7 +422,7 @@ def testStoryViewSettings_Collection(
 
     future.removeStoryView(viewIDOne)
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
-    assert data["novelWriter.storyViews"] == {
+    assert data["UmbraEdit.storyViews"] == {
         "lastView": viewIDTwo,
         "highlight": "bod",
         "future": unknown,
@@ -431,7 +431,7 @@ def testStoryViewSettings_Collection(
 
     # Check errors: No valid path
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
         assert views._loadCollection() is False
         assert views._saveCollection() is False
 

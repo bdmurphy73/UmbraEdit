@@ -1,10 +1,10 @@
 """
-novelWriter - Command Completer Tests
+UmbraEdit - Command Completer Tests
 =====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,12 +31,12 @@ from PyQt6.QtGui import QColor, QInputMethodEvent
 from PyQt6.QtWidgets import QCompleter, QWidget
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.constants import nwKeyWords
-from novelwriter.core.project import NWProject
-from novelwriter.editor.completer import CommandCompleter, CompleterAction
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtForegroundRole, QtKeyDown, QtKeyEscape, QtKeyLeft, QtKeyReturn, QtKeyTab, QtUserRole
+from umbraedit import SHARED
+from umbraedit.constants import nwKeyWords
+from umbraedit.core.project import NWProject
+from umbraedit.editor.completer import CommandCompleter, CompleterAction
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtForegroundRole, QtKeyDown, QtKeyEscape, QtKeyLeft, QtKeyReturn, QtKeyTab, QtUserRole
 
 from tests.helpers import C, MockRnd, buildTestProject
 from tests.mocked import MockGuiMain
@@ -255,7 +255,7 @@ def testGuiDocEditor_CompleterKeyRouting(qtbot: QtBot, nwGUI: GuiMain, projPath:
     assert completionModel(completer).rowCount() == 2
 
     # Escape cancels the popup without touching the document. This
-    # also exercises GuiDocEditor.event(): novelWriter has its own
+    # also exercises GuiDocEditor.event(): UmbraEdit has its own
     # global Escape shortcut (closing search, exiting Focus Mode,
     # etc.), and Qt keeps window-level shortcuts active even while a
     # QCompleter popup is open (unlike for a QMenu), so the editor

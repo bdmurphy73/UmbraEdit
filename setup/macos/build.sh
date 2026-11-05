@@ -11,8 +11,8 @@ CONDA="$3"
 
 TIMESTAMP=$(date "+%s")
 
-CONDA_ENV_NAME="novelWriter_${CONDA}_${TIMESTAMP}"
-CONDA_PATH="$HOME/miniconda_novelWriter_${ARCH}_${TIMESTAMP}"
+CONDA_ENV_NAME="UmbraEdit_${CONDA}_${TIMESTAMP}"
+CONDA_PATH="$HOME/miniconda_UmbraEdit_${ARCH}_${TIMESTAMP}"
 
 echo "Python Version: $PYTHON"
 echo "Architecture: $ARCH"
@@ -25,7 +25,7 @@ else
     TEMP_BASE=/tmp
 fi
 
-BUILD_DIR=$(mktemp -d "$TEMP_BASE/novelWriter-build-XXXXXX")
+BUILD_DIR=$(mktemp -d "$TEMP_BASE/UmbraEdit-build-XXXXXX")
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 SRC_DIR="$SCRIPT_DIR/../.."
 RLS_DIR="$SRC_DIR/dist_macos"
@@ -43,7 +43,7 @@ echo "Build Dir: $BUILD_DIR"
 pushd "$SRC_DIR" || exit 1
 
 VERSION="$(python3 pkgutils.py version)"
-echo "novelWriter Version: $VERSION"
+echo "UmbraEdit Version: $VERSION"
 
 # --- Prepare Files ----------------------------------------------------------------------------- #
 
@@ -60,22 +60,22 @@ python3 pkgutils.py gen-req
 
 # Check that other assets are present
 echo "Checking assets"
-if [ -f $SRC_DIR/novelwriter/assets/sample.zip ]; then
-    echo "Found: novelwriter/assets/sample.zip"
+if [ -f $SRC_DIR/umbraedit/assets/sample.zip ]; then
+    echo "Found: umbraedit/assets/sample.zip"
 else
-    echo "Missing: novelwriter/assets/sample.zip"
+    echo "Missing: umbraedit/assets/sample.zip"
     exit 1
 fi
-if [ -f $SRC_DIR/novelwriter/assets/manual.pdf ]; then
-    echo "Found: novelwriter/assets/manual.pdf"
+if [ -f $SRC_DIR/umbraedit/assets/manual.pdf ]; then
+    echo "Found: umbraedit/assets/manual.pdf"
 else
-    echo "Missing: novelwriter/assets/manual.pdf"
+    echo "Missing: umbraedit/assets/manual.pdf"
     exit 1
 fi
-if [ -f $SRC_DIR/novelwriter/assets/i18n/nw_en_US.qm ]; then
-    echo "Found: novelwriter/assets/i18n/nw_en_US.qm"
+if [ -f $SRC_DIR/umbraedit/assets/i18n/nw_en_US.qm ]; then
+    echo "Found: umbraedit/assets/i18n/nw_en_US.qm"
 else
-    echo "Missing: novelwriter/assets/i18n/nw_en_US.qm"
+    echo "Missing: umbraedit/assets/i18n/nw_en_US.qm"
     exit 1
 fi
 
@@ -85,7 +85,7 @@ ls -lah .
 # Create icon
 echo "Creating icon ..."
 pushd "$SRC_DIR/setup/macos" || exit 1
-iconutil -c icns $SRC_DIR/setup/macos/novelwriter.iconset
+iconutil -c icns $SRC_DIR/setup/macos/umbraedit.iconset
 echo "Content of current dir:"
 ls -lah .
 
@@ -120,47 +120,47 @@ conda deactivate
 echo "Building App bundle ..."
 
 # Create .app Framework
-mkdir -p novelWriter.app/Contents/
-mkdir novelWriter.app/Contents/MacOS novelWriter.app/Contents/Resources novelWriter.app/Contents/Resources/novelWriter
-cp $SRC_DIR/setup/macos/Info.plist novelWriter.app/Contents/Info.plist
+mkdir -p UmbraEdit.app/Contents/
+mkdir UmbraEdit.app/Contents/MacOS UmbraEdit.app/Contents/Resources UmbraEdit.app/Contents/Resources/UmbraEdit
+cp $SRC_DIR/setup/macos/Info.plist UmbraEdit.app/Contents/Info.plist
 
 echo "Copying miniconda env to bundle ..."
-cp -R $CONDA_PATH/envs/$CONDA_ENV_NAME/* novelWriter.app/Contents/Resources/
+cp -R $CONDA_PATH/envs/$CONDA_ENV_NAME/* UmbraEdit.app/Contents/Resources/
 
-echo "Copying novelWriter to bundle ..."
+echo "Copying UmbraEdit to bundle ..."
 FILES_COPY=(
     "CHANGELOG.md" "CREDITS.md" "LICENSE.md"
-    "CONTRIBUTING.md" "CODE_OF_CONDUCT.md" "novelwriter"
-    "novelWriter.py"
+    "CONTRIBUTING.md" "CODE_OF_CONDUCT.md" "umbraedit"
+    "UmbraEdit.py"
 )
 
 for file in "${FILES_COPY[@]}"; do
     echo "Copying $SRC_DIR/$file ..."
-    cp -R $SRC_DIR/$file novelWriter.app/Contents/Resources/novelWriter/
+    cp -R $SRC_DIR/$file UmbraEdit.app/Contents/Resources/UmbraEdit/
 done
 
-cp $SRC_DIR/setup/macos/novelwriter.icns novelWriter.app/Contents/Resources/
+cp $SRC_DIR/setup/macos/umbraedit.icns UmbraEdit.app/Contents/Resources/
 
 # Create entry script
 echo "Creating entry script ..."
-cat > novelWriter.app/Contents/MacOS/novelWriter << EOF
+cat > UmbraEdit.app/Contents/MacOS/UmbraEdit << EOF
 #!/bin/bash
 DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
-\$DIR/../Resources/bin/python -sE \$DIR/../Resources/novelWriter/novelWriter.py \$@
+\$DIR/../Resources/bin/python -sE \$DIR/../Resources/UmbraEdit/UmbraEdit.py \$@
 EOF
 
 # Make it executable
-chmod a+x novelWriter.app/Contents/MacOS/novelWriter
+chmod a+x UmbraEdit.app/Contents/MacOS/UmbraEdit
 
 # Do codesigning
 # echo "Signing bundle ..."
-# sudo codesign --sign - --deep --force --entitlements "$SCRIPT_DIR/../macos/App.entitlements" --options runtime "novelWriter.app/Contents/MacOS/novelWriter"
+# sudo codesign --sign - --deep --force --entitlements "$SCRIPT_DIR/../macos/App.entitlements" --options runtime "UmbraEdit.app/Contents/MacOS/UmbraEdit"
 
 # --- Cleanup ----------------------------------------------------------------------------------- #
 
 echo "Cleaning unused files from bundle ..."
 
-pushd novelWriter.app/Contents/Resources || exit 1
+pushd UmbraEdit.app/Contents/Resources || exit 1
 find . -type d -iname '__pycache__' -print0 | xargs -0 rm -r
 
 rm -rf pkgs
@@ -204,13 +204,13 @@ mkdir -p $RLS_DIR
 echo "Packaging DMG ..."
 brew install create-dmg
 
-create-dmg --volname "novelWriter $VERSION" --volicon $SRC_DIR/setup/macos/novelwriter.icns \
+create-dmg --volname "UmbraEdit $VERSION" --volicon $SRC_DIR/setup/macos/umbraedit.icns \
     --window-pos 200 120 --window-size 800 400 --icon-size 100 \
-    --icon novelWriter.app 200 190 --hide-extension novelWriter.app \
-    --app-drop-link 600 185 $RLS_DIR/novelwriter-"${VERSION}"-$ARCH.dmg "$BUILD_DIR"/
+    --icon UmbraEdit.app 200 190 --hide-extension UmbraEdit.app \
+    --app-drop-link 600 185 $RLS_DIR/umbraedit-"${VERSION}"-$ARCH.dmg "$BUILD_DIR"/
 
 pushd $RLS_DIR || exit 1
-shasum -a 256 novelwriter-"${VERSION}"-$ARCH.dmg | tee novelwriter-"${VERSION}"-$ARCH.dmg.sha256
+shasum -a 256 umbraedit-"${VERSION}"-$ARCH.dmg | tee umbraedit-"${VERSION}"-$ARCH.dmg.sha256
 popd || exit 1
 
 rm -r $CONDA_PATH

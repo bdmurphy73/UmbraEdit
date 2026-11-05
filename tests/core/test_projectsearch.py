@@ -1,10 +1,10 @@
 """
-novelWriter - Project Search Tests
+UmbraEdit - Project Search Tests
 ==================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2022 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2022 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,10 +29,10 @@ from pathlib import Path
 
 import pytest
 
-from novelwriter.constants import nwConst
-from novelwriter.core.item import ProjectItem
-from novelwriter.core.project import NWProject
-from novelwriter.core.projectsearch import DocSearch, T_SearchResults
+from umbraedit.constants import nwConst
+from umbraedit.core.item import ProjectItem
+from umbraedit.core.project import NWProject
+from umbraedit.core.projectsearch import DocSearch, T_SearchResults
 
 from tests.helpers import C, MockRnd, buildTestProject
 from tests.mocked import MockGuiMain

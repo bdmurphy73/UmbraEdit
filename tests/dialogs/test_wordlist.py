@@ -1,10 +1,10 @@
 """
-novelWriter - Word List Tests
+UmbraEdit - Word List Tests
 =============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2021 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2021 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,12 +31,12 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QFileDialog
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.core.project import NWProject
-from novelwriter.core.spellcheck import UserDictionary
-from novelwriter.dialogs.wordlist import GuiWordList
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtAccepted
+from umbraedit import SHARED
+from umbraedit.core.project import NWProject
+from umbraedit.core.spellcheck import UserDictionary
+from umbraedit.dialogs.wordlist import GuiWordList
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtAccepted
 
 from tests.helpers import buildTestProject, checkDialogFreedOnClose
 from tests.mocked import causeOSError

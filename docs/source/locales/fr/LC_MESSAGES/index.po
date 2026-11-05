@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-27 20:56+0200\n"
@@ -59,14 +59,14 @@ msgstr "**Mise à jour :** |today|"
 
 #: ../../source/index.rst:8
 msgid ""
-"novelWriter is an open source plain text editor designed for writing "
+"UmbraEdit is an open source plain text editor designed for writing "
 "novels assembled from individual text documents. It uses a minimal "
 "formatting syntax inspired by Markdown, and adds a meta data syntax for "
 "comments, synopsis, and cross-referencing. It is designed to be a simple "
 "text editor that allows for easy organisation of text and notes, using "
 "human readable text files as storage for robustness."
 msgstr ""
-"novelWriter est un éditeur de texte brut open source conçu pour écrire "
+"UmbraEdit est un éditeur de texte brut open source conçu pour écrire "
 "des romans assemblés à partir de documents texte individuels. Il utilise "
 "une syntaxe de formatage minimale inspirée de Markdown, et ajoute une "
 "syntaxe de métadonnées pour les commentaires, les synopsis et les "
@@ -80,41 +80,41 @@ msgid "**Useful Links**"
 msgstr "**Liens utiles**"
 
 #: ../../source/index.rst:21
-msgid "Website: https://novelwriter.io"
-msgstr "Site web : https://novelwriter.io"
+msgid "Website: https://umbraedit.io"
+msgstr "Site web : https://umbraedit.io"
 
 #: ../../source/index.rst:22
-msgid "Documentation: https://docs.novelwriter.io"
-msgstr "Documentation: https://docs.novelwriter.io"
+msgid "Documentation: https://docs.umbraedit.io"
+msgstr "Documentation: https://docs.umbraedit.io"
 
 #: ../../source/index.rst:23
-msgid "Public Releases: https://releases.novelwriter.io"
-msgstr "Public Releases: https://releases.novelwriter.io"
+msgid "Public Releases: https://releases.umbraedit.io"
+msgstr "Public Releases: https://releases.umbraedit.io"
 
 #: ../../source/index.rst:24
-msgid "Internationalisation: https://crowdin.com/project/novelwriter"
-msgstr "Internationalisation: https://crowdin.com/project/novelwriter"
+msgid "Internationalisation: https://crowdin.com/project/umbraedit"
+msgstr "Internationalisation: https://crowdin.com/project/umbraedit"
 
 #: ../../source/index.rst:25
-msgid "Source Code: https://github.com/saga-soft/novelWriter"
-msgstr "Code source : https://github.com/saga-soft/novelWriter"
+msgid "Source Code: https://github.com/saga-soft/UmbraEdit"
+msgstr "Code source : https://github.com/saga-soft/UmbraEdit"
 
 #: ../../source/index.rst:26
-msgid "Source Releases: https://github.com/saga-soft/novelWriter/releases"
-msgstr "Source Releases: https://github.com/saga-soft/novelWriter/releases"
+msgid "Source Releases: https://github.com/saga-soft/UmbraEdit/releases"
+msgstr "Source Releases: https://github.com/saga-soft/UmbraEdit/releases"
 
 #: ../../source/index.rst:27
-msgid "Issue Tracker: https://github.com/saga-soft/novelWriter/issues"
-msgstr "Issue Tracker: https://github.com/saga-soft/novelWriter/issues"
+msgid "Issue Tracker: https://github.com/saga-soft/UmbraEdit/issues"
+msgstr "Issue Tracker: https://github.com/saga-soft/UmbraEdit/issues"
 
 #: ../../source/index.rst:28
-msgid "Feature Discussions: https://github.com/saga-soft/novelWriter/discussions"
-msgstr "Feature Discussions: https://github.com/saga-soft/novelWriter/discussions"
+msgid "Feature Discussions: https://github.com/saga-soft/UmbraEdit/discussions"
+msgstr "Feature Discussions: https://github.com/saga-soft/UmbraEdit/discussions"
 
 #: ../../source/index.rst:29
-msgid "PyPi Project: https://pypi.org/project/novelWriter"
-msgstr "PyPi Project: https://pypi.org/project/novelWriter"
+msgid "PyPi Project: https://pypi.org/project/UmbraEdit"
+msgstr "PyPi Project: https://pypi.org/project/UmbraEdit"
 
 #: ../../source/index.rst:30
-msgid "Social Media: https://fosstodon.org/@novelwriter"
-msgstr "Social Media: https://fosstodon.org/@novelwriter"
+msgid "Social Media: https://fosstodon.org/@umbraedit"
+msgstr "Social Media: https://fosstodon.org/@umbraedit"

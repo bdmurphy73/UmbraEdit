@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 22:09+0200\n"
@@ -36,13 +36,13 @@ msgstr ""
 
 #: ../../source/features/dialogue.rst:10
 msgid ""
-"The default language settings in novelWriter are for English. That "
+"The default language settings in UmbraEdit are for English. That "
 "includes the dialogue highlighting settings. But many dialogue styles "
 "are supported. You can tune a number of settings to fit your language "
 "and style preferences in the \"Text Highlighting\" section in "
 "**Preferences**. You can mix and match these settings."
 msgstr ""
-"Les paramètres linguistiques par défaut de novelWriter sont ceux de "
+"Les paramètres linguistiques par défaut de UmbraEdit sont ceux de "
 "l'anglais. Cela inclut les paramètres de mise en évidence des dialogues. "
 "Mais de nombreux styles de dialogue sont pris en charge. Vous pouvez "
 "ajuster un certain nombre de paramètres en fonction de vos préférences "

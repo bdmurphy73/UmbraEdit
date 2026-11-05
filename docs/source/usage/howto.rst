@@ -4,9 +4,9 @@
 Tips & Tricks
 *************
 
-.. _Discussions Page: https://github.com/saga-soft/novelWriter/discussions
+.. _Discussions Page: https://github.com/saga-soft/UmbraEdit/discussions
 
-This is a list of hopefully helpful little tips on how to get the most out of novelWriter.
+This is a list of hopefully helpful little tips on how to get the most out of UmbraEdit.
 
 .. note::
    This section will be expanded over time. If you would like to have something added, feel free to
@@ -77,7 +77,7 @@ Your Project
 
    Examples: ``en`` for English, ``de`` for German, etc.
 
-   If you want to help add new languages to novelWriter, see: :ref:`docs_contributing`.
+   If you want to help add new languages to UmbraEdit, see: :ref:`docs_contributing`.
 
    .. versionadded:: 2.8
 
@@ -88,7 +88,7 @@ The Application
 .. dropdown:: How can I increase the line height?
    :animate: fade-in-slide-down
 
-   Unfortunately, in this case, novelWriter uses the plain text editor component of the underlying
+   Unfortunately, in this case, UmbraEdit uses the plain text editor component of the underlying
    framework (called Qt) which doesn't support changing the line height. However, you can choose an
    editor font with larger leading (the spacing between the lines). A good font for this case is
    `Noto <https://fonts.google.com/noto>`__, which comes in both Sans-Serif and Serif.
@@ -100,7 +100,7 @@ Layout Tricks
 .. dropdown:: How do I create a table?
    :animate: fade-in-slide-down
 
-   The formatting tools available in novelWriter don't allow for complex structures like tables.
+   The formatting tools available in UmbraEdit don't allow for complex structures like tables.
    However, the editor does render tabs in a similar way that regular word processors do. You can
    set the width of a tab in **Preferences**.
 
@@ -137,6 +137,6 @@ Other Tools
    :animate: fade-in-slide-down
 
    There is a tool available that lets you convert a `yWriter <http://spacejock.com/yWriter7.html>`_
-   project to a novelWriter project, and vice versa.
+   project to a UmbraEdit project, and vice versa.
 
    The tool is available at `peter88213.github.io/yw2nw <https://peter88213.github.io/yw2nw/>`__

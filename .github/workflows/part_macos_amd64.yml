@@ -20,7 +20,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: nw-assets
-          path: novelwriter/assets
+          path: umbraedit/assets
 
       - name: Build App Bundle
         id: build
@@ -31,7 +31,7 @@ jobs:
       - name: Upload DMG
         uses: actions/upload-artifact@v7
         with:
-          name: novelWriter-${{ steps.build.outputs.BUILD_VERSION }}-MacOS-AMD64-DMG
+          name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-MacOS-AMD64-DMG
           path: dist_macos/*.dmg*
           if-no-files-found: error
           retention-days: 14

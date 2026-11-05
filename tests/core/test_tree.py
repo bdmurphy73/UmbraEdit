@@ -1,10 +1,10 @@
 """
-novelWriter - Project Tree Tests
+UmbraEdit - Project Tree Tests
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,11 +31,11 @@ import pytest
 
 from pytestqt.qtbot import QtBot
 
-from novelwriter.constants import nwFiles
-from novelwriter.core.item import ProjectItem
-from novelwriter.core.project import NWProject
-from novelwriter.core.tree import ProjectTree
-from novelwriter.enum import nwItemClass, nwItemLayout, nwItemType
+from umbraedit.constants import nwFiles
+from umbraedit.core.item import ProjectItem
+from umbraedit.core.project import NWProject
+from umbraedit.core.tree import ProjectTree
+from umbraedit.enum import nwItemClass, nwItemLayout, nwItemType
 
 from tests.helpers import C, MockRnd, buildTestProject
 from tests.mocked import MockGuiMain, causeOSError
@@ -214,7 +214,7 @@ def testProjectTree_Populate(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMa
 
     # Clear and populate reversed with max depth limit very low
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.tree.MAX_DEPTH", 1)
+        mp.setattr("umbraedit.core.tree.MAX_DEPTH", 1)
         tree.clear()
         assert bool(tree) is False
         assert len(tree) == 0
@@ -380,7 +380,7 @@ def testProjectTree_ManipulateTree(monkeypatch: pytest.MonkeyPatch, mockGUI: Moc
 
     # Remove where the model refuses to remove the child
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.models.itemmodel.ProjectModel.removeChild", lambda *a: False)
+        mp.setattr("umbraedit.models.itemmodel.ProjectModel.removeChild", lambda *a: False)
         assert tree.remove(bHandle) is False
 
     # Add item with non-existing parent
@@ -614,7 +614,7 @@ def testProjectTree_ItemMethods(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGu
         ("0000000000008", "Novel"),
     ]
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.tree.MAX_DEPTH", 1)
+        mp.setattr("umbraedit.core.tree.MAX_DEPTH", 1)
         assert tree.itemPath(C.hSceneDoc, withName=True) == [
             ("000000000000f", "New Scene"),
         ]
@@ -730,7 +730,7 @@ def testProjectTree_OtherMethods(
     assert tree._trash is None
 
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.tree.ProjectTree.create", lambda *a, **k: None)
+        mp.setattr("umbraedit.core.tree.ProjectTree.create", lambda *a, **k: None)
         tree._trash = trash
         assert tree.trash is None
         assert tree._getTrashNode() is None
@@ -825,7 +825,7 @@ def testProjectTree_CheckConsistency(
     project.tree.remove(yHandle)
     (contentPath / f"{yHandle}.md").write_text("### Stuff", encoding="utf-8")
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.tree.ProjectTree.add", lambda *a: False)
+        mp.setattr("umbraedit.core.tree.ProjectTree.add", lambda *a: False)
         assert project.tree.checkConsistency("Recovered") == (1, 0)
 
 
@@ -930,7 +930,7 @@ def testProjectTree_UnresolvedItemsKeepLoadedTreeConsistent(
     tree = ProjectTree(project)
 
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.tree.MAX_DEPTH", 1)
+        mp.setattr("umbraedit.core.tree.MAX_DEPTH", 1)
         tree.unpack(list(reversed(mockItems)))
 
     assert [n.item.itemName for n in tree.model.root.allChildren()] == [
@@ -956,7 +956,7 @@ def testProjectTree_ToCFile(
     tree.unpack(mockItems)
 
     def mockIsFile(fileName: Path) -> bool:
-        """Return True for items that are files in novelWriter and
+        """Return True for items that are files in UmbraEdit and
         should thus also be files in the project folder structure.
         """
         dItem = tree[fileName.name[:13]]
@@ -969,7 +969,7 @@ def testProjectTree_ToCFile(
 
     # Block extraction of the path
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.contentPath", lambda *a: None)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.contentPath", lambda *a: None)
         assert tree.writeToCFile() is False
 
     # Block opening the file

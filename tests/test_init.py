@@ -1,10 +1,10 @@
 """
-novelWriter - App Init Tests
+UmbraEdit - App Init Tests
 ============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -34,8 +34,8 @@ import pytest
 
 from PyQt6.QtWidgets import QApplication
 
-from novelwriter import BLUE, CONFIG, END, FILE, LINE, LVLC, LVLP, TEXT, TIME, WHITE, _createApp, logger, main
-from novelwriter.splash import NSplashScreen
+from umbraedit import BLUE, CONFIG, END, FILE, LINE, LVLC, LVLP, TEXT, TIME, WHITE, _createApp, logger, main
+from umbraedit.splash import NSplashScreen
 
 from tests.helpers import clearLogHandlers
 
@@ -45,9 +45,9 @@ def testInit_Launch(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.Monkey
     """Check launching the main GUI."""
     monkeypatch.setattr(NSplashScreen, "show", lambda *a: None)
     monkeypatch.setattr(NSplashScreen, "finish", lambda *a: None)
-    monkeypatch.setattr("novelwriter.splash.sleep", lambda *a: None)
-    monkeypatch.setattr("novelwriter._createApp", lambda *a: Mock())
-    monkeypatch.setattr("novelwriter.guimain.GuiMain", Mock())
+    monkeypatch.setattr("umbraedit.splash.sleep", lambda *a: None)
+    monkeypatch.setattr("umbraedit._createApp", lambda *a: Mock())
+    monkeypatch.setattr("umbraedit.guimain.GuiMain", Mock())
     monkeypatch.setattr(sys, "exit", Mock())
 
     # Default Launch
@@ -74,7 +74,7 @@ def testInit_Launch(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.Monkey
         mp.setattr(sys, "platform", "darwin")
         mp.setitem(sys.modules, "Foundation", mockFoundation)
         main([f"--config={fncPath}", f"--data={fncPath}"])
-        assert bundleInfo["CFBundleName"] == "novelWriter"
+        assert bundleInfo["CFBundleName"] == "UmbraEdit"
 
     # Windows Launch Error Handling
     with monkeypatch.context() as mp:
@@ -113,15 +113,15 @@ def testInit_Options(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Test command line options for logging level."""
     monkeypatch.setattr(NSplashScreen, "show", lambda *a: None)
     monkeypatch.setattr(NSplashScreen, "finish", lambda *a: None)
-    monkeypatch.setattr("novelwriter.splash.sleep", lambda *a: None)
+    monkeypatch.setattr("umbraedit.splash.sleep", lambda *a: None)
 
     gui = Mock()
     app = Mock()
     app.exec = Mock(return_value=0)
 
-    monkeypatch.setattr("novelwriter._createApp", lambda *a: app)
-    monkeypatch.setattr("novelwriter.guimain.GuiMain", lambda *a: gui)
-    monkeypatch.setattr(sys, "argv", ["novelWriter.py", f"--config={fncPath}", f"--data={fncPath}"])
+    monkeypatch.setattr("umbraedit._createApp", lambda *a: app)
+    monkeypatch.setattr("umbraedit.guimain.GuiMain", lambda *a: gui)
+    monkeypatch.setattr(sys, "argv", ["UmbraEdit.py", f"--config={fncPath}", f"--data={fncPath}"])
 
     # Defaults wo/Args
     gui.reset_mock()
@@ -201,8 +201,8 @@ def testInit_Options(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
 @pytest.mark.base
 def testInit_Imports(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Check import error handling."""
-    monkeypatch.setattr("novelwriter._createApp", lambda *a: Mock())
-    monkeypatch.setattr("novelwriter.guimain.GuiMain", lambda *a: Mock())
+    monkeypatch.setattr("umbraedit._createApp", lambda *a: Mock())
+    monkeypatch.setattr("umbraedit.guimain.GuiMain", lambda *a: Mock())
 
     monkeypatch.setattr("PyQt6.QtWidgets.QApplication.__init__", lambda *a: None)
     monkeypatch.setattr("PyQt6.QtWidgets.QApplication.exec", lambda *a: 0)
@@ -210,8 +210,8 @@ def testInit_Imports(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.Monke
     monkeypatch.setattr("PyQt6.QtWidgets.QErrorMessage.resize", lambda *a: None)
     monkeypatch.setattr("PyQt6.QtWidgets.QErrorMessage.showMessage", lambda *a: None)
     monkeypatch.setattr("sys.hexversion", 0x0)
-    monkeypatch.setattr("novelwriter.CONFIG.verQtValue", 0x050000)
-    monkeypatch.setattr("novelwriter.CONFIG.verPyQtValue", 0x050000)
+    monkeypatch.setattr("umbraedit.CONFIG.verQtValue", 0x050000)
+    monkeypatch.setattr("umbraedit.CONFIG.verPyQtValue", 0x050000)
 
     with pytest.raises(SystemExit) as ex:
         main([f"--config={fncPath}", f"--data={fncPath}"])

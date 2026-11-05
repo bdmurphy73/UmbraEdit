@@ -4,12 +4,12 @@
 Running from Source
 *******************
 
-.. _GitHub: https://github.com/saga-soft/novelWriter/releases
-.. _PyPi: https://pypi.org/project/novelWriter/
+.. _GitHub: https://github.com/saga-soft/UmbraEdit/releases
+.. _PyPi: https://pypi.org/project/UmbraEdit/
 .. _Sphinx Docs: https://www.sphinx-doc.org/
 .. _uv: https://docs.astral.sh/uv/
 
-This chapter describes various ways of running novelWriter directly from the source code, and how
+This chapter describes various ways of running UmbraEdit directly from the source code, and how
 to build the various components like the translation files and documentation.
 
 .. note::
@@ -18,7 +18,7 @@ to build the various components like the translation files and documentation.
    now deprecated, but on many systems the command ``python3`` may be needed instead. Likewise,
    ``pip`` may need to be replaced with ``pip3``.
 
-Most of the custom commands for building packages of novelWriter, or building assets, are contained
+Most of the custom commands for building packages of UmbraEdit, or building assets, are contained
 in the ``pkgutils.py`` script in the root of the source code. You can list the available commands
 by running:
 
@@ -33,11 +33,11 @@ by running:
 Dependencies
 ============
 
-novelWriter has been designed to rely on as few dependencies as possible. Only the Python wrapper
+UmbraEdit has been designed to rely on as few dependencies as possible. Only the Python wrapper
 for the Qt GUI libraries is required. The package for spell checking is optional, but recommended.
 Everything else is handled with standard Python libraries.
 
-The following Python packages are needed to run all features of novelWriter:
+The following Python packages are needed to run all features of UmbraEdit:
 
 * ``PyQt6`` – needed for connecting with the Qt6 libraries.
 * ``PyEnchant`` – needed for spell checking (optional).
@@ -45,13 +45,13 @@ The following Python packages are needed to run all features of novelWriter:
 If you want spell checking, you must install the ``PyEnchant`` package. The spell check library
 must be at least 3.0 to work with Windows. On Linux, 2.0 also works fine.
 
-If you install novelWriter from PyPi, these dependencies should be installed automatically.
+If you install UmbraEdit from PyPi, these dependencies should be installed automatically.
 
-You can run novelWriter directly from source with uv_ or another similar tool:
+You can run UmbraEdit directly from source with uv_ or another similar tool:
 
 .. code-block:: bash
 
-   uv run novelwriter
+   uv run umbraedit
 
 If you prefer to install dependencies using ``pip``, you must first generate the
 ``requirements.txt`` file:
@@ -64,7 +64,7 @@ If you prefer to install dependencies using ``pip``, you must first generate the
 .. note::
 
    On Linux distros, the Qt library is usually split up into multiple packages. In some cases,
-   secondary dependencies may not be installed automatically. For novelWriter, the library files
+   secondary dependencies may not be installed automatically. For UmbraEdit, the library files
    for rendering the SVG icons may be left out and needs to be installed manually. This is the
    case on for instance Arch Linux.
 
@@ -74,7 +74,7 @@ If you prefer to install dependencies using ``pip``, you must first generate the
 Build and Install from Source
 =============================
 
-If you want to install novelWriter directly from the source available on GitHub_, you must first
+If you want to install UmbraEdit directly from the source available on GitHub_, you must first
 build the package using the Python Packaging Authority's build tool. It can be installed with:
 
 .. code-block:: bash
@@ -87,7 +87,7 @@ On Debian-based systems the tool can also be installed with:
 
    sudo apt install python3-build
 
-With the tool installed, run the following command from the root of the novelWriter source code:
+With the tool installed, run the following command from the root of the UmbraEdit source code:
 
 .. code-block:: bash
 
@@ -99,7 +99,7 @@ different:
 
 .. code-block:: bash
 
-   pip install --user dist/novelWriter-2.0.7-py3-none-any.whl
+   pip install --user dist/UmbraEdit-2.0.7-py3-none-any.whl
 
 
 .. _docs_technical_source_i18n:
@@ -107,9 +107,9 @@ different:
 Building the Translation Files
 ==============================
 
-If you installed novelWriter from a package, the translation files should be pre-built and
-included. If you're running novelWriter from the source code, you will need to generate the files
-yourself. The files you need will be written to the ``novelwriter/assets/i18n`` folder, and will
+If you installed UmbraEdit from a package, the translation files should be pre-built and
+included. If you're running UmbraEdit from the source code, you will need to generate the files
+yourself. The files you need will be written to the ``umbraedit/assets/i18n`` folder, and will
 have the ``.qm`` file extension.
 
 You can build the ``.qm`` files with:
@@ -123,7 +123,7 @@ needed package is called ``qttools5-dev-tools``.
 
 .. note::
 
-   If you want to improve novelWriter with translation files for another language, or update an
+   If you want to improve UmbraEdit with translation files for another language, or update an
    existing translation, instructions for how to contribute can be found in the ``README.md`` file
    in the ``i18n`` folder of the source code.
 
@@ -178,6 +178,6 @@ You can also build a PDF manual from the documentation using the ``pkgutils.py``
    python pkgutils.py docs-pdf en
 
 This will build the English documentation as a PDF using LaTeX. The file will then be copied into
-the assets folder and made available in the **Help** menu in novelWriter. Replace ``en`` with
+the assets folder and made available in the **Help** menu in UmbraEdit. Replace ``en`` with
 ``all`` to build for all languages. The Sphinx build system has a few extra dependencies when
 building the PDF. Please check the `Sphinx Docs`_ for more details.

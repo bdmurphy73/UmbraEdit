@@ -1,10 +1,10 @@
 """
-novelWriter - Error Handler Tests
+UmbraEdit - Error Handler Tests
 =================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,8 +28,8 @@ import pytest
 
 from pytestqt.qtbot import QtBot
 
-from novelwriter.error import ErrorMessage, exceptionHandler, logException
-from novelwriter.guimain import GuiMain
+from umbraedit.error import ErrorMessage, exceptionHandler, logException
+from umbraedit.guimain import GuiMain
 
 from tests.mocked import causeException
 
@@ -116,7 +116,7 @@ def testError_Handler(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiM
     with monkeypatch.context() as mp:
         mp.setattr(ErrorMessage, "exec", lambda *a: None)
         mp.setattr("PyQt6.QtWidgets.QApplication.exit", lambda *a: None)
-        mp.setattr("novelwriter.guimain.GuiMain.closeMain", causeException)
+        mp.setattr("umbraedit.guimain.GuiMain.closeMain", causeException)
         exceptionHandler(Exception, "Error Message", None)  # type: ignore
 
     nwGUI.closeMain()

@@ -1,10 +1,10 @@
 """
-novelWriter - Project Data Tests
+UmbraEdit - Project Data Tests
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,11 +27,11 @@ from pathlib import Path
 
 import pytest
 
-from novelwriter import CONFIG
-from novelwriter.core import projectdata
-from novelwriter.core.project import NWProject
-from novelwriter.core.projectdata import ProjectData
-from novelwriter.enum import nwItemClass
+from umbraedit import CONFIG
+from umbraedit.core import projectdata
+from umbraedit.core.project import NWProject
+from umbraedit.core.projectdata import ProjectData
+from umbraedit.enum import nwItemClass
 
 from tests.helpers import C, MockRnd, buildTestProject
 from tests.mocked import MockGuiMain

@@ -1,10 +1,10 @@
 """
-novelWriter - Binary Dist Tools
+UmbraEdit - Binary Dist Tools
 ===============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,12 +29,12 @@ def runPyinstaller() -> None:
     """Run the pyinstaller."""
     import PyInstaller.__main__  # type: ignore
 
-    build = ["novelWriter.py", "--clean", "--windowed", "--onedir", "--noconfirm"]
-    build += ["--name", "novelwriter"]
+    build = ["UmbraEdit.py", "--clean", "--windowed", "--onedir", "--noconfirm"]
+    build += ["--name", "umbraedit"]
     build += ["--workpath", "build_bin"]
     build += ["--distpath", "dist_bin"]
     build += ["--hidden-import", "pyenchant"]
-    build += ["--add-data", "novelwriter/assets:assets"]
+    build += ["--add-data", "umbraedit/assets:assets"]
     PyInstaller.__main__.run(build)
 
 

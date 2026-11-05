@@ -1,10 +1,10 @@
 """
-novelWriter - Project Item Tests
+UmbraEdit - Project Item Tests
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,10 +30,10 @@ import pytest
 
 from PyQt6.QtGui import QIcon
 
-from novelwriter import CONFIG
-from novelwriter.core.item import ProjectItem
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwItemClass, nwItemLayout, nwItemType
+from umbraedit import CONFIG
+from umbraedit.core.item import ProjectItem
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwItemClass, nwItemLayout, nwItemType
 
 from tests.helpers import C, MockRnd, buildTestProject
 from tests.mocked import MockGuiMain

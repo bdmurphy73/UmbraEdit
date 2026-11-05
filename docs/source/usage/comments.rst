@@ -21,7 +21,7 @@ A plain comment is a line or paragraph that starts with the character ``%`` as i
 You can put them wherever you like in your documents, and you can choose to include or exclude them
 from your manuscript.
 
-For the most part, novelWriter completely ignores these comments. They are not included in your
+For the most part, UmbraEdit completely ignores these comments. They are not included in your
 word or character counts either, and are only displayed in the document viewer panel if you enable
 them.
 
@@ -144,7 +144,7 @@ Ignored Text
 ============
 
 If you want to completely ignore some of the text in your documents, but are not ready to delete
-it, you can add ``%~`` before the text paragraph or line. This will cause novelWriter to skip the
+it, you can add ``%~`` before the text paragraph or line. This will cause UmbraEdit to skip the
 text entirely when generating previews or building manuscripts.
 
 This is a better way of removing text than converting them to regular comments, as you may want to

@@ -1,10 +1,10 @@
 """
-novelWriter - Switch Tests
+UmbraEdit - Switch Tests
 ==========================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,8 +28,8 @@ from PyQt6.QtCore import QEvent, QPointF, Qt
 from PyQt6.QtGui import QEnterEvent, QMouseEvent
 from pytestqt.qtbot import QtBot
 
-from novelwriter.extensions.switch import NSwitch
-from novelwriter.types import QtModNone, QtMouseLeft
+from umbraedit.extensions.switch import NSwitch
+from umbraedit.types import QtModNone, QtMouseLeft
 
 from tests.helpers import SimpleDialog
 

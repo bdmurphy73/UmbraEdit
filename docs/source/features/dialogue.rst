@@ -7,7 +7,7 @@ Dialogue Highlighting
 Dialogue recognition and colour highlighting is available both while you're writing and in
 generated manuscript documents.
 
-The default language settings in novelWriter are for English. That includes the dialogue
+The default language settings in UmbraEdit are for English. That includes the dialogue
 highlighting settings. But many dialogue styles are supported. You can tune a number of settings
 to fit your language and style preferences in the "Text Highlighting" section in **Preferences**.
 You can mix and match these settings.

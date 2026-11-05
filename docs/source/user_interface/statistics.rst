@@ -21,7 +21,7 @@ Idle Time
 =========
 
 The log file stores how much of the session time was spent idle. The definition of idle here is
-that the novelWriter main window loses focus, or the user hasn't made any changes to the currently
+that the UmbraEdit main window loses focus, or the user hasn't made any changes to the currently
 open document in five minutes. You can change the number of minutes in **Preferences**.
 
 

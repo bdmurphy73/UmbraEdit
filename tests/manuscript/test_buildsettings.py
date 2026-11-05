@@ -1,10 +1,10 @@
 """
-novelWriter - Manuscript Build Settings Tests
+UmbraEdit - Manuscript Build Settings Tests
 =============================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2023 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,11 +31,11 @@ from typing import Any
 
 import pytest
 
-from novelwriter import CONFIG
-from novelwriter.constants import nwFiles, nwHeadFmt
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwBuildFmt, nwItemClass
-from novelwriter.manuscript.buildsettings import BuildCollection, BuildSettings, FilterMode
+from umbraedit import CONFIG
+from umbraedit.constants import nwFiles, nwHeadFmt
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwBuildFmt, nwItemClass
+from umbraedit.manuscript.buildsettings import BuildCollection, BuildSettings, FilterMode
 
 from tests.helpers import C, MockRnd, buildTestProject
 from tests.mocked import MockGuiMain, causeOSError
@@ -452,7 +452,7 @@ def testBuildSettings_Collection(
 
     # Check the file content
     data = json.loads(buildsFile.read_text(encoding="utf-8"))
-    assert list(data["novelWriter.builds"].keys()) == ["lastBuild", "defaultBuild", buildIDOne, buildIDTwo]
+    assert list(data["UmbraEdit.builds"].keys()) == ["lastBuild", "defaultBuild", buildIDOne, buildIDTwo]
 
     # Remove a build
     builds.removeBuild(buildIDOne)
@@ -463,7 +463,7 @@ def testBuildSettings_Collection(
 
     # Check the file content
     data = json.loads(buildsFile.read_text(encoding="utf-8"))
-    assert list(data["novelWriter.builds"].keys()) == ["lastBuild", "defaultBuild", buildIDTwo]
+    assert list(data["UmbraEdit.builds"].keys()) == ["lastBuild", "defaultBuild", buildIDTwo]
     builds.setBuild(buildOne)
     assert list(builds.builds()) == [
         (buildIDTwo, "Build Two"),
@@ -477,7 +477,7 @@ def testBuildSettings_Collection(
 
     # Check errors: No valid path
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
         assert builds._loadCollection() is False
         assert builds._saveCollection() is False
 
@@ -513,7 +513,7 @@ def testBuildSettings_Collection(
 
     # Entries that aren't objects are skipped
     data = json.loads(buildsFile.read_text(encoding="utf-8"))
-    data["novelWriter.builds"]["garbage"] = "not a build entry"
+    data["UmbraEdit.builds"]["garbage"] = "not a build entry"
     buildsFile.write_text(json.dumps(data), encoding="utf-8")
 
     garbageLoaded = BuildCollection(project)

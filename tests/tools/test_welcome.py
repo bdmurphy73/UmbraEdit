@@ -1,10 +1,10 @@
 """
-novelWriter - Welcome Dialog Tests
+UmbraEdit - Welcome Dialog Tests
 ==================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2023 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -33,15 +33,15 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QFileDialog, QMenu
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.constants import nwFiles
-from novelwriter.core.coretools import ProjectBuilder
-from novelwriter.core.projectdata import ProjectData
-from novelwriter.enum import nwItemClass
-from novelwriter.guimain import GuiMain
-from novelwriter.shared import _GuiAlert
-from novelwriter.tools.welcome import SAMPLE_KEY, SAMPLE_NAME, GuiWelcome, _ProjectListEntry
-from novelwriter.types import (
+from umbraedit import CONFIG, SHARED
+from umbraedit.constants import nwFiles
+from umbraedit.core.coretools import ProjectBuilder
+from umbraedit.core.projectdata import ProjectData
+from umbraedit.enum import nwItemClass
+from umbraedit.guimain import GuiMain
+from umbraedit.shared import _GuiAlert
+from umbraedit.tools.welcome import SAMPLE_KEY, SAMPLE_NAME, GuiWelcome, _ProjectListEntry
+from umbraedit.types import (
     QtAccessibleTextRole,
     QtDecorationRole,
     QtDisplayRole,

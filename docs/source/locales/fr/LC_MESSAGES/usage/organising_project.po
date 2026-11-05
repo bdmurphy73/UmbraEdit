@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 14:11+0200\n"
@@ -115,11 +115,11 @@ msgstr ""
 msgid ""
 "The intended usage of each type of root folder is listed below. However, "
 "aside from the **Novel** folder, no restrictions are applied by "
-"novelWriter on what you put in them. You can use them however you want."
+"UmbraEdit on what you put in them. You can use them however you want."
 msgstr ""
 "L'utilisation prévue de chaque type de dossier racine est indiquée ci-"
 "dessous. Cependant, à part le dossier **Roman**, aucune restriction "
-"n'est appliquée par novelWriter sur ce que vous mettez dans ces "
+"n'est appliquée par UmbraEdit sur ce que vous mettez dans ces "
 "dossiers. Vous pouvez les utiliser comme bon vous semble."
 
 #: ../../source/usage/organising_project.rst:46
@@ -294,11 +294,11 @@ msgstr "**Poubelle**"
 msgid ""
 "This folder behaves like you expect. Anything dropped in here can be "
 "deleted permanently from the project, and the content doesn't show up "
-"anywhere else in novelWriter."
+"anywhere else in UmbraEdit."
 msgstr ""
 "Ce dossier se comporte comme vous vous y attendez. Tout ce qui y est "
 "déposé peut être supprimé définitivement du projet, et son contenu "
-"n'apparaît nulle part ailleurs dans novelWriter."
+"n'apparaît nulle part ailleurs dans UmbraEdit."
 
 #: ../../source/usage/organising_project.rst:102
 msgid ""
@@ -340,11 +340,11 @@ msgstr ""
 
 #: ../../source/usage/organising_project.rst:120
 msgid ""
-"When novelWriter is processing the documents in a project, like for "
+"When UmbraEdit is processing the documents in a project, like for "
 "instance when you create a manuscript from it, these folders are "
 "ignored. Only the order of the documents themselves matter."
 msgstr ""
-"Lorsque novelWriter traite les documents d'un projet, comme par exemple "
+"Lorsque UmbraEdit traite les documents d'un projet, comme par exemple "
 "lorsque vous créez un manuscrit à partir de ce projet, ces dossiers sont "
 "ignorés. Seul l'ordre des documents eux-mêmes compte."
 
@@ -391,13 +391,13 @@ msgid ""
 "These are the documents that make up your story or novel. They can only "
 "be added under a root folder of type **Novel**. You can technically also "
 "add them under **Archive**. See :ref:`docs_usage_headings` for more "
-"details on how these documents are handled by novelWriter."
+"details on how these documents are handled by UmbraEdit."
 msgstr ""
 "Ce sont les documents qui constituent votre histoire ou votre roman. Ils "
 "ne peuvent être ajoutés que dans un dossier racine de type **Roman**. "
 "Techniquement, vous pouvez aussi les ajouter dans **Archive**. Voir :ref:"
 "`docs_usage_headings` pour plus de détails sur la façon dont ces "
-"documents sont gérés par novelWriter."
+"documents sont gérés par UmbraEdit."
 
 #: ../../source/usage/organising_project.rst:145
 msgid "**Project Notes**"
@@ -502,13 +502,13 @@ msgstr "Importance et état"
 msgid ""
 "Each document or folder in your project can have either a \"Status\" or "
 "\"Importance\" label set. These are labels and icons that you control "
-"and define yourself, and novelWriter doesn't use them for anything. You "
+"and define yourself, and UmbraEdit doesn't use them for anything. You "
 "can modify these labels in **Project Settings**. See :ref:"
 "`docs_ui_projects_settings_status` for more details."
 msgstr ""
 "Chaque document ou dossier de votre projet peut avoir une étiquette « "
 "Statut » ou « Importance ». Ce sont des étiquettes et des icônes que "
-"vous contrôlez et définissez vous-même, et novelWriter ne les utilise "
+"vous contrôlez et définissez vous-même, et UmbraEdit ne les utilise "
 "pas pour quoi que ce soit. Vous pouvez modifier ces étiquettes dans "
 "**Paramètres du projet**. Voir :ref:`docs_ui_projects_settings_status` "
 "pour plus de détails."

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.umbraedit.umbraedit</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="io.umbraedit">
+    <name>Veronica Berglyd Olsen</name>
+  </developer>
+  <name>UmbraEdit</name>
+  <summary>A plain text editor for planning and writing novels</summary>
+  <description>
+    <p>{description}</p>
+  </description>
+  <launchable type="desktop-id">umbraedit.desktop</launchable>
+  <url type="homepage">https://umbraedit.io</url>
+  <url type="help">https://docs.umbraedit.io</url>
+  <url type="vcs-browser">https://github.com/saga-soft/UmbraEdit</url>
+  <url type="bugtracker">https://github.com/saga-soft/UmbraEdit/issues</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/saga-soft/UmbraEdit/refs/heads/main/setup/screenshot.png</image>
+    </screenshot>
+  </screenshots>
+  <provides>
+    <mediatype>application/x-umbraedit-project</mediatype>
+    <id>umbraedit.desktop</id>
+  </provides>
+  <content_rating type="oars-1.0" />
+</component>

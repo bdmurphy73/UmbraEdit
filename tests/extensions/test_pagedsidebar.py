@@ -1,10 +1,10 @@
 """
-novelWriter - PagedSideBar Extension Tests
+UmbraEdit - PagedSideBar Extension Tests
 ==========================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ import pytest
 from PyQt6.QtCore import Qt
 from pytestqt.qtbot import QtBot
 
-from novelwriter.extensions.pagedsidebar import NPagedSideBar
+from umbraedit.extensions.pagedsidebar import NPagedSideBar
 
 from tests.helpers import SimpleDialog
 from tests.mocked import MockGuiMain

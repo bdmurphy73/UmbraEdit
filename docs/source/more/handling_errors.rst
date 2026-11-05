@@ -4,7 +4,7 @@
 Handling Errors
 ***************
 
-In case something goes wrong, novelWriter has a few built-in features to reduce the chance your
+In case something goes wrong, UmbraEdit has a few built-in features to reduce the chance your
 work is lost. In case of a crash, it will also try to save whatever changes you have made before
 exiting, if this is at all possible.
 
@@ -17,7 +17,7 @@ you're working on is actually at a risk of losing data in the event of a crash.
 Recovered Documents
 ===================
 
-If novelWriter crashes or otherwise exits without saving the project state, or if you're using a
+If UmbraEdit crashes or otherwise exits without saving the project state, or if you're using a
 file synchronisation tool that runs out of sync, there may be files in the project storage folder
 that aren't tracked in the core project file. These files, when discovered, are recovered and added
 back into the project when a project is opened.
@@ -40,16 +40,16 @@ be named after its internal key, which is a string of characters and numbers.
 Project Lockfile
 ================
 
-To prevent data loss caused by file conflicts when novelWriter projects are synchronised via file
+To prevent data loss caused by file conflicts when UmbraEdit projects are synchronised via file
 synchronisation tools, a project lockfile is written to the project storage folder when a project
 is open. If you try to open a project that already has such a file present, you will be presented
-with a warning, and some information about where else novelWriter thinks the project is also open.
+with a warning, and some information about where else UmbraEdit thinks the project is also open.
 You will be given the option to ignore this warning, and continue opening the project at your own
 risk.
 
 .. note::
 
-   If, for some reason, novelWriter or your computer crashes, the lock file may remain even if
+   If, for some reason, UmbraEdit or your computer crashes, the lock file may remain even if
    there are no other instances keeping the project open. In such a case it is safe to ignore the
    lock file warning when re-opening the project.
 
@@ -59,4 +59,4 @@ risk.
    the project are in fact open, you are likely to cause inconsistencies and create diverging
    project files, potentially resulting in loss of data and orphaned files. You are not likely to
    lose any actual text unless both instances have the same document open in the editor, and
-   novelWriter will try to resolve project inconsistencies the next time you open the project.
+   UmbraEdit will try to resolve project inconsistencies the next time you open the project.

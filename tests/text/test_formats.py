@@ -1,10 +1,10 @@
 """
-novelWriter - Text Formats Tests
+UmbraEdit - Text Formats Tests
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,8 +24,8 @@ from __future__ import annotations
 
 import pytest
 
-from novelwriter.enum import nwComment
-from novelwriter.text.formats import _checkModKey, processComment, processHeading
+from umbraedit.enum import nwComment
+from umbraedit.text.formats import _checkModKey, processComment, processHeading
 
 
 @pytest.mark.core

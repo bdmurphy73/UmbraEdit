@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 14:45+0200\n"
@@ -28,11 +28,11 @@ msgstr "Alignement et indentation"
 #: ../../source/usage/alignment_and_indent.rst:7
 msgid ""
 "The Markdown standard doesn't have commands for aligning text, so "
-"novelWriter adds its own syntax for this. It also has syntax for "
+"UmbraEdit adds its own syntax for this. It also has syntax for "
 "indentation, which is similar to Markdown block quotes."
 msgstr ""
 "Le standard Markdown n'a pas de commandes pour aligner le texte, donc "
-"novelWriter ajoute sa propre syntaxe pour cela. Il dispose également "
+"UmbraEdit ajoute sa propre syntaxe pour cela. Il dispose également "
 "d'une syntaxe pour l'indentation, qui est similaire aux guillemets de "
 "bloc de Markdown."
 

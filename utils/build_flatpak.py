@@ -1,10 +1,10 @@
 """
-novelWriter - Flatpak Build
+UmbraEdit - Flatpak Build
 ===========================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -49,9 +49,9 @@ PIP_GEN_COMMIT = "737c0085912f9f7dabf9341d4608e2a77a51a73a"
 PIP_GEN_FILE = "pip/flatpak-pip-generator.py"
 PIP_GEN_URL = f"https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/{PIP_GEN_COMMIT}/{PIP_GEN_FILE}"
 ENCHANT_RELEASE_API = "https://api.github.com/repos/rrthomas/enchant/releases/tags/v{version}"
-NW_REPO_URL = "https://github.com/saga-soft/novelWriter.git"
-NW_COMMIT_API = "https://api.github.com/repos/saga-soft/novelWriter/commits/v{version}"
-FLATHUB_FILES = ("io.novelwriter.novelwriter.yml", "pypi-deps.json", "enchant.json", "novelwriter.appdata.xml")
+NW_REPO_URL = "https://github.com/saga-soft/UmbraEdit.git"
+NW_COMMIT_API = "https://api.github.com/repos/saga-soft/UmbraEdit/commits/v{version}"
+FLATHUB_FILES = ("io.umbraedit.umbraedit.yml", "pypi-deps.json", "enchant.json", "umbraedit.appdata.xml")
 
 
 def processEnchant(bldDir: Path, enchantVersion: str) -> None:
@@ -160,7 +160,7 @@ def flatpak(args: argparse.Namespace) -> None:
     relDate = datetime.datetime.strptime(relDate, "%Y-%m-%d")
 
     bldDir = ROOT_DIR / "dist_flatpak"
-    bldPkg = f"novelwriter_{pkgVers}"
+    bldPkg = f"umbraedit_{pkgVers}"
     outDir = bldDir / bldPkg
 
     # Set Up Folders
@@ -176,20 +176,20 @@ def flatpak(args: argparse.Namespace) -> None:
 
     processDependencies(bldDir)
     processEnchant(bldDir, enchantVersion)
-    writeFile(bldDir / "novelwriter.appdata.xml", appdataXml())
+    writeFile(bldDir / "umbraedit.appdata.xml", appdataXml())
     updateMetaFile(bldDir / "meta.toml", buildFormat="flatpak", installSource="github")
 
-    template = readFile(ROOT_DIR / "setup" / "flatpak" / "io.novelwriter.novelwriter.yml")
+    template = readFile(ROOT_DIR / "setup" / "flatpak" / "io.umbraedit.umbraedit.yml")
     template = template.replace("@QT_VERSION@", qtVersion)
     template = template.replace("@FILESYSTEM_PERMISSION@", "home")
-    manifestFile = bldDir / "io.novelwriter.novelwriter.yml"
+    manifestFile = bldDir / "io.umbraedit.umbraedit.yml"
     writeFile(manifestFile, template)
 
     # Build flatpak
     # ==============
 
     manifestPath = str(manifestFile)
-    bundleFile = bldDir / f"novelwriter-{pkgVers}-linux.flatpak"
+    bundleFile = bldDir / f"umbraedit-{pkgVers}-linux.flatpak"
 
     try:
         subprocess.run(
@@ -210,7 +210,7 @@ def flatpak(args: argparse.Namespace) -> None:
                 "build-bundle",
                 f"{outDir}/repo",
                 bundleFile,
-                "io.novelwriter.novelwriter",
+                "io.umbraedit.umbraedit",
             ],
             check=True,
         )
@@ -252,7 +252,7 @@ def flathub(args: argparse.Namespace) -> None:
 
     processDependencies(bldDir)
     processEnchant(bldDir, enchantVersion)
-    writeFile(bldDir / "novelwriter.appdata.xml", appdataXml())
+    writeFile(bldDir / "umbraedit.appdata.xml", appdataXml())
 
     log("[b]Resolve Release Commit[e]")
     log("[b]======================[e]")
@@ -276,21 +276,21 @@ def flathub(args: argparse.Namespace) -> None:
 
     log("")
 
-    manifest = yaml.safe_load(readFile(ROOT_DIR / "setup" / "flatpak" / "io.novelwriter.novelwriter.yml"))
+    manifest = yaml.safe_load(readFile(ROOT_DIR / "setup" / "flatpak" / "io.umbraedit.umbraedit.yml"))
     manifest["runtime-version"] = qtVersion
     manifest["base-version"] = qtVersion
     manifest["finish-args"] = [
         "--filesystem=xdg-documents" if a.startswith("--filesystem=") else a for a in manifest["finish-args"]
     ]
     for module in manifest["modules"]:
-        if isinstance(module, dict) and module.get("name") == "novelWriter":
+        if isinstance(module, dict) and module.get("name") == "UmbraEdit":
             module["sources"] = [
                 {"type": "git", "url": NW_REPO_URL, "tag": tag, "commit": commit},
-                {"type": "file", "path": "novelwriter.appdata.xml"},
+                {"type": "file", "path": "umbraedit.appdata.xml"},
             ]
             break
 
-    manifestFile = bldDir / "io.novelwriter.novelwriter.yml"
+    manifestFile = bldDir / "io.umbraedit.umbraedit.yml"
     with open(manifestFile, mode="w", encoding="utf-8") as outFile:
         yaml.safe_dump(manifest, outFile, sort_keys=False)
     log(f"[cg]Wrote:[e] {manifestFile.relative_to(ROOT_DIR)}")

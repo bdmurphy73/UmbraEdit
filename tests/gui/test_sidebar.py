@@ -1,10 +1,10 @@
 """
-novelWriter - GUI Side Bar Tests
+UmbraEdit - GUI Side Bar Tests
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,10 +27,10 @@ import pytest
 from PyQt6.QtCore import QPoint, Qt
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG
-from novelwriter.constants import nwLabels
-from novelwriter.enum import nwTheme, nwView
-from novelwriter.guimain import GuiMain
+from umbraedit import CONFIG
+from umbraedit.constants import nwLabels
+from umbraedit.enum import nwTheme, nwView
+from umbraedit.guimain import GuiMain
 
 
 @pytest.mark.gui

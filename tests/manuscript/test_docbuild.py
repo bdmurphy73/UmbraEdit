@@ -1,10 +1,10 @@
 """
-novelWriter - Manuscript Builder Tests
+UmbraEdit - Manuscript Builder Tests
 ======================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2023 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,15 +30,15 @@ from shutil import copyfile
 
 import pytest
 
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwBuildFmt, nwItemClass
-from novelwriter.formats.tohtml import ToHtml
-from novelwriter.formats.tomarkdown import ToMarkdown
-from novelwriter.formats.toodt import ToOdt
-from novelwriter.formats.toqdoc import ToQTextDocument
-from novelwriter.formats.toraw import ToRaw
-from novelwriter.manuscript.buildsettings import BuildSettings
-from novelwriter.manuscript.docbuild import DocumentBuilder
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwBuildFmt, nwItemClass
+from umbraedit.formats.tohtml import ToHtml
+from umbraedit.formats.tomarkdown import ToMarkdown
+from umbraedit.formats.toodt import ToOdt
+from umbraedit.formats.toqdoc import ToQTextDocument
+from umbraedit.formats.toraw import ToRaw
+from umbraedit.manuscript.buildsettings import BuildSettings
+from umbraedit.manuscript.docbuild import DocumentBuilder
 
 from tests.helpers import ODT_IGNORE, C, MockRnd, TstPaths, buildTestProject, cmpFiles
 from tests.mocked import MockGuiMain, causeException, causeOSError
@@ -158,7 +158,7 @@ def testDocumentBuilder_OpenDocument(
     # ==================
 
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.formats.toodt.ToOdt.doConvert", causeException)
+        mp.setattr("umbraedit.formats.toodt.ToOdt.doConvert", causeException)
         assert len(docBuild) == 19
 
         count = 0

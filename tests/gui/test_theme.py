@@ -1,10 +1,10 @@
 """
-novelWriter - GUI Theme and Icons Tests
+UmbraEdit - GUI Theme and Icons Tests
 =======================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -33,17 +33,17 @@ import pytest
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QColor, QFont, QFontDatabase, QIcon, QPalette, QPixmap, QStyleHints
 
-from novelwriter import CONFIG
-from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT, DEF_ICONS
-from novelwriter.constants import nwLabels
-from novelwriter.enum import nwItemClass, nwItemLayout, nwItemType, nwTheme
-from novelwriter.gui.theme import (
+from umbraedit import CONFIG
+from umbraedit.config import DEF_GUI_DARK, DEF_GUI_LIGHT, DEF_ICONS
+from umbraedit.constants import nwLabels
+from umbraedit.enum import nwItemClass, nwItemLayout, nwItemType, nwTheme
+from umbraedit.gui.theme import (
     GuiTheme,
     ThemeEntry,
     ThemeMeta,
     _listContent,
 )
-from novelwriter.types import QtIconNormal, QtIconOff, QtIconOn
+from umbraedit.types import QtIconNormal, QtIconOff, QtIconOn
 
 from tests.helpers import TstPaths
 from tests.mocked import causeOSError
@@ -611,7 +611,7 @@ def testGuiTheme_LoadIcons():
     assert rtlList == iconCache._loadIcon("fmt_list_o_rtl").pixmap(size).toImage()
 
     # Load app icon
-    qIcon = iconCache.getIcon("novelwriter")
+    qIcon = iconCache.getIcon("umbraedit")
     assert isinstance(qIcon, QIcon)
     assert qIcon != iconCache._noIcon
 

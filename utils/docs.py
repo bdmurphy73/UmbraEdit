@@ -1,10 +1,10 @@
 """
-novelWriter - Documentation
+UmbraEdit - Documentation
 ===========================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -121,7 +121,7 @@ def buildDocs(args: argparse.Namespace | None = None, *, pdf: bool = False) -> N
             log("")
             if pdf:
                 log("")
-                pdfFile.rename(ROOT_DIR / "novelwriter" / "assets" / pdfName)
+                pdfFile.rename(ROOT_DIR / "umbraedit" / "assets" / pdfName)
             else:
                 if outDir.exists():
                     shutil.rmtree(outDir)

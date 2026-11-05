@@ -1,10 +1,10 @@
 """
-novelWriter - QTextDocument to Text Converter Tests
+UmbraEdit - QTextDocument to Text Converter Tests
 ===================================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,11 +26,11 @@ import pytest
 
 from PyQt6.QtGui import QFont, QTextCharFormat, QTextCursor, QTextDocument
 
-from novelwriter import CONFIG
-from novelwriter.core.project import NWProject
-from novelwriter.formats.fromqdoc import FromQTextDocument
-from novelwriter.formats.tohtml import ToHtml
-from novelwriter.formats.toqdoc import ToQTextDocument
+from umbraedit import CONFIG
+from umbraedit.core.project import NWProject
+from umbraedit.formats.fromqdoc import FromQTextDocument
+from umbraedit.formats.tohtml import ToHtml
+from umbraedit.formats.toqdoc import ToQTextDocument
 
 from tests.mocked import MockGuiMain
 
@@ -161,7 +161,7 @@ def testFromQTextDocument_MergeSplitFragments():
 @pytest.mark.core
 def testFromQTextDocument_MarkdownVsShortcode(mockGUI: MockGuiMain):
     """Test the edge cases that decide whether a format is written
-    as Markdown or as a novelWriter shortcode: Markdown is only used
+    as Markdown or as a UmbraEdit shortcode: Markdown is only used
     when the formatted run sits on two clean word edges. Also checks
     that the single asterisk bold setting only affects the Markdown
     form, not the shortcode fallback.
@@ -175,7 +175,7 @@ def testFromQTextDocument_MarkdownVsShortcode(mockGUI: MockGuiMain):
         return FromQTextDocument(document).convertText().strip()
 
     def revert(text: str) -> str:
-        """Convert a novelWriter text fragment back to HTML via
+        """Convert a UmbraEdit text fragment back to HTML via
         ToQTextDocument.
         """
         html = ToHtml(project)
@@ -229,7 +229,7 @@ def testFromQTextDocument_MarkdownVsShortcode(mockGUI: MockGuiMain):
 
     # Nested formats on a clean edge nest their Markdown tags. Italic
     # is always innermost: its "_" delimiter is a word character, so
-    # "**"/"~~" placed next to it fails novelWriter's own parser and
+    # "**"/"~~" placed next to it fails UmbraEdit's own parser and
     # is left as literal text, regardless of the source HTML's own
     # nesting order.
     assert convert("<p>Some <b><i><s>combo</s></i></b> text.</p>") == "Some **~~_combo_~~** text."
@@ -254,13 +254,13 @@ def testFromQTextDocument_MarkdownVsShortcode(mockGUI: MockGuiMain):
 def testFromQTextDocument_MarkdownNestingRoundTrip(mockGUI: MockGuiMain):
     """Test that every non-empty combination of bold, italic and
     strike survives a full round trip: HTML to FromQTextDocument to
-    novelWriter text to the real tokenizer (ToQTextDocument) to the
+    UmbraEdit text to the real tokenizer (ToQTextDocument) to the
     resulting character format.
     """
     project = NWProject()
 
     def styleRoundTrip(html: str) -> dict[str, bool]:
-        """Convert an HTML fragment to novelWriter text, parse that text
+        """Convert an HTML fragment to UmbraEdit text, parse that text
         back through the real tokenizer, and return which of bold, italic
         and strike survived on the resulting fragment. This is the actual
         parser the generated Markdown has to survive, not just a regex
@@ -295,7 +295,7 @@ def testFromQTextDocument_MarkdownNestingRoundTrip(mockGUI: MockGuiMain):
 
 @pytest.mark.core
 def testFromQTextDocument_DocumentRoundTrip(mockGUI: MockGuiMain):
-    """Test a round trip of novelWriter text through ToQTextDocument
+    """Test a round trip of UmbraEdit text through ToQTextDocument
     and back again through FromQTextDocument.
     """
     project = NWProject()

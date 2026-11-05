@@ -25,7 +25,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: nw-assets
-          path: novelwriter/assets
+          path: umbraedit/assets
 
       - name: Build Setup Installer
         id: build
@@ -37,7 +37,7 @@ jobs:
         id: upload-unsigned-artifact
         uses: actions/upload-artifact@v7
         with:
-          name: novelWriter-${{ steps.build.outputs.BUILD_VERSION }}-Win-Setup
+          name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-Win-Setup
           path: dist/*.exe
           if-no-files-found: error
           retention-days: 14
@@ -47,7 +47,7 @@ jobs:
         with:
           api-token: "${{ secrets.SIGNPATH_API_TOKEN }}"
           organization-id: "0471e52c-66fa-4e9a-bfb9-36167095ca3f"
-          project-slug: "novelWriter"
+          project-slug: "UmbraEdit"
           signing-policy-slug: "release-signing "
           github-artifact-id: "${{ steps.upload-unsigned-artifact.outputs.artifact-id }}"
           wait-for-completion: true
@@ -58,7 +58,7 @@ jobs:
       - name: Upload Signed Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: novelWriter-${{ steps.build.outputs.BUILD_VERSION }}-Win-Setup-Signed
+          name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-Win-Setup-Signed
           path: dist/*.exe
           if-no-files-found: error
           retention-days: 14

@@ -1,10 +1,10 @@
 """
-novelWriter - Document Viewer Panel Tests
+UmbraEdit - Document Viewer Panel Tests
 =========================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2023 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,15 +30,15 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.constants import nwLists
-from novelwriter.core.item import ProjectItem
-from novelwriter.core.options import OptionState
-from novelwriter.core.project import NWProject
-from novelwriter.dialogs.editlabel import GuiEditLabel
-from novelwriter.enum import nwChange
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtDisplayRole
+from umbraedit import SHARED
+from umbraedit.constants import nwLists
+from umbraedit.core.item import ProjectItem
+from umbraedit.core.options import OptionState
+from umbraedit.core.project import NWProject
+from umbraedit.dialogs.editlabel import GuiEditLabel
+from umbraedit.enum import nwChange
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtDisplayRole
 
 from tests.helpers import C, MockRnd, buildTestProject
 

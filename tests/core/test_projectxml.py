@@ -1,10 +1,10 @@
 """
-novelWriter - Project XML Tests
+UmbraEdit - Project XML Tests
 ===============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2022 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2022 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -32,13 +32,13 @@ from typing import Any
 
 import pytest
 
-from novelwriter import SHARED
-from novelwriter.constants import nwFiles
-from novelwriter.core.item import ProjectItem
-from novelwriter.core.projectdata import ProjectData
-from novelwriter.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLReadState
-from novelwriter.core.status import CUSTOM_COL, ItemStatus
-from novelwriter.enum import nwStatusShape
+from umbraedit import SHARED
+from umbraedit.constants import nwFiles
+from umbraedit.core.item import ProjectItem
+from umbraedit.core.projectdata import ProjectData
+from umbraedit.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLReadState
+from umbraedit.core.status import CUSTOM_COL, ItemStatus
+from umbraedit.enum import nwStatusShape
 
 from tests.helpers import MockRnd, TstPaths, cmpFiles, writeFile
 from tests.mocked import MockGuiMain, causeOSError
@@ -59,8 +59,8 @@ class MockProject:
 @pytest.fixture(autouse=True)
 def mockVersion(monkeypatch: pytest.MonkeyPatch) -> None:
     """Mock the version info to prevent diff from failing."""
-    monkeypatch.setattr("novelwriter.core.projectxml.__version__", "26.2rc1")
-    monkeypatch.setattr("novelwriter.core.projectxml.__hexversion__", "0x260200c1")
+    monkeypatch.setattr("umbraedit.core.projectxml.__version__", "26.2rc1")
+    monkeypatch.setattr("umbraedit.core.projectxml.__hexversion__", "0x260200c1")
 
 
 @pytest.mark.core
@@ -87,13 +87,13 @@ def testProjectXMLReader_ReadCurrent(
     assert xmlReader.read(data, content) is False
     assert xmlReader.state == XMLReadState.CANNOT_PARSE
 
-    # Add a valid project file, that is not novelWriter
+    # Add a valid project file, that is not UmbraEdit
     writeFile(xmlFile, "<xml/>")
     assert xmlReader.read(data, content) is False
     assert xmlReader.state == XMLReadState.NOT_NWX_FILE
 
-    # Add a valid novelWriter file without a file version
-    writeFile(xmlFile, "<novelWriterXML/>")
+    # Add a valid UmbraEdit file without a file version
+    writeFile(xmlFile, "<UmbraEditXML/>")
     assert xmlReader.read(data, content) is False
     assert xmlReader.state == XMLReadState.UNKNOWN_VERSION
 
@@ -101,7 +101,7 @@ def testProjectXMLReader_ReadCurrent(
     writeFile(
         xmlFile,
         (
-            "<novelWriterXML fileVersion='1.6'>"
+            "<UmbraEditXML fileVersion='1.6'>"
             "  <project>"
             "    <stuff></stuff>"
             "  </project>"
@@ -115,7 +115,7 @@ def testProjectXMLReader_ReadCurrent(
             "    <stuff></stuff>"
             "  </content>"
             "  <stuff></stuff>"
-            "</novelWriterXML>"
+            "</UmbraEditXML>"
         ),
     )
     assert xmlReader.read(data, content) is True
@@ -124,7 +124,7 @@ def testProjectXMLReader_ReadCurrent(
     writeFile(
         xmlFile,
         (
-            "<novelWriterXML fileVersion='1.0'>"
+            "<UmbraEditXML fileVersion='1.0'>"
             "  <project>"
             "    <stuff></stuff>"
             "  </project>"
@@ -138,7 +138,7 @@ def testProjectXMLReader_ReadCurrent(
             "    <stuff></stuff>"
             "  </content>"
             "  <stuff></stuff>"
-            "</novelWriterXML>"
+            "</UmbraEditXML>"
         ),
     )
     assert xmlReader.read(data, content) is True
@@ -149,7 +149,7 @@ def testProjectXMLReader_ReadCurrent(
     writeFile(
         xmlFile,
         (
-            "<novelWriterXML fileVersion='1.4' hexVersion='0x260200f0'>"
+            "<UmbraEditXML fileVersion='1.4' hexVersion='0x260200f0'>"
             "  <project>"
             "    <stuff></stuff>"
             "  </project>"
@@ -163,7 +163,7 @@ def testProjectXMLReader_ReadCurrent(
             "    <stuff></stuff>"
             "  </content>"
             "  <stuff></stuff>"
-            "</novelWriterXML>"
+            "</UmbraEditXML>"
         ),
     )
     assert xmlReader.read(data, content) is True
@@ -178,7 +178,7 @@ def testProjectXMLReader_ReadCurrent(
     copyfile(refFile, xmlFile)
     assert xmlReader.read(data, content) is True
     assert xmlReader.state == XMLReadState.PARSED_OK
-    assert xmlReader.xmlRoot == "novelWriterXML"
+    assert xmlReader.xmlRoot == "UmbraEditXML"
     assert xmlReader.xmlVersion == 0x0106
     assert xmlReader.xmlRevision == 1
     assert xmlReader.appVersion == "26.2rc1"
@@ -345,7 +345,7 @@ def testProjectXMLReader_ReadLegacy10(tstPaths: TstPaths, fncPath: Path, mockGUI
 
     assert xmlReader.read(data, content) is True
     assert xmlReader.state == XMLReadState.WAS_LEGACY
-    assert xmlReader.xmlRoot == "novelWriterXML"
+    assert xmlReader.xmlRoot == "UmbraEditXML"
     assert xmlReader.xmlVersion == 0x0100
     assert xmlReader.appVersion == "0.6.1"
     assert xmlReader.hexVersion == 0x000601F0
@@ -511,7 +511,7 @@ def testProjectXMLReader_ReadLegacy11(tstPaths: TstPaths, fncPath: Path, mockGUI
 
     assert xmlReader.read(data, content) is True
     assert xmlReader.state == XMLReadState.WAS_LEGACY
-    assert xmlReader.xmlRoot == "novelWriterXML"
+    assert xmlReader.xmlRoot == "UmbraEditXML"
     assert xmlReader.xmlVersion == 0x0101
     assert xmlReader.appVersion == "0.9.2"
     assert xmlReader.hexVersion == 0x000902F0
@@ -677,7 +677,7 @@ def testProjectXMLReader_ReadLegacy12(tstPaths: TstPaths, fncPath: Path, mockGUI
 
     assert xmlReader.read(data, content) is True
     assert xmlReader.state == XMLReadState.WAS_LEGACY
-    assert xmlReader.xmlRoot == "novelWriterXML"
+    assert xmlReader.xmlRoot == "UmbraEditXML"
     assert xmlReader.xmlVersion == 0x0102
     assert xmlReader.appVersion == "1.4.2"
     assert xmlReader.hexVersion == 0x010402F0
@@ -846,7 +846,7 @@ def testProjectXMLReader_ReadLegacy13(tstPaths: TstPaths, fncPath: Path, mockGUI
 
     assert xmlReader.read(data, content) is True
     assert xmlReader.state == XMLReadState.WAS_LEGACY
-    assert xmlReader.xmlRoot == "novelWriterXML"
+    assert xmlReader.xmlRoot == "UmbraEditXML"
     assert xmlReader.xmlVersion == 0x0103
     assert xmlReader.appVersion == "1.6.6"
     assert xmlReader.hexVersion == 0x010606F0
@@ -1015,7 +1015,7 @@ def testProjectXMLReader_ReadLegacy14(tstPaths: TstPaths, fncPath: Path, mockGUI
 
     assert xmlReader.read(data, content) is True
     assert xmlReader.state == XMLReadState.WAS_LEGACY
-    assert xmlReader.xmlRoot == "novelWriterXML"
+    assert xmlReader.xmlRoot == "UmbraEditXML"
     assert xmlReader.xmlVersion == 0x0104
     assert xmlReader.appVersion == "2.0-rc1"
     assert xmlReader.hexVersion == 0x020000C1
@@ -1188,7 +1188,7 @@ def testProjectXMLReader_ReadLegacy15(tstPaths: TstPaths, fncPath: Path, mockGUI
 
     assert xmlReader.read(data, content) is True
     assert xmlReader.state == XMLReadState.WAS_LEGACY
-    assert xmlReader.xmlRoot == "novelWriterXML"
+    assert xmlReader.xmlRoot == "UmbraEditXML"
     assert xmlReader.xmlVersion == 0x0105
     assert xmlReader.appVersion == "26.2a1"
     assert xmlReader.hexVersion == 0x260200A1

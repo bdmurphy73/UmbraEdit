@@ -1,10 +1,10 @@
 """
-novelWriter - GUI TextAutoReplace Tests
+UmbraEdit - GUI TextAutoReplace Tests
 =======================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,9 +28,9 @@ from PyQt6.QtGui import QTextCursor, QTextDocument
 from PyQt6.QtWidgets import QLineEdit
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG
-from novelwriter.constants import nwUnicode
-from novelwriter.text.autoreplace import LineEditAutoReplace, TextAutoReplace
+from umbraedit import CONFIG
+from umbraedit.constants import nwUnicode
+from umbraedit.text.autoreplace import LineEditAutoReplace, TextAutoReplace
 
 
 @pytest.mark.gui

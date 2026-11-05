@@ -1,10 +1,10 @@
 """
-novelWriter - App Splash Screen Tests
+UmbraEdit - App Splash Screen Tests
 =====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,13 +28,13 @@ import pytest
 
 from PyQt6.QtGui import QPainter, QPixmap
 
-from novelwriter.splash import NSplashScreen
+from umbraedit.splash import NSplashScreen
 
 
 @pytest.mark.gui
 def testSplash_Main(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch):
     """Check the splash screen's initial state, status updates, and painting."""
-    monkeypatch.setattr("novelwriter.splash.sleep", lambda *a: None)
+    monkeypatch.setattr("umbraedit.splash.sleep", lambda *a: None)
     splash = NSplashScreen()
     assert splash._text == ""
     assert splash.font().pointSizeF() == 12.0
@@ -42,9 +42,9 @@ def testSplash_Main(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.Monkey
     caplog.set_level(logging.INFO)
 
     # A non-empty message is logged
-    splash.showStatus("Starting novelWriter ...")
-    assert splash._text == "Starting novelWriter ..."
-    assert "Starting novelWriter ..." in caplog.text
+    splash.showStatus("Starting UmbraEdit ...")
+    assert splash._text == "Starting UmbraEdit ..."
+    assert "Starting UmbraEdit ..." in caplog.text
 
     # An empty message is not logged
     caplog.clear()

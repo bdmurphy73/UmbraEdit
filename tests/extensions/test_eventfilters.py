@@ -1,10 +1,10 @@
 """
-novelWriter - Wheel Event Filter Tests
+UmbraEdit - Wheel Event Filter Tests
 ======================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2023 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,8 +28,8 @@ from PyQt6.QtCore import QEvent, QObject, QPoint, QPointF, Qt
 from PyQt6.QtGui import QKeyEvent, QWheelEvent
 from PyQt6.QtWidgets import QWidget
 
-from novelwriter.extensions.eventfilters import WheelEventFilter
-from novelwriter.types import QtModNone, QtModShift
+from umbraedit.extensions.eventfilters import WheelEventFilter
+from umbraedit.types import QtModNone, QtModShift
 
 
 class MockWidget(QWidget):

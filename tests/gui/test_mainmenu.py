@@ -1,10 +1,10 @@
 """
-novelWriter - GUI Main Menu Tests
+UmbraEdit - GUI Main Menu Tests
 =================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,14 +31,14 @@ from PyQt6.QtGui import QAction, QDesktopServices, QTextBlock
 from PyQt6.QtWidgets import QFileDialog
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.constants import nwKeyWords, nwShortcode, nwStats, nwUnicode
-from novelwriter.core.project import NWProject
-from novelwriter.editor.editor import GuiDocEditor
-from novelwriter.enum import nwDocAction, nwDocInsert, nwFocus, nwView
-from novelwriter.guimain import GuiMain
-from novelwriter.shared import _GuiAlert
-from novelwriter.types import QtKeepAnchor, QtMoveRight, QtSelectWord
+from umbraedit import CONFIG, SHARED
+from umbraedit.constants import nwKeyWords, nwShortcode, nwStats, nwUnicode
+from umbraedit.core.project import NWProject
+from umbraedit.editor.editor import GuiDocEditor
+from umbraedit.enum import nwDocAction, nwDocInsert, nwFocus, nwView
+from umbraedit.guimain import GuiMain
+from umbraedit.shared import _GuiAlert
+from umbraedit.types import QtKeepAnchor, QtMoveRight, QtSelectWord
 
 from tests.helpers import C, MockRnd, buildTestProject, writeFile
 

@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: novelWriter
+Upstream-Name: UmbraEdit
 Upstream-Contact: Veronica Berglyd Olsen <code@vkbo.net>
-Source: https://github.com/saga-soft/novelWriter
+Source: https://github.com/saga-soft/UmbraEdit
 
 Files: *
 Copyright: 2018-2025, Veronica Berglyd Olsen
@@ -19,7 +19,7 @@ License: GPL-3.0-or-later
  You should have received a copy of the GNU General Public License
  along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-Files: novelwriter/assets/icons/material_*
+Files: umbraedit/assets/icons/material_*
 Copyright: Google Inc
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,7 +34,7 @@ License: Apache-2.0
  See the License for the specific language governing permissions and
  limitations under the License.
 
-Files: novelwriter/assets/icons/lucide.*
+Files: umbraedit/assets/icons/lucide.*
 Copyright: Cole Bemis, Lucide Contributors
 License: ISC
  Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2023
@@ -54,7 +54,7 @@ License: ISC
  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
  SOFTWARE.
 
-Files: novelwriter/assets/icons/fluentui_*
+Files: umbraedit/assets/icons/fluentui_*
 Copyright: 2020, Microsoft Corporation
 License: MIT
  Permission is hereby granted, free of charge, to any person obtaining a

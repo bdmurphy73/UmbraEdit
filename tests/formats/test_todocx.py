@@ -1,10 +1,10 @@
 """
-novelWriter - DocX Format Tests
+UmbraEdit - DocX Format Tests
 ===============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,14 +29,14 @@ from pathlib import Path
 
 import pytest
 
-from novelwriter.common import xmlIndent
-from novelwriter.constants import nwHeadFmt, nwUnicode
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwBuildFmt, nwComment
-from novelwriter.formats.shared import BlockFmt, BlockTyp
-from novelwriter.formats.todocx import OOXML_SCM, DocXParagraph, ToDocX, _mkTag, _wTag
-from novelwriter.manuscript.buildsettings import BuildSettings
-from novelwriter.manuscript.docbuild import DocumentBuilder
+from umbraedit.common import xmlIndent
+from umbraedit.constants import nwHeadFmt, nwUnicode
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwBuildFmt, nwComment
+from umbraedit.formats.shared import BlockFmt, BlockTyp
+from umbraedit.formats.todocx import OOXML_SCM, DocXParagraph, ToDocX, _mkTag, _wTag
+from umbraedit.manuscript.buildsettings import BuildSettings
+from umbraedit.manuscript.docbuild import DocumentBuilder
 
 from tests.helpers import DOCX_IGNORE, TstPaths, cmpFiles, xmlToText
 from tests.mocked import MockGuiMain

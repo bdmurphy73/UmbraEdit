@@ -4,7 +4,7 @@
 Custom Themes
 *************
 
-There are a few ways you can customise novelWriter yourself. Currently, you can relatively easily
+There are a few ways you can customise UmbraEdit yourself. Currently, you can relatively easily
 add new GUI themes. You can also add new icon themes, although this is not as straightforward.
 
 
@@ -21,15 +21,15 @@ In order to make your own versions, first copy one of the existing files to your
 modify it as you like.
 
 The existing colour themes are stored in
-`novelwriter/assets/themes <https://github.com/saga-soft/novelWriter/tree/main/novelwriter/assets/themes>`_.
+`umbraedit/assets/themes <https://github.com/saga-soft/UmbraEdit/tree/main/umbraedit/assets/themes>`_.
 
 Remember to also change the name of your theme by modifying the ``name`` setting at the top of the
 file, otherwise you may not be able to distinguish them in **Preferences**.
 
-For novelWriter to be able to locate the custom theme files, you must copy them to the
+For UmbraEdit to be able to locate the custom theme files, you must copy them to the
 :ref:`docs_technical_locations_data` location in your home or user area. There should be a folder
 there named ``themes`` for colour themes. These folders are created the first time you start
-novelWriter.
+UmbraEdit.
 
 Once the files are copied there, they should show up in **Preferences** with the label you
 set as ``name`` inside the file.
@@ -53,7 +53,7 @@ A colour theme ``.toml`` file consists of the following settings:
    mode   = "light"
    author = "Veronica Berglyd Olsen"
    credit = "Veronica Berglyd Olsen"
-   url    = "https://github.com/saga-soft/novelWriter"
+   url    = "https://github.com/saga-soft/UmbraEdit"
 
    [Base]
    base    = "#fcfcfc"
@@ -156,7 +156,7 @@ Theme Sections
 
 .. _ColorRole: https://doc.qt.io/qt-6/qpalette.html#ColorRole-enum
 
-The theme file is made up of different sections depending on what part of novelWriter the theme
+The theme file is made up of different sections depending on what part of UmbraEdit the theme
 affects.
 
 .. csv-table:: Theme Sections Overview
@@ -239,14 +239,14 @@ Icon themes are *not* straightforward to add, but if you want to make the effort
 describes how to do it.
 
 The existing icon themes are stored in
-`novelwriter/assets/icons <https://github.com/saga-soft/novelWriter/tree/main/novelwriter/assets/icons>`_.
+`umbraedit/assets/icons <https://github.com/saga-soft/UmbraEdit/tree/main/umbraedit/assets/icons>`_.
 
 As with colour themes, remember to change the name of your theme by modifying the ``name`` setting
 at the top of the file, otherwise you may not be able to distinguish them in **Preferences**.
 
-For novelWriter to be able to locate the custom theme files, you must copy them to the
+For UmbraEdit to be able to locate the custom theme files, you must copy them to the
 :ref:`docs_technical_locations_data` location in your home or user area. There should be a folder
-there ``icons`` for icon themes. These folders are created the first time you start novelWriter.
+there ``icons`` for icon themes. These folders are created the first time you start UmbraEdit.
 
 
 The Icons File Format
@@ -281,14 +281,14 @@ format with entries on the form ``section:key = value``.
    icon:cls_trash       = <svg ...>
    icon:cls_world       = <svg ...>
 
-The icon keys are associated with icon placement locations inside novelWriter, and the template for
+The icon keys are associated with icon placement locations inside UmbraEdit, and the template for
 them is defined in the script that generates the default icon themes.
 
 The script can be found under
-`utils/icon_themes.py <https://github.com/saga-soft/novelWriter/blob/main/utils/icon_themes.py>`__
+`utils/icon_themes.py <https://github.com/saga-soft/UmbraEdit/blob/main/utils/icon_themes.py>`__
 in the source code.
 
-This file includes all the code needed to generate the themes that are included in novelWriter. The
+This file includes all the code needed to generate the themes that are included in UmbraEdit. The
 icon keys are mapped to icon keys from the specific themes in JSON files in the ``icon_themes``
 folder next to the script. This is the recommended way to generate these themes. Doing it manually
 is not advisable.
@@ -303,7 +303,7 @@ in-line SVG XML block. The XML must fit on one line and obey the following rules
 #. It must be single colour, that is, the fill colour attribute must be able to colourise the
    entire icon.
 #. The fill colour attribute *must* be defined and must be set to: ``fill="#000000"``. This value
-   is replaced by the relevant theme colour when the icon is processed in novelWriter.
+   is replaced by the relevant theme colour when the icon is processed in UmbraEdit.
  
 .. versionadded:: 2.7
    The icon theme files were added. Previously, icons were stored as individual SVG files with a

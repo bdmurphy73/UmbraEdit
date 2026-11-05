@@ -1,10 +1,10 @@
 """
-novelWriter - AppImage Build
+UmbraEdit - AppImage Build
 ============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -77,11 +77,11 @@ def appImage(args: argparse.Namespace) -> None:
 
     # Set Up Folder
     bldDir = ROOT_DIR / "dist_appimage"
-    bldPkg = f"novelwriter-{pkgVers}-{mArch}"
+    bldPkg = f"umbraedit-{pkgVers}-{mArch}"
     bldImg = f"{bldPkg}.AppImage"
     outDir = bldDir / bldPkg
     imgDir = bldDir / "appimage"
-    appDir = bldDir / f"novelWriter-{mArch}"
+    appDir = bldDir / f"UmbraEdit-{mArch}"
 
     bldDir.mkdir(exist_ok=True)
     freshFolder(outDir)
@@ -94,30 +94,30 @@ def appImage(args: argparse.Namespace) -> None:
         for image in images:
             image.unlink()
 
-    # Copy novelWriter Source
-    log("[b]Copying novelWriter source ...[e]")
+    # Copy UmbraEdit Source
+    log("[b]Copying UmbraEdit source ...[e]")
     copySourceCode(outDir)
-    updateMetaFile(outDir / "novelwriter" / "assets" / "meta.toml", buildFormat="appimage", installSource="github")
+    updateMetaFile(outDir / "umbraedit" / "assets" / "meta.toml", buildFormat="appimage", installSource="github")
 
     log("[b]Copying or generating additional files ...[e]")
     copyPackageFiles(outDir)
 
     # Write Metadata
-    writeFile(imgDir / "novelwriter.appdata.xml", appdataXml())
+    writeFile(imgDir / "umbraedit.appdata.xml", appdataXml())
     writeFile(imgDir / "requirements.txt", str(outDir))
     writeFile(
         imgDir / "entrypoint.sh",
         (
             # f"export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${{APPDIR}}/usr/lib/{mArch}-linux-gnu/\n"
-            '{{ python-executable }} -sE ${APPDIR}/opt/python{{ python-version }}/bin/novelwriter "$@"'
+            '{{ python-executable }} -sE ${APPDIR}/opt/python{{ python-version }}/bin/umbraedit "$@"'
         ),
     )
 
-    shutil.copyfile(SETUP_DIR / "data" / "novelwriter.desktop", imgDir / "novelwriter.desktop")
-    log("[cg]Copied:[e] novelwriter.desktop")
+    shutil.copyfile(SETUP_DIR / "data" / "umbraedit.desktop", imgDir / "umbraedit.desktop")
+    log("[cg]Copied:[e] umbraedit.desktop")
 
-    shutil.copyfile(SETUP_DIR / "icons" / "novelwriter.png", imgDir / "novelwriter.png")
-    log("[cg]Copied:[e] novelwriter.png")
+    shutil.copyfile(SETUP_DIR / "icons" / "umbraedit.png", imgDir / "umbraedit.png")
+    log("[cg]Copied:[e] umbraedit.png")
 
     # Build AppDir
     systemCall(
@@ -155,7 +155,7 @@ def appImage(args: argparse.Namespace) -> None:
             appToolExec,
             "--no-appstream",
             "--updateinformation",
-            f"gh-releases-zsync|saga-soft|novelwriter|latest|novelwriter-*-{mArch}.AppImage.zsync",
+            f"gh-releases-zsync|saga-soft|umbraedit|latest|umbraedit-*-{mArch}.AppImage.zsync",
             str(appDir),
             bldImg,
         ],

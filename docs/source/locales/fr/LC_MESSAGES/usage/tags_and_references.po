@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 14:07+0200\n"
@@ -27,27 +27,27 @@ msgstr "Étiquettes et références"
 
 #: ../../source/usage/tags_and_references.rst:7
 msgid ""
-"One of the core features of novelWriter is its **Tags and References** "
-"system. This is perhaps one of the features that makes novelWriter "
+"One of the core features of UmbraEdit is its **Tags and References** "
+"system. This is perhaps one of the features that makes UmbraEdit "
 "different from other similar applications. It is therefore not always "
 "obvious to new users how this is supposed to work."
 msgstr ""
-"L'une des principales caractéristiques de novelWriter est son système "
+"L'une des principales caractéristiques de UmbraEdit est son système "
 "d'**Étiquettes et de Références**. C'est peut-être l'une des "
-"caractéristiques qui différencie novelWriter d'autres applications "
+"caractéristiques qui différencie UmbraEdit d'autres applications "
 "similaires. Il n'est donc pas toujours évident pour les nouveaux "
 "utilisateurs de comprendre comment cela est censé fonctionner."
 
 #: ../../source/usage/tags_and_references.rst:11
 msgid ""
-"In novelWriter there are no forms or tables to fill in to define "
+"In UmbraEdit there are no forms or tables to fill in to define "
 "characters, locations or other elements of your story. Instead, you "
 "create documents in one of the root folders for notes. Within these "
 "documents you can set **tags**, like for instance for your main "
 "character. If you then want to annotate a scene with this character as "
 "its point-of-view, you create a **reference** to the tag."
 msgstr ""
-"Dans novelWriter, il n'y a pas de formulaires ou de tableaux à remplir "
+"Dans UmbraEdit, il n'y a pas de formulaires ou de tableaux à remplir "
 "pour définir les personnages, les lieux ou d'autres éléments de votre "
 "histoire. Au lieu de cela, vous créez des documents dans l'un des "
 "dossiers racine pour les notes. Dans ces documents, vous pouvez définir "
@@ -76,12 +76,12 @@ msgstr "Comment utiliser les étiquettes"
 
 #: ../../source/usage/tags_and_references.rst:30
 msgid ""
-"The structure of your novelWriter project is inferred from the headings "
+"The structure of your UmbraEdit project is inferred from the headings "
 "within the documents, not the documents themselves. See :ref:"
 "`docs_usage_headings` for more details. Therefore, metadata is also "
 "associated with headings, and not the documents themselves."
 msgstr ""
-"La structure de votre projet novelWriter est déduite des titres des "
+"La structure de votre projet UmbraEdit est déduite des titres des "
 "documents, et non des documents eux-mêmes. Voir :ref:"
 "`docs_usage_headings` pour plus de détails. Par conséquent, les "
 "métadonnées sont également associées aux titres, et non aux documents eux-"
@@ -89,10 +89,10 @@ msgstr ""
 
 #: ../../source/usage/tags_and_references.rst:34
 msgid ""
-"A \"tag\" in novelWriter is a word or phrase that you define as belonging "
+"A \"tag\" in UmbraEdit is a word or phrase that you define as belonging "
 "to a heading. Tags are set by using the ``@tag`` keyword."
 msgstr ""
-"Une « étiquette » dans novelWriter est un mot ou une phrase que vous "
+"Une « étiquette » dans UmbraEdit est un mot ou une phrase que vous "
 "définissez comme appartenant à une rubrique. Les étiquettes sont définies "
 "en utilisant le mot-clé ``@tag``."
 
@@ -179,10 +179,10 @@ msgstr ""
 
 #: ../../source/usage/tags_and_references.rst:65
 msgid ""
-"The tag is the only part of notes that novelWriter uses. The rest of the "
+"The tag is the only part of notes that UmbraEdit uses. The rest of the "
 "document content is there for you to use in whatever way you wish."
 msgstr ""
-"L'étiquette est la seule partie des notes que novelWriter utilise. Le "
+"L'étiquette est la seule partie des notes que UmbraEdit utilise. Le "
 "reste du contenu du document peut être utilisé comme bon vous semble."
 
 #: ../../source/usage/tags_and_references.rst:70

@@ -16,7 +16,7 @@ updatedDate = "2024-03-11 22:56:28"
 
 Adding more scenes to a chapter is as easy as adding more scene files with a level three heading. You can of course also just add another level three heading in the same file if that works for the way you want to structure your files.
 
-In fact, if you wish, you can add all the scenes in the chapter file too. All novelWriter cares about is the level of the headings and the order in which they appear.
+In fact, if you wish, you can add all the scenes in the chapter file too. All UmbraEdit cares about is the level of the headings and the order in which they appear.
 
 ###! More Scenes
 

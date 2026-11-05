@@ -1,10 +1,10 @@
 """
-novelWriter - Assets
+UmbraEdit - Assets
 ====================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -111,7 +111,7 @@ def _crowdinLanguageIds(token: str) -> dict[str, str]:
 def _changedLanguages() -> set[str]:
     """Return locale codes for translation files with pending git changes."""
     result = subprocess.run(
-        ["git", "status", "--porcelain", "--", "i18n", "novelwriter/assets/i18n"],
+        ["git", "status", "--porcelain", "--", "i18n", "umbraedit/assets/i18n"],
         cwd=ROOT_DIR,
         capture_output=True,
         text=True,
@@ -120,8 +120,8 @@ def _changedLanguages() -> set[str]:
     locales = set()
     for line in result.stdout.splitlines():
         name = Path(line[3:].strip()).stem
-        if name.startswith("nw_") and name != "nw_base":
-            locales.add(name[len("nw_") :])
+        if name.startswith("ue_") and name != "ue_base":
+            locales.add(name[len("ue_") :])
         elif name.startswith("project_") and name != "project_en_GB":
             locales.add(name[len("project_") :])
     return locales
@@ -235,7 +235,7 @@ def _printCreditsSummary(sinceDate: str) -> None:
 
 def buildSampleZip(args: argparse.Namespace | None = None) -> None:
     """Bundle the sample project into a single zip file to be saved into
-    the novelwriter/assets folder for further bundling into builds.
+    the umbraedit/assets folder for further bundling into builds.
     """
     log("")
     log("[b]Building Sample ZIP File[e]")
@@ -243,7 +243,7 @@ def buildSampleZip(args: argparse.Namespace | None = None) -> None:
     log("")
 
     srcSample = ROOT_DIR / "sample"
-    dstSample = ROOT_DIR / "novelwriter" / "assets" / "sample.zip"
+    dstSample = ROOT_DIR / "umbraedit" / "assets" / "sample.zip"
 
     if srcSample.is_dir():
         dstSample.unlink(missing_ok=True)
@@ -276,18 +276,18 @@ def importI18nUpdates(args: argparse.Namespace) -> None:
         sys.exit(1)
     log("")
 
-    dstPath = ROOT_DIR / "novelwriter" / "assets" / "i18n"
+    dstPath = ROOT_DIR / "umbraedit" / "assets" / "i18n"
     srcPath = ROOT_DIR / "i18n"
 
     threshold = args.threshold / 100
     expected_json = len(json.loads((dstPath / "project_en_GB.json").read_text(encoding="utf-8")))
-    expected_ts = len(ET.parse(srcPath / "nw_base.ts").getroot().findall(".//message"))
+    expected_ts = len(ET.parse(srcPath / "ue_base.ts").getroot().findall(".//message"))
 
     with zipfile.ZipFile(fileName) as zipObj:
         for item in zipObj.namelist():
-            if item == "nw_base.ts":
+            if item == "ue_base.ts":
                 log(f"[cy]Skipped:[e] {item}")
-            elif item.startswith("nw_") and item.endswith(".ts"):
+            elif item.startswith("ue_") and item.endswith(".ts"):
                 zipObj.extract(item, srcPath)
                 _validateTsTranslation(srcPath / item, expected_ts, threshold)
             elif item.startswith("project_") and item.endswith(".json"):
@@ -319,7 +319,7 @@ def updateTranslationSources(args: argparse.Namespace) -> None:
     log("[b]Scanning Source Tree:[e]")
     log("")
 
-    sources = list((ROOT_DIR / "novelwriter").glob("**/*.py"))
+    sources = list((ROOT_DIR / "umbraedit").glob("**/*.py"))
     for source in sources:
         log(source.relative_to(ROOT_DIR))
 
@@ -329,7 +329,7 @@ def updateTranslationSources(args: argparse.Namespace) -> None:
 
     translations = []
     for item in [Path(str(f)).absolute() for f in args.files]:
-        if not (item.name.startswith("nw_") and item.suffix == ".ts"):
+        if not (item.name.startswith("ue_") and item.suffix == ".ts"):
             log(f"[cy]Skipped:[e] {item}")
             continue
 
@@ -395,11 +395,11 @@ def buildTranslationAssets(args: argparse.Namespace | None = None) -> None:
     log("")
 
     srcDir = ROOT_DIR / "i18n"
-    dstDir = ROOT_DIR / "novelwriter" / "assets" / "i18n"
+    dstDir = ROOT_DIR / "umbraedit" / "assets" / "i18n"
 
     srcList = []
     for item in srcDir.iterdir():
-        if item.is_file() and item.suffix == ".ts" and item.name != "nw_base.ts":
+        if item.is_file() and item.suffix == ".ts" and item.name != "ue_base.ts":
             srcList.append(item)
             log(item)
 
@@ -438,9 +438,9 @@ def cleanBuiltAssets(args: argparse.Namespace | None = None) -> None:
     log("[b]=====================[e]")
     log("")
 
-    assets = [ROOT_DIR / "novelwriter" / "assets" / "sample.zip"]
-    assets.extend((ROOT_DIR / "novelwriter" / "assets").glob("manual*.pdf"))
-    assets.extend((ROOT_DIR / "novelwriter" / "assets" / "i18n").glob("*.qm"))
+    assets = [ROOT_DIR / "umbraedit" / "assets" / "sample.zip"]
+    assets.extend((ROOT_DIR / "umbraedit" / "assets").glob("manual*.pdf"))
+    assets.extend((ROOT_DIR / "umbraedit" / "assets" / "i18n").glob("*.qm"))
     for asset in assets:
         if asset.is_file():
             asset.unlink()

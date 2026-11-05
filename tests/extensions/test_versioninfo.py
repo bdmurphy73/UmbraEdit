@@ -1,10 +1,10 @@
 """
-novelWriter - Version Info Widget Tests
+UmbraEdit - Version Info Widget Tests
 =======================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,10 +31,10 @@ from PyQt6.QtCore import QObject, Qt, QUrl, pyqtBoundSignal, pyqtSignal
 from PyQt6.QtWidgets import QWidget
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.constants import nwConst
-from novelwriter.extensions.versioninfo import VersionInfoWidget, _Retriever
-from novelwriter.types import QtAlignAbsolute, QtAlignLeftMiddle, QtAlignRightMiddle
+from umbraedit import SHARED
+from umbraedit.constants import nwConst
+from umbraedit.extensions.versioninfo import VersionInfoWidget, _Retriever
+from umbraedit.types import QtAlignAbsolute, QtAlignLeftMiddle, QtAlignRightMiddle
 
 from tests.helpers import SimpleDialog
 from tests.mocked import MockGuiMain
@@ -144,17 +144,17 @@ def testVersionInfoWidget_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, mo
     dialog.show()
 
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.extensions.versioninfo.QDesktopServices", MockDesktopServices)
+        mp.setattr("umbraedit.extensions.versioninfo.QDesktopServices", MockDesktopServices)
         version._processLink("#notes")
         assert MockDesktopServices.url == QUrl(nwConst.URL_RELEASES)
 
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.extensions.versioninfo.QDesktopServices", MockDesktopServices)
+        mp.setattr("umbraedit.extensions.versioninfo.QDesktopServices", MockDesktopServices)
         version._processLink("#website")
         assert MockDesktopServices.url == QUrl(nwConst.URL_WEB)
 
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.extensions.versioninfo._Retriever", MockRetriever)
+        mp.setattr("umbraedit.extensions.versioninfo._Retriever", MockRetriever)
         mp.setattr(SHARED, "runInThreadPool", lambda *a: None)
         version._processLink("#update")
         assert version._lblRelease.text() == "Latest Version: Checking ..."
@@ -164,7 +164,7 @@ def testVersionInfoWidget_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, mo
 
     version._updateReleaseInfo("v2.0", "")
     assert version._lblRelease.text() == (
-        "Latest Version: 2.0 \u2013 Download from <a href='#website'>novelwriter.io</a>"
+        "Latest Version: 2.0 \u2013 Download from <a href='#website'>umbraedit.io</a>"
     )
 
     version._updateReleaseInfo("", "")
@@ -189,7 +189,7 @@ def testVersionInfoWidget_Retriever(qtbot: QtBot, monkeypatch: pytest.MonkeyPatc
 
     # Valid Data
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.extensions.versioninfo.urlopen", lambda *a, **k: MockPayload())
+        mp.setattr("umbraedit.extensions.versioninfo.urlopen", lambda *a, **k: MockPayload())
         with qtbot.waitSignal(holder.dataReady) as signal:
             task.run()
             assert signal.args == ["v1.0", ""]
@@ -199,7 +199,7 @@ def testVersionInfoWidget_Retriever(qtbot: QtBot, monkeypatch: pytest.MonkeyPatc
 
     # Non-Dict Response
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.extensions.versioninfo.urlopen", lambda *a, **k: MockListPayload())
+        mp.setattr("umbraedit.extensions.versioninfo.urlopen", lambda *a, **k: MockListPayload())
         received = []
         holder.dataReady.connect(lambda tag, reason: received.append((tag, reason)))
         task.run()
@@ -207,14 +207,14 @@ def testVersionInfoWidget_Retriever(qtbot: QtBot, monkeypatch: pytest.MonkeyPatc
 
     # HTTP Error
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.extensions.versioninfo.urlopen", lambda *a, **k: MockHTTPError())
+        mp.setattr("umbraedit.extensions.versioninfo.urlopen", lambda *a, **k: MockHTTPError())
         with qtbot.waitSignal(holder.dataReady) as signal:
             task.run()
             assert signal.args == ["", "Rate limit (HTTP 403)"]
 
     # Other Error
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.extensions.versioninfo.urlopen", lambda *a, **k: MockException())
+        mp.setattr("umbraedit.extensions.versioninfo.urlopen", lambda *a, **k: MockException())
         with qtbot.waitSignal(holder.dataReady) as signal:
             task.run()
             assert signal.args == ["", "Oh noes!"]

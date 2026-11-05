@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 21:12+0200\n"
@@ -70,13 +70,13 @@ msgstr "Temps d'inactivité"
 #: ../../source/user_interface/statistics.rst:23
 msgid ""
 "The log file stores how much of the session time was spent idle. The "
-"definition of idle here is that the novelWriter main window loses focus, "
+"definition of idle here is that the UmbraEdit main window loses focus, "
 "or the user hasn't made any changes to the currently open document in "
 "five minutes. You can change the number of minutes in **Preferences**."
 msgstr ""
 "Le fichier journal enregistre la durée de la session passée en mode "
 "inactif. La définition de l'inactivité ici est que la fenêtre principale "
-"de novelWriter perd le focus, ou que l'utilisateur n'a pas fait de "
+"de UmbraEdit perd le focus, ou que l'utilisateur n'a pas fait de "
 "changements dans le document ouvert depuis cinq minutes. Vous pouvez "
 "modifier le nombre de minutes dans les **Préférences**."
 

@@ -1,10 +1,10 @@
 """
-novelWriter - Modified Widgets Tests
+UmbraEdit - Modified Widgets Tests
 ====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,8 +31,8 @@ from PyQt6.QtGui import QCloseEvent, QFont, QKeyEvent, QMouseEvent, QStandardIte
 from PyQt6.QtWidgets import QFontDialog, QSplitter, QWidget
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG
-from novelwriter.extensions.modified import (
+from umbraedit import CONFIG
+from umbraedit.extensions.modified import (
     NClickableLabel,
     NComboBox,
     NDialog,
@@ -49,8 +49,8 @@ from novelwriter.extensions.modified import (
     NToolDialog,
     NTreeView,
 )
-from novelwriter.guimain import GuiMain
-from novelwriter.types import (
+from umbraedit.guimain import GuiMain
+from umbraedit.types import (
     QtIconNormal,
     QtIconOff,
     QtIconOn,

@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 16:04+0200\n"
@@ -27,12 +27,12 @@ msgstr "Mise en forme avancée"
 
 #: ../../source/usage/advanced_formatting.rst:7
 msgid ""
-"Standard Markdown formatting is somewhat limited, so novelWriter has some "
+"Standard Markdown formatting is somewhat limited, so UmbraEdit has some "
 "additional formatting codes for special use cases. These codes are all based "
 "on brackets, and some allow an additional value to be set after a colon."
 msgstr ""
 "Le formatage Markdown standard est quelque peu limité, c'est pourquoi "
-"novelWriter dispose de quelques codes de formatage supplémentaires pour des "
+"UmbraEdit dispose de quelques codes de formatage supplémentaires pour des "
 "cas d'utilisation particuliers. Ces codes sont tous basés sur les crochets, et "
 "certains permettent de définir une valeur supplémentaire après les deux points."
 
@@ -262,12 +262,12 @@ msgstr "Insérer le nombre de mots dans le texte"
 #: ../../source/usage/advanced_formatting.rst:106
 msgid ""
 "The cover page of a manuscript normally has the word count stated on it. Any "
-"statistics value collected by novelWriter can be inserted into any document "
+"statistics value collected by UmbraEdit can be inserted into any document "
 "using a special shortcode. You can insert the code for any of the available "
 "statistics values from the **Insert** menu under **Word/Character Count**."
 msgstr ""
 "La page de couverture d'un manuscrit indique normalement le nombre de mots. "
-"Toute valeur statistique collectée par novelWriter peut être insérée dans "
+"Toute valeur statistique collectée par UmbraEdit peut être insérée dans "
 "n'importe quel document à l'aide d'un shortcode spécial. Vous pouvez insérer "
 "le code pour n'importe quelle valeur statistique disponible dans le menu "
 "**Insérer** sous **Nombre de mots/caractères**."

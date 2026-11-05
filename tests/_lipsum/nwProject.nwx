@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<novelWriterXML appVersion="26.2b1" hexVersion="0x260200b1" fileVersion="1.5" fileRevision="7" timeStamp="2026-08-01 21:51:30">
+<UmbraEditXML appVersion="26.2b1" hexVersion="0x260200b1" fileVersion="1.5" fileRevision="7" timeStamp="2026-08-01 21:51:30">
   <project id="5ac0df12-8b8b-476b-9905-21d33685687c" saveCount="56" autoCount="34" editTime="2780" indexRevision="46">
     <name>Lorem Ipsum</name>
     <author>lipsum.com</author>
@@ -124,4 +124,4 @@
       <name status="sbaa94f" import="i613591">Trash</name>
     </item>
   </content>
-</novelWriterXML>
+</UmbraEditXML>

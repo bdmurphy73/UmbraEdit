@@ -1,10 +1,10 @@
 """
-novelWriter - Icon Theme Utils
+UmbraEdit - Icon Theme Utils
 ==============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -434,7 +434,7 @@ def main(args: argparse.Namespace) -> None:
     log(f"Work Dir: {workDir}")
     log("")
 
-    iconsDir = ROOT_DIR / "novelwriter" / "assets" / "icons"
+    iconsDir = ROOT_DIR / "umbraedit" / "assets" / "icons"
 
     style = args.style
     if style in ("all", "default", "free", "material"):

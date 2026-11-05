@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-29 11:21+0200\n"
@@ -27,13 +27,13 @@ msgstr "Modifications du format des projets"
 
 #: ../../source/more/project_format.rst:7
 msgid ""
-"Most of the changes to the file formats over the history of novelWriter "
+"Most of the changes to the file formats over the history of UmbraEdit "
 "have no impact on the user side of things. The project files are "
 "generally updated automatically. However, some of the changes require "
 "minor actions from the user."
 msgstr ""
 "La plupart des modifications apportées aux formats de fichiers au cours "
-"de l'histoire de novelWriter n'ont pas d'impact sur l'utilisateur. Les "
+"de l'histoire de UmbraEdit n'ont pas d'impact sur l'utilisateur. Les "
 "fichiers de projet sont généralement mis à jour automatiquement. "
 "Cependant, certains changements nécessitent des actions mineures de la "
 "part de l'utilisateur."
@@ -58,14 +58,14 @@ msgstr ""
 #: ../../source/more/project_format.rst:18
 msgid ""
 "When you update a project from one format version to the next, the "
-"project can no longer be opened by a version of novelWriter prior to the "
+"project can no longer be opened by a version of UmbraEdit prior to the "
 "version where the new file format was introduced. You will get a "
 "notification about any updates to your project file format and will have "
 "the option to decline the upgrade."
 msgstr ""
 "Lorsque vous mettez à jour un projet d'une version de format à la "
 "suivante, le projet ne peut plus être ouvert par une version de "
-"novelWriter antérieure à la version où le nouveau format de fichier a "
+"UmbraEdit antérieure à la version où le nouveau format de fichier a "
 "été introduit. Vous recevrez une notification concernant toute mise à "
 "jour du format de fichier de votre projet et vous aurez la possibilité "
 "de refuser la mise à jour."
@@ -75,10 +75,10 @@ msgid "Format 1.5 Changes"
 msgstr "Format 1.5 Modifications"
 
 #: ../../source/more/project_format.rst:29
-msgid "This project format was introduced in novelWriter version 2.0 RC 2."
+msgid "This project format was introduced in UmbraEdit version 2.0 RC 2."
 msgstr ""
 "Ce format de projet a été introduit dans la version 2.0 RC 2 de "
-"novelWriter."
+"UmbraEdit."
 
 #: ../../source/more/project_format.rst:31
 msgid ""
@@ -106,12 +106,12 @@ msgstr "Format 1.4 Modifications"
 
 #: ../../source/more/project_format.rst:43
 msgid ""
-"This project format was introduced in novelWriter version 2.0 RC 1. "
+"This project format was introduced in UmbraEdit version 2.0 RC 1. "
 "Since this was a release candidate, it is unlikely that your project "
 "uses it, but it may be the case if you've installed a pre-release."
 msgstr ""
 "Ce format de projet a été introduit dans la version 2.0 RC 1 de "
-"novelWriter. Comme il s'agissait d'une version candidate, il est peu "
+"UmbraEdit. Comme il s'agissait d'une version candidate, il est peu "
 "probable que votre projet l'utilise, mais c'est peut-être le cas si vous "
 "avez installé une préversion."
 
@@ -133,9 +133,9 @@ msgid "Format 1.3 Changes"
 msgstr "Format 1.3 Modifications"
 
 #: ../../source/more/project_format.rst:57
-msgid "This project format was introduced in novelWriter version 1.5."
+msgid "This project format was introduced in UmbraEdit version 1.5."
 msgstr ""
-"Ce format de projet a été introduit dans la version 1.5 de novelWriter."
+"Ce format de projet a été introduit dans la version 1.5 de UmbraEdit."
 
 #: ../../source/more/project_format.rst:59
 msgid ""
@@ -238,9 +238,9 @@ msgid "Format 1.2 Changes"
 msgstr "Format 1.2 Modifications"
 
 #: ../../source/more/project_format.rst:96
-msgid "This project format was introduced in novelWriter version 0.10."
+msgid "This project format was introduced in UmbraEdit version 0.10."
 msgstr ""
-"Ce format de projet a été introduit dans la version 0.10 de novelWriter."
+"Ce format de projet a été introduit dans la version 0.10 de UmbraEdit."
 
 #: ../../source/more/project_format.rst:98
 msgid ""
@@ -257,18 +257,18 @@ msgid "Format 1.1 Changes"
 msgstr "Format 1.1 Modifications"
 
 #: ../../source/more/project_format.rst:107
-msgid "This project format was introduced in novelWriter version 0.7."
+msgid "This project format was introduced in UmbraEdit version 0.7."
 msgstr ""
-"Ce format de projet a été introduit dans la version 0.7 de novelWriter."
+"Ce format de projet a été introduit dans la version 0.7 de UmbraEdit."
 
 #: ../../source/more/project_format.rst:109
 msgid ""
 "With this format, the ``content`` folder was introduced in the project "
-"storage. Previously, all novelWriter documents were saved in a series of "
+"storage. Previously, all UmbraEdit documents were saved in a series of "
 "folders numbered from ``data_0`` to ``data_f``."
 msgstr ""
 "Avec ce format, le dossier ``content`` a été introduit dans le stockage "
-"du projet. Auparavant, tous les documents de novelWriter étaient "
+"du projet. Auparavant, tous les documents de UmbraEdit étaient "
 "sauvegardés dans une série de dossiers numérotés de ``data_0`` à "
 "``data_f``."
 

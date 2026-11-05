@@ -1,10 +1,10 @@
 """
-novelWriter - Tab Widget Tests
+UmbraEdit - Tab Widget Tests
 ==============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,9 +29,9 @@ from PyQt6.QtGui import QMouseEvent, QPixmap
 from PyQt6.QtWidgets import QWidget
 from pytestqt.qtbot import QtBot
 
-from novelwriter.extensions.tabwidget import NTabBar, NTabWidget
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtModNone, QtMouseLeft, QtMouseMiddle
+from umbraedit.extensions.tabwidget import NTabBar, NTabWidget
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtModNone, QtMouseLeft, QtMouseMiddle
 
 
 def mouseEvent(kind: QEvent.Type, x: int, button: Qt.MouseButton, buttons: Qt.MouseButton) -> QMouseEvent:

@@ -1,4 +1,4 @@
-IDI_ICON1 ICON DISCARDABLE "novelWriter.ico"
+IDI_ICON1 ICON DISCARDABLE "UmbraEdit.ico"
 1 VERSIONINFO
 FILEVERSION 1,3,1,0
 PRODUCTVERSION 1,3,1,0
@@ -8,11 +8,11 @@ FILETYPE 0x1
     BLOCK "StringFileInfo" {
         BLOCK "040904b0" {
             VALUE "CompanyName",      "Veronica Berglyd Olsen\0"
-            VALUE "FileDescription",  "novelWriter Launcher\0"
+            VALUE "FileDescription",  "UmbraEdit Launcher\0"
             VALUE "FileVersion",      "1.3.1.0\0"
             VALUE "LegalCopyright",   "(c) 2026 Veronica Berglyd Olsen\0"
-            VALUE "OriginalFilename", "novelWriter.exe\0"
-            VALUE "ProductName",      "novelWriter\0"
+            VALUE "OriginalFilename", "UmbraEdit.exe\0"
+            VALUE "ProductName",      "UmbraEdit\0"
             VALUE "ProductVersion",   "1.3.1.0\0"
         }
     }

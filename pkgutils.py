@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-novelWriter - Packaging Utils
+UmbraEdit - Packaging Utils
 =============================
 """  # noqa
 

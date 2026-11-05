@@ -1,10 +1,10 @@
 """
-novelWriter - PyPI Build
+UmbraEdit - PyPI Build
 ========================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -36,16 +36,16 @@ def pypi(args: argparse.Namespace) -> None:
     log("")
 
     bldDir = ROOT_DIR / "dist_pypi"
-    outDir = bldDir / "novelwriter_src"
+    outDir = bldDir / "umbraedit_src"
 
     bldDir.mkdir(exist_ok=True)
     freshFolder(outDir)
 
-    log("[b]Copying novelWriter source ...[e]")
+    log("[b]Copying UmbraEdit source ...[e]")
     log("")
 
     copySourceCode(outDir)
-    updateMetaFile(outDir / "novelwriter" / "assets" / "meta.toml", buildFormat="pypi", installSource="pypi")
+    updateMetaFile(outDir / "umbraedit" / "assets" / "meta.toml", buildFormat="pypi", installSource="pypi")
 
     log("")
     log("[b]Copying additional files ...[e]")

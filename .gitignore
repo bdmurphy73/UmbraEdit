@@ -8,8 +8,8 @@
 *.spec
 *.egg-info
 setup.iss
-/novelwriter.desktop
-/novelWriter.pyw
+/umbraedit.desktop
+/UmbraEdit.pyw
 /setup/macos/Info.plist
 /setup/windows/build
 .flatpak-builder
@@ -17,7 +17,7 @@ setup.iss
 .env
 
 # Translations
-/novelwriter/assets/i18n/*.qm
+/umbraedit/assets/i18n/*.qm
 .qmake.stash
 i18n/*.qm
 i18n/*.qph
@@ -25,7 +25,7 @@ i18n/*.qph
 # Documentation
 /docs/build/
 /docs/source/locales/**/*.mo
-/novelwriter/assets/manual*.pdf
+/umbraedit/assets/manual*.pdf
 .~lock.*
 
 # Python
@@ -34,7 +34,7 @@ __pycache__
 *.pyc
 
 # Sample Project
-/novelwriter/assets/sample.zip
+/umbraedit/assets/sample.zip
 /sample/meta
 /sample/**/*.bak
 /sample/*.lock

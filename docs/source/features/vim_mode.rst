@@ -10,7 +10,7 @@ Vim_ is a keyboard-centric text editor. "Vim mode" refers to another editor impl
 ability to perform a subset of vim motions. This will allow you to write, select, edit, copy,
 paste, navigate, etc, efficiently by using keyboard commands.
 
-Vim is modal. Three such modes have been implemented in novelWriter:
+Vim is modal. Three such modes have been implemented in UmbraEdit:
 
 - **Normal** mode is the default mode used to navigate text.
 - **Insert** mode is where you can write text like in a 'normal' text editor.
@@ -55,7 +55,7 @@ you have completed selecting your text.
 Implemented Keystrokes (Vim Motions)
 ====================================
 
-The table below shows the vim motions currently implemented in novelWriter.
+The table below shows the vim motions currently implemented in UmbraEdit.
 
 .. csv-table::
    :header: "Motion", "Mode(s)", "Description"
@@ -119,7 +119,7 @@ Known Issues
      test
         ^ Cursor placed here in vim
      test
-         ^ Cursor placed here in novelWriter vim mode
+         ^ Cursor placed here in UmbraEdit vim mode
 
   You will only really ever notice this behaviour if you try to combine the :kbd:`e` command with
   another. For instance, :kbd:`de` will not delete the last character but delete forward as it

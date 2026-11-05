@@ -1,10 +1,10 @@
 """
-novelWriter - Test Suite Configuration
+UmbraEdit - Test Suite Configuration
 ======================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2019 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -38,9 +38,9 @@ from PyQt6.QtWidgets import QApplication, QMessageBox, QWidget
 
 sys.path.insert(1, str(Path(__file__).parent.parent.absolute()))
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT
-from novelwriter.enum import nwTheme
+from umbraedit import CONFIG, SHARED
+from umbraedit.config import DEF_GUI_DARK, DEF_GUI_LIGHT
+from umbraedit.enum import nwTheme
 
 from tests.helpers import MockRnd, TstPaths
 from tests.mocked import MockGuiMain
@@ -48,7 +48,7 @@ from tests.mocked import MockGuiMain
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
 
-    from novelwriter.guimain import GuiMain
+    from umbraedit.guimain import GuiMain
 
 _TST_ROOT = Path(__file__).parent
 _SRC_ROOT = _TST_ROOT.parent
@@ -96,8 +96,8 @@ def sessionFixture() -> None:
     _TMP_ROOT.mkdir()
     _TMP_CONF.mkdir()
     (_TMP_ROOT / "manual.pdf").touch()
-    (_SRC_ROOT / "novelwriter" / "assets" / "manual.pdf").touch()
-    (_SRC_ROOT / "novelwriter" / "assets" / "manual_fr.pdf").touch()
+    (_SRC_ROOT / "umbraedit" / "assets" / "manual.pdf").touch()
+    (_SRC_ROOT / "umbraedit" / "assets" / "manual_fr.pdf").touch()
 
 
 @pytest.fixture(autouse=True)
@@ -114,7 +114,7 @@ def functionFixture(qtbot: QtBot) -> None:
     CONFIG.__init__()
     CONFIG.initConfig(confPath=_TMP_CONF, dataPath=_TMP_CONF)
     resetConfigVars()
-    logging.getLogger("novelwriter").setLevel(logging.INFO)
+    logging.getLogger("umbraedit").setLevel(logging.INFO)
 
 
 ##
@@ -158,15 +158,15 @@ def projPath(fncPath: Path) -> Path:
 
 
 ##
-#  novelWriter Objects
+#  UmbraEdit Objects
 ##
 
 
 @pytest.fixture
 def mockGUI(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> MockGuiMain:
-    """Create a mock instance of novelWriter's main GUI class."""
-    from novelwriter.gui.theme import GuiTheme
-    from novelwriter.shared import _GuiAlert
+    """Create a mock instance of UmbraEdit's main GUI class."""
+    from umbraedit.gui.theme import GuiTheme
+    from umbraedit.shared import _GuiAlert
 
     monkeypatch.setattr(QMessageBox, "exec", lambda *a: None)
     monkeypatch.setattr(_GuiAlert, "exec", lambda *a: None)
@@ -183,7 +183,7 @@ def mockGUI(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> MockGuiMain:
 
 @pytest.fixture
 def mockGUIwithTheme(mockGUI: MockGuiMain) -> MockGuiMain:
-    """Create a mock instance of novelWriter's main GUI class with the
+    """Create a mock instance of UmbraEdit's main GUI class with the
     theme instance initialised.
     """
     SHARED.theme.initThemes()
@@ -192,10 +192,10 @@ def mockGUIwithTheme(mockGUI: MockGuiMain) -> MockGuiMain:
 
 @pytest.fixture
 def nwGUI(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, functionFixture: None) -> Iterator[GuiMain]:
-    """Create an instance of the novelWriter GUI."""
-    from novelwriter.gui.theme import GuiTheme
-    from novelwriter.guimain import GuiMain
-    from novelwriter.shared import _GuiAlert
+    """Create an instance of the UmbraEdit GUI."""
+    from umbraedit.gui.theme import GuiTheme
+    from umbraedit.guimain import GuiMain
+    from umbraedit.shared import _GuiAlert
 
     monkeypatch.setattr(QMessageBox, "exec", lambda *a: None)
     monkeypatch.setattr(_GuiAlert, "exec", lambda *a: None)
@@ -244,7 +244,7 @@ def mockRnd(monkeypatch: pytest.MonkeyPatch) -> MockRnd:
 
 @pytest.fixture
 def prjLipsum() -> Iterator[Path]:
-    """A medium sized novelWriter example project with a lot of Lorem
+    """A medium sized UmbraEdit example project with a lot of Lorem
     Ipsum text.
     """
     src = _TST_ROOT / "_lipsum"

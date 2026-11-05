@@ -1,10 +1,10 @@
 """
-novelWriter - Windows Build
+UmbraEdit - Windows Build
 ===========================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -48,24 +48,24 @@ from utils.common import (
 
 def prepareCode(outDir: Path) -> None:
     """Set up folders and copy code."""
-    log("[b]Copying and compiling novelWriter source ...[e]")
+    log("[b]Copying and compiling UmbraEdit source ...[e]")
     log("")
 
     copySourceCode(outDir)
-    updateMetaFile(outDir / "novelwriter" / "assets" / "meta.toml", buildFormat="windows-setup", installSource="github")
+    updateMetaFile(outDir / "umbraedit" / "assets" / "meta.toml", buildFormat="windows-setup", installSource="github")
 
     files = [
         ROOT_DIR / "CREDITS.md",
         ROOT_DIR / "LICENSE.md",
         SETUP_DIR / "iss_license.txt",
-        SETUP_DIR / "windows" / "novelWriter.ico",
-        SETUP_DIR / "windows" / "novelWriter.exe",
+        SETUP_DIR / "windows" / "UmbraEdit.ico",
+        SETUP_DIR / "windows" / "UmbraEdit.exe",
     ]
     for item in files:
         shutil.copyfile(item, outDir / item.name)
         log(f"[cg]Copied:[e] {item} > {outDir / item.name}")
 
-    compileall.compile_dir(outDir / "novelwriter")
+    compileall.compile_dir(outDir / "umbraedit")
 
     log("[cg]Done[e]")
     log("")
@@ -112,7 +112,7 @@ def main(args: argparse.Namespace) -> None:
     log(f"Version: {numVers}")
 
     bldDir = ROOT_DIR / "dist"
-    outDir = bldDir / "novelWriter"
+    outDir = bldDir / "UmbraEdit"
     libDir = outDir / "lib"
     if outDir.exists():
         shutil.rmtree(outDir)
@@ -131,7 +131,7 @@ def main(args: argparse.Namespace) -> None:
 
     log("[b]Updating starting script ...[e]")
     writeFile(
-        outDir / "novelWriter.pyw",
+        outDir / "UmbraEdit.pyw",
         (
             "import os\n"
             "import sys\n"
@@ -140,8 +140,8 @@ def main(args: argparse.Namespace) -> None:
             'sys.path.insert(0, os.path.join(os.curdir, "lib"))\n'
             "\n"
             'if __name__ == "__main__":\n'
-            "    import novelwriter\n"
-            "    novelwriter.main(sys.argv[1:])\n"
+            "    import umbraedit\n"
+            "    umbraedit.main(sys.argv[1:])\n"
         ),
     )
     log("[cg]Done[e]")

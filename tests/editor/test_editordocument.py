@@ -1,10 +1,10 @@
 """
-novelWriter - GUI Text Document Tests
+UmbraEdit - GUI Text Document Tests
 =====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,10 +28,10 @@ import pytest
 
 from pytestqt.qtbot import QtBot
 
-from novelwriter.constants import nwConst
-from novelwriter.core.project import NWProject
-from novelwriter.editor.highlighter import BLOCK_TITLE
-from novelwriter.guimain import GuiMain
+from umbraedit.constants import nwConst
+from umbraedit.core.project import NWProject
+from umbraedit.editor.highlighter import BLOCK_TITLE
+from umbraedit.guimain import GuiMain
 
 from tests.helpers import C, MockRnd, buildTestProject
 

@@ -37,8 +37,8 @@ jobs:
         with:
           name: nw-assets
           path: |
-            novelwriter/assets/manual*.pdf
-            novelwriter/assets/sample.zip
-            novelwriter/assets/i18n/*.qm
+            umbraedit/assets/manual*.pdf
+            umbraedit/assets/sample.zip
+            umbraedit/assets/i18n/*.qm
           if-no-files-found: error
           retention-days: 14

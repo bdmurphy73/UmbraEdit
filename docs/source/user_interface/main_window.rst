@@ -4,7 +4,7 @@
 The Main Window
 ***************
 
-The user interface of novelWriter is intended to be as minimalistic as practically possible, while
+The user interface of UmbraEdit is intended to be as minimalistic as practically possible, while
 at the same time provide useful features needed for writing a novel.
 
 The main window does not by default have an editor toolbar like many other applications do. This
@@ -145,7 +145,7 @@ different position. You column settings are saved between sessions on a per-proj
 
    The **Title** column cannot be disabled or moved.
 
-The information viewed in the outline is based on the project index. While novelWriter does its
+The information viewed in the outline is based on the project index. While UmbraEdit does its
 best to keep the index up to date when contents change, you can always rebuild it manually by
 pressing :kbd:`F9` if something isn't right.
 
@@ -186,7 +186,7 @@ See :ref:`docs_features_shortcuts` for more details.
 Colour Themes
 =============
 
-By default, novelWriter should pick a dark or light theme based on the colour mode of your
+By default, UmbraEdit should pick a dark or light theme based on the colour mode of your
 operating system. You can select which colour mode to use from the application sidebar.
 
 The default light and dark theme can be changed from **Preferences**. There are a number of themes

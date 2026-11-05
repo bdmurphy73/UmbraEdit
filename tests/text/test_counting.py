@@ -1,10 +1,10 @@
 """
-novelWriter - Text Counter Tests
+UmbraEdit - Text Counter Tests
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2021 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2021 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import pytest
 
-from novelwriter.text.counting import bodyTextCounter, preProcessText, standardCounter
+from umbraedit.text.counting import bodyTextCounter, preProcessText, standardCounter
 
 
 @pytest.mark.core

@@ -6,7 +6,7 @@ Chapters and Scenes
 
 .. _Markdown: https://en.wikipedia.org/wiki/Markdown
 
-Since novelWriter uses a plain text format, the structure of your novel must follow a certain set
+Since UmbraEdit uses a plain text format, the structure of your novel must follow a certain set
 of simple rules. For documents in a **Novel** type root folder, it is the heading that determines
 if the document is a chapter or a scene.
 

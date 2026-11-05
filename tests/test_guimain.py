@@ -1,10 +1,10 @@
 """
-novelWriter - Main GUI Windows Tests
+UmbraEdit - Main GUI Windows Tests
 ====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -36,15 +36,15 @@ from PyQt6.QtGui import QCloseEvent, QGuiApplication, QPalette, QStyleHints
 from PyQt6.QtWidgets import QApplication, QFileDialog, QInputDialog, QWidget
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED, __hexversion__
-from novelwriter.common import jsonEncode
-from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT
-from novelwriter.constants import nwFiles
-from novelwriter.core.project import NWProject
-from novelwriter.dialogs.editlabel import GuiEditLabel
-from novelwriter.dialogs.preferences import GuiNeedsUpdate
-from novelwriter.editor.editor import GuiDocEditor
-from novelwriter.enum import (
+from umbraedit import CONFIG, SHARED, __hexversion__
+from umbraedit.common import jsonEncode
+from umbraedit.config import DEF_GUI_DARK, DEF_GUI_LIGHT
+from umbraedit.constants import nwFiles
+from umbraedit.core.project import NWProject
+from umbraedit.dialogs.editlabel import GuiEditLabel
+from umbraedit.dialogs.preferences import GuiNeedsUpdate
+from umbraedit.editor.editor import GuiDocEditor
+from umbraedit.enum import (
     nwChange,
     nwDocAction,
     nwDocMode,
@@ -56,14 +56,14 @@ from novelwriter.enum import (
     nwView,
     nwVimMode,
 )
-from novelwriter.gui.noveltree import GuiNovelView
-from novelwriter.gui.projtree import GuiProjectTree, GuiProjectView
-from novelwriter.guimain import GuiMain
-from novelwriter.manuscript.manuscript import GuiManuscript
-from novelwriter.shared import _GuiAlert
-from novelwriter.tools.welcome import GuiWelcome
-from novelwriter.tools.writingstats import GuiWritingStats
-from novelwriter.types import (
+from umbraedit.gui.noveltree import GuiNovelView
+from umbraedit.gui.projtree import GuiProjectTree, GuiProjectView
+from umbraedit.guimain import GuiMain
+from umbraedit.manuscript.manuscript import GuiManuscript
+from umbraedit.shared import _GuiAlert
+from umbraedit.tools.welcome import GuiWelcome
+from umbraedit.tools.writingstats import GuiWritingStats
+from umbraedit.types import (
     QtKeyBackspace,
     QtKeyEnter,
     QtKeyEscape,
@@ -1505,7 +1505,7 @@ def testGuiMain_OpenClose(
     nwGUI.docPanes.viewDocument(C.hTitlePage)
 
     # Handle broken index on project open
-    idxData = jsonEncode({"novelWriter.meta": {"version": __hexversion__}})
+    idxData = jsonEncode({"UmbraEdit.meta": {"version": __hexversion__}})
     nwGUI.closeProject()
     idxPath: Path = projPath / "meta" / nwFiles.INDEX_FILE
     assert idxPath.read_text(encoding="utf-8") != "{}"

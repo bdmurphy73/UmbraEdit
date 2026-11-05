@@ -1,10 +1,10 @@
 """
-novelWriter - HTML Format Tests
+UmbraEdit - HTML Format Tests
 ===============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,12 +28,12 @@ from pathlib import Path
 
 import pytest
 
-from novelwriter import CONFIG
-from novelwriter.constants import nwHeadFmt
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwComment
-from novelwriter.formats.shared import BlockFmt, BlockTyp
-from novelwriter.formats.tohtml import ToHtml
+from umbraedit import CONFIG
+from umbraedit.constants import nwHeadFmt
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwComment
+from umbraedit.formats.shared import BlockFmt, BlockTyp
+from umbraedit.formats.tohtml import ToHtml
 
 from tests.mocked import MockGuiMain
 

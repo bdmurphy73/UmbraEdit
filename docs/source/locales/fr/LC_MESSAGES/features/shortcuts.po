@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 22:50+0200\n"
@@ -27,11 +27,11 @@ msgstr "Raccourcis clavier"
 
 #: ../../source/features/shortcuts.rst:7
 msgid ""
-"Most features in novelWriter are available as keyboard shortcuts. This "
+"Most features in UmbraEdit are available as keyboard shortcuts. This "
 "is a reference list of those shortcuts. Most of them are also listed in "
 "the application's user interface."
 msgstr ""
-"La plupart des fonctionnalités de novelWriter sont disponibles sous "
+"La plupart des fonctionnalités de UmbraEdit sont disponibles sous "
 "forme de raccourcis clavier. Il s'agit d'une liste de référence de ces "
 "raccourcis. La plupart d'entre eux sont également listés dans "
 "l'interface utilisateur de l'application."
@@ -132,8 +132,8 @@ msgid ":kbd:`Ctrl+Q`"
 msgstr ":kbd:`Ctrl+Q`"
 
 #: ../../source/features/shortcuts.rst:1
-msgid "Exit novelWriter"
-msgstr "Quitter novelWriter"
+msgid "Exit UmbraEdit"
+msgstr "Quitter UmbraEdit"
 
 #: ../../source/features/shortcuts.rst:1
 msgid ":kbd:`Ctrl+Shift+,`"

@@ -4,7 +4,7 @@
 Project Format Changes
 **********************
 
-Most of the changes to the file formats over the history of novelWriter have no impact on the
+Most of the changes to the file formats over the history of UmbraEdit have no impact on the
 user side of things. The project files are generally updated automatically. However, some of the
 changes require minor actions from the user.
 
@@ -16,7 +16,7 @@ A full project file format specification is available under "More Documents".
 .. caution::
 
    When you update a project from one format version to the next, the project can no longer be
-   opened by a version of novelWriter prior to the version where the new file format was
+   opened by a version of UmbraEdit prior to the version where the new file format was
    introduced. You will get a notification about any updates to your project file format and will
    have the option to decline the upgrade.
 
@@ -26,7 +26,7 @@ A full project file format specification is available under "More Documents".
 Format 1.5 Changes
 ==================
 
-This project format was introduced in novelWriter version 2.0 RC 2.
+This project format was introduced in UmbraEdit version 2.0 RC 2.
 
 This is a modification of the 1.4 format. It makes the XML more consistent in that meta data have
 been moved to their respective section nodes as attributes, and key/value settings now have a
@@ -40,7 +40,7 @@ automatically the first time a project is loaded. No user action is required.
 Format 1.4 Changes
 ==================
 
-This project format was introduced in novelWriter version 2.0 RC 1. Since this was a release
+This project format was introduced in UmbraEdit version 2.0 RC 1. Since this was a release
 candidate, it is unlikely that your project uses it, but it may be the case if you've installed a
 pre-release.
 
@@ -54,7 +54,7 @@ automatically the first time a project is loaded. No user action is required.
 Format 1.3 Changes
 ==================
 
-This project format was introduced in novelWriter version 1.5.
+This project format was introduced in UmbraEdit version 1.5.
 
 With this format, the number of document layouts was reduced from eight to two. The conversion of
 document layouts is performed automatically when the project is opened.
@@ -93,7 +93,7 @@ should be used only a few places in any given project. These are as follows:
 Format 1.2 Changes
 ==================
 
-This project format was introduced in novelWriter version 0.10.
+This project format was introduced in UmbraEdit version 0.10.
 
 With this format, the way auto-replace entries were stored in the main project XML file changed.
 Conversion from this format is done automatically.
@@ -104,10 +104,10 @@ Conversion from this format is done automatically.
 Format 1.1 Changes
 ==================
 
-This project format was introduced in novelWriter version 0.7.
+This project format was introduced in UmbraEdit version 0.7.
 
 With this format, the ``content`` folder was introduced in the project storage. Previously, all
-novelWriter documents were saved in a series of folders numbered from ``data_0`` to ``data_f``.
+UmbraEdit documents were saved in a series of folders numbered from ``data_0`` to ``data_f``.
 
 It also reduces the number of meta data and cache files. These files are automatically deleted if
 an old project is opened. This was also when the Table of Contents file was introduced. Conversion

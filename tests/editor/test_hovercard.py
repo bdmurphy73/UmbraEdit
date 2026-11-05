@@ -1,10 +1,10 @@
 """
-novelWriter - Hover Card Tests
+UmbraEdit - Hover Card Tests
 ==============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,12 +31,12 @@ from PyQt6.QtGui import QEnterEvent, QGuiApplication
 from PyQt6.QtWidgets import QWidget
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.core.indexdata import TT_NONE
-from novelwriter.core.project import NWProject
-from novelwriter.editor.hovercard import GuiDocHoverCard
-from novelwriter.enum import nwDocMode
-from novelwriter.guimain import GuiMain
+from umbraedit import SHARED
+from umbraedit.core.indexdata import TT_NONE
+from umbraedit.core.project import NWProject
+from umbraedit.editor.hovercard import GuiDocHoverCard
+from umbraedit.enum import nwDocMode
+from umbraedit.guimain import GuiMain
 
 from tests.helpers import C, MockRnd, buildTestProject
 

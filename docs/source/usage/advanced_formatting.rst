@@ -4,7 +4,7 @@
 Advanced Formatting
 *******************
 
-Standard Markdown formatting is somewhat limited, so novelWriter has some additional formatting
+Standard Markdown formatting is somewhat limited, so UmbraEdit has some additional formatting
 codes for special use cases. These codes are all based on brackets, and some allow an additional
 value to be set after a colon.
 
@@ -118,7 +118,7 @@ Inserting Word Counts in the Text
 =================================
 
 The cover page of a manuscript normally has the word count stated on it. Any statistics value
-collected by novelWriter can be inserted into any document using a special shortcode. You can
+collected by UmbraEdit can be inserted into any document using a special shortcode. You can
 insert the code for any of the available statistics values from the **Insert** menu under
 **Word/Character Count**.
 

@@ -1,10 +1,10 @@
 """
-novelWriter - Merge Dialog Tests
+UmbraEdit - Merge Dialog Tests
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2021 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2021 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,10 +29,10 @@ import pytest
 from PyQt6.QtCore import Qt
 from pytestqt.qtbot import QtBot
 
-from novelwriter.core.project import NWProject
-from novelwriter.dialogs.docmerge import GuiDocMerge
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtAccepted, QtRejected, QtUserRole
+from umbraedit.core.project import NWProject
+from umbraedit.dialogs.docmerge import GuiDocMerge
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtAccepted, QtRejected, QtUserRole
 
 from tests.helpers import C, MockRnd, buildTestProject
 

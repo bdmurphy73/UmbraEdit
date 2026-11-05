@@ -1,10 +1,10 @@
 """
-novelWriter - Spell Check Tests
+UmbraEdit - Spell Check Tests
 ===============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,9 +28,9 @@ from pathlib import Path
 
 import pytest
 
-from novelwriter.constants import nwFiles
-from novelwriter.core.project import NWProject
-from novelwriter.core.spellcheck import FakeEnchant, SpellEnchant, UserDictionary
+from umbraedit.constants import nwFiles
+from umbraedit.core.project import NWProject
+from umbraedit.core.spellcheck import FakeEnchant, SpellEnchant, UserDictionary
 
 from tests.helpers import buildTestProject
 from tests.mocked import MockGuiMain, causeOSError
@@ -70,7 +70,7 @@ def testUserDictionary_Main(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMai
 
     # Break the path check
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
         userDict.save()
 
     # There should still be no file
@@ -94,7 +94,7 @@ def testUserDictionary_Main(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMai
 
     # Break the path check
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
         userDict.load()
 
     # No words loaded
@@ -247,7 +247,7 @@ def testSpellEnchant_Cache(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain
 
     # When the cache is full, it should be cleared before the next add
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.spellcheck.MAX_CACHE_SIZE", 2)
+        mp.setattr("umbraedit.core.spellcheck.MAX_CACHE_SIZE", 2)
         assert spChk.checkWord("stuff") is True
         assert spChk._cache == {"stuff": True}
 

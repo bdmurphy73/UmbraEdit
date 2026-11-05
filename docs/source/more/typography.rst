@@ -9,12 +9,12 @@ Typographical Notes
 .. _Quotation Mark: https://en.wikipedia.org/wiki/Quotation_mark
 .. _Modifier letter apostrophe: https://en.wikipedia.org/wiki/Modifier_letter_apostrophe
 
-novelWriter has some support for typographical symbols that are not usually easily available in
+UmbraEdit has some support for typographical symbols that are not usually easily available in
 many text editors. This includes for instance the proper unicode quotation marks, dashes, ellipsis,
 thin spaces, etc. All these symbols are available from the **Insert** menu, and via
 keyboard shortcuts. See :ref:`docs_features_shortcuts_insert`.
 
-This chapter provides some additional information on how novelWriter handles these symbols.
+This chapter provides some additional information on how UmbraEdit handles these symbols.
 
 
 Dashes and Ellipsis

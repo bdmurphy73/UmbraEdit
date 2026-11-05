@@ -1,10 +1,10 @@
 """
-novelWriter - Novel Model Tests
+UmbraEdit - Novel Model Tests
 ===============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,13 +29,13 @@ import pytest
 from PyQt6.QtCore import QModelIndex
 from PyQt6.QtTest import QAbstractItemModelTester
 
-from novelwriter import CONFIG
-from novelwriter.core.indexdata import IndexHeading
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwNovelExtra
-from novelwriter.guimain import GuiMain
-from novelwriter.models.novelmodel import NovelModel
-from novelwriter.types import QtAccessibleTextRole, QtDisplayRole
+from umbraedit import CONFIG
+from umbraedit.core.indexdata import IndexHeading
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwNovelExtra
+from umbraedit.guimain import GuiMain
+from umbraedit.models.novelmodel import NovelModel
+from umbraedit.types import QtAccessibleTextRole, QtDisplayRole
 
 from tests.helpers import C, MockRnd, buildTestProject
 

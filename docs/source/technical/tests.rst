@@ -6,7 +6,7 @@ Running Tests
 
 .. _uv: https://docs.astral.sh/uv/
 
-The novelWriter source code is well covered by tests. The test framework used for the development
+The UmbraEdit source code is well covered by tests. The test framework used for the development
 is ``pytest`` with the use of an extension for Qt.
 
 
@@ -21,7 +21,7 @@ To run the tests, you simply need to execute the following from the root of the 
 
 This uses uv_. See below for manually installing dependencies using ``pip``.
 
-Since several of the tests involve opening up the novelWriter GUI, you may want to disable the GUI
+Since several of the tests involve opening up the UmbraEdit GUI, you may want to disable the GUI
 for the duration of the test run. Moving your mouse while the tests are running may otherwise
 interfere with the execution of some tests.
 
@@ -55,19 +55,19 @@ You can also add coverage report generation. For instance to HTML:
 
 .. code-block:: bash
 
-   export QT_QPA_PLATFORM=offscreen pytest -v --cov=novelwriter --cov-report=html
+   export QT_QPA_PLATFORM=offscreen pytest -v --cov=umbraedit --cov-report=html
 
 Other useful report formats are ``xml``, and ``term`` for terminal output.
 
-You can also run tests per subpackage of novelWriter with the ``-m`` command. The available
+You can also run tests per subpackage of UmbraEdit with the ``-m`` command. The available
 subpackage groups are ``base``, ``core``, and ``gui``. Consider for instance:
 
 .. code-block:: bash
 
-   export QT_QPA_PLATFORM=offscreen pytest -v --cov=novelwriter --cov-report=html -m core
+   export QT_QPA_PLATFORM=offscreen pytest -v --cov=umbraedit --cov-report=html -m core
 
 This will only run the tests of the "core" package, that is, all the classes that deal with the
-project data of a novelWriter project. The "gui" tests, likewise, will run the tests for the GUI
+project data of a UmbraEdit project. The "gui" tests, likewise, will run the tests for the GUI
 components, and the "base" tests cover the bits in-between.
 
 You can also filter the tests with the ``-k`` switch. The following will do the same as
@@ -75,7 +75,7 @@ You can also filter the tests with the ``-k`` switch. The following will do the 
 
 .. code-block:: bash
 
-   export QT_QPA_PLATFORM=offscreen pytest -v --cov=novelwriter --cov-report=html -k testCore
+   export QT_QPA_PLATFORM=offscreen pytest -v --cov=umbraedit --cov-report=html -k testCore
 
 All tests are named in such a way that you can filter them by adding more bits of the test names.
 They all start with the word "test". Then comes the group: "Core", "Base", "Dlg", "Tool", or "Gui".
@@ -84,6 +84,6 @@ file. For instance, running the following will run all tests for the document ed
 
 .. code-block:: bash
 
-   export QT_QPA_PLATFORM=offscreen pytest -v --cov=novelwriter --cov-report=html -k testGuiEditor
+   export QT_QPA_PLATFORM=offscreen pytest -v --cov=umbraedit --cov-report=html -k testGuiEditor
 
 To run a single test, simply add the full test name to the ``-k`` switch.

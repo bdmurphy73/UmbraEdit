@@ -6,7 +6,7 @@ Front and Back Matter
 
 Front and back matter documents are documents that go before and after your main story text. They
 can include pages like your cover page, content tables, prologues, epilogues, etc. These special
-pages and sections are supported to some extent by novelWriter.
+pages and sections are supported to some extent by UmbraEdit.
 
 
 .. _docs_usage_front_back_matter_title:
@@ -24,7 +24,7 @@ format you use, and additional space added before the title.
 
 :bdg-info:`Example`
 
-This is the title page novelWriter generates automatically for a new project as of version 2.6:
+This is the title page UmbraEdit generates automatically for a new project as of version 2.6:
 
 .. code-block:: md
 

@@ -1,10 +1,10 @@
 """
-novelWriter - Split Dialog Tests
+UmbraEdit - Split Dialog Tests
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,12 +28,12 @@ import pytest
 
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.core.project import NWProject
-from novelwriter.dialogs.docsplit import GuiDocSplit
-from novelwriter.dialogs.editlabel import GuiEditLabel
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtAccepted, QtRejected
+from umbraedit import SHARED
+from umbraedit.core.project import NWProject
+from umbraedit.dialogs.docsplit import GuiDocSplit
+from umbraedit.dialogs.editlabel import GuiEditLabel
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtAccepted, QtRejected
 
 from tests.helpers import C, MockRnd, buildTestProject
 

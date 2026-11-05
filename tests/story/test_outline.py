@@ -1,10 +1,10 @@
 """
-novelWriter - GUI Story Outline Tests
+UmbraEdit - GUI Story Outline Tests
 =====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,14 +31,14 @@ from PyQt6.QtGui import QDropEvent, QHelpEvent, QPainter, QPixmap, QTextLayout, 
 from PyQt6.QtWidgets import QApplication, QStyleOptionViewItem, QToolTip
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.constants import nwKeyWords
-from novelwriter.enum import nwView
-from novelwriter.guimain import GuiMain
-from novelwriter.models.outlinemodel import OutlineModel
-from novelwriter.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView, _OutlineDelegate
-from novelwriter.story.storysettings import OutlineColumn, OutlineViewSettings
-from novelwriter.types import QtModCtrl, QtModNone, QtModShift, QtScrollAlwaysOff, QtScrollAsNeeded
+from umbraedit import CONFIG, SHARED
+from umbraedit.constants import nwKeyWords
+from umbraedit.enum import nwView
+from umbraedit.guimain import GuiMain
+from umbraedit.models.outlinemodel import OutlineModel
+from umbraedit.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView, _OutlineDelegate
+from umbraedit.story.storysettings import OutlineColumn, OutlineViewSettings
+from umbraedit.types import QtModCtrl, QtModNone, QtModShift, QtScrollAlwaysOff, QtScrollAsNeeded
 
 ALL_SETTINGS = (
     "outline.syntaxColors",

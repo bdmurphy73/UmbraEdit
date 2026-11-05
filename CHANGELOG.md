@@ -1,4 +1,4 @@
-# novelWriter Changelog
+# UmbraEdit Changelog
 
 ## Version 2026.3 Beta 1 [2026-10-20]
 
@@ -7,7 +7,7 @@
 This is a beta release of the next release version, and is intended for testing purposes. Please be
 careful when using this version on live writing projects, and make sure you take frequent backups.
 
-See the website for complete [Release Notes](https://novelwriter.io/releases/release_26_3.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_26_3.html).
 
 ### Detailed Changelog
 
@@ -109,7 +109,7 @@ paragraphs following a horizontal ruler in the manuscript being indented. The bu
 have also been downgraded to the last version available under the Apache 2.0 licence. The French
 translation has been updated.
 
-See the website for complete [Release Notes](https://novelwriter.io/releases/release_26_2.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_26_2.html).
 
 ### Detailed Changelog
 
@@ -147,7 +147,7 @@ when the app theme changed. It also adds build metadata used in crash reports an
 who installed via the now deprecated Launchpad PPA. French and Russian translations have been
 updated.
 
-See the website for complete [Release Notes](https://novelwriter.io/releases/release_26_2.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_26_2.html).
 
 ### Detailed Changelog
 
@@ -179,7 +179,7 @@ See the website for complete [Release Notes](https://novelwriter.io/releases/rel
 
 The 2026.2 release is based on the features added in 2026.2 Beta 1, Beta 2, RC 1.
 
-See the website for complete [Release Notes](https://novelwriter.io/releases/release_26_2.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_26_2.html).
 
 ### Detailed Changelog
 
@@ -206,7 +206,7 @@ See the website for complete [Release Notes](https://novelwriter.io/releases/rel
 **Other Changes**
 
 * Bumped the project file format version to 1.6 to block the project from being opened by older
-  versions of novelWriter that cannot read it correctly anyway. By @vkbo. PR #2984.
+  versions of UmbraEdit that cannot read it correctly anyway. By @vkbo. PR #2984.
 
 **Packaging**
 
@@ -217,7 +217,7 @@ See the website for complete [Release Notes](https://novelwriter.io/releases/rel
 
 * The Norwegian, US English, German, Italian, Japanese, Polish and Portuguese translations are
   now complete, and the Catalan translation has been updated. Translations are contributed via
-  [Crowdin](https://crowdin.com/project/novelwriter). PR #2968.
+  [Crowdin](https://crowdin.com/project/umbraedit). PR #2968.
 
 ----
 
@@ -230,7 +230,7 @@ Please be careful when using this version on live writing projects, and make sur
 backups.
 
 Note that 2026.2 Beta 2 and newer upgrades a project on first load, so it can no longer be opened
-in an older version of novelWriter. 2026.2 Beta 1 and newer also updates the main config file, but
+in an older version of UmbraEdit. 2026.2 Beta 1 and newer also updates the main config file, but
 leaves the old one in place, so this is not blocking older versions but be aware that the config
 changes do not pass between the old and new config files once the new config file exists.
 
@@ -510,7 +510,7 @@ app on Linux.
 
 The 2026.1 release is based on the features added in 2026.1 Beta 1, Beta 2, RC 1.
 
-See the website for complete [Release Notes](https://novelwriter.io/releases/release_26_1.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_26_1.html).
 
 ### Detailed Changelog
 
@@ -543,7 +543,7 @@ This is a release candidate of the next release version, and is intended for tes
 Please be careful when using this version on live writing projects, and make sure you take frequent
 backups.
 
-Note: There are no longer any Mac releases produced for novelWriter. See #2618.
+Note: There are no longer any Mac releases produced for UmbraEdit. See #2618.
 
 ### Detailed Changelog
 
@@ -584,7 +584,7 @@ Note: There are no longer any Mac releases produced for novelWriter. See #2618.
 This is a beta release of the next release version, and is intended for testing purposes. Please be
 careful when using this version on live writing projects, and make sure you take frequent backups.
 
-Note: There are no longer any Mac releases produced for novelWriter. See #2618.
+Note: There are no longer any Mac releases produced for UmbraEdit. See #2618.
 
 ### Detailed Changelog
 
@@ -604,7 +604,7 @@ Note: There are no longer any Mac releases produced for novelWriter. See #2618.
 This is a beta release of the next release version, and is intended for testing purposes. Please be
 careful when using this version on live writing projects, and make sure you take frequent backups.
 
-Note: There are no longer any Mac releases produced for novelWriter. See #2618.
+Note: There are no longer any Mac releases produced for UmbraEdit. See #2618.
 
 ### Detailed Changelog
 
@@ -616,7 +616,7 @@ Note: There are no longer any Mac releases produced for novelWriter. See #2618.
 
 **Features**
 
-* The novelWriter version number is now year-based. Instead of the next release being 2.9, it is
+* The UmbraEdit version number is now year-based. Instead of the next release being 2.9, it is
   now 26.1 or 2026.1 as shown in the app. Discussion #2667. PR #2669.
 * Added the Lucide icon theme as a user-selectable icon theme. Issue #2605. PR #2632.
 * It is now possible to split a document via text selection, or at the cursor position, from the
@@ -681,7 +681,7 @@ Note: There are no longer any Mac releases produced for novelWriter. See #2618.
 
 ### Release Notes
 
-This is a patch release that fixes an issue with launching novelWriter via a project file on
+This is a patch release that fixes an issue with launching UmbraEdit via a project file on
 Windows, adds an alert when the spell check dictionary cannot be loaded, handles headings in HTML
 manuscripts the same way as for documents, and updates the documentation on how heading levels are
 handled in the manuscript build process.
@@ -691,7 +691,7 @@ handled in the manuscript build process.
 **Bugfixes**
 
 * Fixed an issue with the exe launcher on Windows where it didn't support spaces in the path when
-  the user tried to open novelWriter from a project file. Issue #2643. PR #2645.
+  the user tried to open UmbraEdit from a project file. Issue #2643. PR #2645.
 * Fixed an issue with the PDF manuscript format which stopped after about 600-700 pages when
   generating A4 pages. The limit is now in the 11000 pages range. Issue #2637. PRs #2638 and #2639.
 
@@ -739,7 +739,7 @@ Spotlight on MacOS.
 
 The 2.8 release is based on the features added in 2.8 beta 1 and 2.8 RC 1.
 
-See the website for complete [Release Notes](https://novelwriter.io/releases/release_2_8.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_8.html).
 
 ### Detailed Changelog
 
@@ -760,7 +760,7 @@ See the website for complete [Release Notes](https://novelwriter.io/releases/rel
 
 **Packaging**
 
-* Added `qt6-svg-plugins` as a direct dependency of novelWriter on Debian. This package was not
+* Added `qt6-svg-plugins` as a direct dependency of UmbraEdit on Debian. This package was not
   always installed on some distros. Issue #2604. PR #2607.
 
 ----
@@ -862,7 +862,7 @@ careful when using this version on live writing projects, and make sure you take
 * Trailing spaces are no longer highlighted in the editor with an error underline. Multiple spaces
   between words still are. Issue #2501. PR #2505.
 * The rebuild index dialog is no longer showed if the index is rebuilt due to index structure
-  changes when a project is opened for the first time in a newer version of novelWriter. This was
+  changes when a project is opened for the first time in a newer version of UmbraEdit. This was
   confusing to some users who thought the dialog indicated an error. Issue #2513. PR #2537.
 * A switch on the Manuscript Build Settings dialog now allows for automatic preview of the build
   when Apply or Save is clicked. Issue #2486. PR #2553.
@@ -898,7 +898,7 @@ careful when using this version on live writing projects, and make sure you take
 
 **Packaging**
 
-* The license info for novelWriter has been updated to include `GPL-3.0-or-later`, `Apache-2.0`,
+* The license info for UmbraEdit has been updated to include `GPL-3.0-or-later`, `Apache-2.0`,
   and `CC-BY-4.0`. Issue #2444. PR #2446.
 * Updated Debian package build and added Qt6 plugin for WebP images as a dependency. PR #2401.
 
@@ -938,7 +938,7 @@ certain conditions, and improves positioning of the input box for CJK languages.
 * Fixed an issue where the app would crash of deleting the `@` character with the completer menu
   visible and the text margins of the editor set to "justified". This is likely crashing due to
   some unhandled corner case in the Qt library, but the implementation of the completer menu in
-  novelWriter uses a small hack to bypass some intended behaviour of the menu. Extra steps have
+  UmbraEdit uses a small hack to bypass some intended behaviour of the menu. Extra steps have
   been added to the implementation that seems to avoid the crash. Issue #2510. PR #2511.
 * Fixed an issue where the input box that shows up when typing CJK languages were covering the text
   due to an incorrect offset of the box location. The incorrect offset is caused by the text
@@ -979,7 +979,7 @@ This is a patch release that fixes a bug in, and makes a few improvement to, Pre
 
 **Bugfixes**
 
-* Fixes an issue where novelWriter would crash if a `%` was added to any of the free text settings
+* Fixes an issue where UmbraEdit would crash if a `%` was added to any of the free text settings
   fields in Preferences. Issue #2455. PR #2456.
 
 **Improvements**
@@ -1079,7 +1079,7 @@ for 2.7 has also been completed.
 The 2.7 release updates the 2.7 RC 1 release and makes an improvement to the build settings tool.
 It also updates most translations and updates the French version of the documentation.
 
-See the website for complete [Release Notes](https://novelwriter.io/releases/release_2_7.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_7.html).
 
 ### Detailed Changelog
 
@@ -1202,7 +1202,7 @@ careful when using this version on live writing projects, and make sure you take
   the GUI theme colours for consistency. Issue #2159. PRs #2171, #2174, #2177, #2178 and #2203.
 * Support for Story Structure comments have been added. These are special in-text comments that can
   be used for analysing the story structure using various writing techniques. The comments are
-  indexed by novelWriter and can be included in manuscripts as well as exported to CSV files from
+  indexed by UmbraEdit and can be included in manuscripts as well as exported to CSV files from
   the Outline View for use with spread sheet software. Idea and documentation by Alan Langford
   (@instancezero). Issues #1784, #2288, #2289 and #2296. PRs #2255, #2284, #2293, #2295 and #2298.
 
@@ -1235,8 +1235,8 @@ careful when using this version on live writing projects, and make sure you take
   #2192, #2193, #2194 and #2195. PRs #2184, #2187, #2190, #2191, #2196, #2204, #2301 and #2306.
 * Support for Python 3.9 has been dropped. Due to the Qt6 change, older distros are no longer
   supported. The oldest Ubuntu release still supported is 24.04. PR #2182.
-* The Windows release now uses a custom novelWriter.exe launcher rather than calling the Python exe
-  directly with novelWriter.pyw as an argument. This means novelWriter can also be launched from
+* The Windows release now uses a custom UmbraEdit.exe launcher rather than calling the Python exe
+  directly with UmbraEdit.pyw as an argument. This means UmbraEdit can also be launched from
   its install folder, and desktop shortcuts created directly. It also simplifies the registry
   entries. PRs #2197, #2198 and #2199.
 * The Appdata XML files used with AppImage releases has been updated and broken links fixed.
@@ -1308,7 +1308,7 @@ Brazilian Portuguese translations have been updated.
 * Add Czech translation by Tomáš Zmek. PR #2244.
 * Updated Italian, Polish and Brazilian Portuguese translations. PR #2244.
 
-See the [translation activity stream](https://crowdin.com/project/novelwriter/activity-stream) for
+See the [translation activity stream](https://crowdin.com/project/umbraedit/activity-stream) for
 more details.
 
 ----
@@ -1318,7 +1318,7 @@ more details.
 ### Release Notes
 
 This is a patch release that fixes an issue with creating new notes from the editor context menu,
-adds an option to turn off the confirmation box that pops up when closing novelWriter, and improves
+adds an option to turn off the confirmation box that pops up when closing UmbraEdit, and improves
 the recent project list on the Welcome dialog.
 
 A French version of the user guide is now also available when the localisation is set to French,
@@ -1335,7 +1335,7 @@ the application have been updated.
 
 **Improvements**
 
-* A setting was added to Preferences to disable the dialog box when exiting novelWriter. It is
+* A setting was added to Preferences to disable the dialog box when exiting UmbraEdit. It is
   available under the "Behaviour" section. Issue #2209. PR#2213.
 * Recent projects on the Welcome dialog box are now tracked using their unique ID as well as their
   path. This means that if a project is moved, it should not show up twice in the list, but the
@@ -1355,7 +1355,7 @@ the application have been updated.
 * Latin American Spanish, Norwegian, US English, German and Japanese translations are fully
   updated. PR #2214.
 
-See the [translation activity stream](https://crowdin.com/project/novelwriter/activity-stream) for
+See the [translation activity stream](https://crowdin.com/project/umbraedit/activity-stream) for
 more details.
 
 ----
@@ -1366,7 +1366,7 @@ more details.
 
 The 2.6 release fixes a few minor issues from the RC 1 pre-release, and updates most translations.
 
-See the website for complete [Release Notes](https://novelwriter.io/releases/release_2_6.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_6.html).
 
 ### Detailed Changelog
 
@@ -1672,7 +1672,7 @@ an issue with the Importance labels not being updated in the tabs for tags.
 The 2.5 release fixes a number of minor issues from the RC 1 pre-release, and updates most
 translation files. Polish has also been added.
 
-See the website for complete [Release Notes](https://novelwriter.io/releases/release_2_5.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_5.html).
 
 ### Detailed Changelog
 
@@ -1744,7 +1744,7 @@ backups.
   preview. Issue #1839 and #1858. PR #1898.
 * Make sure the document in the editor is saved before the same document is opened in the viewer.
   Issue #1884. PR #1902.
-* The project name now appears before "novelWriter" in the main window title, which improves the
+* The project name now appears before "UmbraEdit" in the main window title, which improves the
   task bar label on at least Linux Mint Cinnamon, and Windows. Issue #1910. PR #1911.
 * Dialogue highlighting now only applies to novel documents, not notes. It is also possible to
   apply it to HTML and ODT manuscripts, and it also shows up in the preview and in the document
@@ -1797,7 +1797,7 @@ careful when using this version on live writing projects, and make sure you take
 
 **General Changes**
 
-* novelWriter now requires Python 3.9 and Qt 5.15 as a minimum. That means Ubuntu 20.04 and older
+* UmbraEdit now requires Python 3.9 and Qt 5.15 as a minimum. That means Ubuntu 20.04 and older
   are no longer supported for the Debian packages. Users on Ubuntu 20.04 and equivalent Linux
   distros must use the AppImage. PRs #1826 and #1833.
 
@@ -1876,7 +1876,7 @@ careful when using this version on live writing projects, and make sure you take
 * Some GUI components have been improved and refactored to rely more on signals and slots rather
   than reaching into each other's classes and calling methods. This is a little more robust.
   PR #1849.
-* The text tokenizer used to parse the formatting codes in novelWriter has been refactored and
+* The text tokenizer used to parse the formatting codes in UmbraEdit has been refactored and
   improved. In particular, multi-line paragraphs are now processed during the second pass of
   tokenization rather than when the final format is applied. This allows a much more compact format
   of the token data, and avoid potential inconsistencies between the various output formats.
@@ -1969,7 +1969,7 @@ dialog is still open.
 
 **Bugfixes**
 
-* Fixed an issue that could crash novelWriter if a build settings entry was deleted from the
+* Fixed an issue that could crash UmbraEdit if a build settings entry was deleted from the
   Manuscript tool while its settings window was open. PR #1845.
 
 **Improvements**
@@ -2007,7 +2007,7 @@ instance be used for soft and hard scene breaks.
 
 The **Manuscript Build** tool has also been extended with multiple new formatting options.
 
-See the website for complete [Release Notes](https://novelwriter.io/releases/release_2_4.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_4.html).
 
 ### Detailed Changelog
 
@@ -2131,7 +2131,7 @@ careful when using this version on live writing projects, and make sure you take
 
 **Code Improvements**
 
-* The tokenization of the novelWriter markup format has been refactored and improved. PR #1724.
+* The tokenization of the UmbraEdit markup format has been refactored and improved. PR #1724.
 * A way to read project documents fast has been added. It is useful many places in the code where
   only the text is needed, not the meta data. PR #1777.
 
@@ -2181,7 +2181,7 @@ View and Focus character names in chapter titles in Manuscripts. A new feature t
 also been added. It behaves similarly to comments, but is never included in a manuscript even if
 comments in the manuscript are enabled.
 
-See the website for complete [Release Notes](https://novelwriter.io/releases/release_2_3.html).
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_3.html).
 
 ### Detailed Changelog
 
@@ -2219,7 +2219,7 @@ See the website for complete [Release Notes](https://novelwriter.io/releases/rel
 
 **Other Changes**
 
-* Removed the novelwriter-cli entry point that was in any case broken. PR #1734. Issue #1732.
+* Removed the umbraedit-cli entry point that was in any case broken. PR #1734. Issue #1732.
 
 ----
 
@@ -2286,11 +2286,11 @@ final release.
   the Add Item menu in the Project Tree view under a "From Template" submenu. Selecting such an
   entry will create a new document at the selected location in the project, and populate it with
   the content of the template file. Issues #996 and #1125. PR #1688.
-* The About novelWriter dialog has been simplified to only show some key information and the
+* The About UmbraEdit dialog has been simplified to only show some key information and the
   credits text. A link to the releases page is available for checking release notes. Keeping the
   release notes online means it is easier to update them, and make them more visually interesting
   as the formatting of the dialog box is limited. PR #1695.
-* The old Check for Updates dialog has been removed. Checking for new releases of novelWriter can
+* The old Check for Updates dialog has been removed. Checking for new releases of UmbraEdit can
   be done directly in the Welcome dialog or the About dialog by clicking "Check Now" next to the
   "Latest Version" label. PR #1696.
 
@@ -2334,7 +2334,7 @@ final release.
 **Code Improvements**
 
 * The Storage class has been refactored. It is the class that handles the project storage folder
-  for a novelWriter project. The refactoring is a step towards allowing single file storage for
+  for a UmbraEdit project. The refactoring is a step towards allowing single file storage for
   projects as an alternative to project folders. Issue #977. PR #1635.
 * All theme colours are now proper QColor objects from the start, which avoids the need to create
   a large number of these where they are used. PR #1656.
@@ -2411,7 +2411,7 @@ now select multiple documents and folders using the mouse while pressing `Ctrl` 
 right-clicking the selected items, you can perform a limited set of operations on all of them, like
 changing active status, and the status or importance labels. You can also drag and drop multiple
 items under the condition that all the selected items are in the same folder, at the same level.
-This restriction is in place due to limitations in the framework novelWriter is based on. But this
+This restriction is in place due to limitations in the framework UmbraEdit is based on. But this
 should help in cases where multiple documents need to be moved in and out of folders or between
 folders. Note that adding the multi-select feature meant that the undo feature of the project tree
 had to be removed. It may be added back later.
@@ -2504,7 +2504,7 @@ final release.
   effects some users may want to avoid. Issue #1602. PR #1605.
 * For Windows users, there is now an "Add Dictionaries" tool in the Tools menu where new spell
   check dictionaries can be added. Links are provided to sources for these dictionaries, and a file
-  selector tool to import the files into novelWriter. Issue #982. PR #1611.
+  selector tool to import the files into UmbraEdit. Issue #982. PR #1611.
 * You can now update the name of a document by right-clicking on any heading inside the document
   and select "Set as Document Name". This will open the Rename dialog with the text of the heading
   pre-filled. Issue #1503. PR #1614.
@@ -2550,7 +2550,7 @@ final release.
 
 **Features**
 
-* novelWriter has a new logo and icon. PR #1593.
+* UmbraEdit has a new logo and icon. PR #1593.
 * The Document Editor is now a true plain text editor. This has a number of benefits and a couple
   of drawbacks. The most important benefits is that the editor responds a lot faster, and can hold
   much larger text documents. The big document limit has therefore been removed. It mostly affected
@@ -2653,7 +2653,7 @@ changes have been fixed as well. See the full changelog for more details.
 **Usability**
 
 * Changed how the default UI language is selected. It used to default to the system locale, but
-  that is now changed to British English if the system local is not available in novelWriter. The
+  that is now changed to British English if the system local is not available in UmbraEdit. The
   only real effects of this is that the dropdown box in Preferences now selects British English if
   the system locale is not available rather than the first in the list (currently Deutch). The
   second effect is that the language on buttons and other Qt components will match the rest of the
@@ -2745,7 +2745,7 @@ final release.
 
 **Usability**
 
-* novelWriter will no longer try to restore full screen mode if full screen was activated when it
+* UmbraEdit will no longer try to restore full screen mode if full screen was activated when it
   was last closed. This never worked right anyway. PR #1498.
 * There are several usability updates for the Build Settings tool. Please check the PR for details.
   Some key changes are that the build dialogs are now children of the main GUI, so they can be
@@ -2771,7 +2771,7 @@ final release.
   and recreated together with the project instance. This blocks against bleed-through of the user's
   custom dictionary. PR #1508.
 * Text hash (SHA1) and creation and update time stamps are now added to the document file's meta
-  data section. The hash is used to detect file changes outside of novelWriter while documents are
+  data section. The hash is used to detect file changes outside of UmbraEdit while documents are
   open. The old checker has been deleted. Issue #1423. PR #1509.
 
 ----
@@ -2826,7 +2826,7 @@ final release.
 * Support for Python 3.7 is no longer maintained, but has not officially been dropped. It is
   expected to be dropped for the final release of 2.1. PR #1452.
 * The `lxml` package has been removed from the source code, dropping it as a dependency of
-  novelWriter. The standard Python `xml` library is used instead. The standard library is somewhat
+  UmbraEdit. The standard Python `xml` library is used instead. The standard library is somewhat
   limited, which is why it wasn't originally used, but when dropping support for Python 3.7, it is
   now good alternative. Issue #1257. PR #1452.
 * The `setup.py` file has been removed. The custom packaging utilities in the old `setup.py` file
@@ -2840,7 +2840,7 @@ final release.
   with when writing tests. The new approach also removes the need to access the config object via
   an attribute in many classes, and is now instead accessed directly. This should give a tiny
   performance boost as a bonus. PR #1447.
-* The building of manuscript documents from novelWriter source text is now handled by a core
+* The building of manuscript documents from UmbraEdit source text is now handled by a core
   builder class, thus separating it from any GUI module. Previously, this was baked into the build
   tool. PR #1316.
 * SVG icons have been optimised in terms of storage size and object complexity. PR #1456.
@@ -2874,7 +2874,7 @@ such a document. In addition, the "Change Label" context menu entry has been cha
 
 **Bugfixes**
 
-* Fixed an issue where novelWriter sometimes shows up in the desktop environment on Linux under
+* Fixed an issue where UmbraEdit sometimes shows up in the desktop environment on Linux under
   another name than it's supposed to, which meant it would show up without the correct icon. The
   desktop environment was apparently guessing its name based on various values. It is now set
   explicitly. PR #1405.
@@ -2963,7 +2963,7 @@ full translation into Russian is on its way.
 
 * Fixed an issue where the Title, Project Name and Author values of the Project Dialog would not
   refresh when a project was closed and another opened. The issue is with the Qt library and
-  caching of the dialog, but novelWriter forces a refresh of the labels. These three were
+  caching of the dialog, but UmbraEdit forces a refresh of the labels. These three were
   previously missing though. Issue #1336. PR #1339.
 * Add a check to the data storage class that a path exists before it is returned to other classes
   that uses them for file I/O. Issue #1317. PR #1342.
@@ -3003,7 +3003,7 @@ full translation into Russian is on its way.
 
 ### Release Notes
 
-This is a patch release that fixes a bug where novelWriter would crash if PyQt5 version 5.15.8 was
+This is a patch release that fixes a bug where UmbraEdit would crash if PyQt5 version 5.15.8 was
 installed and imported.
 
 ### Detailed Changelog
@@ -3011,7 +3011,7 @@ installed and imported.
 **Bugfixes**
 
 * Fixed an issue with the version check against PyQt5, which was imported from the wrong package
-  when running novelWriter with PyQt5 version 5.15.8, released 2023-01-28. Issue #1324. PR #1325.
+  when running UmbraEdit with PyQt5 version 5.15.8, released 2023-01-28. Issue #1324. PR #1325.
 
 ----
 
@@ -3359,7 +3359,7 @@ backups.
 Please check the changelog for an overview of changes. The full release notes will be added to the
 final release.
 
-**Note:** As of the 2.0 release, novelWriter requires Qt 5.10 or higher and Python 3.7 or higher.
+**Note:** As of the 2.0 release, UmbraEdit requires Qt 5.10 or higher and Python 3.7 or higher.
 
 ### Detailed Changelog
 
@@ -3401,7 +3401,7 @@ Interface. PR #1146.
 
 **Known Issues**
 
-* An attempt has been made to fix the missing mime icon for novelWriter projects on Linux. The
+* An attempt has been made to fix the missing mime icon for UmbraEdit projects on Linux. The
   newer versions of Nautilus don't seem to display the correct icon due to some changes in the way
   icons are extracted from the theme. The icon displays fine in other places. PR #1068.
 
@@ -3650,7 +3650,7 @@ disappearing at the right-hand edge of the text editor. Issues #1112 and #1119. 
 
 ### Release Notes
 
-This is a bugfix release that fixes a rare problem causing novelWriter to crash if the spell
+This is a bugfix release that fixes a rare problem causing UmbraEdit to crash if the spell
 checker language setting was configured to an empty value.
 
 A few other minor issues have also been fixed: The project language setting is now properly
@@ -3667,7 +3667,7 @@ disappears. It was not necessarily obvious how the viewer panel could be restore
   files. Issue #1073. PR #1087.
 * Fixed an issue where the splitter in the main window could be dragged until it hid the document
   viewer panel. This is no longer possible. Issue #1085. PR #1087.
-* Fixed an issue where an empty spell check language setting would crash novelWriter. Issue #1096.
+* Fixed an issue where an empty spell check language setting would crash UmbraEdit. Issue #1096.
   PR #1098.
 * Added a checker that blocks the automatic insertion of spaces in front of special characters in
   the cases where the character is a colon in either a meta tag, or as part of the synopsis
@@ -3740,7 +3740,7 @@ updated.
 
 This release does not introduce any major new features, but is instead a collection of minor
 improvements and tweaks based on user requests. There are also a number of changes under the hood
-to improve the structure and performance of novelWriter.
+to improve the structure and performance of UmbraEdit.
 
 Some key improvements to the user interface are:
 
@@ -3763,7 +3763,7 @@ Other feature changes include:
 * The user can now add their own syntax and GUI theme files in the app folder in their user area on
   the host operating system. Where the custom files must be added is described in the
   documentation.
-* A Windows installer is yet again provided for novelWriter. If you have novelWriter installed
+* A Windows installer is yet again provided for UmbraEdit. If you have UmbraEdit installed
   using another method, make sure you uninstall it properly first as the two methods are not
   compatible.
 * Release versions for Ubuntu 21.04 have been dropped, and added for the upcoming Ubuntu 22.04.
@@ -3781,9 +3781,9 @@ _These Release Notes also include the changes from 1.6 Beta 1 and RC 1._
 * The default OS font is not always suitable for editing documents. The default editor font is now
   Arial on Windows and Courier on macOS; if those fonts are available on the platform. Issue #988.
   PR #990.
-* Added some some random error messages from Discworld to the error dialog shown when novelWriter
+* Added some some random error messages from Discworld to the error dialog shown when UmbraEdit
   crashes. They are visible on the dialog title bar if the title bar is visible on the platform.
-  This is just a fun addition made to note the #1000 addition to novelWriter. PR #1000.
+  This is just a fun addition made to note the #1000 addition to UmbraEdit. PR #1000.
 
 **Installation**
 
@@ -3859,7 +3859,7 @@ final release.
   releases. Issue #956. PR #976.
 * Add a new theme for the documentation, and restructure it with better introduction and overview
   sections. PR #978.
-* Add information on how to customise novelWriter to the documentation. Issue #892. PR #984.
+* Add information on how to customise UmbraEdit to the documentation. Issue #892. PR #984.
 
 ----
 
@@ -4007,7 +4007,7 @@ not displayed correctly in all colour themes.
 
 * The syntax themes lack a proper colouring for disabled menu entries. The only place menu entries
   are disabled is in the Create Root Folder menu, so the simplest solution was to just replace the
-  enable/disable logic with switching on and off visibility like other menus in novelWriter do.
+  enable/disable logic with switching on and off visibility like other menus in UmbraEdit do.
   Issue #918.
 * The if-condition that determined whether an item in the Project Tree were to receive a bold and
   underline formatting for its label lacked the logic to disable these when the item should not
@@ -4034,7 +4034,7 @@ checking enabled if there is something wrong with the spell check package.
   positions were not updated. This is now solved by updating these positions when such a symbol is
   encountered. This issue has been backported from 1.6 development. Issue #929.
 * If the pyenchant package is installed, but the underlying enchant library is broken in one way or
-  another, the pyenchant package will error, causing novelWriter to crash. All calls to the
+  another, the pyenchant package will error, causing UmbraEdit to crash. All calls to the
   pyenchant package has now been wrapped in try/except blocks to prevent this. Issue #933.
 
 ----
@@ -4070,17 +4070,17 @@ This release reduces the number of document layouts from eight to two. The full 
 described in the "Novel Document Layouts" section below.
 
 Due to this change, the main project file for your projects will need to be updated when you first
-open them in novelWriter 1.5. This is done automatically. The index is updated as well. When this
-conversion is done, you can no longer open the project in an older version of novelWriter.
+open them in UmbraEdit 1.5. This is done automatically. The index is updated as well. When this
+conversion is done, you can no longer open the project in an older version of UmbraEdit.
 
-You may also have to make a handful of changes in your novel documents as novelWriter will not make
+You may also have to make a handful of changes in your novel documents as UmbraEdit will not make
 any automated changes to your actual text. However, the changes are minimal and in any case only
 affects the way your manuscript looks like when exported via the Build Novel Project tool. These
 details are also described below.
 
 From this release on, Debian packages will be provided for Mint, Ubuntu and Debian users. A new
-[PPA](https://launchpad.net/~vkbo/+archive/ubuntu/novelwriter) has also been created. This allows
-users to install and update novelWriter automatically on these Linux distros.
+[PPA](https://launchpad.net/~vkbo/+archive/ubuntu/umbraedit) has also been created. This allows
+users to install and update UmbraEdit automatically on these Linux distros.
 
 #### Novel Document Layouts
 
@@ -4107,7 +4107,7 @@ inserted. As before, page breaks are automatically inserted in front of all part
 titles.
 
 You will find these changes described in more detail in the documentation in the
-"[Format 1.3 Changes](https://novelwriter.readthedocs.io/en/latest/usage_projectformat.html#a-prjfmt-1-3)"
+"[Format 1.3 Changes](https://umbraedit.readthedocs.io/en/latest/usage_projectformat.html#a-prjfmt-1-3)"
 section.
 
 #### GUI Changes
@@ -4145,7 +4145,7 @@ The internal spell check tool has been removed. If you want spell checking, you 
 Spell Enchant tool. The internal spell checker was only ever added because the Python package for
 Spell Enchant was not available on 64-bit Windows. This was corrected over a year ago. The main
 issue with the internal spell checker was that it only included English, and the large dictionary
-files had to be shipped with novelWriter.
+files had to be shipped with UmbraEdit.
 
 Finally, a PDF version of the documentation should now be shipped with your install package. If it
 is available, a "User Manual (PDF)" option should be visible in the Help menu. This should give you
@@ -4193,14 +4193,14 @@ backups.
 * The internal spell checker has been removed. It was only ever added for use on Windows as the
   PyEnchant tool was no longer maintained and not available for 64-bit Windows. This is no longer
   the case. Having two alternative spell checkers complicated the code a great deal, and the
-  internal spell checker also required full word lists to be distributed with novelWriter. PR #875.
+  internal spell checker also required full word lists to be distributed with UmbraEdit. PR #875.
 * Added a setting in Preferences to change how the word count on the status bar is calculated. The
   new setting allows the project notes to be filtered out, leaving only the word count for novel
   files. Feature request #857. PR #882.
 
 **Installation and Packaging**
 
-* The command line command for starting novelWriter after running the standard setup has been made
+* The command line command for starting UmbraEdit after running the standard setup has been made
   lower case. PR #873.
 * A PDF version of the documentation can now be built from the main setup script and is by default
   distributed with the install packages. The PDF manual can be opened from the Help menu. This is
@@ -4208,7 +4208,7 @@ backups.
   old method depended on the Qt Assistant being installed. PRs #873 and #879.
 * The setup script can now build standard `.deb` packages for Debian and Ubuntu. Issue #866. PRs
   #876 and #879.
-* The icons for novelWriter have been updated and rearranged, and the installation of these
+* The icons for UmbraEdit have been updated and rearranged, and the installation of these
   simplified a bit. PR #879.
 * The setup script can now build packages for deployment on the Ubuntu PPA (Launchpad). PR #880.
 
@@ -4218,7 +4218,7 @@ backups.
 
 **Documentation**
 
-* The documentation on how to setup and install novelWriter has been updated. PRs #880 and #881.
+* The documentation on how to setup and install UmbraEdit has been updated. PRs #880 and #881.
 
 ----
 
@@ -4253,8 +4253,8 @@ careful when using this version on live writing projects, and make sure you take
 
 **Code Improvements**
 
-* The novelWriter main package folder has been renamed from `nw` to `novelwriter`. This will make
-  it easier to create packages for novelWriter at a later stage. Especially packages which will
+* The UmbraEdit main package folder has been renamed from `nw` to `umbraedit`. This will make
+  it easier to create packages for UmbraEdit at a later stage. Especially packages which will
   require adding the main source files to the Python install location. PR #868.
 
 ----
@@ -4275,7 +4275,7 @@ careful when using this version on live writing projects, and make sure you take
 * Ensure that an item's status setting is parsed after its class when parsing the main project
   XML. This is just a precaution as the XML writing function always writes the class setting first.
   PR #852.
-* On Windows, the Python icon is shown on the task bar when novelWriter is run directly from code.
+* On Windows, the Python icon is shown on the task bar when UmbraEdit is run directly from code.
   This has now been fixed by setting a unique application ID. Issue #860. PR #861.
 
 **Open Document Exports**
@@ -4305,8 +4305,8 @@ careful when using this version on live writing projects, and make sure you take
 
 **Other Features**
 
-* A warning will pop up when you launch an alpha version of novelWriter. Since the main branch is
-  now also the development branch, people may run novelWriter directly from source without checking
+* A warning will pop up when you launch an alpha version of UmbraEdit. Since the main branch is
+  now also the development branch, people may run UmbraEdit directly from source without checking
   out a release version. Alpha versions are not considered stable. PR #844.
 * Two new settings have been added to Preferences. One to control how much information is shown in
   the last column of the project tree, and one to control whether emphasis is used to indicate
@@ -4403,7 +4403,7 @@ that the exporter and viewer will ignore them.
 
 I hope this change will not be too inconvenient. I believe the new behaviour will make more sense
 for most people. Especially considering some of the feedback I've gotten on how line breaks work.
-The original implementation was following the Markdown standard, but since novelWriter is not a
+The original implementation was following the Markdown standard, but since UmbraEdit is not a
 proper Markdown editor and instead just borrows from Markdown, this behaviour always seemed a bit
 unnecessary.
 
@@ -4443,7 +4443,7 @@ _These Release Notes also include the changes from 1.4 Beta 1 and RC 1._
 
 ### Release Notes
 
-This is a preview release of novelWriter 1.4. It contains some new features and a lot of code
+This is a preview release of UmbraEdit 1.4. It contains some new features and a lot of code
 refactoring. This release is a testing release, and may contain bugs. Please be careful when using
 this version to work on your projects.
 
@@ -4467,7 +4467,7 @@ this version to work on your projects.
 
 ### Release Notes
 
-This is a preview release of novelWriter 1.4. It contains some new features and a lot of code
+This is a preview release of UmbraEdit 1.4. It contains some new features and a lot of code
 refactoring. This release is a testing release, and may contain bugs. Please be careful when using
 this version to work on your projects.
 
@@ -4539,7 +4539,7 @@ and macOS.
 * Make the XML parse for project items a little less panicky when encountering unexpected XML tags.
   Generally, this shouldn't be a problem, but the XML parser should silently ignore unexpected tags
   when parsing the project file. This may occur if a project is opened in an earlier version of
-  novelWriter. If so, a warning is issued anyway, so it is safe to disregard unrecognised tags as
+  UmbraEdit. If so, a warning is issued anyway, so it is safe to disregard unrecognised tags as
   the user has already actively selected to proceed and been sufficiently warned. PR #809.
 
 ----
@@ -4566,7 +4566,7 @@ has also been fixed. In addition, the setup script commands for Linux have been 
 
 **Installation**
 
-* Due to an error in the setup script in the past, a desktop icon was created for novelWriter when
+* Due to an error in the setup script in the past, a desktop icon was created for UmbraEdit when
   running the `xdg-install` command. This is no longer the case, but the old icon was still left on
   some user's desktops. The setup script will now remove that icon if it exists when the
   `xdg-install` or `xdg-uninstall` commands are run. PR #784.
@@ -4578,7 +4578,7 @@ has also been fixed. In addition, the setup script commands for Linux have been 
 ### Release Notes
 
 This is a patch release primarily to fix a problem with the Qt translation library used to make
-novelWriter available in multiple languages. One of the function calls made to the library was
+UmbraEdit available in multiple languages. One of the function calls made to the library was
 added recently, in Qt 5.15, which many users on Linux will not have installed on their system. The
 issue could be resolved by updating the library, but it's an unnecessary and inconvenient
 restriction.
@@ -4588,7 +4588,7 @@ restriction.
 **Bugfixes**
 
 * The code to load translation files for the main GUI was using a function in the QTranslate class
-  that was added in version 5.15, which means novelWriter could not start on a lower version of the
+  that was added in version 5.15, which means UmbraEdit could not start on a lower version of the
   Qt library if translation files were present. We don't want to force users to use Qt 5.15, so the
   call has been removed. Issue #773. PR #774.
 
@@ -4619,7 +4619,7 @@ languages here are the same as mentioned above for the main GUI, plus German.
 
 Settings have also been added in Preferences to allow for automatic injection of spaces or non-
 breaking spaces in front of, or behind, certain characters. These are features generally available
-in text editors for French, but the implementation in novelWriter simply makes them a free text box
+in text editors for French, but the implementation in UmbraEdit simply makes them a free text box
 where you can list all characters or symbols where you want a space added automatically.
 
 The translation files for this release have been provided by Bruno Meneguello for the Portuguese
@@ -4627,7 +4627,7 @@ translation, by Jan Lüdke (jyhelle) for the French translation, by Veronica Ber
 Norwegian translation as well as the minor modifications for US English, and Marian Lückhof
 provided the translation file for chapter numbers in German.
 
-The work to rewrite novelWriter to allow for internationalisation was done by Bruno Meneguello and
+The work to rewrite UmbraEdit to allow for internationalisation was done by Bruno Meneguello and
 Veronica Berglyd Olsen.
 
 _These Release Notes also include the changes from 1.3 Beta 1 and RC 1._
@@ -4662,7 +4662,7 @@ _These Release Notes also include the changes from 1.3 Beta 1 and RC 1._
 ### Release Notes
 
 This is a release candidate of 1.3. The primary feature of release 1.3 is the addition of
-internationalisation (i18n) of novelWriter. The release introduces support for Portuguese, French,
+internationalisation (i18n) of UmbraEdit. The release introduces support for Portuguese, French,
 and Norwegian in addition to the default English.
 
 There have been no major changes since the release of 1.3 Beta 1, but the bugfixes and improvements
@@ -4684,7 +4684,7 @@ from version 1.2.3 have been included.
 ### Release Notes
 
 This is a pre-release of 1.3. The primary feature of release 1.3 is the addition of
-internationalisation (i18n) of novelWriter. The release introduces support for Portuguese, French,
+internationalisation (i18n) of UmbraEdit. The release introduces support for Portuguese, French,
 and Norwegian in addition to the default English.
 
 This is a beta release. Use with caution on live project.
@@ -4739,7 +4739,7 @@ new projects. The added words were thus "forgotten" the next time the project wa
 
 In addition, uninstall commands have been added to the main setup script to make it easier to clean
 up icons (Linux and Windows) and registry keys (Windows) if the user wishes to uninstall
-novelWriter.
+UmbraEdit.
 
 ### Detailed Changelog
 
@@ -4771,7 +4771,7 @@ novelWriter.
 
 This patch release is a bug fix release addressing some inconsistencies and issues with the
 document header buttons when Focus Mode is active. The keyboard shortcuts for search and replace
-should now also work in Focus Mode. In addition, the setup script for novelWriter has been improved
+should now also work in Focus Mode. In addition, the setup script for UmbraEdit has been improved
 when installing on Windows.
 
 ### Detailed Changelog
@@ -4794,7 +4794,7 @@ when installing on Windows.
 
 * The setup script command do build minimal install archive files now also generate SHA 256 sum
   files. PR #724.
-* The setup script will now copy the `novelWriter.py` file to `novelWriter.pyw` if it doesn't exist
+* The setup script will now copy the `UmbraEdit.py` file to `UmbraEdit.pyw` if it doesn't exist
   when the `win-install` command is run. Issue #727. PR #728.
 
 ----
@@ -4840,11 +4840,11 @@ Finally, it is now possible to directly edit the project dictionary via a new, s
 #### The Build Novel Project Tool
 
 The main changes for this release are to the Build Novel Project tool. The Open Document export, as
-well as the Markdown export, is now handled entirely by code written for novelWriter. Previously,
+well as the Markdown export, is now handled entirely by code written for UmbraEdit. Previously,
 these export features depended on the underlying Qt library's save routines connected to the
 preview document shown in the build dialog. Using this method of export both meant that the content
 of the document was dependent on the preview being generated first, and it also meant that the
-exported document had limited support for novelWriter-specific features and custom formatting. The
+exported document had limited support for UmbraEdit-specific features and custom formatting. The
 new export class should generate a much better result, especially for the Open Document formats.
 The Open Document standard is supported by Open Office, Libre Office, Google Docs, Microsoft Word,
 and probably a number of other applications too. The Markdown export hasn't changed a lot, but
@@ -4875,7 +4875,7 @@ document layout automatically to "Chapter". But changing the first header of a "
 document from 1 to 2 does not change the document's layout as the "Book" layout is a generic
 document layout and it's perfectly reasonable for its first header to be a chapter header.
 
-Keep in mind that novelWriter treats documents with layout "Book", "Chapter" and "Scene" exactly
+Keep in mind that UmbraEdit treats documents with layout "Book", "Chapter" and "Scene" exactly
 the same during exports. The distinction is only meant as a way to indicate the purpose of a
 document in the project tree. This new automation is meant to assist in keeping this information up
 to date. The other layouts do have an effect on formatting during export, and are generally left
@@ -4886,7 +4886,7 @@ alone.
 Another change that has been requested by a couple of users is to have the session timer in the
 status bar stop counting when the user is inactive (idle). This feature is optional, and can be
 controlled from Preferences. The definition of "idle" in this context is either that the user is
-active in a different application than novelWriter (loss of focus) or that the user has not made
+active in a different application than UmbraEdit (loss of focus) or that the user has not made
 any changes to the current document for a given amount of time. The time threshold is by default
 five minutes, but can be altered in Preferences.
 
@@ -4923,7 +4923,7 @@ _These Release Notes also include the changes from 1.2 Beta 1 and RC 1._
 
 * Fixed an issue where a typo in a tag or reference using the `@` character would add an invalid
   entry into the project index. The invalid keyword would be saved to the index cache, invalidating
-  the index on next load. For earlier versions of novelWriter before 1.1.1, it would also cause a
+  the index on next load. For earlier versions of UmbraEdit before 1.1.1, it would also cause a
   crash. Invalid keywords are now rejected during indexing. Issue #688. PR #689.
 * The "Empty Trash" option was no longer working due to an earlier fix that added a requirement
   that the project tree has focus to allow the emptying to proceed. Since the Empty Trash feature
@@ -5086,7 +5086,7 @@ but is still lacking in functionality compared to Enchant.
 **Installation**
 
 * The PyPi packages now include the `setup.py` file, which makes it possible to install icon
-  launchers for novelWriter on both Linux and Windows after installing with `pip`. PR #655.
+  launchers for UmbraEdit on both Linux and Windows after installing with `pip`. PR #655.
 
 ----
 
@@ -5222,7 +5222,7 @@ be left "hanging", that is, no closing quote in the same paragraph.
 This patch release fixes a couple of minor issues with the Preferences dialog and the behaviour of
 one of the keyboard shortcuts.
 
-Aside from these fixes, the main point of this patch is to add new setup features for novelWriter
+Aside from these fixes, the main point of this patch is to add new setup features for UmbraEdit
 on Windows. A Windows installer will no longer be provided for the foreseeable future, and instead
 functionality has been added to the main setup script to create desktop and start menu icons.
 
@@ -5246,15 +5246,15 @@ functionality has been added to the main setup script to create desktop and star
 **Installation**
 
 * A new command has been added to the `setup.py` script. The new command, `win-install`, will
-  create a desktop and start menu icon for novelWriter when run in the source folder. A windows
+  create a desktop and start menu icon for UmbraEdit when run in the source folder. A windows
   batch file, `setup_windows.bat`, has also been added. Running this file from the source folder,
   either by command line or by double-click, will install dependencies from PyPi and set up the
-  icons and file association with novelWriter project files. This should make it easier to run
-  novelWriter from the source folder on Windows. PRs #634, #641 and #642.
+  icons and file association with UmbraEdit project files. This should make it easier to run
+  UmbraEdit from the source folder on Windows. PRs #634, #641 and #642.
 
 **Documentation**
 
-* The documentation on how to setup and install novelWriter has been extended and reorganised into
+* The documentation on how to setup and install UmbraEdit has been extended and reorganised into
   one file per operating system. Some of the other documentation files have also been moved to a
   different section. PR #634.
 
@@ -5264,12 +5264,12 @@ functionality has been added to the main setup script to create desktop and star
 
 ### Release Notes
 
-This patch release fixes a minor bug sometimes encountered when running novelWriter from command
+This patch release fixes a minor bug sometimes encountered when running UmbraEdit from command
 line on Windows. In addition, the Solarized Dark and Solarized Light themes have been added to the
 selection of GUI and syntax themes by a user contribution.
 
 The main change in this release is to the install scripts and the documentation related to
-installing and running novelWriter. The primary change is a different method of packaging the app
+installing and running UmbraEdit. The primary change is a different method of packaging the app
 for Windows. Instead of building an `.exe` file, the new setup instead builds a runnable zip file
 `.pyz`. The executable would often be mistakenly flagged by virus control software due to the
 packaging tools. This is a known problem with pyinstaller and similar tools, but such warnings are
@@ -5279,7 +5279,7 @@ always concerning even if they are false positives.
 
 **Bug Fixes**
 
-* Fix crash when starting novelWriter from command line on Windows from a different mounted drive
+* Fix crash when starting UmbraEdit from command line on Windows from a different mounted drive
   than where it is installed. This was caused by a relative path lookup that defaulted to the wrong
   current directory. This works on Linux/macOS which have a common root path, but not on Windows.
   Issue #581, PR #587.
@@ -5297,10 +5297,10 @@ always concerning even if they are false positives.
 **Installation**
 
 * Merged the `make.py` script into `setup.py`. PR #584.
-* Added a second way to build distributable packages of novelWriter for Windows. The new method
+* Added a second way to build distributable packages of UmbraEdit for Windows. The new method
   does not use any of the current package tools that produce a Windows executable of the app. These
   packages tend to cause false virus warnings. This new method uses the Python tool `zipapp` to
-  bundle novelWriter as an executable `.pyz` file, and adds Python embeddable and library
+  bundle UmbraEdit as an executable `.pyz` file, and adds Python embeddable and library
   dependencies into the same folder. The folder itself can be distributed as-is, or a Windows
   installer executable can be generated with `setup.py setup-pyz`. Issue #580, PR #584.
 
@@ -5363,7 +5363,7 @@ been updated based on user feedback, and some install issues resolved.
 
 This release is mainly to bring the documentation up to date, as I forgot to update the install
 instructions in the original 1.0 release. I also forgot to change the various settings and help
-texts that describe novelWriter as under initial development (beta state).
+texts that describe UmbraEdit as under initial development (beta state).
 
 Some minor improvements have been made to the "Edit Project Item" dialog and some restrictions on
 the settings available for documents created in the "Outtakes" folder relaxed. A few minor issues
@@ -5398,11 +5398,11 @@ project.
 ### Release Notes
 
 Based on my own testing and usage, and no serious bugs discovered in quite some time (aside from a
-few corner case issues), it appears that novelWriter is stable enough for a 1.0 release. Thanks to
+few corner case issues), it appears that UmbraEdit is stable enough for a 1.0 release. Thanks to
 all the new users who keep providing feedback on bugs, cosmetic issues, or suggesting improvements
 and new features. I'm glad to hear that others find my application useful, and I will keep making
 improvements as I get new suggestions and have new ideas myself. At the same time, I will continue
-to keep novelWriter simple and clean and avoid feature-bloat.
+to keep UmbraEdit simple and clean and avoid feature-bloat.
 
 This release mainly fixes cosmetic and other minor issues to the user interface and makes a few
 minor improvements to some less used features. Aside from this, nothing major has changed since the
@@ -5411,17 +5411,17 @@ last release candidate.
 This release concludes over two years of tinkering with this project. The project grew out of
 numerous lunch and coffee discussions with my colleague Marian Lückhof at my former job. We were
 both looking for a tool for writing novels on Linux that suited our needs. We started assembling a
-wish list of features that has become novelWriter. In addition, users on GitHub have continued to
+wish list of features that has become UmbraEdit. In addition, users on GitHub have continued to
 test new features, provide very helpful feedback, and make new suggestions for improvements.
 Especially the feedback from @johnblommers has been helpful during much of the initial development
 time. Over the last months more users have started posting ideas and feedback. Thanks to all of you
 for your contributions.
 
-The 1.0 release is intended as a first release of the core features of novelWriter. That does not
+The 1.0 release is intended as a first release of the core features of UmbraEdit. That does not
 mean that all planned features have been fully implemented. There is a long list of ideas and
 suggestions to consider and implement. New ideas and suggestions are welcome. Either as feature
 requests in the issue tracker, or if not fully formed, can be discussed on the
-[discussions page](https://github.com/vkbo/novelWriter/discussions).
+[discussions page](https://github.com/vkbo/UmbraEdit/discussions).
 
 ### Detailed Changelog
 
@@ -5486,23 +5486,23 @@ of minor bugfixes.
 Among the improvements is the addition of all the possible @-keywords for tags and references to
 the "Insert" menu under the sub-menu "Tags and References". The "Help" menu has also received a few
 improvements and additional links to useful webpages. This release also adds a "Release" notes tab
-to the "About novelWriter" dialog. The release notes are displayed automatically the first time you
-launch novelWriter after updating to a new version.
+to the "About UmbraEdit" dialog. The release notes are displayed automatically the first time you
+launch UmbraEdit after updating to a new version.
 
 Among the fixes is better support for high resolution screens. A few elements on the GUI did not
 scale properly, among them the document editor and viewer header and footer. These were clipped on
 high res screens due to an underlying issue with the Qt widget underestimating how much space it
-required to accommodate the text. Unfortunately, dragging the novelWriter app between screens of
+required to accommodate the text. Unfortunately, dragging the UmbraEdit app between screens of
 different scaling factors is not currently supported. However, the GUI should scale properly to the
 scaling factor on the screen it is opened on.
 
 The work leading up to this release has mostly been focused on improving the test coverage of the
-source code of novelWriter. This helps to ensure that the code does what it is intended to do, and
+source code of UmbraEdit. This helps to ensure that the code does what it is intended to do, and
 is able to handle corner cases and unexpected external errors and user actions that may occur.
 While writing these tests, a number of minor potential issues have been uncovered and handled. Most
 of these are corner cases that may not even be reachable by unexpected user actions.
 
-Hopefully, these changes have resulted in an even more stable version of novelWriter. If no more
+Hopefully, these changes have resulted in an even more stable version of UmbraEdit. If no more
 issues are discovered, the next release will be the final version 1.0 release.
 
 ### Detailed Changelog
@@ -5526,9 +5526,9 @@ issues are discovered, the next release will be the final version 1.0 release.
 * Added all the possible keywords for tags and references to the Insert menu. Since the list was
   growing long, the Insert menu entries have been split up into four sub menus according to the
   previous grouping. Issue #501, PR #503.
-* A "Release Notes" tab has been added to the "About novelWriter" dialog where the latest release
+* A "Release Notes" tab has been added to the "About UmbraEdit" dialog where the latest release
   notes can be displayed. PR #508.
-* Menu entries that will open the "Releases" and "Discussions" pages on the novelWriter GitHub repo
+* Menu entries that will open the "Releases" and "Discussions" pages on the UmbraEdit GitHub repo
   has been added to the Help menu. PRs #509, #511 and #520.
 * The help text of many of the Preferences options have been clarified and rewritten. PR #516.
 * Added two greyscale syntax themes. These will match with the greyscale icon themes to produce a
@@ -5536,14 +5536,14 @@ issues are discovered, the next release will be the final version 1.0 release.
 
 **Other Changes**
 
-* The Windows installer now properly sets up the mime type for novelWriter, meaning novelWriter
-  project files can be opened from the Explorer directly into novelWriter. PR #511.
+* The Windows installer now properly sets up the mime type for UmbraEdit, meaning UmbraEdit
+  project files can be opened from the Explorer directly into UmbraEdit. PR #511.
 * It is now possible to create new files in the Outtakes root folder from the context menu.
   Issue #517, PR #519.
 
 **Test Suite**
 
-* The tests for the core classes of novelWriter have been completely rewritten. Every class or
+* The tests for the core classes of UmbraEdit have been completely rewritten. Every class or
   source file of the core functionality (everything handling the actual project data and documents,
   as well as the meta data) is now covered by its own test module with a 100% coverage for each
   module. PR #512.
@@ -5559,9 +5559,9 @@ issues are discovered, the next release will be the final version 1.0 release.
 
 ### Release Notes
 
-This is the first release candidate for the upcoming release of novelWriter 1.0.
+This is the first release candidate for the upcoming release of UmbraEdit 1.0.
 
-Since the fifth beta release about four weeks ago, not much has been changed in novelWriter. A few
+Since the fifth beta release about four weeks ago, not much has been changed in UmbraEdit. A few
 minor tweaks have been made to the GUI.
 
 A number of features and tools are now automatically switched off when there is no project or
@@ -5588,7 +5588,7 @@ focus is in the editor. The feature can be controlled from the main Preferences.
 
 **Switching Syntax Theme**
 
-It is now possible to switch syntax highlighting theme without restarting novelWriter. Previously,
+It is now possible to switch syntax highlighting theme without restarting UmbraEdit. Previously,
 changing the theme would only half-way update the document, header and footer background and text
 colours. The new settings would not be fully applied until the application was shut down and
 started again, thus making it a bit tedious to look through syntax themes to find the one you want.
@@ -5616,7 +5616,7 @@ Switching main GUI theme still requires a restart.
   viewport. The mouse, arrow and page keys do not trigger a reposition. The new behaviour is
   similar to that of the Gutenberg editor in WordPress. PR #482.
 * The document editor and viewer are now properly updated when the user switches syntax theme.
-  There is no longer a need to restart novelWriter first to apply the changes. PR #487.
+  There is no longer a need to restart UmbraEdit first to apply the changes. PR #487.
 * Some minor GUI changes include: don't run the background word counter when there is no document
   open, make the split panels of the Build Novel Project tool non-collapsible, and set the initial
   column widths of tree views to more sensible values. PR #489.
@@ -5624,7 +5624,7 @@ Switching main GUI theme still requires a restart.
   there is no project open. None of these being active caused any errors as these actions were all
   handled by the various tools, but they shouldn't even trigger when there is no project or
   document to perform the action on. PR #492.
-* Clarify the message of the Close Project and Exit novelWriter dialogs. Previously, it may have
+* Clarify the message of the Close Project and Exit UmbraEdit dialogs. Previously, it may have
   seemed to some users that clicking "No" would allow the closing to proceed without saving
   changes. This is not true as changes are saved automatically when editing a project. The dialog
   text should now make this clearer. Issue #494, PR #495.
@@ -5653,7 +5653,7 @@ Switching main GUI theme still requires a restart.
 
 **Important Notes**
 
-* The minimal supported Python version is now 3.6. While novelWriter has worked fine in the post
+* The minimal supported Python version is now 3.6. While UmbraEdit has worked fine in the post
   with versions as low as 3.4, neither 3.4 nor 3.5 is tested. They have also both reached end of
   life. There are a couple of good reasons to drop support for older versions. PR #470.
   * Python 3.6 introduces ordered dictionaries as the standard.
@@ -5664,7 +5664,7 @@ Switching main GUI theme still requires a restart.
 
 **Bugfixes**
 
-* Fixed a bug in the Build Novel Project tool where novelWriter would crash when trying to build
+* Fixed a bug in the Build Novel Project tool where UmbraEdit would crash when trying to build
   the preview when running a version of the Qt library lower than 5.14. Issue #471, PR #472.
 
 **User Interface**
@@ -5751,7 +5751,7 @@ Switching main GUI theme still requires a restart.
 * An upper limit of how large a document the Build Novel Project tool can view has been set. It is
   10 megabytes of generated HTML. The tool will still build larger documents, but they aren't
   displayed. This also limits which options are available in the "Save As" list for such large
-  documents. Only native novelWriter exports are supported in such cases. The limit is an order of
+  documents. Only native UmbraEdit exports are supported in such cases. The limit is an order of
   magnitude larger than a typical long novel. PR #460.
 * The language indicator in the status bar now has a tooltip stating what tool and spell check
   dictionary provider is being used. PR #462.
@@ -5767,8 +5767,8 @@ Switching main GUI theme still requires a restart.
 **Improvements for macOS**
 
 * The native macOS menu bar now pulls the correct menu entries into the first menu column. PR #463.
-* The application name in the main menu would state Python instead of novelWriter. As long as the
-  `pyobjc` package is installed, the label will now correctly state novelWriter. PR #463.
+* The application name in the main menu would state Python instead of UmbraEdit. As long as the
+  `pyobjc` package is installed, the label will now correctly state UmbraEdit. PR #463.
 * Install and run instructions for macOS have been added to the main README. PR #463.
 
 **Editor Performance**
@@ -5800,7 +5800,7 @@ Switching main GUI theme still requires a restart.
   running tests, mostly to stop modal dialogs from blocking the main thread, have been removed.
   These types of changes to the program flow when running tests have now been reduced to a minimum,
   and modifications instead handled with pytest monkeypatches. PR #453.
-* The `QtSvg` package is no longer in use by novelWriter. The internal dependency check has been
+* The `QtSvg` package is no longer in use by UmbraEdit. The internal dependency check has been
   removed. PR #457.
 * It is no longer possible to set the user's home folder as the root directory of a project. The
   home folder is the default lookup folder in many cases, so it's easy to do by mistake. PR #457.
@@ -5956,8 +5956,8 @@ Switching main GUI theme still requires a restart.
   It does essentially the same thing as the standard QErrorMessage box did, but adds the feature of
   a clickable link to the issues tracker on GitHub, and a monospace formatted traceback for the
   issues ticket. In addition, a crash that pops this dialog will now trigger an attempted
-  controlled shutdown of novelWriter. Before, it would try to keep running, but often leave
-  novelWriter in a half defunct state. PR #417.
+  controlled shutdown of UmbraEdit. Before, it would try to keep running, but often leave
+  UmbraEdit in a half defunct state. PR #417.
 
 **Test Suite**
 
@@ -6054,7 +6054,7 @@ planned by GitHub. See their [notes](https://github.com/github/renaming) for mor
 **Bugfixes**
 
 * The `pytest` config file now sets the local source path as the first search path for the main
-  novelWriter package. This ensures that the tests can always find the correct version of the code
+  UmbraEdit package. This ensures that the tests can always find the correct version of the code
   when running tests. PR #381.
 * The `install.py` script was expecting an older file layout for assets files. This has now been
   updated to the curren file layout. PR #380.
@@ -6069,8 +6069,8 @@ planned by GitHub. See their [notes](https://github.com/github/renaming) for mor
 
 **Documentation**
 
-* The full documentation for novelWriter, available at
-  [novelwriter.readthedocs.io](https://novelwriter.readthedocs.io/) has been rewritten. It was
+* The full documentation for UmbraEdit, available at
+  [umbraedit.readthedocs.io](https://umbraedit.readthedocs.io/) has been rewritten. It was
   drifting out of sync with the development of the code. In addition, many improvements have been
   made to the reStructuredText formatting of the documentation source by providing better
   cross-reference linking and highlighting. The main repository README file has been updated to
@@ -6097,7 +6097,7 @@ planned by GitHub. See their [notes](https://github.com/github/renaming) for mor
   using RegEx, rather itb is a QRegularExpression or QRegExp object. This has now been resolved. In
   addition, the replace feature has been improved to make sure that it only replaces text selected
   by an actual search, not any user selected text. Issue #371, PRs #372 and #373.
-* The Tokenizer class used for converting novelWriter markdown to other formats produced some
+* The Tokenizer class used for converting UmbraEdit markdown to other formats produced some
   invalid escape sequence warnings. The warnings did not seem to affect the results, but have
   nevertheless been fixed. PR #370.
 
@@ -6149,7 +6149,7 @@ planned by GitHub. See their [notes](https://github.com/github/renaming) for mor
 
 ## Version 0.10 [2020-06-30]
 
-**Note:** If the project file is opened by this version of novelWriter, the project file can no
+**Note:** If the project file is opened by this version of UmbraEdit, the project file can no
 longer be read by an earlier version due to the change of how autoReplace settings are stored.
 
 **User Interface**
@@ -6236,7 +6236,7 @@ longer be read by an earlier version due to the change of how autoReplace settin
 
 **Bugfixes**
 
-* Fixed a serious bug in the replace part of the search/replace function that caused novelWriter to
+* Fixed a serious bug in the replace part of the search/replace function that caused UmbraEdit to
   crash when the replace text function was called. Issue #327, PR #328.
 
 ----
@@ -6247,11 +6247,11 @@ longer be read by an earlier version due to the change of how autoReplace settin
 
 * Underline text formatting has been removed. It is not standard HTML5, nor Markdown, and was
   previously implemented using the double underscore notation that in standard Markdown is
-  rendered as bold text. Instead, novelWriter now renders a single `*` or `_` wrapping a piece of
+  rendered as bold text. Instead, UmbraEdit now renders a single `*` or `_` wrapping a piece of
   text _within_ a paragraphs as italicised text, and a double `**` or `__` as bold text. The
   keyboard shortcuts and automatic features _only_ support the `*` notation. A triple set of `***`
   are treated as both bold and italicised. PR #310.
-* Strike through formatting has been added back into novelWriter using the standard Markdown `~~`
+* Strike through formatting has been added back into UmbraEdit using the standard Markdown `~~`
   wrapping. PR #310.
 * Added support for thin spaces and non-breaking thin spaces. PR #319.
 * The `Ctrl+Z` key sequence (undo) would not go through the wrapper function for document action
@@ -6303,7 +6303,7 @@ longer be read by an earlier version due to the change of how autoReplace settin
 **Bugfixes**
 
 * The HTML converter, used for the document view window as well as the Build Novel Project tool,
-  would crash novelWriter if a file included an `@tag:` entry with no actual tag name following it.
+  would crash UmbraEdit if a file included an `@tag:` entry with no actual tag name following it.
   In addition to fixing this issue, the call to the converter is now also wrapped in a `try/except`
   construct to prevent crashes caused by potential edge cases in document content. If the rendering
   fails, the view window will show an error message instead of the intended document. Issue #298,
@@ -6399,7 +6399,7 @@ longer be read by an earlier version due to the change of how autoReplace settin
 
 **Bugfixes**
 
-* Fixed a bug where novelWriter might crash if a file is deleted immediately after being created,
+* Fixed a bug where UmbraEdit might crash if a file is deleted immediately after being created,
   and also additional points-of-failure if the project was new. PR #267.
 
 **User Interface**
@@ -6420,7 +6420,7 @@ longer be read by an earlier version due to the change of how autoReplace settin
 * Icon sizes are now calculated based on the size of the text, and all text and icons should scale
   relative to the default GUI font size. PR #268.
 * The font family and size of the main GUI font can now be changed in Preferences. For Windows,
-  this defaults to Cantarell 11pt, which is now shipped with novelWriter. On other systems it
+  this defaults to Cantarell 11pt, which is now shipped with UmbraEdit. On other systems it
   defaults to the system font. Special accommodations had be made for Ubuntu where the font size of
   the tree widget was not updated automatically (Issue #273). PRs #269, #270, #274 and #275.
 * There are no Monospace fonts on the main GUI any more. Where fixed width is needed, the size is
@@ -6547,9 +6547,9 @@ longer be read by an earlier version due to the change of how autoReplace settin
 * The Export Tool has been removed and replaced by a new tool called "Build Novel Project". The new
   tool has the same filtering options as the Export Tool, but with more formatting options for
   titles. It also has a preview window to display the generated document. A Save As button provides
-  exports to HTML, novelWriter Markdown, plain text, PDF and Open Document format. LaTeX export has
+  exports to HTML, UmbraEdit Markdown, plain text, PDF and Open Document format. LaTeX export has
   not been ported over, and interfacing with Pandoc is no longer supported either. Although, as
-  before, the HTML export can be converted with Pandoc to other formats outside of novelWriter. The
+  before, the HTML export can be converted with Pandoc to other formats outside of UmbraEdit. The
   new tool also supports printing. PRs #204, #220 and #221.
 * The Project Settings, Preferences, Item Editor, Merge Documents, and Split Documents dialogs have
   been redesigned. The ones with tabs now have vertical tabs on the left with horizontal labels.
@@ -6589,7 +6589,7 @@ longer be read by an earlier version due to the change of how autoReplace settin
 * Checking for version dependencies and a few packages (aside from PyQt5) is now done later in the
   start-up so that it is possible to alert the user with a dialog box instead of terminal error
   messages. PR #210.
-* Made a few minor changes to the code so novelWriter can run with Python 3.4.3 and Qt 5.2.1, that
+* Made a few minor changes to the code so UmbraEdit can run with Python 3.4.3 and Qt 5.2.1, that
   is, it runs on last version of Ubuntu 14.04. This level of compatibility is not guaranteed to
   remain in the future, but for now, the changes have no impact on functionality. PR #210.
 
@@ -6607,13 +6607,13 @@ longer be read by an earlier version due to the change of how autoReplace settin
 
 **User Interface**
 
-* The icon theme functionality of novelWriter has been reworked. For the default system theme, very
+* The icon theme functionality of UmbraEdit has been reworked. For the default system theme, very
   little has changed. It should still load whatever the system provides, but this doesn't work for
   all icons on Windows 10 for instance. It is now possible to select between three icon themes in
   the Preferences dialog, independent of the GUI theme. Using a theme breaks the dependency on the
-  operating system to provide standard icons. Qt provides some, but not all needed by novelWriter.
+  operating system to provide standard icons. Qt provides some, but not all needed by UmbraEdit.
   PR #207.
-* Added a check that warns if the project file was saved with a newer version of novelWriter as
+* Added a check that warns if the project file was saved with a newer version of UmbraEdit as
   that may cause meta information to be lost. This warning will remain there until the file format
   is finalised. This is an issue with preserving certain settings, not the project structure
   itself. PR #205
@@ -6626,12 +6626,12 @@ longer be read by an earlier version due to the change of how autoReplace settin
 
 ## Version 0.5 [2020-05-09]
 
-This release of novelWriter has a number of feature updates, bringing it one step closer to initial
+This release of UmbraEdit has a number of feature updates, bringing it one step closer to initial
 feature completeness for a version 1.0 release.
 
 In the pipeline for 1.0 is a completely new export tool with improved and added options, including
 printing. Further improvements are also planned for the new Outline View added in this version.
-When these additions are completed, novelWriter will start moving towards a 1.0 release via release
+When these additions are completed, UmbraEdit will start moving towards a 1.0 release via release
 candidates. I'm hoping to wrap up this year and a half long stage of initial development soon so
 that I can spend more time using it than creating it.
 
@@ -6650,7 +6650,7 @@ helpful feedback and issue reports for the new features added in this, and previ
   Project Tree. Optionally, the full path of the document can be viewed. Clicking this header will
   select the document in the Project Tree, making it easier to find where the document belongs in
   the structure.
-* A project load dialog has been added when novelWriter is launched. It will show you your recently
+* A project load dialog has been added when UmbraEdit is launched. It will show you your recently
   opened projects, let you browse for those that aren't listed, or create a new project. More
   features will be added to this dialog later on.
 * The Preferences dialog has been completely redesigned to make it easier to find the various
@@ -6672,7 +6672,7 @@ helpful feedback and issue reports for the new features added in this, and previ
 
 **User Interface**
 
-* A Project Load dialog has been added, which pops up when novelWriter is launched. It allows for
+* A Project Load dialog has been added, which pops up when UmbraEdit is launched. It allows for
   opening other recent projects, browse for projects, or start a new project. This replaces the
   former Open and New Project features, as well as the Recent Projects menu entry. PRs #177 and
   #183.
@@ -6689,13 +6689,13 @@ helpful feedback and issue reports for the new features added in this, and previ
   PR #174.
 * Fixed a bug with launching Preferences without Enchant spell checking installed. PR #190.
 * A minor issue with running backups with no backup path set has been fixed. The backups would be
-  written into the source folder, or wherever novelWriter was launched from, which is a very messy
+  written into the source folder, or wherever UmbraEdit was launched from, which is a very messy
   fallback. PR #195.
 
 **Documentation**
 
 * Some outdated links and a number of typos and spelling errors have been corrected. PR #173.
-* Documentation has been brought up to date with the current set of features of novelWriter.
+* Documentation has been brought up to date with the current set of features of UmbraEdit.
   PR #202.
 
 **Project Structure**
@@ -6742,14 +6742,14 @@ helpful feedback and issue reports for the new features added in this, and previ
 * It is now possible to permanently delete files from the Trash folder. This can be done
   file-by-file or by using the Empty Trash option in the menu. PRs #159 and #163.
 * When running the spell checker, a wait cursor is displayed. This will alert the user that
-  novelWriter is working on something when, for instance, a very large document is opened and
+  UmbraEdit is working on something when, for instance, a very large document is opened and
   initial spell checking is running. PR #158.
 
 **Bug Fixes**
 
 * Fixed a few keyboard shortcuts that were not working in distraction free mode. PR #157.
 * Added a check to ensure the user does not drag and drop an item into the Orphaned Items folder.
-  Since this folder is not an actual project item, novelWriter would crash when trying to change
+  Since this folder is not an actual project item, UmbraEdit would crash when trying to change
   the dropped item's parent item to the Orphaned Items folder. Now, instead, the drop event is
   cancelled if the target folder is Orphaned Items. PR #163.
 
@@ -6818,7 +6818,7 @@ helpful feedback and issue reports for the new features added in this, and previ
 
 **Features**
 
-* If no external spell check package is available, novelWriter can now fall back to use a simple
+* If no external spell check package is available, UmbraEdit can now fall back to use a simple
   spell checker based on word similarity comparison provided by the Python standard package
   `difflib`. That means spell checking is always available, although the difflib-based spell
   checker is both slow and lacks many features of other packages. This feature comes with a general
@@ -6841,7 +6841,7 @@ helpful feedback and issue reports for the new features added in this, and previ
 * The shortcut for the replace feature is now `Cmd+=` on macOS, and remains `Ctrl+H` on Linux and
   Windows. Issue #124, PR #126.
 * The sample project in the source code has been improved to better show the features of
-  novelWriter as they currently are. The old text was a bit out of date. The new text also explains
+  UmbraEdit as they currently are. The old text was a bit out of date. The new text also explains
   the features it demonstrates. PR #132.
 
 **Bug Fixes**
@@ -6911,13 +6911,13 @@ helpful feedback and issue reports for the new features added in this, and previ
   unicode characters is prone to errors. The user should be careful with using special symbols if
   export to LaTeX is intended. The package `latexcodec` should be able to handle Latin based,
   language specific characters. PRs #73 and #79.
-* Fixed some long-standing issues with running novelWriter on Windows. The config folder requires a
+* Fixed some long-standing issues with running UmbraEdit on Windows. The config folder requires a
   set of two folders to be created on first use, which the config class did not expect. This is now
   resolved. In addition, Python does not default to utf-8 when writing files on Windows, so all
   open statements now have encoding defined. Failing to open files also had the risk of truncating
   them. This has been avoided by distinguishing new files from broken files. PR #81.
 * Dark theme was not rendering properly on multiple platforms. This was resolved by forcing the Qt5
-  style to "Fusion", which allows further formatting by the novelWriter themes code. The user can
+  style to "Fusion", which allows further formatting by the UmbraEdit themes code. The user can
   override the Qt styling option through the `--style=` flag on the command line. PR #96.
 * The behaviour of files in the Trash folder has been fixed. These are now read only. PR #106.
 * Fixed a bug where the last line of a title or partition page would be ignored on export. PR #113.
@@ -6928,8 +6928,8 @@ helpful feedback and issue reports for the new features added in this, and previ
 **Installation**
 
 * A script for `pyinstaller` has been added, making it possible to generate standalone executables
-  of novelWriter on at least Windows and Linux. PR #91.
-* novelWriter has been made `pip install` ready. PRs #107 and #108.
+  of UmbraEdit on at least Windows and Linux. PR #91.
+* UmbraEdit has been made `pip install` ready. PRs #107 and #108.
 
 ----
 
@@ -6938,7 +6938,7 @@ helpful feedback and issue reports for the new features added in this, and previ
 **Documentation**
 
 * The documentation has been rewritten and added to the Read the Docs website. Pressing `F1` or
-  `Help > Documentation` in the menu opens the novelWriter documentation page. PRs #68 and #69.
+  `Help > Documentation` in the menu opens the UmbraEdit documentation page. PRs #68 and #69.
 
 **User Interface**
 
@@ -6948,11 +6948,11 @@ helpful feedback and issue reports for the new features added in this, and previ
   instance for the same project. PR #62.
 * When having a document open in the editor, text can be imported into it from a plain text file.
   No formatting conversion of the imported text is performed. That is up to the user. However, this
-  allows for importing novelWriter documents from other projects or from a previous export,
+  allows for importing UmbraEdit documents from other projects or from a previous export,
   partially addressing request in issue #63. PR #65.
 * The Export feature now includes exporting to LaTeX, which allows building PDFs with pdflatex or
   other tools. PR #73.
-* Export of a novelWriter flavour markdown file is also supported. This file can be imported back
+* Export of a UmbraEdit flavour markdown file is also supported. This file can be imported back
   in as-is, and almost completes an export-edit-import cycle. A split document into multiple files
   feature will be added soon. PR #73.
 
@@ -7035,7 +7035,7 @@ helpful feedback and issue reports for the new features added in this, and previ
 
 **Code Improvements**
 
-* Minor changes to the About novelWriter dialog and to how backup filenames are generated. PR #41.
+* Minor changes to the About UmbraEdit dialog and to how backup filenames are generated. PR #41.
 
 ----
 
@@ -7079,7 +7079,7 @@ helpful feedback and issue reports for the new features added in this, and previ
 
 * Closing the application with the window X button, and selecting No on the dialog, still closed
   the application. Properly handling the close event now so that the closing is cancelled. PR #21.
-* Many of the menu option would cause novelWriter to exit or otherwise make mistakes when clicked
+* Many of the menu option would cause UmbraEdit to exit or otherwise make mistakes when clicked
   if no project was open. They all check for this now. PR #23.
 
 **Timeline**
@@ -7125,7 +7125,7 @@ helpful feedback and issue reports for the new features added in this, and previ
   the Project Settings dialog. The values are per project, and saved in the main project XML file.
   PR #17.
 * Cleaned up opening and closing projects, as well as how new projects are created. A new project
-  can also not be saved in a folder already containing a novelWriter project. That was previously
+  can also not be saved in a folder already containing a UmbraEdit project. That was previously
   possible, resulting in the old XML file being overwritten. PR #18.
 * Some minor GUI improvements were added, PR #19:
   * Pressing `F2` also opens the edit item dialog, like `Ctrl+E` does.
@@ -7167,7 +7167,7 @@ helpful feedback and issue reports for the new features added in this, and previ
 **Bugfixes**
 
 * Fixed a critical GUI bug when trying to create new folders and files in the tree.
-* Caught a bug when creating a new file, but novelWriter couldn't figure out what class the parent
+* Caught a bug when creating a new file, but UmbraEdit couldn't figure out what class the parent
   item had and returned a `None`. Could not recreate the bug, but added a check for it anyway.
 
 **Code Improvements**
@@ -7195,7 +7195,7 @@ helpful feedback and issue reports for the new features added in this, and previ
 
 ## Version 0.1 [2019-05-10]
 
-This is the initial release of a working version of novelWriter, but with very limited
+This is the initial release of a working version of UmbraEdit, but with very limited
 capabilities. So far, the following has been implemented:
 
 * A document tree with a set of pre-defined root folders of a given set of classes for different

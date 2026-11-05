@@ -1,10 +1,10 @@
 """
-novelWriter - GUI Status Bar Tests
+UmbraEdit - GUI Status Bar Tests
 ==================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2021 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2021 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,9 +30,9 @@ import pytest
 
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.core.project import NWProject
-from novelwriter.guimain import GuiMain
+from umbraedit import CONFIG, SHARED
+from umbraedit.core.project import NWProject
+from umbraedit.guimain import GuiMain
 
 from tests.helpers import C, MockRnd, buildTestProject
 
@@ -124,7 +124,7 @@ def testGuiStatusBar_Main(
 
     # Update again, but through time tick
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.guimain.time", lambda *a: 50.0)
+        mp.setattr("umbraedit.guimain.time", lambda *a: 50.0)
         CONFIG.incNotesWCount = True
         nwGUI._lastTotalCount = 0
         nwGUI._timeTick()
@@ -134,7 +134,7 @@ def testGuiStatusBar_Main(
     CONFIG.useCharCount = True
     status.initSettings()
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.guimain.time", lambda *a: 50.0)
+        mp.setattr("umbraedit.guimain.time", lambda *a: 50.0)
         CONFIG.incNotesWCount = True
         nwGUI._lastTotalCount = 0
         nwGUI._timeTick()

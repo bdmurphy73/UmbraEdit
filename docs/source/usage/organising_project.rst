@@ -38,7 +38,7 @@ A new project may not have all of the root folders present, but you can add the 
 the project tree tool bar.
 
 The intended usage of each type of root folder is listed below. However, aside from the **Novel**
-folder, no restrictions are applied by novelWriter on what you put in them. You can use them
+folder, no restrictions are applied by UmbraEdit on what you put in them. You can use them
 however you want.
 
 
@@ -97,7 +97,7 @@ Root Folder Types
 
 **Trash**
    This folder behaves like you expect. Anything dropped in here can be deleted permanently from
-   the project, and the content doesn't show up anywhere else in novelWriter.
+   the project, and the content doesn't show up anywhere else in UmbraEdit.
 
 The root folder types are closely tied to the tags and reference system. Each folder type for novel
 and notes corresponds to one or more categories of tags that can be used to reference the content
@@ -117,7 +117,7 @@ You can add regular folders anywhere you want in the project. The folders are th
 for you to organise the documents in meaningful sections and to be able to collapse and hide them
 in the project tree when you're not working on those documents.
 
-When novelWriter is processing the documents in a project, like for instance when you create a
+When UmbraEdit is processing the documents in a project, like for instance when you create a
 manuscript from it, these folders are ignored. Only the order of the documents themselves matter.
 
 
@@ -140,7 +140,7 @@ Documents come in two types:
 **Novel Documents**
    These are the documents that make up your story or novel. They can only be added under a root
    folder of type **Novel**. You can technically also add them under **Archive**. See
-   :ref:`docs_usage_headings` for more details on how these documents are handled by novelWriter.
+   :ref:`docs_usage_headings` for more details on how these documents are handled by UmbraEdit.
 
 **Project Notes**
    These are the documents where you keep your notes. You can add them anywhere in your project,
@@ -192,7 +192,7 @@ Importance and Status
 =====================
 
 Each document or folder in your project can have either a "Status" or "Importance" label set. These
-are labels and icons that you control and define yourself, and novelWriter doesn't use them for
+are labels and icons that you control and define yourself, and UmbraEdit doesn't use them for
 anything. You can modify these labels in **Project Settings**.
 See :ref:`docs_ui_projects_settings_status` for more details.
 

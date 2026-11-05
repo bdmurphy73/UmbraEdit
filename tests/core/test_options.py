@@ -1,10 +1,10 @@
 """
-novelWriter - OptionState Tests
+UmbraEdit - OptionState Tests
 ===============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,10 +28,10 @@ from pathlib import Path
 
 import pytest
 
-from novelwriter.constants import nwFiles
-from novelwriter.core.options import OptionState
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwNovelExtra
+from umbraedit.constants import nwFiles
+from umbraedit.core.options import OptionState
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwNovelExtra
 
 from tests.mocked import MockGuiMain, causeOSError
 
@@ -49,7 +49,7 @@ def testOptionState_LoadSave(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMa
     optFile = metaDir / nwFiles.OPTS_FILE
     optFile.write_text(
         json.dumps({
-            "novelWriter.guiOptions": {
+            "UmbraEdit.guiOptions": {
                 "GuiProjectSettings": {
                     "winWidth": 570,
                     "winHeight": 375,

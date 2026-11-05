@@ -1,10 +1,10 @@
 """
-novelWriter - Text Tokenizer Tests
+UmbraEdit - Text Tokenizer Tests
 ==================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,13 +28,13 @@ import pytest
 
 from PyQt6.QtGui import QFont
 
-from novelwriter import CONFIG
-from novelwriter.constants import nwHeadFmt, nwProblems, nwStyles
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwComment
-from novelwriter.formats.shared import BlockFmt, BlockTyp, TextFmt, stripEscape
-from novelwriter.formats.tokenizer import COMMENT_STYLE, HeadingFormatter, Tokenizer
-from novelwriter.formats.tomarkdown import ToMarkdown
+from umbraedit import CONFIG
+from umbraedit.constants import nwHeadFmt, nwProblems, nwStyles
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwComment
+from umbraedit.formats.shared import BlockFmt, BlockTyp, TextFmt, stripEscape
+from umbraedit.formats.tokenizer import COMMENT_STYLE, HeadingFormatter, Tokenizer
+from umbraedit.formats.tomarkdown import ToMarkdown
 
 from tests.helpers import C, MockRnd, TstPaths, buildTestProject
 from tests.mocked import MockGuiMain

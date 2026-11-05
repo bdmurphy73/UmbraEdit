@@ -1,10 +1,10 @@
 """
-novelWriter - GUI Novel View Tests
+UmbraEdit - GUI Novel View Tests
 ==================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2021 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2021 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,13 +30,13 @@ from PyQt6.QtCore import QModelIndex, QPoint
 from PyQt6.QtWidgets import QInputDialog, QToolTip
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.core.project import NWProject
-from novelwriter.dialogs.editlabel import GuiEditLabel
-from novelwriter.enum import nwFocus, nwItemType, nwNovelExtra, nwView
-from novelwriter.guimain import GuiMain
-from novelwriter.models.novelmodel import NovelModel
-from novelwriter.types import QtDisplayRole
+from umbraedit import CONFIG, SHARED
+from umbraedit.core.project import NWProject
+from umbraedit.dialogs.editlabel import GuiEditLabel
+from umbraedit.enum import nwFocus, nwItemType, nwNovelExtra, nwView
+from umbraedit.guimain import GuiMain
+from umbraedit.models.novelmodel import NovelModel
+from umbraedit.types import QtDisplayRole
 
 from tests.helpers import C, MockRnd, buildTestProject
 

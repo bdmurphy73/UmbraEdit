@@ -4,7 +4,7 @@
 Managing Projects
 *****************
 
-Your text in novelWriter is organised into projects. Each project is meant to contain one novel
+Your text in UmbraEdit is organised into projects. Each project is meant to contain one novel
 and associated notes. If you have multiple novels in a series, with the same characters and shared
 notes, it is also possible to keep all of them in the same project by creating multiple **Novel**
 root folders. See :ref:`docs_usage_project_roots` for more details.
@@ -17,9 +17,9 @@ Creating A New Project
 
 You can create a new project from the **Project** menu by selecting **Create or Open Project**.
 This will open the **Welcome** dialog, where you can select the :guilabel:`New` button that will
-assist you in creating a project. This dialog is also displayed when you start novelWriter.
+assist you in creating a project. This dialog is also displayed when you start UmbraEdit.
 
-A novelWriter project requires a dedicated folder for storing its files on the local file system.
+A UmbraEdit project requires a dedicated folder for storing its files on the local file system.
 If you're interested in the details of how projects are stored, you can have a look at the section
 :ref:`docs_technical_storage`.
 
@@ -85,7 +85,7 @@ icon with an optional shape selected from a list of pre-defined shapes. Each doc
 the remaining types can be given an "Importance" label with the same customisation options.
 
 These labels are there purely for your convenience, and you are not required to use them for any
-other features to work. No other part of novelWriter accesses this information. The intention is to
+other features to work. No other part of UmbraEdit accesses this information. The intention is to
 use these to indicate at what stage of completion each novel document is, or how important the
 content of a note is to the story. You don't have to use them this way, that's just what they were
 intended for, but you can make them whatever you want.
@@ -124,7 +124,7 @@ text is in this list.
 Backup
 ======
 
-An automatic backup system is built into novelWriter. In order to use it, a backup path to where
+An automatic backup system is built into UmbraEdit. In order to use it, a backup path to where
 the backup files are to be stored must be provided in **Preferences**. The path defaults to a
 folder named "Backups" in your home directory.
 

@@ -1,6 +1,6 @@
-novelWriter License
+UmbraEdit License
 
-Copyright (C) Veronica Berglyd Olsen and novelWriter contributors
+Copyright (C) Veronica Berglyd Olsen and UmbraEdit contributors
 License: GPL v3+ <https://www.gnu.org/licenses/gpl-3.0.html>
 
 This program is free software: you can redistribute it and/or modify

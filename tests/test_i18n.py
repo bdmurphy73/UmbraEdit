@@ -1,10 +1,10 @@
 """
-novelWriter - GUI i18n Tests
+UmbraEdit - GUI i18n Tests
 ============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2022 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2022 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -33,17 +33,17 @@ import pytest
 from PyQt6.QtWidgets import QApplication, QDialog, QWidget
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.core.project import NWProject
-from novelwriter.dialogs.about import GuiAbout
-from novelwriter.dialogs.preferences import GuiPreferences
-from novelwriter.dialogs.projectsettings import GuiProjectSettings
-from novelwriter.dialogs.wordlist import GuiWordList
-from novelwriter.guimain import GuiMain
-from novelwriter.manuscript.manuscript import GuiManuscript
-from novelwriter.tools.dictionaries import GuiDictionaries
-from novelwriter.tools.welcome import GuiWelcome
-from novelwriter.tools.writingstats import GuiWritingStats
+from umbraedit import CONFIG, SHARED
+from umbraedit.core.project import NWProject
+from umbraedit.dialogs.about import GuiAbout
+from umbraedit.dialogs.preferences import GuiPreferences
+from umbraedit.dialogs.projectsettings import GuiProjectSettings
+from umbraedit.dialogs.wordlist import GuiWordList
+from umbraedit.guimain import GuiMain
+from umbraedit.manuscript.manuscript import GuiManuscript
+from umbraedit.tools.dictionaries import GuiDictionaries
+from umbraedit.tools.welcome import GuiWelcome
+from umbraedit.tools.writingstats import GuiWritingStats
 
 from tests.helpers import buildTestProject
 

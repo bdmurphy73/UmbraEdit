@@ -53,7 +53,7 @@ You can preview the result of these format strings by clicking :guilabel:`Apply`
 
    The language used for generating chapter numbers is defined by the project language set in
    **Project Settings**. This feature relies on translation files existing for each language.
-   If you want to help add new languages to novelWriter, see: :ref:`docs_contributing`.
+   If you want to help add new languages to UmbraEdit, see: :ref:`docs_contributing`.
 
 
 .. _docs_ui_manuscript_formatting_head_numbers:

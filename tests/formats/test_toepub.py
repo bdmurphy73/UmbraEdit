@@ -1,10 +1,10 @@
 """
-novelWriter - EPub Format Tests
+UmbraEdit - EPub Format Tests
 ===============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,11 +29,11 @@ from shutil import copyfile
 
 import pytest
 
-from novelwriter.constants import nwHeadFmt, nwUnicode
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwComment
-from novelwriter.formats.shared import BlockFmt, BlockTyp
-from novelwriter.formats.toepub import EPubType, ToEPub, _mkTag
+from umbraedit.constants import nwHeadFmt, nwUnicode
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwComment
+from umbraedit.formats.shared import BlockFmt, BlockTyp
+from umbraedit.formats.toepub import EPubType, ToEPub, _mkTag
 
 from tests.helpers import EPUB_IGNORE, TstPaths, cmpFiles
 from tests.mocked import MockGuiMain

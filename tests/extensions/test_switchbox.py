@@ -1,10 +1,10 @@
 """
-novelWriter - SwitchBox Extension Tests
+UmbraEdit - SwitchBox Extension Tests
 =======================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,8 +26,8 @@ import pytest
 
 from pytestqt.qtbot import QtBot
 
-from novelwriter.extensions.switch import NSwitch
-from novelwriter.extensions.switchbox import NSwitchBox
+from umbraedit.extensions.switch import NSwitch
+from umbraedit.extensions.switchbox import NSwitchBox
 
 from tests.helpers import SimpleDialog, checkWidgetFreedOnRelease
 from tests.mocked import MockGuiMain

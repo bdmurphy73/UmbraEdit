@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-29 11:05+0200\n"
@@ -27,11 +27,11 @@ msgstr "Personnalisations"
 
 #: ../../source/more/customise.rst:10
 msgid ""
-"There are a few ways you can customise novelWriter yourself. Currently, "
+"There are a few ways you can customise UmbraEdit yourself. Currently, "
 "you can add new GUI themes, your own syntax themes, and install additional "
 "dictionaries."
 msgstr ""
-"Vous pouvez personnaliser novelWriter de plusieurs façons. Actuellement, "
+"Vous pouvez personnaliser UmbraEdit de plusieurs façons. Actuellement, "
 "vous pouvez ajouter de nouveaux thèmes d'interface graphique, vos propres "
 "thèmes de syntaxe et installer des dictionnaires supplémentaires."
 
@@ -41,11 +41,11 @@ msgstr "Dictionnaires de vérification orthographique"
 
 #: ../../source/more/customise.rst:19
 msgid ""
-"novelWriter uses Enchant_ as the spell checking tool. Depending on your "
+"UmbraEdit uses Enchant_ as the spell checking tool. Depending on your "
 "operating system, it may or may not load all installed spell check "
 "dictionaries automatically."
 msgstr ""
-"novelWriter utilise Enchant_ comme outil de vérification orthographique. "
+"UmbraEdit utilise Enchant_ comme outil de vérification orthographique. "
 "Selon votre système d'exploitation, il peut ou non charger automatiquement "
 "tous les dictionnaires de vérification orthographique installés."
 
@@ -58,14 +58,14 @@ msgid ""
 "On Linux and MacOS, you generally only have to install hunspell, aspell or "
 "myspell dictionaries on your system like you do for other applications. "
 "See your distro or OS documentation for how to do this. These dictionaries "
-"should show up as available spell check languages in novelWriter."
+"should show up as available spell check languages in UmbraEdit."
 msgstr ""
 "Sous Linux et MacOS, il vous suffit généralement d'installer les "
 "dictionnaires hunspell, aspell ou myspell sur votre système, comme vous le "
 "faites pour d'autres applications. Consultez la documentation de votre "
 "distro ou de votre système d'exploitation pour savoir comment procéder. "
 "Ces dictionnaires devraient apparaître comme des langues de vérification "
-"orthographique disponibles dans novelWriter."
+"orthographique disponibles dans UmbraEdit."
 
 #: ../../source/more/customise.rst:32
 msgid "Windows"
@@ -182,30 +182,30 @@ msgstr ""
 
 #: ../../source/more/customise.rst:78
 msgid ""
-"The existing syntax themes are stored in `novelwriter/assets/syntax "
-"<https://github.com/saga-soft/novelWriter/tree/main/novelwriter/assets/"
+"The existing syntax themes are stored in `umbraedit/assets/syntax "
+"<https://github.com/saga-soft/UmbraEdit/tree/main/umbraedit/assets/"
 "syntax>`_."
 msgstr ""
-"Les thèmes syntaxiques existants sont stockés dans `novelwriter/assets/"
-"syntax <https://github.com/saga-soft/novelWriter/tree/main/novelwriter/assets/"
+"Les thèmes syntaxiques existants sont stockés dans `umbraedit/assets/"
+"syntax <https://github.com/saga-soft/UmbraEdit/tree/main/umbraedit/assets/"
 "syntax>`_."
 
 #: ../../source/more/customise.rst:80
 msgid ""
-"The existing GUI themes are stored in `novelwriter/assets/themes <https://"
-"github.com/saga-soft/novelWriter/tree/main/novelwriter/assets/themes>`_."
+"The existing GUI themes are stored in `umbraedit/assets/themes <https://"
+"github.com/saga-soft/UmbraEdit/tree/main/umbraedit/assets/themes>`_."
 msgstr ""
-"Les thèmes GUI existants sont stockés dans `novelwriter/assets/themes "
-"<https://github.com/saga-soft/novelWriter/tree/main/novelwriter/assets/"
+"Les thèmes GUI existants sont stockés dans `umbraedit/assets/themes "
+"<https://github.com/saga-soft/UmbraEdit/tree/main/umbraedit/assets/"
 "themes>`_."
 
 #: ../../source/more/customise.rst:82
 msgid ""
-"The existing icon themes are stored in `novelwriter/assets/icons <https://"
-"github.com/saga-soft/novelWriter/tree/main/novelwriter/assets/icons>`_."
+"The existing icon themes are stored in `umbraedit/assets/icons <https://"
+"github.com/saga-soft/UmbraEdit/tree/main/umbraedit/assets/icons>`_."
 msgstr ""
-"Les thèmes d'icônes existants sont stockés dans `novelwriter/assets/icons "
-"<https://github.com/saga-soft/novelWriter/tree/main/novelwriter/assets/icons>`_."
+"Les thèmes d'icônes existants sont stockés dans `umbraedit/assets/icons "
+"<https://github.com/saga-soft/UmbraEdit/tree/main/umbraedit/assets/icons>`_."
 
 #: ../../source/more/customise.rst:85
 msgid ""
@@ -219,19 +219,19 @@ msgstr ""
 
 #: ../../source/more/customise.rst:88
 msgid ""
-"For novelWriter to be able to locate the custom theme files, you must copy "
+"For UmbraEdit to be able to locate the custom theme files, you must copy "
 "them to the :ref:`docs_technical_locations_data` location in your home or "
 "user area. There should be a folder there named ``syntax`` for syntax "
 "themes, just ``themes`` for GUI themes, and ``icons`` for icon themes. "
-"These folders are created the first time you start novelWriter."
+"These folders are created the first time you start UmbraEdit."
 msgstr ""
-"Pour que novelWriter puisse localiser les fichiers de thèmes "
+"Pour que UmbraEdit puisse localiser les fichiers de thèmes "
 "personnalisés, vous devez les copier dans l'emplacement :ref:"
 "`docs_technical_locations_data` dans votre espace personnel ou "
 "utilisateur. Il devrait y avoir un dossier nommé ``syntax`` pour les "
 "thèmes de syntaxe, juste ``themes`` pour les thèmes GUI, et ``icons`` pour "
 "les thèmes d'icônes. Ces dossiers sont créés la première fois que vous "
-"démarrez novelWriter.\n"
+"démarrez UmbraEdit.\n"
 "\n"
 "Traduit avec DeepL.com (version gratuite)"
 

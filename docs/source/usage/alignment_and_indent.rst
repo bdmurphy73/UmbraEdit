@@ -4,7 +4,7 @@
 Alignment and Indentation
 *************************
 
-The Markdown standard doesn't have commands for aligning text, so novelWriter adds its own syntax
+The Markdown standard doesn't have commands for aligning text, so UmbraEdit adds its own syntax
 for this. It also has syntax for indentation, which is similar to Markdown block quotes.
 
 

@@ -29,7 +29,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: nw-assets
-          path: novelwriter/assets
+          path: umbraedit/assets
 
       - name: Build Flatpak
         id: build
@@ -40,7 +40,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: novelWriter-${{ steps.build.outputs.BUILD_VERSION }}-Linux-Flatpak
+          name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-Linux-Flatpak
           path: dist_flatpak/*.flatpak*
           if-no-files-found: error
           retention-days: 14

@@ -1,10 +1,10 @@
 """
-novelWriter - Test Suite Mocked Classes
+UmbraEdit - Test Suite Mocked Classes
 =======================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2019 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ from PyQt6.QtCore import QSize, Qt, QTranslator
 from PyQt6.QtGui import QFont, QIcon, QPixmap
 from PyQt6.QtWidgets import QWidget
 
-from novelwriter.extensions.modified import NPushButton
+from umbraedit.extensions.modified import NPushButton
 
 
 class MockGuiMain(QWidget):

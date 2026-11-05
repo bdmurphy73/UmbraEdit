@@ -1,10 +1,10 @@
 """
-novelWriter - Lorem Ipsum Tool Tests
+UmbraEdit - Lorem Ipsum Tool Tests
 ====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2022 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2022 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,11 +29,11 @@ import pytest
 from PyQt6.QtGui import QAction
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwDocInsert
-from novelwriter.guimain import GuiMain
-from novelwriter.tools.lipsum import GuiLipsum
+from umbraedit import SHARED
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwDocInsert
+from umbraedit.guimain import GuiMain
+from umbraedit.tools.lipsum import GuiLipsum
 
 from tests.helpers import C, MockRnd, buildTestProject
 

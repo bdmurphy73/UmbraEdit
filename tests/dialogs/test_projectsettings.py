@@ -1,10 +1,10 @@
 """
-novelWriter - Project Settings Dialog Tests
+UmbraEdit - Project Settings Dialog Tests
 ===========================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -32,14 +32,14 @@ from PyQt6.QtGui import QAction, QColor
 from PyQt6.QtWidgets import QColorDialog, QFileDialog, QToolButton
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.core.project import NWProject
-from novelwriter.core.spellcheck import SpellEnchant
-from novelwriter.dialogs.editlabel import GuiEditLabel
-from novelwriter.dialogs.projectsettings import GuiProjectSettings
-from novelwriter.enum import nwItemType, nwStatusShape
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtAccepted, QtMouseLeft
+from umbraedit import CONFIG, SHARED
+from umbraedit.core.project import NWProject
+from umbraedit.core.spellcheck import SpellEnchant
+from umbraedit.dialogs.editlabel import GuiEditLabel
+from umbraedit.dialogs.projectsettings import GuiProjectSettings
+from umbraedit.enum import nwItemType, nwStatusShape
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtAccepted, QtMouseLeft
 
 from tests.helpers import C, MockRnd, buildTestProject, checkDialogFreedOnClose
 from tests.mocked import causeOSError
@@ -115,8 +115,8 @@ def testGuiProjectSettings_SettingsPage(
     languages = [("en", "English"), ("de", "German")]
     monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: languages)
 
-    (fncPath / "nw_en.qm").touch()
-    (fncPath / "nw_de.qm").touch()
+    (fncPath / "ue_en.qm").touch()
+    (fncPath / "ue_de.qm").touch()
     (fncPath / "project_en.json").touch()
     (fncPath / "project_de.json").touch()
     CONFIG._nwLangPath = fncPath
@@ -165,7 +165,7 @@ def testGuiProjectSettings_SettingsPage(
     assert project.data.doBackup is False
 
     nwGUI._processProjectSettingsChanges()
-    assert nwGUI.windowTitle() == "Project Name - novelWriter"
+    assert nwGUI.windowTitle() == "Project Name - UmbraEdit"
 
     # Without Enchant, only the default spell check entry is available
     with monkeypatch.context() as mp:

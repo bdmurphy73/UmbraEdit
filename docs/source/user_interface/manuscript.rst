@@ -218,7 +218,7 @@ Portable Document Format (PDF)
    capabilities as the preview. It's identical to what is produced if you select the print option
    and print to PDF.
 
-novelWriter HTML
+UmbraEdit HTML
    The HTML format writes a single ``.htm`` file with minimal style formatting. The HTML document
    is suitable for further processing by document conversion tools like Pandoc_, for importing in
    word processors, or for printing from browser.
@@ -229,14 +229,14 @@ Electronic Publication E-book (EPub)
 
 Standard/Extended Markdown
    The Markdown format comes in both Standard and Extended flavour. The *only* difference in terms
-   of novelWriter functionality is the support for strike through and highlighted text, which is
+   of UmbraEdit functionality is the support for strike through and highlighted text, which is
    not supported by the Standard flavour.
 
-novelWriter Markup
+UmbraEdit Markup
    This is simply a concatenation of the project documents selected by the filters into a ``.txt``
    file. The documents are stacked together in the order they appear in the project tree, with
    comments, tags, etc. included if they are selected. This is a useful format for exporting the
-   project for later import back into novelWriter.
+   project for later import back into UmbraEdit.
 
 .. versionadded:: 2.6
 
@@ -246,7 +246,7 @@ novelWriter Markup
 Additional Formats
 ------------------
 
-In addition to the above document formats, the novelWriter HTML and Markup formats can also be
+In addition to the above document formats, the UmbraEdit HTML and Markup formats can also be
 wrapped in a JSON file. These files will have a meta data entry and a body entry.
 
 The text body is saved in a two-level list. The outer list contains one entry per document, in the

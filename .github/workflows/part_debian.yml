@@ -46,7 +46,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: nw-assets
-          path: novelwriter/assets
+          path: umbraedit/assets
 
       - name: Install Native Packages
         run: apt-get install -y $(python3 pkgutils.py build-deb-depends ${{ inputs.codename }})

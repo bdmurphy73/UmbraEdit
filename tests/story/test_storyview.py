@@ -1,10 +1,10 @@
 """
-novelWriter - GUI Story View Tests
+UmbraEdit - GUI Story View Tests
 ==================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -32,14 +32,14 @@ from PyQt6.QtCore import QAbstractAnimation
 from PyQt6.QtWidgets import QFileDialog, QLabel
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.constants import nwFiles
-from novelwriter.enum import nwChange, nwFocus, nwView
-from novelwriter.guimain import GuiMain
-from novelwriter.shared import _GuiAlert
-from novelwriter.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView
-from novelwriter.story.storysettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
-from novelwriter.story.storyviewbase import GuiStorySettingsBase, GuiStoryViewBase
+from umbraedit import SHARED
+from umbraedit.constants import nwFiles
+from umbraedit.enum import nwChange, nwFocus, nwView
+from umbraedit.guimain import GuiMain
+from umbraedit.shared import _GuiAlert
+from umbraedit.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView
+from umbraedit.story.storysettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
+from umbraedit.story.storyviewbase import GuiStorySettingsBase, GuiStoryViewBase
 
 from tests.helpers import TstPaths, cmpFiles
 

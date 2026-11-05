@@ -1,10 +1,10 @@
 """
-novelWriter - Progress Bar Tests
+UmbraEdit - Progress Bar Tests
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ import pytest
 from PyQt6.QtGui import QColor
 from pytestqt.qtbot import QtBot
 
-from novelwriter.extensions.progressbars import NColorRangeProgress, NProgressCircle, NProgressSimple
+from umbraedit.extensions.progressbars import NColorRangeProgress, NProgressCircle, NProgressSimple
 
 from tests.helpers import SimpleDialog
 from tests.mocked import MockGuiMain

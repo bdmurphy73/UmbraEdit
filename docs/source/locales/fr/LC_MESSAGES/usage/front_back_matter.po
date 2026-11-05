@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 16:13+0200\n"
@@ -30,13 +30,13 @@ msgid ""
 "Front and back matter documents are documents that go before and after "
 "your main story text. They can include pages like your cover page, "
 "content tables, prologues, epilogues, etc. These special pages and "
-"sections are supported to some extent by novelWriter."
+"sections are supported to some extent by UmbraEdit."
 msgstr ""
 "Les documents de début et de fin sont des documents qui précèdent et "
 "suivent le texte principal de l'histoire. Il peut s'agir de pages comme "
 "la page de couverture, de tables des matières, de prologues, "
 "d'épilogues, etc. Ces pages et sections spéciales sont prises en charge "
-"dans une certaine mesure par novelWriter."
+"dans une certaine mesure par UmbraEdit."
 
 #: ../../source/usage/front_back_matter.rst:15
 msgid "The Title Page"
@@ -73,10 +73,10 @@ msgstr ":bdg-info:`Exemple`"
 
 #: ../../source/usage/front_back_matter.rst:27
 msgid ""
-"This is the title page novelWriter generates automatically for a new "
+"This is the title page UmbraEdit generates automatically for a new "
 "project as of version 2.6:"
 msgstr ""
-"Il s'agit de la page de titre que novelWriter génère automatiquement "
+"Il s'agit de la page de titre que UmbraEdit génère automatiquement "
 "pour un nouveau projet à partir de la version 2.6 :"
 
 #: ../../source/usage/front_back_matter.rst:43

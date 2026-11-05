@@ -1,10 +1,10 @@
 """
-novelWriter - Document Editor Tests
+UmbraEdit - Document Editor Tests
 ===================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -51,22 +51,22 @@ from PyQt6.QtGui import (
 from PyQt6.QtWidgets import QAbstractButton, QApplication, QMenu, QTextEdit
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.common import decodeMimeHandles, utf16CharMap
-from novelwriter.constants import nwConst, nwKeyWords, nwUnicode
-from novelwriter.core.item import ProjectItem
-from novelwriter.core.project import NWProject
-from novelwriter.core.spellcheck import SpellEnchant
-from novelwriter.dialogs.editlabel import GuiEditLabel
-from novelwriter.dialogs.editlink import GuiEditLink
-from novelwriter.editor.editor import GuiDocEditor, _TagAction
-from novelwriter.editor.editsearch import GuiDocEditSearch
-from novelwriter.editor.textblock import TextBlockData, formatCheckText
-from novelwriter.enum import nwComment, nwDocAction, nwDocInsert, nwItemClass, nwItemLayout, nwState
-from novelwriter.guimain import GuiMain
-from novelwriter.shared import _GuiAlert
-from novelwriter.text.counting import standardCounter
-from novelwriter.types import (
+from umbraedit import CONFIG, SHARED
+from umbraedit.common import decodeMimeHandles, utf16CharMap
+from umbraedit.constants import nwConst, nwKeyWords, nwUnicode
+from umbraedit.core.item import ProjectItem
+from umbraedit.core.project import NWProject
+from umbraedit.core.spellcheck import SpellEnchant
+from umbraedit.dialogs.editlabel import GuiEditLabel
+from umbraedit.dialogs.editlink import GuiEditLink
+from umbraedit.editor.editor import GuiDocEditor, _TagAction
+from umbraedit.editor.editsearch import GuiDocEditSearch
+from umbraedit.editor.textblock import TextBlockData, formatCheckText
+from umbraedit.enum import nwComment, nwDocAction, nwDocInsert, nwItemClass, nwItemLayout, nwState
+from umbraedit.guimain import GuiMain
+from umbraedit.shared import _GuiAlert
+from umbraedit.text.counting import standardCounter
+from umbraedit.types import (
     QtAlignJustify,
     QtAlignLeft,
     QtImCurrentSelection,
@@ -361,7 +361,7 @@ def testGuiDocEditor_SaveTextEdgeCases(
 
     # A hash mismatch that the user confirms overwriting for, and which
     # then succeeds, is treated as a successful save
-    writeFile(Path(nwDocument.fileLocation), "Changed outside of novelWriter")
+    writeFile(Path(nwDocument.fileLocation), "Changed outside of UmbraEdit")
     docEditor.setDocumentChanged(True)
     assert docEditor.saveText() is True
     assert docEditor.docChanged is False
@@ -891,7 +891,7 @@ def testGuiDocEditor_SpellChecking(
     # Background Spell Pass
     # =====================
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.constants.nwConst.CHECK_PASS_CHUNK", 2)
+        mp.setattr("umbraedit.constants.nwConst.CHECK_PASS_CHUNK", 2)
 
         # A full pass runs chunked worker jobs until the document is
         # done, which with a synchronous worker completes immediately
@@ -3519,7 +3519,7 @@ def testGuiDocEditor_LineHeightPaste(qtbot: QtBot, nwGUI: GuiMain, projPath: Pat
 @pytest.mark.gui
 def testGuiDocEditor_InsertFromMimeData_Markdown(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test that pasting Markdown mime data is converted to
-    novelWriter's own text format before being inserted, and that a
+    UmbraEdit's own text format before being inserted, and that a
     Markdown paste that converts to an empty string is a no-op.
     """
     buildTestProject(NWProject(), projPath)

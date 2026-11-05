@@ -1,10 +1,10 @@
 """
-novelWriter - Debian Build
+UmbraEdit - Debian Build
 ==========================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ TEST_DEPENDS = [
 ]
 
 DEB_CONTROL = f"""
-Source: novelwriter
+Source: umbraedit
 Maintainer: Veronica Berglyd Olsen <code@vkbo.net>
 Section: text
 Priority: optional
@@ -75,10 +75,10 @@ Build-Depends:
   %dependencies%,
   %test-dependencies%
 Standards-Version: 4.5.1
-Homepage: https://novelwriter.io
+Homepage: https://umbraedit.io
 X-Python3-Version: >= {MIN_PY_VERSION}
 
-Package: novelwriter
+Package: umbraedit
 Architecture: all
 Depends:
   ${{misc:Depends}},
@@ -161,7 +161,7 @@ def makeDebianPackage(
     # =============
 
     bldDir = ROOT_DIR / "dist_deb"
-    bldPkg = f"novelwriter_{pkgVers}"
+    bldPkg = f"umbraedit_{pkgVers}"
     outDir = bldDir / bldPkg
     debDir = outDir / "debian"
     datDir = outDir / "data"
@@ -181,15 +181,15 @@ def makeDebianPackage(
         log("[cr]ERROR:[e] Missing build assets")
         sys.exit(1)
 
-    # Copy novelWriter Source
+    # Copy UmbraEdit Source
     # =======================
 
-    log("[b]Copying novelWriter source ...[e]")
+    log("[b]Copying UmbraEdit source ...[e]")
     log("")
 
     copySourceCode(outDir)
     copyTestCode(outDir)
-    updateMetaFile(outDir / "novelwriter" / "assets" / "meta.toml", buildFormat="debian", installSource=installSource)
+    updateMetaFile(outDir / "umbraedit" / "assets" / "meta.toml", buildFormat="debian", installSource=installSource)
 
     log("")
     log("[b]Copying or generating additional files ...[e]")
@@ -212,7 +212,7 @@ def makeDebianPackage(
     writeFile(
         debDir / "changelog",
         (
-            f"novelwriter ({pkgVers}) {target.codename}; urgency=low\n\n"
+            f"umbraedit ({pkgVers}) {target.codename}; urgency=low\n\n"
             f"  * Update to version {pkgVers}\n\n"
             f" -- Veronica Berglyd Olsen <code@vkbo.net>  {pkgDate}\n"
         ),

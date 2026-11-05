@@ -1,10 +1,10 @@
 """
-novelWriter - Project Storage Tests
+UmbraEdit - Project Storage Tests
 ===================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2022 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2022 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,13 +31,13 @@ from zipfile import ZipFile
 
 import pytest
 
-from novelwriter import CONFIG, __hexversion__, __version__
-from novelwriter.common import formatTimeStamp
-from novelwriter.constants import nwFiles
-from novelwriter.core.document import ProjectDocument
-from novelwriter.core.project import NWProject
-from novelwriter.core.projectxml import FILE_REVISION, FILE_VERSION, ProjectXMLReader, ProjectXMLWriter
-from novelwriter.core.storage import (
+from umbraedit import CONFIG, __hexversion__, __version__
+from umbraedit.common import formatTimeStamp
+from umbraedit.constants import nwFiles
+from umbraedit.core.document import ProjectDocument
+from umbraedit.core.project import NWProject
+from umbraedit.core.projectxml import FILE_REVISION, FILE_VERSION, ProjectXMLReader, ProjectXMLWriter
+from umbraedit.core.storage import (
     MANIFEST_VERSION,
     ProjectStorage,
     ProjectStorageCreate,
@@ -45,7 +45,7 @@ from novelwriter.core.storage import (
     _LegacyDocuments,
     _LegacyStorage,
 )
-from novelwriter.enum import nwItemClass, nwItemLayout, nwProjectKind
+from umbraedit.enum import nwItemClass, nwItemLayout, nwProjectKind
 
 from tests.helpers import C, MockRnd, TstPaths, buildTestProject
 from tests.mocked import MockGuiMain, causeOSError
@@ -233,7 +233,7 @@ def testProjectStorage_InitProjectStorage_Invalid(monkeypatch: pytest.MonkeyPatc
 @pytest.mark.core
 def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Test the project lock file."""
-    monkeypatch.setattr("novelwriter.core.storage.time", lambda: 1000.0)
+    monkeypatch.setattr("umbraedit.core.storage.time", lambda: 1000.0)
 
     storage = ProjectStorage(MockProject())  # type: ignore
     assert storage.isOpen() is False
@@ -327,7 +327,7 @@ def testProjectStorage_Manifest(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     assert storage.runPostSaveTasks(1000.0) is True
     manifest = json.loads(manifestPath.read_text(encoding="utf-8"))
     assert manifest == {
-        "format": "novelWriter Project",
+        "format": "UmbraEdit Project",
         "formatVersion": MANIFEST_VERSION,
         "projectVersion": f"{FILE_VERSION}-{FILE_REVISION}",
         "kind": "project",
@@ -401,14 +401,14 @@ def testProjectStorage_ZipIt(
 
     # Fail to create archive, and fail to clean up
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ZipFile.write", causeOSError)
+        mp.setattr("umbraedit.core.storage.ZipFile.write", causeOSError)
         mp.setattr("pathlib.Path.unlink", causeOSError)
         assert storage.zipIt(zipFile, 1000.0) is False
         assert zipFile.exists()
 
     # Fail to create archive, and clean up
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ZipFile.write", causeOSError)
+        mp.setattr("umbraedit.core.storage.ZipFile.write", causeOSError)
         assert storage.zipIt(zipFile, 1000.0) is False
         assert not zipFile.exists()
 
@@ -551,7 +551,7 @@ def testProjectStorage_RunPostXMLTasks(monkeypatch: pytest.MonkeyPatch, fncPath:
     # A failed conversion records the exception
     storage._oldDocuments = [nwdFile]
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage._LegacyDocuments.convertDocuments", causeOSError)
+        mp.setattr("umbraedit.core.storage._LegacyDocuments.convertDocuments", causeOSError)
         assert storage.runPostXMLTasks() is False
         assert isinstance(storage.exc, OSError)
 
@@ -655,7 +655,7 @@ def testLegacyDocuments_ConvertDocuments(monkeypatch: pytest.MonkeyPatch, fncPat
 @pytest.mark.core
 def testLegacyDocuments_ParseOldDocumentMeta(caplog: pytest.LogCaptureFixture):
     """Test parsing of individual old-format meta data lines."""
-    caplog.set_level(logging.DEBUG, logger="novelwriter")
+    caplog.set_level(logging.DEBUG, logger="umbraedit")
     legacy = _LegacyDocuments(MockProject())  # type: ignore
 
     # Name
@@ -792,9 +792,9 @@ def testProjectStorage_OldFormatConvert(monkeypatch: pytest.MonkeyPatch, mockGUI
 
     # Check Word List
     data = json.loads(wordListNew.read_text(encoding="utf-8"))
-    assert "word_a" in data["novelWriter.userDict"]
-    assert "word_b" in data["novelWriter.userDict"]
-    assert "word_c" in data["novelWriter.userDict"]
+    assert "word_a" in data["UmbraEdit.userDict"]
+    assert "word_b" in data["UmbraEdit.userDict"]
+    assert "word_c" in data["UmbraEdit.userDict"]
 
     # Check Session Log
     data = list(project.session.iterRecords())

@@ -1,10 +1,10 @@
 """
-novelWriter - Manuscript Build Settings Dialog Tests
+UmbraEdit - Manuscript Build Settings Dialog Tests
 ====================================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2023 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,15 +30,15 @@ from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtGui import QAction, QFont
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.common import describeFont
-from novelwriter.constants import nwHeadFmt, nwStyles, nwUnicode
-from novelwriter.core.project import NWProject
-from novelwriter.extensions.modified import NFontDialog
-from novelwriter.guimain import GuiMain
-from novelwriter.manuscript.buildsettings import BuildSettings, FilterMode
-from novelwriter.manuscript.manussettings import GuiBuildSettings, _FilterTab, _FormattingTab, _HeadingsTab
-from novelwriter.shared import _GuiAlert
+from umbraedit import CONFIG, SHARED
+from umbraedit.common import describeFont
+from umbraedit.constants import nwHeadFmt, nwStyles, nwUnicode
+from umbraedit.core.project import NWProject
+from umbraedit.extensions.modified import NFontDialog
+from umbraedit.guimain import GuiMain
+from umbraedit.manuscript.buildsettings import BuildSettings, FilterMode
+from umbraedit.manuscript.manussettings import GuiBuildSettings, _FilterTab, _FormattingTab, _HeadingsTab
+from umbraedit.shared import _GuiAlert
 
 from tests.helpers import C, MockRnd, buildTestProject, checkDialogFreedOnClose
 

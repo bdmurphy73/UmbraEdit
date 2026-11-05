@@ -1,10 +1,10 @@
 """
-novelWriter - Outline Model Tester
+UmbraEdit - Outline Model Tester
 ==================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,11 +31,11 @@ from PyQt6.QtCore import QModelIndex, Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtTest import QAbstractItemModelTester
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.constants import nwKeyWords
-from novelwriter.guimain import GuiMain
-from novelwriter.models.outlinemodel import BLANK_STYLE, NODE_FLAGS, OutlineModel, OutlineNode
-from novelwriter.types import QtAccessibleTextRole, QtDisplayRole
+from umbraedit import CONFIG, SHARED
+from umbraedit.constants import nwKeyWords
+from umbraedit.guimain import GuiMain
+from umbraedit.models.outlinemodel import BLANK_STYLE, NODE_FLAGS, OutlineModel, OutlineNode
+from umbraedit.types import QtAccessibleTextRole, QtDisplayRole
 
 
 @pytest.mark.core

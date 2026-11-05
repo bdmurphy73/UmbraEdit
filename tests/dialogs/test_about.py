@@ -1,10 +1,10 @@
 """
-novelWriter - About Dialog Tests
+UmbraEdit - About Dialog Tests
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,14 +30,14 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QMessageBox
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.dialogs.about import GuiAbout
-from novelwriter.guimain import GuiMain
+from umbraedit import SHARED
+from umbraedit.dialogs.about import GuiAbout
+from umbraedit.guimain import GuiMain
 
 
 @pytest.mark.gui
 def testGuiAbout_NWDialog(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
-    """Test the novelWriter about dialogs."""
+    """Test the UmbraEdit about dialogs."""
     monkeypatch.setattr(GuiAbout, "exec", lambda *a: None)
 
     nwGUI.showAboutNWDialog()
@@ -50,7 +50,7 @@ def testGuiAbout_NWDialog(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: 
     assert document.characterCount() > 100
 
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.config.Config.assetPath", lambda *a: Path("whatever"))
+        mp.setattr("umbraedit.config.Config.assetPath", lambda *a: Path("whatever"))
         msgAbout._fillCreditsPage()
         assert msgAbout.txtCredits.toPlainText() == "Error loading credits text ..."
 

@@ -1,10 +1,10 @@
 """
-novelWriter - Editor Vim Mode Tests
+UmbraEdit - Editor Vim Mode Tests
 ===================================
 
-This file is a part of novelWriter
+This file is a part of UmbraEdit
 Copyright (C) 2025 Alexis Dumelie, Veronica Berglyd Olsen and
-novelWriter contributors
+UmbraEdit contributors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,14 +29,14 @@ import pytest
 from PyQt6.QtCore import Qt
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.core.project import NWProject
-from novelwriter.dialogs.preferences import GuiNeedsUpdate
-from novelwriter.editor.editor import GuiDocEditor
-from novelwriter.editor.vim import VimState
-from novelwriter.enum import nwVimMode
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtKeyEscape, QtKeyRight, QtModCtrl, QtModShift
+from umbraedit import CONFIG, SHARED
+from umbraedit.core.project import NWProject
+from umbraedit.dialogs.preferences import GuiNeedsUpdate
+from umbraedit.editor.editor import GuiDocEditor
+from umbraedit.editor.vim import VimState
+from umbraedit.enum import nwVimMode
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtKeyEscape, QtKeyRight, QtModCtrl, QtModShift
 
 from tests.helpers import C, MockRnd, buildTestProject
 

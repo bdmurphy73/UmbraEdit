@@ -1,15 +1,15 @@
 {
-  "novelWriter.meta": {
+  "UmbraEdit.meta": {
     "version": "0x260300a0",
     "timestamp": "2026-10-04 18:07:50",
     "revision": 15
   },
-  "novelWriter.tagsIndex": {
+  "UmbraEdit.tagsIndex": {
     "bod": {"name": "Bod", "display": "Nobody Owens", "handle": "4c4f28287af27", "heading": "T0001", "class": "CHARACTER"},
     "main": {"name": "Main", "display": "Main", "handle": "2426c6f0ca922", "heading": "T0001", "class": "PLOT"},
     "europe": {"name": "Europe", "display": "Ancient Europe", "handle": "04468803b92e1", "heading": "T0001", "class": "WORLD"}
   },
-  "novelWriter.itemIndex": {
+  "UmbraEdit.itemIndex": {
     "7a992350f3eb6": {
       "T0001": {
         "meta": {"level": "H1", "title": "Lorem Ipsum", "mod": true, "line": 1, "tag": "", "counts": [259, 44, 5]}

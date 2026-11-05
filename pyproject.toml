@@ -3,7 +3,7 @@ requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "novelWriter"
+name = "UmbraEdit"
 authors = [{ name = "Veronica Berglyd Olsen", email = "code@vkbo.net" }]
 description = "A plain text editor for planning and writing novels"
 readme = { file = "setup/description_pypi.md", content-type = "text/markdown" }
@@ -59,25 +59,25 @@ test = [
 lint = ["pyright", "ruff"]
 
 [project.urls]
-Homepage = "https://novelwriter.io"
-Documentation = "https://docs.novelwriter.io"
-Repository = "https://github.com/saga-soft/novelWriter"
-Issues = "https://github.com/saga-soft/novelWriter/issues"
+Homepage = "https://umbraedit.io"
+Documentation = "https://docs.umbraedit.io"
+Repository = "https://github.com/saga-soft/UmbraEdit"
+Issues = "https://github.com/saga-soft/UmbraEdit/issues"
 
 [project.gui-scripts]
-novelwriter = "novelwriter:main"
+umbraedit = "umbraedit:main"
 
-[tool.novelwriter.build]
+[tool.umbraedit.build]
 flatpak = { qt_version = "6.11", enchant_version = "2.8.19" }
 
 [tool.setuptools.dynamic]
-version = { attr = "novelwriter.__init__.__version__" }
+version = { attr = "umbraedit.__init__.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["novelwriter*"]
+include = ["umbraedit*"]
 
 [tool.setuptools.package-data]
-novelwriter = ["assets/**/*"]
+umbraedit = ["assets/**/*"]
 
 [tool.ruff]
 line-length = 120
@@ -162,7 +162,7 @@ quote-style = "double"
 preview = true
 
 [tool.pyright]
-include = ["novelwriter", "tests"]
+include = ["umbraedit", "tests"]
 reportIncompatibleMethodOverride = false
 pythonVersion = "3.11"
 
@@ -179,7 +179,7 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["novelwriter"]
+source = ["umbraedit"]
 relative_files = true
 
 [tool.coverage.report]

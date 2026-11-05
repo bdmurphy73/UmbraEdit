@@ -1,10 +1,10 @@
 """
-novelWriter - ConfigLayout Extension Tests
+UmbraEdit - ConfigLayout Extension Tests
 ==========================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,8 +28,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QLabel
 from pytestqt.qtbot import QtBot
 
-from novelwriter.extensions.configlayout import NScrollableForm
-from novelwriter.types import QtAlignAbsolute, QtAlignLeftMiddle, QtAlignRightMiddle
+from umbraedit.extensions.configlayout import NScrollableForm
+from umbraedit.types import QtAlignAbsolute, QtAlignLeftMiddle, QtAlignRightMiddle
 
 from tests.helpers import SimpleDialog
 from tests.mocked import MockGuiMain

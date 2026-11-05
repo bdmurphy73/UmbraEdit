@@ -1,10 +1,10 @@
 """
-novelWriter - GUI Project Tree Tests
+UmbraEdit - GUI Project Tree Tests
 ====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -35,17 +35,17 @@ from PyQt6.QtGui import QMouseEvent
 from PyQt6.QtWidgets import QMenu
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.core.coretools import DocMerger
-from novelwriter.core.project import NWProject
-from novelwriter.dialogs.docmerge import GuiDocMerge
-from novelwriter.dialogs.docsplit import GuiDocSplit
-from novelwriter.dialogs.editlabel import GuiEditLabel
-from novelwriter.enum import nwDocMode, nwItemClass, nwItemLayout, nwItemType
-from novelwriter.gui.projtree import _TreeContextMenu
-from novelwriter.guimain import GuiMain
-from novelwriter.shared import _GuiAlert
-from novelwriter.types import (
+from umbraedit import CONFIG, SHARED
+from umbraedit.core.coretools import DocMerger
+from umbraedit.core.project import NWProject
+from umbraedit.dialogs.docmerge import GuiDocMerge
+from umbraedit.dialogs.docsplit import GuiDocSplit
+from umbraedit.dialogs.editlabel import GuiEditLabel
+from umbraedit.enum import nwDocMode, nwItemClass, nwItemLayout, nwItemType
+from umbraedit.gui.projtree import _TreeContextMenu
+from umbraedit.guimain import GuiMain
+from umbraedit.shared import _GuiAlert
+from umbraedit.types import (
     QtAccepted,
     QtModNone,
     QtMouseLeft,

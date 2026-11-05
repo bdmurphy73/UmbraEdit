@@ -1,10 +1,10 @@
 """
-novelWriter - GUI Project Search Tests
+UmbraEdit - GUI Project Search Tests
 ======================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -35,14 +35,14 @@ from PyQt6.QtGui import QAction, QPainter, QPixmap
 from PyQt6.QtWidgets import QStyleOptionViewItem
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.constants import nwItemClass, nwUnicode
-from novelwriter.core.item import ProjectItem
-from novelwriter.core.project import NWProject
-from novelwriter.core.projectsearch import DocSearch, T_SearchResults
-from novelwriter.enum import nwChange, nwDocMode, nwView
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtDisplayRole, QtKeyDown, QtKeyReturn, QtKeyUp, QtTransparent
+from umbraedit import CONFIG, SHARED
+from umbraedit.constants import nwItemClass, nwUnicode
+from umbraedit.core.item import ProjectItem
+from umbraedit.core.project import NWProject
+from umbraedit.core.projectsearch import DocSearch, T_SearchResults
+from umbraedit.enum import nwChange, nwDocMode, nwView
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtDisplayRole, QtKeyDown, QtKeyReturn, QtKeyUp, QtTransparent
 
 from tests.helpers import C, MockRnd, buildTestProject
 

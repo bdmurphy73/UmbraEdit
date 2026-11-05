@@ -1,10 +1,10 @@
 """
-novelWriter - Common Functions Tests
+UmbraEdit - Common Functions Tests
 ====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2019 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ from PyQt6.QtGui import QDesktopServices, QFont, QFontDatabase, QFontInfo
 from PyQt6.QtWidgets import QWidget
 from pytestqt.qtbot import QtBot
 
-from novelwriter.common import (
+from umbraedit.common import (
     appendIfSet,
     checkBool,
     checkDateNone,
@@ -97,7 +97,7 @@ from novelwriter.common import (
     xmlSubElem,
     yesNo,
 )
-from novelwriter.types import QtAlignAbsolute, QtAlignCenter, QtAlignLeft, QtAlignRight
+from umbraedit.types import QtAlignAbsolute, QtAlignCenter, QtAlignLeft, QtAlignRight
 
 from tests.helpers import TstPaths, writeFile
 from tests.mocked import causeOSError

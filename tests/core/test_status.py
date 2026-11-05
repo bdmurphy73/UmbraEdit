@@ -1,10 +1,10 @@
 """
-novelWriter - Project Status Tests
+UmbraEdit - Project Status Tests
 ==================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,8 +26,8 @@ import pytest
 
 from PyQt6.QtGui import QColor, QIcon
 
-from novelwriter.core.status import CUSTOM_COL, ItemStatus, StatusEntry, _ShapeCache
-from novelwriter.enum import nwStatusShape
+from umbraedit.core.status import CUSTOM_COL, ItemStatus, StatusEntry, _ShapeCache
+from umbraedit.enum import nwStatusShape
 
 from tests.helpers import C, MockRnd
 from tests.mocked import MockGuiMain

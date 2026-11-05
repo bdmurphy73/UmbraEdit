@@ -22,7 +22,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: nw-assets
-          path: novelwriter/assets
+          path: umbraedit/assets
 
       - name: Install UV and Python
         uses: astral-sh/setup-uv@v10.2.0

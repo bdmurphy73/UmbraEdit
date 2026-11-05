@@ -1,10 +1,10 @@
 /*
-** novelWriter - Windows Launcher
+** UmbraEdit - Windows Launcher
 ** ==============================
 **
-** This file is a part of novelWriter.
+** This file is a part of UmbraEdit.
 **
-** Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
+** Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     SetCurrentDirectory(path);
 
     // 32767 chars is the maximum length of a Windows command line
-    wchar_t cmd[32768] = L"pythonw.exe novelWriter.pyw";
+    wchar_t cmd[32768] = L"pythonw.exe UmbraEdit.pyw";
     if (__argc > 1)
     {
         wcsncat_s(cmd, L" \"", 2);

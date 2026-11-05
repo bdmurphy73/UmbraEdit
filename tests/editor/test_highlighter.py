@@ -1,10 +1,10 @@
 """
-novelWriter - Syntax Highlighter Tests
+UmbraEdit - Syntax Highlighter Tests
 ======================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2025 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2025 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,14 +28,14 @@ import pytest
 
 from PyQt6.QtGui import QTextCharFormat, QTextCursor, QTextDocument
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.core.item import ProjectItem
-from novelwriter.core.spellcheck import SpellEnchant
-from novelwriter.editor.highlighter import BLOCK_META, BLOCK_TITLE, GuiDocHighlighter
-from novelwriter.editor.textblock import TextBlockData
-from novelwriter.enum import nwItemClass, nwItemLayout, nwItemType, nwTheme
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtKeepAnchor
+from umbraedit import CONFIG, SHARED
+from umbraedit.core.item import ProjectItem
+from umbraedit.core.spellcheck import SpellEnchant
+from umbraedit.editor.highlighter import BLOCK_META, BLOCK_TITLE, GuiDocHighlighter
+from umbraedit.editor.textblock import TextBlockData
+from umbraedit.enum import nwItemClass, nwItemLayout, nwItemType, nwTheme
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtKeepAnchor
 
 R_HANDLE = "3456789abcdef"
 T_HANDLE = "0123456789abc"
@@ -707,7 +707,7 @@ def testGuiDocHighlighter_MaxBlockLength(monkeypatch: pytest.MonkeyPatch, syntax
     """Content beyond the max block length cap must be ignored
     entirely: no syntax highlighting, and no spell/format checking.
     """
-    monkeypatch.setattr("novelwriter.editor.highlighter.MAX_BLOCK_LENGTH", 30)
+    monkeypatch.setattr("umbraedit.editor.highlighter.MAX_BLOCK_LENGTH", 30)
     monkeypatch.setattr(SpellEnchant, "checkWord", lambda *a: False)
 
     doc = syntax.document()

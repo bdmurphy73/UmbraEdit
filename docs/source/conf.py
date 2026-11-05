@@ -11,7 +11,7 @@ import time
 
 # -- Project Information -----------------------------------------------------
 
-project = "novelWriter"
+project = "UmbraEdit"
 copyright = f"{datetime.date.today().year}"  # noqa: A001
 
 if override_authors := os.environ.get("SPHINX_I18N_AUTHORS"):
@@ -22,7 +22,7 @@ else:
 if override_version := os.environ.get("SPHINX_I18N_VERSION"):
     release = override_version
 else:
-    initFile = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, "novelwriter", "__init__.py")
+    initFile = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, "umbraedit", "__init__.py")
     with open(initFile, encoding="utf-8") as inFile:
         for aLine in inFile:
             if aLine.startswith("__version__"):
@@ -57,12 +57,12 @@ html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_theme_options = {
     "logo": {
-        "image_light": "_static/novelwriter-light.png",
-        "image_dark": "_static/novelwriter-dark.png",
+        "image_light": "_static/umbraedit-light.png",
+        "image_dark": "_static/umbraedit-dark.png",
     },
     "show_toc_level": 2,
     "show_navbar_depth": 1,
-    "repository_url": "https://github.com/saga-soft/novelwriter",
+    "repository_url": "https://github.com/saga-soft/umbraedit",
     "navigation_with_keys": True,
     "use_repository_button": True,
     "use_issues_button": True,
@@ -81,5 +81,5 @@ latex_elements = {
     "preamble": ("\\usepackage[utf8]{inputenc}\n\\DeclareUnicodeCharacter{2212}{\\textendash}\n"),
     "figure_align": "htbp",
 }
-latex_logo = "_static/novelwriter-pdf.png"
+latex_logo = "_static/umbraedit-pdf.png"
 latex_documents = [(master_doc, "manual.tex", None, author, "manual")]

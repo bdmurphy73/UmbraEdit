@@ -1,10 +1,10 @@
 """
-novelWriter - Text Patterns Tests
+UmbraEdit - Text Patterns Tests
 =================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,9 +26,9 @@ import re
 
 import pytest
 
-from novelwriter import CONFIG
-from novelwriter.constants import nwUnicode
-from novelwriter.text.patterns import REGEX_PATTERNS, DialogParser
+from umbraedit import CONFIG
+from umbraedit.constants import nwUnicode
+from umbraedit.text.patterns import REGEX_PATTERNS, DialogParser
 
 
 def allMatches(regEx: re.Pattern, text: str) -> list[list[tuple[str, int, int]]]:

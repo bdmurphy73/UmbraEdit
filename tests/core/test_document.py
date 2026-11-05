@@ -1,10 +1,10 @@
 """
-novelWriter - Project Document Tests
+UmbraEdit - Project Document Tests
 ====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,10 +29,10 @@ from typing import Any
 
 import pytest
 
-from novelwriter.core.document import MAX_META_LINES, DocumentMeta, ProjectDocument
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwItemClass, nwItemLayout
-from novelwriter.formats.tomlparser import NTomlParser
+from umbraedit.core.document import MAX_META_LINES, DocumentMeta, ProjectDocument
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwItemClass, nwItemLayout
+from umbraedit.formats.tomlparser import NTomlParser
 
 from tests.helpers import MOCK_TIME, C, MockRnd, buildTestProject, readFile, writeFile
 from tests.mocked import MockGuiMain, causeOSError
@@ -46,7 +46,7 @@ def testProjectDocument_LoadSave(
     mockRnd: MockRnd,
 ):
     """Test loading and saving a document with the ProjectDocument class."""
-    monkeypatch.setattr("novelwriter.core.document.time", lambda: MOCK_TIME)
+    monkeypatch.setattr("umbraedit.core.document.time", lambda: MOCK_TIME)
 
     project = NWProject()
     mockRnd.reset()
@@ -72,7 +72,7 @@ def testProjectDocument_LoadSave(
 
     # No content path
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.contentPath", property(lambda *a: None))
+        mp.setattr("umbraedit.core.storage.ProjectStorage.contentPath", property(lambda *a: None))
         doc = ProjectDocument(project, C.hSceneDoc)
         assert doc.readDocument() is None
         assert doc.fileExists() is False
@@ -103,7 +103,7 @@ def testProjectDocument_LoadSave(
 
     # No content path
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.contentPath", property(lambda *a: None))
+        mp.setattr("umbraedit.core.storage.ProjectStorage.contentPath", property(lambda *a: None))
         doc = ProjectDocument(project, xHandle)
         assert doc.writeDocument("") is False
 
@@ -253,7 +253,7 @@ def testProjectDocument_LoadSave(
 
     # No content path
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.contentPath", property(lambda *a: None))
+        mp.setattr("umbraedit.core.storage.ProjectStorage.contentPath", property(lambda *a: None))
         doc = ProjectDocument(project, xHandle)
         assert doc.deleteDocument() is False
 
@@ -273,7 +273,7 @@ def testProjectDocument_LoadSave(
 @pytest.mark.core
 def testProjectDocument_Methods(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test other methods of the ProjectDocument class."""
-    monkeypatch.setattr("novelwriter.core.document.time", lambda: MOCK_TIME)
+    monkeypatch.setattr("umbraedit.core.document.time", lambda: MOCK_TIME)
 
     project = NWProject()
     mockRnd.reset()

@@ -1,10 +1,10 @@
 """
-novelWriter - Test Suite Helpers
+UmbraEdit - Test Suite Helpers
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2019 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -35,16 +35,16 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QWidget
 
-from novelwriter import logger
+from umbraedit import logger
 
 if TYPE_CHECKING:
     import pytest
 
     from pytestqt.qtbot import QtBot
 
-    from novelwriter.core.project import NWProject
+    from umbraedit.core.project import NWProject
 
-XML_IGNORE = ("<novelWriterXML ", "<project ", "<dailyTarget ")
+XML_IGNORE = ("<UmbraEditXML ", "<project ", "<dailyTarget ")
 ODT_IGNORE = ("<meta:generator", "<meta:creation-date", "<dc:date", "<meta:editing")
 EPUB_IGNORE = ('<meta property="dcterms:date">', '<meta property="dcterms:modified">', "<dc:date>")
 NWD_IGNORE = ("createdDate =", "updatedDate =")
@@ -187,7 +187,7 @@ def buildTestProject(project: NWProject, path: Path) -> None:
     """Build a standard test project in path using the given project
     object.
     """
-    from novelwriter.enum import nwItemClass
+    from umbraedit.enum import nwItemClass
 
     project.storage.createNewProject(path)
     project.setDefaultStatusImport()

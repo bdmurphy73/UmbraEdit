@@ -8,4 +8,4 @@ cmake -S .. -B .
 cmake --build . --config Release
 
 Set-Location ..
-Copy-Item .\build\Release\novelWriter.exe . -Force
+Copy-Item .\build\Release\UmbraEdit.exe . -Force

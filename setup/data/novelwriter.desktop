@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=novelWriter
+Name=UmbraEdit
 Comment=A plain text editor for planning and writing novels
-Exec=novelwriter %f
-Icon=novelwriter
+Exec=umbraedit %f
+Icon=umbraedit
 Categories=Qt;Office;WordProcessor;
 Terminal=false
-MimeType=application/x-novelwriter-project;
+MimeType=application/x-umbraedit-project;

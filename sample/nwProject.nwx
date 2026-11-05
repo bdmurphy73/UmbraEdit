@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<novelWriterXML appVersion="26.3b1" hexVersion="0x260300b1" fileVersion="1.6" fileRevision="1" timeStamp="2026-11-03 18:50:44">
+<UmbraEditXML appVersion="26.3b1" hexVersion="0x260300b1" fileVersion="1.6" fileRevision="1" timeStamp="2026-11-03 18:50:44">
   <project id="e2be99af-f9bf-4403-857a-c3d1ac25abea" saveCount="2446" autoCount="438" editTime="113128" indexRevision="330">
     <name>Sample Project</name>
     <author>Jane Smith</author>
@@ -196,4 +196,4 @@
       <name status="sf12341" import="ia857f0" active="yes">Delete Me!</name>
     </item>
   </content>
-</novelWriterXML>
+</UmbraEditXML>

@@ -4,7 +4,7 @@
 Keyboard Shortcuts
 ******************
 
-Most features in novelWriter are available as keyboard shortcuts. This is a reference list of those
+Most features in UmbraEdit are available as keyboard shortcuts. This is a reference list of those
 shortcuts. Most of them are also listed in the application's user interface.
 
 .. note::
@@ -32,7 +32,7 @@ Main Window Shortcuts
    ":kbd:`Ctrl+,`",       "Open the **Preferences** dialog"
    ":kbd:`Ctrl+E`",       "Switch or toggle focus for the editor or viewer"
    ":kbd:`Ctrl+T`",       "Switch or toggle focus for the project tree or novel view"
-   ":kbd:`Ctrl+Q`",       "Exit novelWriter"
+   ":kbd:`Ctrl+Q`",       "Exit UmbraEdit"
    ":kbd:`Ctrl+Shift+,`", "Open the **Project Settings** dialog"
    ":kbd:`Ctrl+Shift+O`", "Open the Welcome dialog to open or create a project"
    ":kbd:`Ctrl+Shift+S`", "Save the current project"

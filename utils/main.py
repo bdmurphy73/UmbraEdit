@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-novelWriter - Packaging Utils Main
+UmbraEdit - Packaging Utils Main
 ==================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2019 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ OS_WIN = sys.platform.startswith("win32")
 
 
 def printVersion(args: argparse.Namespace) -> None:
-    """Print the novelWriter version and exit."""
+    """Print the UmbraEdit version and exit."""
     print(extractVersion(beQuiet=True)[0], end=None)
 
 
@@ -84,7 +84,7 @@ def cleanBuildDirs(args: argparse.Namespace) -> None:
         ROOT_DIR / "dist_pypi",
         ROOT_DIR / "dist_upload",
         ROOT_DIR / "dist",
-        ROOT_DIR / "novelWriter.egg-info",
+        ROOT_DIR / "UmbraEdit.egg-info",
     ]
 
     for folder in folders:
@@ -133,14 +133,14 @@ def main() -> None:
         usage="pkgutils.py [command] [--flags]",
         description=(
             "This tool provides setup and build commands for installing or distributing "
-            "novelWriter as a package on Linux, Mac and Windows, as well as developer tools "
+            "UmbraEdit as a package on Linux, Mac and Windows, as well as developer tools "
             "for internationalisation."
         ),
     )
     parsers = parser.add_subparsers()
 
     # Version
-    cmdVersion = parsers.add_parser("version", help="Print the novelWriter version.")
+    cmdVersion = parsers.add_parser("version", help="Print the UmbraEdit version.")
     cmdVersion.set_defaults(func=printVersion)
 
     # Release Channel

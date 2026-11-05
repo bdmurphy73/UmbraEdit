@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 10:44+0200\n"
@@ -27,11 +27,11 @@ msgstr "Mise en forme de base"
 
 #: ../../source/usage/basic_formatting.rst:9
 msgid ""
-"The basic text formatting syntax of novelWriter is based on Markdown_. "
+"The basic text formatting syntax of UmbraEdit is based on Markdown_. "
 "It is only a subset of the Markdown syntax though. Lists, images, and "
 "links are not supported."
 msgstr ""
-"La syntaxe de formatage de texte de base de novelWriter est basée sur "
+"La syntaxe de formatage de texte de base de UmbraEdit est basée sur "
 "Markdown_. Il ne s'agit toutefois que d'un sous-ensemble de la syntaxe "
 "Markdown. Les listes, les images et les liens ne sont pas pris en charge."
 
@@ -88,10 +88,10 @@ msgstr ":bdg-danger:`Incorrect`"
 
 #: ../../source/usage/basic_formatting.rst:50
 msgid ""
-"If you do as shown in the \"Incorrect\" example, novelWriter will "
+"If you do as shown in the \"Incorrect\" example, UmbraEdit will "
 "understand this as a single paragraph with two lines."
 msgstr ""
-"Si vous procédez comme dans l'exemple « Incorrect », novelWriter "
+"Si vous procédez comme dans l'exemple « Incorrect », UmbraEdit "
 "comprendra qu'il s'agit d'un seul paragraphe de deux lignes."
 
 #: ../../source/usage/basic_formatting.rst:57
@@ -137,14 +137,14 @@ msgid ""
 "emphasis, although Markdown generally also supports ``__`` for strong "
 "and ``*`` for emphasis. However, since the differentiation makes the "
 "highlighting and conversion significantly simpler and faster, in "
-"novelWriter this is a rule, not just a recommendation."
+"UmbraEdit this is a rule, not just a recommendation."
 msgstr ""
 "Dans les guides Markdown, il est souvent recommandé de différencier le "
 "gras de l'italique en utilisant ``**`` pour le gras et ``_`` pour "
 "l'italique, bien que Markdown supporte également ``__`` pour le gras et "
 "``*`` pour l'italique. Cependant, puisque la différenciation rend la "
 "mise en évidence et la conversion significativement plus simple et plus "
-"rapide, dans novelWriter il s'agit d'une règle et non d'une simple "
+"rapide, dans UmbraEdit il s'agit d'une règle et non d'une simple "
 "recommandation."
 
 #: ../../source/usage/basic_formatting.rst:76
@@ -206,13 +206,13 @@ msgstr ""
 
 #: ../../source/usage/basic_formatting.rst:92
 msgid ""
-"novelWriter supports standard escape syntax for the emphasis markup "
+"UmbraEdit supports standard escape syntax for the emphasis markup "
 "characters in case the editor misunderstands your intended usage of "
 "them. That is, ``\\*``, ``\\_`` and ``\\~`` will generate a plain ``*``, "
 "``_`` and ``~``, respectively, without interpreting them as part of the "
 "markup."
 msgstr ""
-"novelWriter supporte la syntaxe d'échappement standard pour les "
+"UmbraEdit supporte la syntaxe d'échappement standard pour les "
 "caractères d'accentuation au cas où l'éditeur ne comprendrait pas "
 "l'usage que vous voulez en faire. C'est-à-dire que ``\\*``, ``\\_`` et "
 "``\\~`` généreront respectivement un ``*``, ``_`` et ``~``, sans les "

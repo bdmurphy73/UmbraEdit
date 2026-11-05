@@ -22,7 +22,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: launcher
-          path: setup/windows/novelWriter.exe
+          path: setup/windows/UmbraEdit.exe
           if-no-files-found: error
           retention-days: 14
 
@@ -31,7 +31,7 @@ jobs:
         with:
           api-token: "${{ secrets.SIGNPATH_API_TOKEN }}"
           organization-id: "0471e52c-66fa-4e9a-bfb9-36167095ca3f"
-          project-slug: "novelWriter"
+          project-slug: "UmbraEdit"
           signing-policy-slug: "release-signing"
           artifact-configuration-slug: "launcher"
           github-artifact-id: "${{ steps.upload-unsigned-artifact.outputs.artifact-id }}"
@@ -42,6 +42,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: launcher-signed
-          path: novelWriter.exe
+          path: UmbraEdit.exe
           if-no-files-found: error
           retention-days: 14

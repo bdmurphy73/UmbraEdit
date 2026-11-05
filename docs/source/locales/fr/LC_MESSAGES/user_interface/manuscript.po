@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 21:08+0200\n"
@@ -573,8 +573,8 @@ msgstr ""
 "d'impression et que vous imprimez au format PDF."
 
 #: ../../source/user_interface/manuscript.rst:245
-msgid "novelWriter HTML"
-msgstr "novelWriter HTML"
+msgid "UmbraEdit HTML"
+msgstr "UmbraEdit HTML"
 
 #: ../../source/user_interface/manuscript.rst:246
 msgid ""
@@ -595,16 +595,16 @@ msgstr "Markdown standard/étendu"
 #: ../../source/user_interface/manuscript.rst:251
 msgid ""
 "The Markdown format comes in both Standard and Extended flavour. The *only* "
-"difference in terms of novelWriter functionality is the support for strike "
+"difference in terms of UmbraEdit functionality is the support for strike "
 "through text, which is not supported by the Standard flavour."
 msgstr ""
 "Le format Markdown existe en version standard et en version étendue. La "
-"*seule* différence en termes de fonctionnalité de novelWriter est la prise en "
+"*seule* différence en termes de fonctionnalité de UmbraEdit est la prise en "
 "charge du texte barré, qui n'est pas prise en charge par la version standard."
 
 #: ../../source/user_interface/manuscript.rst:255
-msgid "novelWriter Markup"
-msgstr "novelWriter Markup"
+msgid "UmbraEdit Markup"
+msgstr "UmbraEdit Markup"
 
 #: ../../source/user_interface/manuscript.rst:256
 msgid ""
@@ -612,14 +612,14 @@ msgid ""
 "filters into a ``.txt`` file. The documents are stacked together in the order "
 "they appear in the project tree, with comments, tags, etc. included if they "
 "are selected. This is a useful format for exporting the project for later "
-"import back into novelWriter."
+"import back into UmbraEdit."
 msgstr ""
 "Il s'agit simplement d'une concaténation des documents du projet sélectionnés "
 "par les filtres dans un fichier ``.txt``. Les documents sont empilés dans "
 "l'ordre où ils apparaissent dans l'arborescence du projet, avec les "
 "commentaires, les balises, etc. inclus s'ils sont sélectionnés. C'est un "
 "format utile pour exporter le projet et le réimporter plus tard dans "
-"novelWriter."
+"UmbraEdit."
 
 #: ../../source/user_interface/manuscript.rst:263
 msgid "Microsoft Word and PDF output options were added."
@@ -631,12 +631,12 @@ msgstr "Formats supplémentaires"
 
 #: ../../source/user_interface/manuscript.rst:269
 msgid ""
-"In addition to the above document formats, the novelWriter HTML and Markup "
+"In addition to the above document formats, the UmbraEdit HTML and Markup "
 "formats can also be wrapped in a JSON file. These files will have a meta data "
 "entry and a body entry."
 msgstr ""
 "En plus des formats de document ci-dessus, les formats HTML et Markup de "
-"novelWriter peuvent également être enveloppés dans un fichier JSON. Ces "
+"UmbraEdit peuvent également être enveloppés dans un fichier JSON. Ces "
 "fichiers auront une entrée pour les métadonnées et une entrée pour le corps du "
 "texte."
 

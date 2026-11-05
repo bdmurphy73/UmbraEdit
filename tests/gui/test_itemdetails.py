@@ -1,10 +1,10 @@
 """
-novelWriter - GUI Item Details Tests
+UmbraEdit - GUI Item Details Tests
 ====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,12 +28,12 @@ import pytest
 
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.common import elide
-from novelwriter.constants import nwLabels, trConst
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwChange
-from novelwriter.guimain import GuiMain
+from umbraedit import SHARED
+from umbraedit.common import elide
+from umbraedit.constants import nwLabels, trConst
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwChange
+from umbraedit.guimain import GuiMain
 
 from tests.helpers import C, MockRnd, buildTestProject
 

@@ -13,7 +13,7 @@ Larger contributions were made by:
 * Setup and Packaging: Rachel Powers
 * Vim Mode: Alexis Dumelie
 
-For other contributions, see the project's [Contributors](https://github.com/saga-soft/novelWriter/graphs/contributors) page.
+For other contributions, see the project's [Contributors](https://github.com/saga-soft/UmbraEdit/graphs/contributors) page.
 
 ## Artwork
 
@@ -48,12 +48,12 @@ Translations of the documentation:
 
 * **French:** Jean-Michel Heras (Karduin)
 
-Translations are managed on [Crowdin](https://crowdin.com/project/novelwriter), and more
+Translations are managed on [Crowdin](https://crowdin.com/project/umbraedit), and more
 contributions are listed on the project's Members page.
 
 ## Libraries
 
-The following libraries are dependencies of novelWriter:
+The following libraries are dependencies of UmbraEdit:
 
 * **Qt6** by Qt Company
 * **PyQt6** by Riverbank Computing
@@ -70,7 +70,7 @@ The default icon themes are subsets of icons from:
 
 ## Colour Themes
 
-Colour themes included with novelWriter were adapted from the following sources:
+Colour themes included with UmbraEdit were adapted from the following sources:
 
 * **Aura** themes by Dalton Menezes
 * **B2T** themes by Bram de Haan
@@ -91,7 +91,7 @@ Colour themes included with novelWriter were adapted from the following sources:
 * **Tango** themes by the Tango Desktop Project
 * **Tomorrow** themes by Chris Kempson
 
-Other themes were created for novelWriter:
+Other themes were created for UmbraEdit:
 
 * **Aura Bright** theme by Myian
 * **Blue Streak** themes by Veronica Berglyd Olsen
@@ -119,7 +119,7 @@ Other themes were created for novelWriter:
 
 ## Fonts
 
-The font used for the main novelWriter logo, mimetype and text banners is Pridi.
+The font used for the main UmbraEdit logo, mimetype and text banners is Pridi.
 
 * **Pridi** by Cadson Demak (Open Font License, Version 1.1)
 

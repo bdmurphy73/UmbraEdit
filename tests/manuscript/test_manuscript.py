@@ -1,10 +1,10 @@
 """
-novelWriter - Manuscript Tool Tests
+UmbraEdit - Manuscript Tool Tests
 ===================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2023 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -35,14 +35,14 @@ from PyQt6.QtPrintSupport import QPrintPreviewDialog
 from PyQt6.QtWidgets import QListWidgetItem
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.constants import nwHeadFmt, nwProblems, nwStats
-from novelwriter.core.project import NWProject
-from novelwriter.guimain import GuiMain
-from novelwriter.manuscript.buildsettings import BuildSettings
-from novelwriter.manuscript.manusbuild import GuiManuscriptBuild
-from novelwriter.manuscript.manuscript import GuiManuscript
-from novelwriter.manuscript.manussettings import GuiBuildSettings
+from umbraedit import SHARED
+from umbraedit.constants import nwHeadFmt, nwProblems, nwStats
+from umbraedit.core.project import NWProject
+from umbraedit.guimain import GuiMain
+from umbraedit.manuscript.buildsettings import BuildSettings
+from umbraedit.manuscript.manusbuild import GuiManuscriptBuild
+from umbraedit.manuscript.manuscript import GuiManuscript
+from umbraedit.manuscript.manussettings import GuiBuildSettings
 
 from tests.helpers import C, MockRnd, buildTestProject
 
@@ -431,7 +431,7 @@ def testGuiManuscript_Features(
     build._changed = True
     manus.buildList.clearSelection()
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.manuscript.manusbuild.GuiManuscriptBuild.exec", lambda *a: None)
+        mp.setattr("umbraedit.manuscript.manusbuild.GuiManuscriptBuild.exec", lambda *a: None)
 
         manus.buildList.setCurrentRow(0)
         manus.btnBuild.click()
@@ -446,7 +446,7 @@ def testGuiManuscript_Features(
     build._changed = False
     manus.buildList.clearSelection()
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.manuscript.manusbuild.GuiManuscriptBuild.exec", lambda *a: None)
+        mp.setattr("umbraedit.manuscript.manusbuild.GuiManuscriptBuild.exec", lambda *a: None)
 
         manus.buildList.setCurrentRow(0)
         manus.btnBuild.click()

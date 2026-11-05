@@ -1,10 +1,10 @@
 """
-novelWriter - Session Log Tests
+UmbraEdit - Session Log Tests
 ===============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2023 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,9 +27,9 @@ from time import sleep
 
 import pytest
 
-from novelwriter.constants import nwFiles
-from novelwriter.core.project import NWProject
-from novelwriter.core.sessions import SessionLog
+from umbraedit.constants import nwFiles
+from umbraedit.core.project import NWProject
+from umbraedit.core.sessions import SessionLog
 
 from tests.helpers import buildTestProject
 from tests.mocked import MockGuiMain, causeOSError
@@ -96,7 +96,7 @@ def testNWSessionLog_Main(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain,
 
     # Make file path unresolvable, and try appending another record
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
         assert sessLog.appendSession(1.6) is False
     assert len(list(sessLog.iterRecords())) == 3
 
@@ -113,5 +113,5 @@ def testNWSessionLog_Main(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain,
 
     # Make file path unresolvable
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
         assert len(list(sessLog.iterRecords())) == 0

@@ -1,10 +1,10 @@
 """
-novelWriter - Preferences Dialog Test
+UmbraEdit - Preferences Dialog Test
 =====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,16 +31,16 @@ from PyQt6.QtGui import QAction, QFont, QFontDatabase, QKeyEvent
 from PyQt6.QtWidgets import QFileDialog
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT, DEF_TREECOL
-from novelwriter.constants import nwUnicode
-from novelwriter.core.spellcheck import SpellEnchant
-from novelwriter.dialogs.preferences import GuiNeedsUpdate, GuiPreferences
-from novelwriter.dialogs.quotes import GuiQuoteSelect
-from novelwriter.extensions.modified import NFontDialog
-from novelwriter.gui.theme import ThemeEntry
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtKeyEscape, QtModNone
+from umbraedit import CONFIG, SHARED
+from umbraedit.config import DEF_GUI_DARK, DEF_GUI_LIGHT, DEF_TREECOL
+from umbraedit.constants import nwUnicode
+from umbraedit.core.spellcheck import SpellEnchant
+from umbraedit.dialogs.preferences import GuiNeedsUpdate, GuiPreferences
+from umbraedit.dialogs.quotes import GuiQuoteSelect
+from umbraedit.extensions.modified import NFontDialog
+from umbraedit.gui.theme import ThemeEntry
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtKeyEscape, QtModNone
 
 from tests.helpers import TstPaths, checkDialogFreedOnClose
 
@@ -169,7 +169,7 @@ def testGuiPreferences_Settings(
     spelling = [("en", "English [en]"), ("de", "Deutch [de]")]
     monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: spelling)
 
-    (fncPath / "nw_en_US.qm").touch()
+    (fncPath / "ue_en_US.qm").touch()
     (fncPath / "project_en_US.json").touch()
     CONFIG._nwLangPath = fncPath
     SHARED.theme._allThemes = {

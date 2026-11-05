@@ -1,10 +1,10 @@
 """
-novelWriter - Search Model Tests
+UmbraEdit - Search Model Tests
 ================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,10 +31,10 @@ from PyQt6.QtGui import QBrush
 from PyQt6.QtTest import QAbstractItemModelTester
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.core.project import NWProject
-from novelwriter.models.searchmodel import SearchNode, SearchResultModel
-from novelwriter.types import QtAccessibleTextRole, QtDisplayRole, QtForegroundRole, QtUserRole
+from umbraedit import SHARED
+from umbraedit.core.project import NWProject
+from umbraedit.models.searchmodel import SearchNode, SearchResultModel
+from umbraedit.types import QtAccessibleTextRole, QtDisplayRole, QtForegroundRole, QtUserRole
 
 from tests.helpers import C, MockRnd, buildTestProject
 from tests.mocked import MockGuiMain

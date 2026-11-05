@@ -1,10 +1,10 @@
 """
-novelWriter - NWProject Tests
+UmbraEdit - NWProject Tests
 =============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2019 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -29,12 +29,12 @@ from zipfile import ZipFile
 
 import pytest
 
-from novelwriter import CONFIG, SHARED
-from novelwriter.constants import nwFiles
-from novelwriter.core.project import NWProject, NWProjectState
-from novelwriter.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLReadState
-from novelwriter.enum import nwItemClass, nwProjectKind
-from novelwriter.shared import _GuiAlert
+from umbraedit import CONFIG, SHARED
+from umbraedit.constants import nwFiles
+from umbraedit.core.project import NWProject, NWProjectState
+from umbraedit.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLReadState
+from umbraedit.enum import nwItemClass, nwProjectKind
+from umbraedit.shared import _GuiAlert
 
 from tests.helpers import XML_IGNORE, C, MockRnd, TstPaths, buildTestProject, cmpFiles
 from tests.mocked import MockGuiMain, causeOSError
@@ -295,10 +295,10 @@ def testNWProject_Open(
 
     # Fail getting xml reader
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.getXmlReader", lambda *a: None)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.getXmlReader", lambda *a: None)
         assert project.openProject(fncPath, clearLock=True) is False
 
-    # Not a novelwriter XML file
+    # Not a umbraedit XML file
     with monkeypatch.context() as mp:
         mp.setattr(ProjectXMLReader, "read", lambda *a: False)
         mp.setattr(ProjectXMLReader, "state", property(lambda *a: XMLReadState.NOT_NWX_FILE))
@@ -310,7 +310,7 @@ def testNWProject_Open(
         mp.setattr(ProjectXMLReader, "read", lambda *a: False)
         mp.setattr(ProjectXMLReader, "state", property(lambda *a: XMLReadState.UNKNOWN_VERSION))
         assert project.openProject(fncPath, clearLock=True) is False
-        assert "Unknown or unsupported novelWriter project file" in SHARED.lastAlert[0]
+        assert "Unknown or unsupported UmbraEdit project file" in SHARED.lastAlert[0]
 
     # Other parse error
     with monkeypatch.context() as mp:
@@ -328,7 +328,7 @@ def testNWProject_Open(
 
     # Also won't convert old document files, even if the xml itself isn't flagged as legacy
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.hasBreakingChanges", lambda *a: True)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.hasBreakingChanges", lambda *a: True)
         mp.setattr(_GuiAlert, "finalState", False)
         assert project.openProject(fncPath, clearLock=True) is False
         assert "The file format of your project is about to be" in SHARED.lastAlert[0]
@@ -347,7 +347,7 @@ def testNWProject_Open(
 
     # If the storage path is unavailable, recent projects are not updated
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.storagePath", property(lambda *a: None))
+        mp.setattr("umbraedit.core.storage.ProjectStorage.storagePath", property(lambda *a: None))
         assert project.openProject(fncPath, clearLock=True) is True
 
     # A copied project keeps its ID if the user declines
@@ -395,13 +395,13 @@ def testNWProject_Open(
 
     # Fail checking items should still pass
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.tree.ProjectTree.checkConsistency", lambda *a: (1, 0))
+        mp.setattr("umbraedit.core.tree.ProjectTree.checkConsistency", lambda *a: (1, 0))
         assert project.openProject(fncPath, clearLock=True) is True
 
     # Trigger an index rebuild
     with monkeypatch.context() as mp:
         mp.setattr(ProjectXMLReader, "state", property(lambda *a: XMLReadState.WAS_LEGACY))
-        mp.setattr("novelwriter.core.index.Index.loadIndex", lambda *a: True)
+        mp.setattr("umbraedit.core.index.Index.loadIndex", lambda *a: True)
         project.index._indexRevision = 0
         assert project.openProject(fncPath, clearLock=True) is True
         assert "The file format of your project is about to be" in SHARED.lastAlert[0]
@@ -462,7 +462,7 @@ def testNWProject_Save(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, mo
 
     # Fail getting xml writer
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.getXmlWriter", lambda *a: None)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.getXmlWriter", lambda *a: None)
         assert project.saveProject() is False
 
     # Fail writing
@@ -477,7 +477,7 @@ def testNWProject_Save(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, mo
 
     # If the storage path is unavailable, recent projects are not updated
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.storagePath", property(lambda *a: None))
+        mp.setattr("umbraedit.core.storage.ProjectStorage.storagePath", property(lambda *a: None))
         assert project.saveProject() is True
 
     project.closeProject()
@@ -673,7 +673,7 @@ def testNWProject_Backup(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, 
     fixedTime = 1783722600.0
     fixedLocal = datetime.fromtimestamp(fixedTime)
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.project.time", lambda *a, **k: fixedTime)
+        mp.setattr("umbraedit.core.project.time", lambda *a, **k: fixedTime)
         CONFIG.backupInterval = "session"
         assert project.backupProject(doNotify=False) is True
         stamp = fixedLocal.strftime("%Y-%m-%d %H.%M.%S")

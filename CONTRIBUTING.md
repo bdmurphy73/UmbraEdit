@@ -1,7 +1,7 @@
 # Contributing Guide
 
-See also our [Code of Conduct](https://github.com/saga-soft/novelWriter?tab=coc-ov-file#code-of-conduct)
-and our [AI Policy](https://github.com/saga-soft/novelWriter/blob/main/AI_POLICY.md).
+See also our [Code of Conduct](https://github.com/saga-soft/UmbraEdit?tab=coc-ov-file#code-of-conduct)
+and our [AI Policy](https://github.com/saga-soft/UmbraEdit/blob/main/AI_POLICY.md).
 
 When contributing to this repository, please first discuss the change you wish to make with the
 maintainers. For new and complex ideas, it is better to open a discussion before adding a new
@@ -13,7 +13,7 @@ to just make a pull request directly.
 * Bugfixes for new or existing bugs. Please also report new bugs in the issue tracker even if you
   also provide a fix. It makes it easier to keep track of what has been fixed and when and to
   populate our changelog.
-* Translations made via the [Crowdin project page](https://crowdin.com/project/novelwriter).
+* Translations made via the [Crowdin project page](https://crowdin.com/project/umbraedit).
 * Translations of the documentation. These need to use Sphinx i18n tooling. Please start a
   discussion before beginning such work as it requires some coordination.
 * Improvements to the documentation. Particularly if the documentation is unclear. Please don't
@@ -35,10 +35,10 @@ to just make a pull request directly.
 ## Running from Source
 
 This project uses [uv](https://docs.astral.sh/uv/) to maintain dependencies. In order to run
-novelWriter directly from checked out source, simply call from the root folder with:
+UmbraEdit directly from checked out source, simply call from the root folder with:
 
 ```bash
-uv run novelwriter
+uv run umbraedit
 ```
 
 To set up a development environment with all needed dependencies, run:
@@ -127,7 +127,7 @@ Make sure the pull request follows these rules:
 ## Code Style
 
 This code base uses camelCase convention for function and variable names. This differs from the
-common convention of snake_case in Python. The reason for this is that novelWriter is built on the
+common convention of snake_case in Python. The reason for this is that UmbraEdit is built on the
 Qt framework, where everything is camelCase.
 
 Pretty much everything else regarding formatting is handled by the linter and formatter. This
@@ -165,15 +165,15 @@ as needed, and the copyright line. The year should be the year the code module w
 The default is:
 
 ```
-Copyright (C) <YEAR> <Original Author Name> and novelWriter contributors.
+Copyright (C) <YEAR> <Original Author Name> and UmbraEdit contributors.
 ```
 
 For major changes to an existing file, don't touch the year, but you can append your name. By major
 contributions is meant new code, like added new classes or larger functions, not modifications. Use
-common sense since "novelWriter contributors" includes most modifications and changes.
+common sense since "UmbraEdit contributors" includes most modifications and changes.
 
 ```
-Copyright (C) <YEAR> <Original Author Name>, <Your Name> and novelWriter contributors.
+Copyright (C) <YEAR> <Original Author Name>, <Your Name> and UmbraEdit contributors.
 ```
 
 Make sure the `CREDITS.md` and `credits_en.htm` files are updated too if appropriate.

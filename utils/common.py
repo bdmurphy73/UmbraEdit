@@ -1,10 +1,10 @@
 """
-novelWriter - Common Utils
+UmbraEdit - Common Utils
 ==========================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -154,7 +154,7 @@ def extractReqs(groups: list[str]) -> list[str]:
 
 
 def extractVersion(beQuiet: bool = False) -> tuple[str, str, str]:
-    """Extract the novelWriter version number without having to import
+    """Extract the UmbraEdit version number without having to import
     anything else from the main package.
     """
 
@@ -165,7 +165,7 @@ def extractVersion(beQuiet: bool = False) -> tuple[str, str, str]:
     numVers = "0"
     hexVers = "0x0"
     relDate = "Unknown"
-    initFile = ROOT_DIR / "novelwriter" / "__init__.py"
+    initFile = ROOT_DIR / "umbraedit" / "__init__.py"
     try:
         for aLine in initFile.read_text(encoding="utf-8").splitlines():
             if aLine.startswith("__version__"):
@@ -179,7 +179,7 @@ def extractVersion(beQuiet: bool = False) -> tuple[str, str, str]:
         log(exc)
 
     if not beQuiet:
-        log(f"novelWriter version: {numVers} ({hexVers}) at {relDate}")
+        log(f"UmbraEdit version: {numVers} ({hexVers}) at {relDate}")
 
     return numVers, hexVers, relDate
 
@@ -229,8 +229,8 @@ def formatVersion(value: str) -> str:
 
 
 def copySourceCode(dst: Path) -> None:
-    """Copy the novelwriter source tree to path."""
-    src = ROOT_DIR / "novelwriter"
+    """Copy the umbraedit source tree to path."""
+    src = ROOT_DIR / "umbraedit"
     for item in src.glob("**/*"):
         relSrc = item.relative_to(ROOT_DIR)
         if item.suffix in (".pyc", ".pyo"):
@@ -247,7 +247,7 @@ def copySourceCode(dst: Path) -> None:
 
 
 def copyTestCode(dst: Path) -> None:
-    """Copy the novelwriter test suite to path."""
+    """Copy the umbraedit test suite to path."""
     src = ROOT_DIR / "tests"
     skipDirs = {"__pycache__", ".pytest_cache", "_temp", "temp"}
     for item in src.glob("**/*"):
@@ -327,17 +327,17 @@ def checkAssetsExist() -> bool:
     hasManual = False
     hasQmData = False
 
-    sampleZip = ROOT_DIR / "novelwriter" / "assets" / "sample.zip"
+    sampleZip = ROOT_DIR / "umbraedit" / "assets" / "sample.zip"
     if sampleZip.is_file():
         log(f"[cg]Found:[e] {sampleZip}")
         hasSample = True
 
-    pdfManual = ROOT_DIR / "novelwriter" / "assets" / "manual.pdf"
+    pdfManual = ROOT_DIR / "umbraedit" / "assets" / "manual.pdf"
     if pdfManual.is_file():
         log(f"[cg]Found:[e] {pdfManual}")
         hasManual = True
 
-    i18nAssets = ROOT_DIR / "novelwriter" / "assets" / "i18n"
+    i18nAssets = ROOT_DIR / "umbraedit" / "assets" / "i18n"
     if len(list(i18nAssets.glob("*.qm"))) > 0:
         log(f"[cg]Found:[e] {i18nAssets}/*.qm")
         hasQmData = True
@@ -349,7 +349,7 @@ def appdataXml() -> str:
     """Generate the appdata XML content."""
     raw = readFile(SETUP_DIR / "description_short.txt")
     desc = " ".join(raw.strip().splitlines()).strip()
-    return readFile(SETUP_DIR / "novelwriter.appdata.xml").format(description=desc)
+    return readFile(SETUP_DIR / "umbraedit.appdata.xml").format(description=desc)
 
 
 def readFile(file: Path) -> str:
@@ -456,4 +456,4 @@ def removeRedundantQt(qtBase: Path) -> None:
 def extractBuildInfo(tool: str) -> dict[str, str]:
     """Extract the build information from pyproject.toml."""
     data = tomllib.loads((ROOT_DIR / "pyproject.toml").read_text(encoding="utf-8"))
-    return data["tool"]["novelwriter"]["build"][tool]
+    return data["tool"]["umbraedit"]["build"][tool]

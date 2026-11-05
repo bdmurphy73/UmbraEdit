@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<novelWriterXML appVersion="26.2b2" hexVersion="0x260200b2" fileVersion="1.5" fileRevision="7" timeStamp="2026-08-04 17:48:52">
+<UmbraEditXML appVersion="26.2b2" hexVersion="0x260200b2" fileVersion="1.5" fileRevision="7" timeStamp="2026-08-04 17:48:52">
   <project id="d0f3fe10-c6e6-4310-8bfd-181eb4224eed" saveCount="1" autoCount="0" editTime="0" indexRevision="11">
     <name>Test Project B</name>
     <author>Jane Doe</author>
@@ -97,4 +97,4 @@
       <name status="s000000" import="i000004">Trash</name>
     </item>
   </content>
-</novelWriterXML>
+</UmbraEditXML>

@@ -9,17 +9,17 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>English</string>
     <key>CFBundleExecutable</key>
-    <string>novelWriter</string>
+    <string>UmbraEdit</string>
     <key>CFBundleGetInfoString</key>
-    <string>novelWriter: A plain text editor for planning and writing novels.</string>
+    <string>UmbraEdit: A plain text editor for planning and writing novels.</string>
     <key>CFBundleIconFile</key>
-    <string>novelwriter.icns</string>
+    <string>umbraedit.icns</string>
     <key>CFBundleIdentifier</key>
-    <string>io.novelwriter.novelWriter</string>
+    <string>io.umbraedit.UmbraEdit</string>
     <key>CFBundleName</key>
-    <string>novelWriter</string>
+    <string>UmbraEdit</string>
     <key>CFBundleDisplayName</key>
-    <string>novelWriter</string>
+    <string>UmbraEdit</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleShortVersionString</key>
@@ -44,7 +44,7 @@
           <string>nwx</string>
         </array>
         <key>CFBundleTypeName</key>
-        <string>novelWriter Project</string>
+        <string>UmbraEdit Project</string>
         <key>CFBundleTypeOSTypes</key>
         <array>
           <string>TEXT</string>

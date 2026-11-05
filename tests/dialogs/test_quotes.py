@@ -1,10 +1,10 @@
 """
-novelWriter - Quotes Dialog Tests
+UmbraEdit - Quotes Dialog Tests
 =================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2019 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,9 +28,9 @@ from PyQt6.QtCore import QItemSelectionModel
 from PyQt6.QtWidgets import QListWidgetItem
 from pytestqt.qtbot import QtBot
 
-from novelwriter.dialogs.quotes import GuiQuoteSelect
-from novelwriter.guimain import GuiMain
-from novelwriter.types import QtAccepted, QtRejected
+from umbraedit.dialogs.quotes import GuiQuoteSelect
+from umbraedit.guimain import GuiMain
+from umbraedit.types import QtAccepted, QtRejected
 
 
 @pytest.mark.gui

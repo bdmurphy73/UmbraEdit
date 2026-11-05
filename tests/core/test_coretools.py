@@ -1,10 +1,10 @@
 """
-novelWriter - Core Tools Tests
+UmbraEdit - Core Tools Tests
 ==============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2022 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2022 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,15 +31,15 @@ from zipfile import ZipFile
 
 import pytest
 
-from novelwriter import CONFIG
-from novelwriter.constants import nwFiles, nwItemClass
-from novelwriter.core.coretools import DocDuplicator, DocMerger, DocSplitter, ProjectBuilder
-from novelwriter.core.item import ProjectItem
-from novelwriter.core.project import NWProject
-from novelwriter.core.tree import ProjectTree
-from novelwriter.enum import nwBuildFmt
-from novelwriter.manuscript.buildsettings import BuildSettings
-from novelwriter.manuscript.docbuild import DocumentBuilder
+from umbraedit import CONFIG
+from umbraedit.constants import nwFiles, nwItemClass
+from umbraedit.core.coretools import DocDuplicator, DocMerger, DocSplitter, ProjectBuilder
+from umbraedit.core.item import ProjectItem
+from umbraedit.core.project import NWProject
+from umbraedit.core.tree import ProjectTree
+from umbraedit.enum import nwBuildFmt
+from umbraedit.manuscript.buildsettings import BuildSettings
+from umbraedit.manuscript.docbuild import DocumentBuilder
 
 from tests.helpers import NWD_IGNORE, XML_IGNORE, C, MockRnd, TstPaths, buildTestProject, cmpFiles
 from tests.mocked import MockGuiMain, causeOSError
@@ -833,7 +833,7 @@ def testCoreTools_ProjectBuilderCopyZipped(
     # Cannot copy to existing folder
     caplog.clear()
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.coretools.is_zipfile", lambda *a: True)
+        mp.setattr("umbraedit.core.coretools.is_zipfile", lambda *a: True)
         assert builder.buildProject({"path": dstPath, "template": fakeZip}) is False
         assert "Could not copy project files." in caplog.text
         shutil.rmtree(dstPath, ignore_errors=True)
@@ -892,7 +892,7 @@ def testCoreTools_ProjectBuilderSample(
     srcSample = CONFIG._appRoot / "sample"
     bldSample = CONFIG.assetPath("sample.zip")
     dstSample = tstPaths.tmpDir / "sample.zip"
-    monkeypatch.setattr("novelwriter.config.Config.assetPath", lambda *a: tstPaths.tmpDir / "sample.zip")
+    monkeypatch.setattr("umbraedit.config.Config.assetPath", lambda *a: tstPaths.tmpDir / "sample.zip")
 
     # Cannot extract when the zip does not exist
     assert builder.buildProject(data) is False

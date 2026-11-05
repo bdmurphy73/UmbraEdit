@@ -4,11 +4,11 @@
 Tags and References
 *******************
 
-One of the core features of novelWriter is its **Tags and References** system. This is perhaps one
-of the features that makes novelWriter different from other similar applications. It is therefore
+One of the core features of UmbraEdit is its **Tags and References** system. This is perhaps one
+of the features that makes UmbraEdit different from other similar applications. It is therefore
 not always obvious to new users how this is supposed to work.
 
-In novelWriter there are no forms or tables to fill in to define characters, locations or other
+In UmbraEdit there are no forms or tables to fill in to define characters, locations or other
 elements of your story. Instead, you create documents in one of the root folders for notes. Within
 these documents you can set **tags**, like for instance for your main character. If you then want
 to annotate a scene with this character as its point-of-view, you create a **reference** to the
@@ -27,11 +27,11 @@ tag.
 How to Use Tags
 ===============
 
-The structure of your novelWriter project is inferred from the headings within the documents, not
+The structure of your UmbraEdit project is inferred from the headings within the documents, not
 the documents themselves. See :ref:`docs_usage_headings` for more details. Therefore, metadata is
 also associated with headings, and not the documents themselves.
 
-A "tag" in novelWriter is a word or phrase that you define as belonging to a heading. Tags are set
+A "tag" in UmbraEdit is a word or phrase that you define as belonging to a heading. Tags are set
 by using the ``@tag`` keyword.
 
 The basic format of a tag is ``@tag: TagName``.
@@ -62,7 +62,7 @@ The editor will indicate to you that the keyword is correctly used and that the 
 that is, the tag is unique, by adding a colour highlighting to it. An invalid tag should have a
 wiggly line under it, and will not receive the colour that valid tags do.
 
-The tag is the only part of notes that novelWriter uses. The rest of the document content is there
+The tag is the only part of notes that UmbraEdit uses. The rest of the document content is there
 for you to use in whatever way you wish.
 
 .. versionadded:: 2.2

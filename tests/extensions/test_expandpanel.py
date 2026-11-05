@@ -1,10 +1,10 @@
 """
-novelWriter - ExpandPanel Extension Tests
+UmbraEdit - ExpandPanel Extension Tests
 =========================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2026 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,9 +28,9 @@ from PyQt6.QtGui import QPalette
 from PyQt6.QtWidgets import QWIDGETSIZE_MAX, QLabel, QVBoxLayout
 from pytestqt.qtbot import QtBot
 
-from novelwriter.extensions.expandpanel import NExpandablePanel, NExpandablePanelGroup
-from novelwriter.extensions.modified import NSplitterHandle
-from novelwriter.types import QtMouseLeft
+from umbraedit.extensions.expandpanel import NExpandablePanel, NExpandablePanelGroup
+from umbraedit.extensions.modified import NSplitterHandle
+from umbraedit.types import QtMouseLeft
 
 from tests.helpers import SimpleDialog
 from tests.mocked import MockGuiMain

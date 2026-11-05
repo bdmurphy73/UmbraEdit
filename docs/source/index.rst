@@ -5,7 +5,7 @@ User Guide
 | **Release Version:** |release|
 | **Updated:** |today|
 
-novelWriter is an open source plain text editor designed for writing novels assembled from
+UmbraEdit is an open source plain text editor designed for writing novels assembled from
 individual text documents. It uses a minimal formatting syntax inspired by Markdown, and adds a
 meta data syntax for comments, synopsis, and cross-referencing. It is designed to be a simple text
 editor that allows for easy organisation of text and notes, using human readable text files as
@@ -18,22 +18,22 @@ storage for robustness.
 
 **Useful Links**
 
-* Website: https://novelwriter.io
-* Documentation: https://docs.novelwriter.io
-* Public Releases: https://releases.novelwriter.io
-* Internationalisation: https://crowdin.com/project/novelwriter
-* Source Code: https://github.com/saga-soft/novelWriter
-* Source Releases: https://github.com/saga-soft/novelWriter/releases
-* Issue Tracker: https://github.com/saga-soft/novelWriter/issues
-* Feature Discussions: https://github.com/saga-soft/novelWriter/discussions
-* PyPi Project: https://pypi.org/project/novelWriter
-* Social Media: https://fosstodon.org/@novelwriter
+* Website: https://umbraedit.io
+* Documentation: https://docs.umbraedit.io
+* Public Releases: https://releases.umbraedit.io
+* Internationalisation: https://crowdin.com/project/umbraedit
+* Source Code: https://github.com/saga-soft/UmbraEdit
+* Source Releases: https://github.com/saga-soft/UmbraEdit/releases
+* Issue Tracker: https://github.com/saga-soft/UmbraEdit/issues
+* Feature Discussions: https://github.com/saga-soft/UmbraEdit/discussions
+* PyPi Project: https://pypi.org/project/UmbraEdit
+* Social Media: https://fosstodon.org/@umbraedit
 
 .. toctree::
    :hidden:
 
    self
-   More Documents <https://novelwriter.io/more/>
+   More Documents <https://umbraedit.io/more/>
 
 .. toctree::
    :caption: Getting Started

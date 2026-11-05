@@ -36,6 +36,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: nw-i18n
-          path: novelwriter/assets/i18n/*.qm
+          path: umbraedit/assets/i18n/*.qm
           if-no-files-found: error
           retention-days: 7

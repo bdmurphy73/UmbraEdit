@@ -1,10 +1,10 @@
 """
-novelWriter - Edit Label Dialog Tests
+UmbraEdit - Edit Label Dialog Tests
 =====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2019 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,8 +26,8 @@ import pytest
 
 from pytestqt.qtbot import QtBot
 
-from novelwriter.dialogs.editlabel import GuiEditLabel
-from novelwriter.types import QtAccepted, QtRejected
+from umbraedit.dialogs.editlabel import GuiEditLabel
+from umbraedit.types import QtAccepted, QtRejected
 
 
 @pytest.mark.gui

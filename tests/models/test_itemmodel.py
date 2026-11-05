@@ -1,10 +1,10 @@
 """
-novelWriter - Item Model Tests
+UmbraEdit - Item Model Tests
 ==============================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -30,13 +30,13 @@ from PyQt6.QtCore import QMimeData, QModelIndex, Qt
 from PyQt6.QtTest import QAbstractItemModelTester
 from pytestqt.qtbot import QtBot
 
-from novelwriter.common import decodeMimeHandles, encodeMimeHandles
-from novelwriter.constants import nwConst
-from novelwriter.core.item import ProjectItem
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwItemLayout, nwItemType
-from novelwriter.models.itemmodel import INV_ROOT, NODE_FLAGS, ProjectModel, ProjectNode
-from novelwriter.types import QtDisplayRole, QtToolTipRole
+from umbraedit.common import decodeMimeHandles, encodeMimeHandles
+from umbraedit.constants import nwConst
+from umbraedit.core.item import ProjectItem
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwItemLayout, nwItemType
+from umbraedit.models.itemmodel import INV_ROOT, NODE_FLAGS, ProjectModel, ProjectNode
+from umbraedit.types import QtDisplayRole, QtToolTipRole
 
 from tests.helpers import MockRnd, buildTestProject
 from tests.mocked import MockGuiMain

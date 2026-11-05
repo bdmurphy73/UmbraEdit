@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-29 11:41+0200\n"
@@ -27,10 +27,10 @@ msgstr "Exécution des tests"
 
 #: ../../source/technical/tests.rst:7
 msgid ""
-"The novelWriter source code is well covered by tests. The test framework used "
+"The UmbraEdit source code is well covered by tests. The test framework used "
 "for the development is ``pytest`` with the use of an extension for Qt."
 msgstr ""
-"Le code source de novelWriter est bien couvert par des tests. Le cadre de test "
+"Le code source de UmbraEdit est bien couvert par des tests. Le cadre de test "
 "utilisé pour le développement est ``pytest`` avec l'utilisation d'une extension "
 "pour Qt."
 
@@ -66,12 +66,12 @@ msgstr ""
 
 #: ../../source/technical/tests.rst:33
 msgid ""
-"Since several of the tests involve opening up the novelWriter GUI, you may want "
+"Since several of the tests involve opening up the UmbraEdit GUI, you may want "
 "to disable the GUI for the duration of the test run. Moving your mouse while "
 "the tests are running may otherwise interfere with the execution of some tests."
 msgstr ""
 "Puisque plusieurs des tests impliquent l'ouverture de l'interface graphique de "
-"novelWriter, vous pouvez désactiver l'interface graphique pour la durée de "
+"UmbraEdit, vous pouvez désactiver l'interface graphique pour la durée de "
 "l'exécution du test. Si vous déplacez votre souris pendant que les tests sont "
 "en cours d'exécution, vous risquez d'interférer avec l'exécution de certains "
 "tests."
@@ -110,23 +110,23 @@ msgstr ""
 
 #: ../../source/technical/tests.rst:57
 msgid ""
-"You can also run tests per subpackage of novelWriter with the ``-m`` command. "
+"You can also run tests per subpackage of UmbraEdit with the ``-m`` command. "
 "The available subpackage groups are ``base``, ``core``, and ``gui``. Consider "
 "for instance:"
 msgstr ""
-"Vous pouvez aussi lancer des tests par sous-paquet de novelWriter avec la "
+"Vous pouvez aussi lancer des tests par sous-paquet de UmbraEdit avec la "
 "commande ``-m``. Les groupes de sous-paquetages disponibles sont ``base``, "
 "``core``, et ``gui``. Prenons un exemple :"
 
 #: ../../source/technical/tests.rst:64
 msgid ""
 "This will only run the tests of the \"core\" package, that is, all the classes "
-"that deal with the project data of a novelWriter project. The \"gui\" tests, "
+"that deal with the project data of a UmbraEdit project. The \"gui\" tests, "
 "likewise, will run the tests for the GUI components, and the \"base\" tests "
 "cover the bits in-between."
 msgstr ""
 "Ceci n'exécutera que les tests du paquet « core », c'est-à-dire toutes les "
-"classes qui traitent les données d'un projet novelWriter. Les tests « gui », de "
+"classes qui traitent les données d'un projet UmbraEdit. Les tests « gui », de "
 "même, exécuteront les tests des composants de l'interface graphique, et les "
 "tests « base » couvriront les éléments intermédiaires."
 

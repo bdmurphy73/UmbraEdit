@@ -1,10 +1,10 @@
 """
-novelWriter - QTextDocument Format Tests
+UmbraEdit - QTextDocument Format Tests
 ========================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,13 +27,13 @@ import pytest
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextBlock, QTextCharFormat, QTextCursor, QTextFormat, QTextLength, QTextListFormat
 
-from novelwriter import CONFIG
-from novelwriter.constants import nwHeadFmt, nwUnicode
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwComment
-from novelwriter.formats.shared import BlockFmt, BlockTyp, TextDocumentTheme
-from novelwriter.formats.toqdoc import ToQTextDocument
-from novelwriter.types import (
+from umbraedit import CONFIG
+from umbraedit.constants import nwHeadFmt, nwUnicode
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwComment
+from umbraedit.formats.shared import BlockFmt, BlockTyp, TextDocumentTheme
+from umbraedit.formats.toqdoc import ToQTextDocument
+from umbraedit.types import (
     QtAlignAbsolute,
     QtAlignCenter,
     QtAlignJustify,

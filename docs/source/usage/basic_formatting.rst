@@ -6,7 +6,7 @@ Basic Formatting
 
 .. _Markdown: https://en.wikipedia.org/wiki/Markdown
 
-The basic text formatting syntax of novelWriter is based on Markdown_. It is only a subset of the
+The basic text formatting syntax of UmbraEdit is based on Markdown_. It is only a subset of the
 Markdown syntax though. Images are not supported, and list support is limited.
 
 
@@ -43,7 +43,7 @@ being separated by blank lines.
    This is a text paragraph.
        This is meant to be another text paragraph.
 
-If you do as shown in the "Incorrect" example, novelWriter will understand this as a single
+If you do as shown in the "Incorrect" example, UmbraEdit will understand this as a single
 paragraph with two lines.
 
 
@@ -72,11 +72,11 @@ A minimal set of Markdown text emphasis styles are supported for text paragraphs
 In Markdown guides it is often recommended to differentiate between strong emphasis and emphasis
 by using ``**`` for strong and ``_`` for emphasis, although Markdown generally also supports ``__``
 for strong and ``*`` for emphasis. However, since the differentiation makes the highlighting and
-conversion significantly simpler and faster, in novelWriter this is a rule, not just a
+conversion significantly simpler and faster, in UmbraEdit this is a rule, not just a
 recommendation.
 
 As of version 2026.1, it is possible to enable ``*text*`` for bold text. This has become a very
-common notation in many user interfaces, and is now also supported by novelWriter. It can be
+common notation in many user interfaces, and is now also supported by UmbraEdit. It can be
 enabled in **Preferences** in the **Text Editing** section. Enabling this will not disable
 ``**text**`` as bold, but will allow both formats. It will, however, change the format button and
 :kbd:`Ctrl+B` to use a single asterisk instead of two.
@@ -97,7 +97,7 @@ In general, the following rules apply:
 
 .. tip::
 
-   novelWriter supports standard escape syntax for the emphasis markup characters in case the
+   UmbraEdit supports standard escape syntax for the emphasis markup characters in case the
    editor misunderstands your intended usage of them. That is, ``\*``, ``\_``, ``\#`` and ``\~``
    will generate a plain ``*``, ``_``, ``#`` and ``~``, respectively, without interpreting them as
    part of the markup.
@@ -134,7 +134,7 @@ You can also use Markdown URL formatting to make them clickable text.
 Markdown Lists
 ==============
 
-novelWriter supports single level lists with either bullet or numbered style. Nested lists are not
+UmbraEdit supports single level lists with either bullet or numbered style. Nested lists are not
 currently supported. The editor will highlight the list marker when it is correctly used. When you
 press :kbd:`Enter` on a list item, the next line gets the same marker. Pressing :kbd:`Enter` on an
 empty item removes the marker and ends the list.

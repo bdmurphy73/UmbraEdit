@@ -1,10 +1,10 @@
 """
-novelWriter - Config Tests
+UmbraEdit - Config Tests
 ==========================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -35,14 +35,14 @@ import pytest
 from PyQt6.QtCore import QRect, Qt
 from PyQt6.QtGui import QFont, QFontDatabase
 
-from novelwriter import CONFIG
-from novelwriter.config import MOVED_CONFIGS, Config, RecentPaths, RecentProjects
-from novelwriter.constants import nwConst, nwFiles
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwTheme
-from novelwriter.formats.configparser import NConfigParser
-from novelwriter.formats.tomlparser import NTomlParser, T_TomlConfig
-from novelwriter.guimain import GuiMain
+from umbraedit import CONFIG
+from umbraedit.config import MOVED_CONFIGS, Config, RecentPaths, RecentProjects
+from umbraedit.constants import nwConst, nwFiles
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwTheme
+from umbraedit.formats.configparser import NConfigParser
+from umbraedit.formats.tomlparser import NTomlParser, T_TomlConfig
+from umbraedit.guimain import GuiMain
 
 from tests.helpers import TstPaths, cmpFiles, writeFile
 from tests.mocked import MockApp, causeOSError
@@ -103,7 +103,7 @@ def testConfig_BuildMeta(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCapt
     placeholder and as stamped by the build scripts for a release.
     """
     metaFile = tstPaths.tmpDir / "meta.toml"
-    monkeypatch.setattr("novelwriter.config.Config.assetPath", lambda *a: metaFile)
+    monkeypatch.setattr("umbraedit.config.Config.assetPath", lambda *a: metaFile)
 
     # Placeholder, as checked into the repo
     writeFile(
@@ -152,8 +152,8 @@ def testConfig_InitLoadSave(monkeypatch: pytest.MonkeyPatch, fncPath: Path, tstP
     conf = Config()
 
     confFile = fncPath / nwFiles.CONF_FILE
-    testFile = tstPaths.outDir / "config_novelwriter.toml"
-    compFile = tstPaths.refDir / "config_novelwriter.toml"
+    testFile = tstPaths.outDir / "config_umbraedit.toml"
+    compFile = tstPaths.refDir / "config_umbraedit.toml"
 
     # Make sure we don't have any old conf file
     if confFile.is_file():
@@ -239,9 +239,9 @@ def testConfig_Localisation(fncPath: Path, tstPaths: TstPaths):
     i18nDir.mkdir()
     conf._nwLangPath = i18nDir
 
-    copyfile(tstPaths.filesDir / "nw_en_GB.qm", i18nDir / "nw_en_GB.qm")
-    writeFile(i18nDir / "nw_en_GB.ts", "")
-    writeFile(i18nDir / "nw_abcd.qm", "")
+    copyfile(tstPaths.filesDir / "ue_en_GB.qm", i18nDir / "ue_en_GB.qm")
+    writeFile(i18nDir / "ue_en_GB.ts", "")
+    writeFile(i18nDir / "ue_abcd.qm", "")
 
     tstApp = MockApp()
     conf.initLocalisation(tstApp)  # type: ignore
@@ -262,8 +262,8 @@ def testConfig_Localisation(fncPath: Path, tstPaths: TstPaths):
     assert languages == []
 
     # Add Language
-    copyfile(tstPaths.filesDir / "nw_en_GB.qm", i18nDir / "nw_fr.qm")
-    writeFile(i18nDir / "nw_fr.ts", "")
+    copyfile(tstPaths.filesDir / "ue_en_GB.qm", i18nDir / "ue_fr.qm")
+    writeFile(i18nDir / "ue_fr.ts", "")
 
     languages = conf.listLanguages(conf.LANG_NW)
     assert languages == [("en_GB", "British English"), ("fr", "Français")]
@@ -667,7 +667,7 @@ def testConfig_ConvertOldConfig(fncPath: Path, tstPaths: TstPaths):
     """
     oldFile = fncPath / nwFiles.CONF_FILE_OLD
     newFile = fncPath / nwFiles.CONF_FILE
-    copyfile(tstPaths.filesDir / "old_novelwriter.conf", oldFile)
+    copyfile(tstPaths.filesDir / "old_umbraedit.conf", oldFile)
 
     assert oldFile.is_file()
     assert not newFile.exists()

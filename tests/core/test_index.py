@@ -1,10 +1,10 @@
 """
-novelWriter - Index Tests
+UmbraEdit - Index Tests
 =========================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2020 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,14 +31,14 @@ import pytest
 
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.constants import nwFiles
-from novelwriter.core.index import Index, TagsIndex
-from novelwriter.core.item import ProjectItem
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwComment, nwItemClass, nwItemLayout, nwNovelExtra
-from novelwriter.guimain import GuiMain
-from novelwriter.models.novelmodel import NovelModel
+from umbraedit import SHARED
+from umbraedit.constants import nwFiles
+from umbraedit.core.index import Index, TagsIndex
+from umbraedit.core.item import ProjectItem
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwComment, nwItemClass, nwItemLayout, nwNovelExtra
+from umbraedit.guimain import GuiMain
+from umbraedit.models.novelmodel import NovelModel
 
 from tests.helpers import C, MockRnd, TstPaths, buildTestProject, cmpFiles
 from tests.mocked import MockGuiMain, causeException
@@ -100,7 +100,7 @@ def testIndex_LoadSave(
 
     # No folder for saving
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
         assert index.saveIndex() is False
 
     # Make the save fail
@@ -161,7 +161,7 @@ def testIndex_LoadSave(
 
     # No folder for loading
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
+        mp.setattr("umbraedit.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
         assert index.loadIndex() is False
 
     # Make the load fail
@@ -195,7 +195,7 @@ def testIndex_LoadSave(
     assert index.indexRebuild is True
 
     # Write an index file that passes loading, but is still empty
-    projFile.write_text('{"novelWriter.tagsIndex": {}, "novelWriter.itemIndex": {}}', encoding="utf-8")
+    projFile.write_text('{"UmbraEdit.tagsIndex": {}, "UmbraEdit.itemIndex": {}}', encoding="utf-8")
     assert index.loadIndex() is True
     assert index.indexRebuild is False
 

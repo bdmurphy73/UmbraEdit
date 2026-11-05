@@ -6,8 +6,8 @@
 
 ### Submitter's Checklist
 
-* [ ] I am familiar with, and have followed, the [Contributing Guide](https://github.com/saga-soft/novelWriter/blob/main/CONTRIBUTING.md)
-* [ ] I am familiar with, and have followed, the [AI Policy](https://github.com/saga-soft/novelWriter/blob/main/AI_POLICY.md)
+* [ ] I am familiar with, and have followed, the [Contributing Guide](https://github.com/saga-soft/UmbraEdit/blob/main/CONTRIBUTING.md)
+* [ ] I am familiar with, and have followed, the [AI Policy](https://github.com/saga-soft/UmbraEdit/blob/main/AI_POLICY.md)
 
 ### Reviewer's Checklist
 

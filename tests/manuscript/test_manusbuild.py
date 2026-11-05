@@ -1,10 +1,10 @@
 """
-novelWriter - Manuscript Build Dialog Tests
+UmbraEdit - Manuscript Build Dialog Tests
 ===========================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2023 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,14 +31,14 @@ from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import QFileDialog, QListWidgetItem, QPushButton
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.constants import nwLabels
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwBuildFmt
-from novelwriter.guimain import GuiMain
-from novelwriter.manuscript.buildsettings import BuildSettings
-from novelwriter.manuscript.manusbuild import GuiManuscriptBuild
-from novelwriter.shared import _GuiAlert
+from umbraedit import SHARED
+from umbraedit.constants import nwLabels
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwBuildFmt
+from umbraedit.guimain import GuiMain
+from umbraedit.manuscript.buildsettings import BuildSettings
+from umbraedit.manuscript.manusbuild import GuiManuscriptBuild
+from umbraedit.shared import _GuiAlert
 
 from tests.helpers import C, MockRnd, buildTestProject
 

@@ -1,10 +1,10 @@
 """
-novelWriter - Shared Data Class Tests
+UmbraEdit - Shared Data Class Tests
 =====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2023 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -34,9 +34,9 @@ from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import QFileDialog, QWidget
 from pytestqt.qtbot import QtBot
 
-from novelwriter import CONFIG
-from novelwriter.core.project import NWProject
-from novelwriter.shared import SharedData, _GuiAlert
+from umbraedit import CONFIG
+from umbraedit.core.project import NWProject
+from umbraedit.shared import SharedData, _GuiAlert
 
 from tests.helpers import buildTestProject
 from tests.mocked import MockGuiMain, MockTheme

@@ -1,10 +1,10 @@
 """
-novelWriter - Open Document Format Tests
+UmbraEdit - Open Document Format Tests
 ========================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2021 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2021 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -32,12 +32,12 @@ import pytest
 
 from PyQt6.QtGui import QColor
 
-from novelwriter.common import xmlIndent
-from novelwriter.constants import nwHeadFmt
-from novelwriter.core.project import NWProject
-from novelwriter.enum import nwComment
-from novelwriter.formats.shared import BlockFmt, BlockTyp, TextFmt
-from novelwriter.formats.toodt import (
+from umbraedit.common import xmlIndent
+from umbraedit.constants import nwHeadFmt
+from umbraedit.core.project import NWProject
+from umbraedit.enum import nwComment
+from umbraedit.formats.shared import BlockFmt, BlockTyp, TextFmt
+from umbraedit.formats.toodt import (
     X_ROOT_TEXT,
     ODTBorderStyle,
     ODTParagraphStyle,

@@ -1,10 +1,10 @@
 """
-novelWriter - Dictionary Downloader Tests
+UmbraEdit - Dictionary Downloader Tests
 =========================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2023 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -32,9 +32,9 @@ from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import QFileDialog
 from pytestqt.qtbot import QtBot
 
-from novelwriter import SHARED
-from novelwriter.guimain import GuiMain
-from novelwriter.tools.dictionaries import GuiDictionaries
+from umbraedit import SHARED
+from umbraedit.guimain import GuiMain
+from umbraedit.tools.dictionaries import GuiDictionaries
 
 from tests.mocked import causeException, causeOSError
 

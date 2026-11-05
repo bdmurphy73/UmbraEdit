@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 16:22+0200\n"
@@ -28,10 +28,10 @@ msgstr "Trucs et astuces"
 #: ../../source/usage/howto.rst:9
 msgid ""
 "This is a list of hopefully helpful little tips on how to get the most out of "
-"novelWriter."
+"UmbraEdit."
 msgstr ""
 "Il s'agit d'une liste de petits conseils, que nous espérons utiles, sur la "
-"façon de tirer le meilleur parti de novelWriter."
+"façon de tirer le meilleur parti de UmbraEdit."
 
 #: ../../source/usage/howto.rst:12
 msgid ""
@@ -122,12 +122,12 @@ msgstr "Comment créer un tableau ?"
 
 #: ../../source/usage/howto.rst:52
 msgid ""
-"The formatting tools available in novelWriter don't allow for complex "
+"The formatting tools available in UmbraEdit don't allow for complex "
 "structures like tables. However, the editor does render tabs in a similar way "
 "that regular word processors do. You can set the width of a tab in "
 "**Preferences**."
 msgstr ""
-"Les outils de formatage disponibles dans novelWriter ne permettent pas de créer "
+"Les outils de formatage disponibles dans UmbraEdit ne permettent pas de créer "
 "des structures complexes telles que des tableaux. Cependant, l'éditeur rend les "
 "tabulations de la même manière que les traitements de texte classiques. Vous "
 "pouvez définir la largeur d'un onglet dans les **Préférences**."
@@ -271,10 +271,10 @@ msgstr "Comment convertir mon projet au format yWriter ?"
 #: ../../source/usage/howto.rst:116
 msgid ""
 "There is a tool available that lets you convert a `yWriter <http://spacejock."
-"com/yWriter7.html>`_ project to a novelWriter project, and vice versa."
+"com/yWriter7.html>`_ project to a UmbraEdit project, and vice versa."
 msgstr ""
 "Il existe un outil qui vous permet de convertir un projet `yWriter <http://"
-"spacejock.com/yWriter7.html>`_ en un projet novelWriter, et vice versa."
+"spacejock.com/yWriter7.html>`_ en un projet UmbraEdit, et vice versa."
 
 #: ../../source/usage/howto.rst:119
 msgid ""

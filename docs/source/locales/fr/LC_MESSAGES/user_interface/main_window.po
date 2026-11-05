@@ -1,13 +1,13 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2025
-# This file is distributed under the same license as the novelWriter
+# This file is distributed under the same license as the UmbraEdit
 # package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: novelWriter 2.7rc1\n"
+"Project-Id-Version: UmbraEdit 2.7rc1\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-05-27 19:59+0200\n"
 "PO-Revision-Date: 2025-05-28 16:42+0200\n"
@@ -27,11 +27,11 @@ msgstr "La fenêtre principale"
 
 #: ../../source/user_interface/main_window.rst:7
 msgid ""
-"The user interface of novelWriter is intended to be as minimalistic as "
+"The user interface of UmbraEdit is intended to be as minimalistic as "
 "practically possible, while at the same time provide useful features "
 "needed for writing a novel."
 msgstr ""
-"L'interface utilisateur de novelWriter se veut aussi minimaliste que "
+"L'interface utilisateur de UmbraEdit se veut aussi minimaliste que "
 "possible, tout en offrant les fonctionnalités utiles à l'écriture d'un "
 "roman."
 
@@ -367,12 +367,12 @@ msgstr "La colonne **Titre** ne peut pas être désactivée ou déplacée."
 #: ../../source/user_interface/main_window.rst:148
 msgid ""
 "The information viewed in the outline is based on the project index. "
-"While novelWriter does its best to keep the index up to date when "
+"While UmbraEdit does its best to keep the index up to date when "
 "contents change, you can always rebuild it manually by pressing :kbd:"
 "`F9` if something isn't right."
 msgstr ""
 "Les informations affichées dans le plan sont basées sur l'index du "
-"projet. Bien que novelWriter fasse de son mieux pour maintenir l'index à "
+"projet. Bien que UmbraEdit fasse de son mieux pour maintenir l'index à "
 "jour lorsque le contenu change, vous pouvez toujours le reconstruire "
 "manuellement en appuyant sur :kbd:`F9` si quelque chose ne va pas."
 
@@ -457,11 +457,11 @@ msgstr "Thèmes"
 
 #: ../../source/user_interface/main_window.rst:189
 msgid ""
-"By default, novelWriter uses a light colour theme. You can also choose "
+"By default, UmbraEdit uses a light colour theme. You can also choose "
 "between a standard dark theme that have neutral colours, or a series of "
 "other included themes, from **Preferences**."
 msgstr ""
-"Par défaut, novelWriter utilise un thème de couleur claire. Vous pouvez "
+"Par défaut, UmbraEdit utilise un thème de couleur claire. Vous pouvez "
 "également choisir un thème sombre standard avec des couleurs neutres, ou "
 "une série d'autres thèmes inclus, dans les **Préférences**."
 

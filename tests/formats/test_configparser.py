@@ -1,10 +1,10 @@
 """
-novelWriter - INI Config Parser Tests
+UmbraEdit - INI Config Parser Tests
 =====================================
 
-This file is a part of novelWriter.
+This file is a part of UmbraEdit.
 
-Copyright (C) 2021 Veronica Berglyd Olsen and novelWriter contributors.
+Copyright (C) 2021 Veronica Berglyd Olsen and UmbraEdit contributors.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,8 +26,8 @@ from pathlib import Path
 
 import pytest
 
-from novelwriter.enum import nwItemClass
-from novelwriter.formats.configparser import NConfigParser
+from umbraedit.enum import nwItemClass
+from umbraedit.formats.configparser import NConfigParser
 
 from tests.helpers import writeFile
 

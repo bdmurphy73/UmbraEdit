@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+import time as time_module
 
 from functools import partial
 from pathlib import Path
@@ -32,11 +33,25 @@ from zipfile import ZipFile, is_zipfile
 
 from PyQt6.QtCore import QCoreApplication
 
-from umbraedit import CONFIG, SHARED
-from umbraedit.common import isHandle, minmax, safeExists, safeIsFile, simplified
-from umbraedit.constants import nwFiles, nwItemClass, nwStats
+from umbraedit import CONFIG, SHARED, __hexversion__, __version__
+from umbraedit.common import (
+    checkBool,
+    checkInt,
+    formatTimeStamp,
+    isHandle,
+    minmax,
+    safeExists,
+    safeIsFile,
+    simplified,
+    yesNo,
+)
+from umbraedit.constants import nwFiles, nwItemClass, nwItemLayout, nwStats, trConst
 from umbraedit.core.project import NWProject
+from umbraedit.core.projectdata import ProjectData
+from umbraedit.core.projectxml import FILE_VERSION, FILE_REVISION, ProjectXMLWriter
 from umbraedit.core.storage import ProjectStorageCreate
+from umbraedit.formats.fromdocx import FromDocxDocument, ImportResult
+from umbraedit.enum import nwItemType
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -531,3 +546,203 @@ class ProjectBuilder:
         project.index.rebuild()
         project.saveProject()
         project.closeProject()
+
+
+class DocxImporter:
+    """Tool: Import a Word DOCX/DOCM file into a new UmbraEdit project.
+
+    Parses a Word document and creates a new UmbraEdit project with the
+    extracted content. Non-translatable items (images, headers, footers,
+    comments, footnotes) are captured as note documents in the project.
+    """
+
+    def __init__(self) -> None:
+        self._project: NWProject | None = None
+        self._error = ""
+        self._novel_root: str | None = None
+        self._notes_root: str | None = None
+        self._current_chapter: str | None = None
+
+    ##
+    #  Properties
+    ##
+
+    @property
+    def error(self) -> str:
+        """Return any collected errors."""
+        return self._error
+
+    ##
+    #  Public API
+    ##
+
+    def importFile(self, file_path: str | Path, project_path: str | Path) -> bool:
+        """Import a Word DOCX/DOCM file into a new UmbraEdit project.
+
+        Args:
+            file_path: Path to the .docm or .docx file to import.
+            project_path: Path where the new project folder will be created.
+
+        Returns:
+            True if the import was successful, False otherwise.
+        """
+        try:
+            in_path = Path(file_path).resolve()
+            out_path = Path(project_path).resolve()
+        except Exception as exc:
+            self._error = f"Invalid path: {exc}"
+            logger.error(self._error)
+            return False
+
+        # Parse the Word document
+        parser = FromDocxDocument(in_path)
+        try:
+            result = parser.parse()
+        except Exception as exc:
+            self._error = f"Failed to parse Word document: {exc}"
+            logger.error(self._error, exc_info=exc)
+            return False
+
+        # Create the project storage
+        project = NWProject()
+        status = project.storage.createNewProject(out_path)
+        if status != ProjectStorageCreate.READY:
+            if status == ProjectStorageCreate.NOT_EMPTY:
+                self._error = self.tr("The target folder is not empty.")
+            else:
+                self._error = self.tr("Failed to create project storage.")
+            logger.error(self._error)
+            return False
+
+        self._project = project
+        self._novel_root = None
+        self._notes_root = None
+        self._current_chapter = None
+
+        # Initialise project data
+        project.data.setUuid(None)
+        project.data.setName(result.title or in_path.stem)
+        project.data.setAuthor(result.author or "")
+        project.data.setLanguage(CONFIG.guiLocale, CONFIG.rtlMode)
+        project.setDefaultStatusImport()
+        project.session.startSession()
+
+        # Create root folder
+        self._novel_root = project.newRoot(nwItemClass.NOVEL)
+        if not self._novel_root:
+            self._error = self.tr("Failed to create project root.")
+            return False
+
+        # Create notes root folder (for non-translatable items)
+        self._notes_root = project.newFolder("Import Notes", self._novel_root)
+        if not self._notes_root:
+            self._error = self.tr("Failed to create notes folder.")
+            return False
+
+        # Process scenes
+        for scene in result.scenes:
+            self._addScene(scene)
+
+        # Process notes (non-translatable items)
+        for note in result.notes:
+            self._addNote(note)
+
+        # Write project XML
+        content = [item.pack() for item in project.tree]
+        saveTime = time_module.time()
+        editTime = 0
+
+        writer = ProjectXMLWriter(project.storage._manifestPath)
+        if not writer.write(project.data, content, saveTime, editTime):
+            self._error = self.tr("Failed to write project XML.")
+            return False
+
+        # Rebuild index
+        project.index.rebuild()
+
+        # Save and close
+        project.saveProject()
+        project.closeProject()
+
+        logger.info("Import completed: %d scenes, %d notes", len(result.scenes), len(result.notes))
+        return True
+
+    ##
+    #  Internal Functions
+    ##
+
+    def _addScene(self, scene: ImportScene) -> None:
+        """Add a scene (chapter or scene document) to the project."""
+        if not self._project:
+            return
+
+        # If this is a chapter, create a folder
+        if scene.is_chapter:
+            self._current_chapter = scene.heading
+            cHandle = self._project.newFolder(scene.heading, self._novel_root)
+            if cHandle:
+                cItem = self._project.tree[cHandle]
+                cItem.setClass(nwItemClass.NOVEL)
+                # Write chapter info as a note inside the chapter folder
+                chNote = self._project.newFile(f"{scene.heading} Notes", cHandle)
+                if chNote:
+                    aDoc = self._project.storage.getDocument(chNote)
+                    aDoc.writeDocument(f"## {scene.heading}\n\n%Synopsis: Imported chapter\n\n")
+            return
+
+        # Determine parent (chapter folder or novel root)
+        parent = self._current_chapter or self._novel_root
+
+        # Create the scene document
+        sHandle = self._project.newFile(scene.heading, parent)
+        if not sHandle:
+            return
+
+        sItem = self._project.tree[sHandle]
+        sItem.setLayout(nwItemLayout.DOCUMENT)
+        sItem.setMainHeading(scene.level)
+
+        # Write the document content
+        aDoc = self._project.storage.getDocument(sHandle)
+        aDoc.writeDocument(scene.text)
+
+        # Re-index the document text
+        self._project.index.scanText(sHandle, scene.text)
+
+    def _addNote(self, note: ImportNote) -> None:
+        """Add a note document for a non-translatable item."""
+        if not self._project:
+            return
+
+        parent = self._notes_root or self._novel_root
+
+        # Create note file name from the note type and source
+        note_name = f"{note.note_type.title()}: {note.source[:50]}"
+        tHandle = self._project.newFile(note_name, parent)
+        if not tHandle:
+            return
+
+        tItem = self._project.tree[tHandle]
+        tItem.setLayout(nwItemLayout.NOTE)
+
+        # Build note text with metadata about the source
+        text_lines = [
+            f"# {note.note_type.title()} Import",
+            "",
+            f"Source: {note.source}",
+            f"Type: {note.note_type}",
+            "",
+            note.text,
+        ]
+        text = "\n".join(text_lines)
+
+        # If there's image data, reference it
+        if note.data:
+            text += f"\n\n[IMAGE DATA: {len(note.data)} bytes]"
+
+        aDoc = self._project.storage.getDocument(tHandle)
+        aDoc.writeDocument(text)
+
+        # Re-index
+        self._project.index.scanText(tHandle, text)
+

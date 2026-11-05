@@ -1,5 +1,42 @@
 # UmbraEdit Changelog
 
+## Version 1.0.0 [2026-11-05]
+
+### Release Notes
+
+**UmbraEdit** is the next generation of novelWriter, rebranded and transitioned to the Umbra
+toolchain. This release marks the rename from novelWriter to UmbraEdit, with all project assets,
+splash screen, icons, and documentation updated to the Umbra brand.
+
+**Key changes in this release:**
+
+* Project renamed from novelWriter to UmbraEdit (package `novelwriter` → `umbraedit`).
+* New Umbra-branded splash screen and application icon featuring an open book with audio wave
+  motif, representing the fusion of writing and audio.
+* Version updated to 1.0.0, release date 2026-11-05.
+* Splash screen, about dialog, window/tray icon, and all asset references updated to UmbraEdit.
+* Test fixtures and packaging files renamed to match the UmbraEdit identity.
+* All 735 existing tests pass on Python 3.12 with PyQt6 6.11.
+
+See the website for complete [Release Notes](https://umbraedit.io/releases/release_1_0_0.html).
+
+### Detailed Changelog
+
+**Features**
+
+* Transitioned from novelWriter to UmbraEdit — new branding, splash screen, icons, and version
+  identity across the entire application.
+* New Umbra-branded splash screen with book-and-audio-wave motif.
+* New Umbra-branded application icon (window/tray/dock).
+* Updated version to 1.0.0 with release date 2026-11-05.
+
+**Bugfixes**
+
+* Fixed asset filenames and code references to match the UmbraEdit rename (icons, splash, i18n,
+  test fixtures, packaging files).
+
+---
+
 ## Version 2026.3 Beta 1 [2026-10-20]
 
 ### Release Notes

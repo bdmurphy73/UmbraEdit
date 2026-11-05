@@ -110,7 +110,9 @@ class GuiMain(QMainWindow):
         self._setWindowSize(CONFIG.mainWinSize)
         self._updateWindowTitle()
 
-        nwIcon = CONFIG.assetPath("icons") / "umbraedit.svg"
+        nwIcon = CONFIG.assetPath("icons") / "umbraedit.png"
+        if not safeIsFile(nwIcon):
+            nwIcon = CONFIG.assetPath("icons") / "umbraedit.svg"
         self.nwIcon = QIcon(str(nwIcon)) if safeIsFile(nwIcon) else QIcon()
         self.setWindowIcon(self.nwIcon)
         QApplication.setWindowIcon(self.nwIcon)

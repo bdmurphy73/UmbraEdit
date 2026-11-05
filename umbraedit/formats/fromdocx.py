@@ -368,6 +368,17 @@ class FromDocxDocument:
             )
             self._result.notes.append(note)
 
+        # Add image notes for images found in the document
+        for img in self._result.images:
+            note = ImportNote(
+                note_type="image",
+                source=f"image file: {img.filename}",
+                text=f"Image: {img.filename}",
+                data=img.data,
+                mime=img.mime,
+            )
+            self._result.notes.append(note)
+
     def _parse_paragraph(self, para: ET.Element) -> dict | None:
         """Parse a single paragraph element and return its content."""
         # Get paragraph style

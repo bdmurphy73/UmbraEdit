@@ -32,7 +32,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 import zipfile
 
-from datetime import UTC, datetime
+from datetime import timezone as UTC, datetime
 from pathlib import Path
 
 from utils.common import ROOT_DIR, apiRequest, getEnvValue, log, writeFile

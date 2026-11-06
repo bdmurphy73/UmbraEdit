@@ -1,0 +1,27 @@
+include README.md
+include LICENSE.md
+include CONTRIBUTING.md
+include CREDITS.md
+include CHANGELOG.md
+include AI_POLICY.md
+include pyproject.toml
+include UmbraEdit.py
+include pkgutils.py
+include run_tests.py
+
+include setup/macos/*
+include setup/windows/*
+include setup/linux/*
+include setup/flatpak/*
+include setup/data/*
+include setup/appimage_launcher.sh
+
+include utils/*.py
+include utils/build_*.py
+
+recursive-include docs *
+recursive-include i18n *
+recursive-exclude *.pyc
+recursive-exclude __pycache__
+global-exclude .DS_Store
+global-exclude .gitkeep

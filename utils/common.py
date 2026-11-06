@@ -28,7 +28,10 @@ import os
 import shutil
 import subprocess
 import sys
-import tomllib
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 import urllib.error
 import urllib.request
 

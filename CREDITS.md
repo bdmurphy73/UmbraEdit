@@ -1,8 +1,12 @@
 # Credits
 
-## Main Developer
+## Main Developer novelWriter
 
 * Veronica Berglyd Olsen
+
+## Main Product Manager / Developer 
+
+* B.D. Murphy
 
 ## Contributors
 
@@ -18,7 +22,8 @@ For other contributions, see the project's [Contributors](https://github.com/sag
 
 ## Artwork
 
-The artwork on the Welcome dialog was created by Louis Durrant.
+The artwork on the Welcome dialog was generated with AI by B.D. Murphy. Reading print options through time.
+UmbraEdit icon by B.D. Murphy using AI.
 
 ## Translations
 
@@ -49,8 +54,7 @@ Translations of the documentation:
 
 * **French:** Jean-Michel Heras (Karduin)
 
-Translations are managed on [Crowdin](https://crowdin.com/project/umbraedit), and more
-contributions are listed on the project's Members page.
+After the fork to UmbraEdit translations of text in the program are done via AI.
 
 ## Libraries
 
@@ -123,6 +127,8 @@ Other themes were created for UmbraEdit:
 The font used for the main UmbraEdit logo, mimetype and text banners is Pridi.
 
 * **Pridi** by Cadson Demak (Open Font License, Version 1.1)
+
+--> Caladea <--
 
 ## Special Mentions
 

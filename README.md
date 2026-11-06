@@ -1,9 +1,5 @@
 # UmbraEdit
 
-[![Tests](https://github.com/saga-soft/UmbraEdit/actions/workflows/tests.yml/badge.svg)](https://github.com/saga-soft/UmbraEdit/actions/workflows/tests.yml)
-[![Linting](https://github.com/saga-soft/UmbraEdit/actions/workflows/syntax.yml/badge.svg)](https://github.com/saga-soft/UmbraEdit/actions/workflows/syntax.yml)
-[![Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith&style=flat&link=https%3A%2F%2Fcloudsmith.com)](https://cloudsmith.com)
-
 <img align="left" style="margin: 0 0 4px 0;" src="https://git.umbratools.com/umbragit/UmbraEdit/raw/main/umbraedit/assets/icons/umbraedit.svg">
 
 UmbraEdit is a plain text editor designed for writing novels assembled from many smaller text
@@ -13,34 +9,26 @@ for easy organisation of text and notes, using human readable text files as stor
 The project format is well suited both for version control software and file synchronisation tools.
 
 UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io) and is
-licenced under the same GPL v3.0 license.
+licensed under the same GPL v3.0 license.
+UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io) and is licensed under the same GPL v3.0 license.
 
-For more details, and how to install and use UmbraEdit, please see the main website and
-documentation.
+B.D. Murphy is modifying the original using AI to make it part of his Umbratools publishing system.
+
+The ideas:
+
+1) Write the novel. Make it simple while writing. Formatting is later.
+2) Have the entire project together. Not the novel text here and metadata you need somewhere else. All together. 2.a) ePub, paperback (print pdf), audio all start with the same story text, but each needs something different. Put everything into one project ISBN, book blurb, search terms, genere/categories BISAC codes, cover, etc
+3) With everything together publishing is simpler
+4) The goal is to write (human written) a novel, then use AI to help with everything else. At the end of the process there will be ePub, Paperback/Hard cover, audio versions in 10 languages.
+
+For more details, and how to install and use UmbraEdit, please see the main website and documentation.
+
+This project is a fork of novelWrite. Taking the great start and extending it. I use AI to help.
 
 **Project Links**
 
 * Website: [UmbraEdit](https://umbratools.com/umbraedit)
 * Documentation: [UmbraEdit Docs](https://umbratools.com/umbraedit/docs)
-* Internationalisation: [crowdin.com/project/umbraedit](https://crowdin.com/project/umbraedit)
-* PyPi Project: [pypi.org/project/UmbraEdit](https://pypi.org/project/UmbraEdit)
-* Social Media: [fosstodon.org/@umbraedit](https://fosstodon.org/@umbraedit)
-
-_This project is developed and maintained with care by actual humans._
-
-## Sponsors & Attribution
-
-<table style="border: none;">
-<tr>
-  <td><img align="left" style="width: 25px;" src="https://raw.githubusercontent.com/saga-soft/UmbraEdit/main/setup/signpath_logo.png"></td>
-  <td>Free code signing on Windows provided by <a href="https://about.signpath.io/">SignPath.io</a>, certificate by <a href="https://signpath.org/">SignPath Foundation</a>.</td>
-</tr>
-<tr>
-  <td><img align="left" style="width: 25px;" src="https://raw.githubusercontent.com/saga-soft/UmbraEdit/main/setup/cloudsmith_logo.png"></td>
-  <td>Free package repository hosting is graciously provided by <a href="https://cloudsmith.com">Cloudsmith</a>.</td>
-</tr>
-</table>
-
 
 ## Implementation
 
@@ -76,16 +64,13 @@ to documentation**, they must be made to the `release` branch.
 
 ### Translations
 
-New translations are always welcome. This project uses Crowdin to maintain translations, and you
-can contribute translations at the [Crowdin project page](https://crowdin.com/project/umbraedit).
-If you have any questions, feel free to post them to the
-[Translations of UmbraEdit](https://github.com/saga-soft/UmbraEdit/issues/93) issue thread.
+
 
 
 ## Licence
 
-This is Open Source software, and UmbraEdit is licenced under GPLv3. See the
+This is Open Source software, and UmbraEdit is licensed under GPLv3. See the
 [GNU General Public License website](https://www.gnu.org/licenses/gpl-3.0.en.html) for more
 details, or consult the [License](https://github.com/saga-soft/UmbraEdit/blob/main/LICENSE.md)
-document. Bundled assets and their licences are listed in the
+document. Bundled assets and their licenses are listed in the
 [Credits](https://github.com/saga-soft/UmbraEdit/blob/main/CREDITS.md) document.

@@ -1,114 +1,127 @@
 # UmbraEdit - Linux AMD64 Build Guide
 
-UmbraEdit is built on macOS (darwin/aarch64), so native Linux packages (.deb, .rpm, AppImage)
-cannot be built directly from this machine. This document describes how to build
-Linux AMD64 install packages from the source artifacts provided here.
+UmbraEdit is developed on macOS but builds natively on Linux AMD64 and ARM64.
+This guide covers building Linux install packages from source.
 
-## Build Artifacts
+## Source Distribution
 
-The following files are in `dist/`:
+The source tarball (`umbraedit-2026.11.1.tar.gz`) includes everything needed to
+build Linux packages:
 
-| File | Description | Purpose |
-|------|-------------|---------|
-| `umbraedit-2026.11.1.tar.gz` | Source distribution (sdist) | Source tarball for building on Linux |
-| `umbraedit-2026.11.1-py3-none-any.whl` | Pure Python wheel | Installable via pip on any platform |
-
-## Prerequisites on Linux AMD64
-
-Before building, install the required system packages:
-
-```bash
-# Debian/Ubuntu
-sudo apt-get update
-sudo apt-get install python3 python3-pip python3-pyqt6 python3-pyqt6.qtsvg \
-    python3-enchant qt6-image-formats-plugins qt6-svg-plugins \
-    dh-python debhelper python3-build python3-setuptools
-
-# Fedora/RHEL
-sudo dnf install python3 python3-pip python3-pyqt6 python3-enchant \
-    qt6-qtimageformats qt6-qtsvg python3-build python3-setuptools
-
-# Arch Linux
-sudo pacman -S python python-pip python-pyqt6 python-enchant qt6-imageformats qt6-svg \
-    python-build python-setuptools
+```
+umbraedit-2026.11.1/
+├── pyproject.toml          # Project metadata & dependencies
+├── UmbraEdit.py            # Application entry point
+├── pkgutils.py             # Packaging utility
+├── run_tests.py            # Test runner
+├── setup/                  # Packaging assets
+│   ├── data/               # .desktop file, MIME type XML
+│   ├── macos/              # macOS-specific packaging
+│   └── windows/            # Windows-specific packaging
+├── utils/                  # Build scripts
+│   ├── build_debian.py     # .deb package builder
+│   ├── build_appimage.py   # AppImage builder
+│   ├── build_all.py        # Multi-platform build orchestrator
+│   └── ...
+├── umbraedit/              # Application source code
+└── tests/                  # Test suite
 ```
 
-## Option 1: Install via Wheel (Simplest)
+## Prerequisites on Linux
 
-The pure Python wheel can be installed directly on Linux AMD64 with pip:
+### Debian/Ubuntu
 
 ```bash
-# Copy the wheel to your Linux AMD64 machine
-scp umbraedit-2026.11.1-py3-none-any.whl user@linux-machine:~/
+sudo apt-get update
+sudo apt-get install \
+    python3 python3-pip \
+    python3-pyqt6 python3-pyqt6.qtsvg \
+    python3-enchant \
+    qt6-image-formats-plugins qt6-svg-plugins \
+    dh-python debhelper python3-build python3-setuptools \
+    python3-pytest python3-pytestqt python3-pytest-timeout \
+    appimagetool
+```
 
-# On the Linux machine
+### Fedora/RHEL
+
+```bash
+sudo dnf install \
+    python3 python3-pip \
+    python3-pyqt6 python3-enchant \
+    qt6-qtimageformats qt6-qtsvg \
+    python3-build python3-setuptools \
+    dpkg rpm-build appimagetool
+```
+
+### Arch Linux
+
+```bash
+sudo pacman -S \
+    python python-pip \
+    python-pyqt6 python-enchant \
+    qt6-imageformats qt6-svg \
+    python-build python-setuptools \
+    dpkg appimagetool
+```
+
+## Build Options
+
+### Option 1: Install via Wheel (Simplest)
+
+The pure Python wheel requires no compilation:
+
+```bash
 pip install umbraedit-2026.11.1-py3-none-any.whl
-
-# Run UmbraEdit
 umbraedit
 ```
 
-This installs the application as a Python package with the `umbraedit` console script
-entry point. No compilation is required.
-
-## Option 2: Build from Source Distribution
-
-The source tarball contains all source files needed to build native Linux packages:
+### Option 2: Install from Source Tarball
 
 ```bash
-# Copy the source tarball to your Linux AMD64 machine
-scp umbraedit-2026.11.1.tar.gz user@linux-machine:~/
-
-# On the Linux machine
 tar xzf umbraedit-2026.11.1.tar.gz
 cd umbraedit-2026.11.1
-
-# Build and install locally
 pip install .
+umbraedit
 ```
 
-## Option 3: Build Debian (.deb) Package
-
-On a Debian/Ubuntu-based Linux AMD64 system:
+### Option 3: Build .deb Package
 
 ```bash
-# Install build dependencies
-sudo apt-get install dh-python pybuild-plugin-pyproject python3-build \
-    python3-setuptools python3-all debhelper \
-    python3-pytest python3-pytestqt python3-pytest-timeout
-
-# Extract and build
 tar xzf umbraedit-2026.11.1.tar.gz
 cd umbraedit-2026.11.1
 
-# Build .deb package
-python3 utils/build_debian.py --distro noble  # or trixie, resolute, stonking
+# Build for Ubuntu Noble (24.04)
+python3 utils/build_debian.py --distro noble --build 1
 
 # The .deb will be in dist_deb/
-sudo dpkg -i dist_deb/umbraedit_*.deb
+sudo dpkg -i dist_deb/umbraedit_*_amd64.deb
 ```
 
 Available distro targets: `bookworm`, `trixie`, `noble`, `resolute`, `stonking`, `wilma`
 
-## Option 4: Build AppImage
-
-On any Linux AMD64 system:
+### Option 4: Build AppImage
 
 ```bash
-# Install AppImage build tools
 pip install python-appimage
-sudo apt-get install appimagetool  # or download from GitHub
+sudo apt-get install appimagetool
 
-# Extract and build
 tar xzf umbraedit-2026.11.1.tar.gz
 cd umbraedit-2026.11.1
 
-# Build AppImage
 python3 utils/build_appimage.py --linux ubuntu --arch amd64 --python 3.12
 
-# The AppImage will be in dist_appimage/
 chmod +x dist_appimage/umbraedit-2026.11-amd64.AppImage
 ./dist_appimage/umbraedit-2026.11-amd64.AppImage
+```
+
+### Option 5: Build All Linux Packages
+
+```bash
+tar xzf umbraedit-2026.11.1.tar.gz
+cd umbraedit-2026.11.1
+
+python3 utils/build_all.py --platform linux --arch amd64
 ```
 
 ## Project Storage
@@ -123,7 +136,7 @@ umbraedit  # Opens the welcome dialog
 
 ## Version
 
-Current development version: **2026.11.0003**
+Current development version: **2026.11.0004**
 
 ## License
 

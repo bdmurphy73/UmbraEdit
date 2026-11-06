@@ -72,10 +72,10 @@ else
     echo "Missing: umbraedit/assets/manual.pdf"
     exit 1
 fi
-if [ -f $SRC_DIR/umbraedit/assets/i18n/nw_en_US.qm ]; then
-    echo "Found: umbraedit/assets/i18n/nw_en_US.qm"
+if [ -f $SRC_DIR/umbraedit/assets/i18n/ue_en_US.qm ]; then
+    echo "Found: umbraedit/assets/i18n/ue_en_US.qm"
 else
-    echo "Missing: umbraedit/assets/i18n/nw_en_US.qm"
+    echo "Missing: umbraedit/assets/i18n/ue_en_US.qm"
     exit 1
 fi
 

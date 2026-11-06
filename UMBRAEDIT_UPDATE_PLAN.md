@@ -71,7 +71,7 @@ Plan for upgrading UmbraEdit (Python/PyQt6) toolchain and dependencies.
 Create a fresh virtual environment with the target Python and install the project's runtime deps at their latest compatible versions:
 
 ```bash
-cd /Volumes/1TB_APL_Storage/novelWriter2
+cd /Volumes/1TB_APL_Storage/UmbraEdit
 uv venv --python 3.12
 uv pip install "pyqt6>=6.4" "pyenchant>=3.3.0"
 # macOS only:
@@ -202,7 +202,7 @@ Also keep the old system Python 3.9.6 available (do not remove `/usr/bin/python3
 ## 4. Recommended Command Sequence (copy-paste ready)
 
 ```bash
-cd /Volumes/1TB_APL_Storage/novelWriter2
+cd /Volumes/1TB_APL_Storage/UmbraEdit
 
 # 0. Tag rollback point
 git tag umbraedit/pre-toolchain-update

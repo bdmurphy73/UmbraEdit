@@ -94,7 +94,7 @@ UmbraEdit/                          <- this folder (was novelWriter2)
 
 ### Run the application
 ```bash
-cd /Volumes/1TB_APL_Storage/novelWriter2
+cd /Volumes/1TB_APL_Storage/UmbraEdit
 python3 UmbraEdit.py
 # or, with the package on PYTHONPATH:
 python3 -c "import umbraedit; umbraedit.main()"

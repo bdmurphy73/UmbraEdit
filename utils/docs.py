@@ -26,7 +26,10 @@ import argparse
 import os
 import shutil
 import subprocess
-import tomllib
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 
 from utils.common import ROOT_DIR, extractVersion, formatVersion, log, splitVersion, systemCall
 

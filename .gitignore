@@ -80,3 +80,8 @@ GEMINI.md
 # Added by B.D. Murphy 2026: exclude files accidentally committed during branding transition
 Splh.jpeg
 Oldwelcome.webp
+.DS_Store
+UmbraEdit_Projects/
+Inner_Demon_1.2a.docm
+requirements.txt
+UmbraEdit_deb_Build_Script.txt

@@ -1,8 +1,5 @@
 # UmbraEdit
 
-[![Tests](https://github.com/saga-soft/UmbraEdit/actions/workflows/tests.yml/badge.svg)](https://github.com/saga-soft/UmbraEdit/actions/workflows/tests.yml)
-[![Linting](https://github.com/saga-soft/UmbraEdit/actions/workflows/syntax.yml/badge.svg)](https://github.com/saga-soft/UmbraEdit/actions/workflows/syntax.yml)
-[![Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith&style=flat&link=https%3A%2F%2Fcloudsmith.com)](https://cloudsmith.com)
 
 <img align="left" style="margin: 0 0 4px 0;" src="https://raw.githubusercontent.com/saga-soft/UmbraEdit/main/setup/umbraedit_readme.png">
 
@@ -15,31 +12,27 @@ The project format is well suited both for version control software and file syn
 UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io) and is
 licenced under the same GPL v3.0 license.
 
+B.D. Murphy is modifying the original using AI to make it part of his Umbratools publishing system.
+
+The ideas:
+1) Write the novel. Make it simple while writing. Formatting is later.
+2) Have the entire project together. Not the novel text here and metadata you need somewhere else. All together.
+  2.a) ePub, paperback (print pdf), audio all start with the same story text, but each needs something different. 
+  Put everything into one project ISBN, book blurb, search terms, genere/categories BISAC codes, cover, etc
+3) With everything together publishing is simpler
+4) The goal is to write (human writen) a novel, then use AI to help with everything else. At the end of the process there will be
+ePub, Paperback/Hard cover, audio versions in 10 languages.
+
 For more details, and how to install and use UmbraEdit, please see the main website and
 documentation.
 
 **Project Links**
 
-* Website: [umbraedit.io](https://umbraedit.io)
-* Documentation: [docs.umbraedit.io](https://docs.umbraedit.io)
-* Internationalisation: [crowdin.com/project/umbraedit](https://crowdin.com/project/umbraedit)
-* PyPi Project: [pypi.org/project/UmbraEdit](https://pypi.org/project/UmbraEdit)
-* Social Media: [fosstodon.org/@umbraedit](https://fosstodon.org/@umbraedit)
+* Website: [umbratools.com/umbraedit](https://umbratools.com/umbraedit)
+* Documentation: [umbratools.com/umbraedit/docs](https://umbratools.com/umbraedit/docs)
 
-_This project is developed and maintained with care by actual humans._
 
-## Sponsors & Attribution
-
-<table style="border: none;">
-<tr>
-  <td><img align="left" style="width: 25px;" src="https://raw.githubusercontent.com/saga-soft/UmbraEdit/main/setup/signpath_logo.png"></td>
-  <td>Free code signing on Windows provided by <a href="https://about.signpath.io/">SignPath.io</a>, certificate by <a href="https://signpath.org/">SignPath Foundation</a>.</td>
-</tr>
-<tr>
-  <td><img align="left" style="width: 25px;" src="https://raw.githubusercontent.com/saga-soft/UmbraEdit/main/setup/cloudsmith_logo.png"></td>
-  <td>Free package repository hosting is graciously provided by <a href="https://cloudsmith.com">Cloudsmith</a>.</td>
-</tr>
-</table>
+_This project is a fork of novelWrite. Taking the great start and extending it. I use AI to help._
 
 
 ## Implementation
@@ -67,19 +60,16 @@ also be appreciated, but please make an issue or a discussion topic first. Befor
 code, please read the full
 [Contributing Guide](https://github.com/saga-soft/UmbraEdit/blob/main/CONTRIBUTING.md).
 
-Project credits are available in [CREDITS.md](https://github.com/saga-soft/UmbraEdit/blob/main/CREDITS.md).
+## original credits
+
+Project credits are available in [CREDITS.md](https://github.com/saga-soft/novelwriter/blob/main/CREDITS.md).
 
 **Note:** New features and most pre-releases are made on the `main` branch. Full releases are made
 from the `release` branch. So if you're submitting a fix to a current release, **including changes
 to documentation**, they must be made to the `release` branch.
 
 
-### Translations
 
-New translations are always welcome. This project uses Crowdin to maintain translations, and you
-can contribute translations at the [Crowdin project page](https://crowdin.com/project/umbraedit).
-If you have any questions, feel free to post them to the
-[Translations of UmbraEdit](https://github.com/saga-soft/UmbraEdit/issues/93) issue thread.
 
 
 ## Licence

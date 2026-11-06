@@ -24,6 +24,11 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import sys
+
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from utils.common import ROOT_DIR, SETUP_DIR, copySourceCode, freshFolder, log, systemCall, updateMetaFile
 

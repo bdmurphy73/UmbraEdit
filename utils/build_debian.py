@@ -30,6 +30,10 @@ import sys
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from utils.common import (
     MIN_PY_VERSION,
     MIN_QT_VERS,

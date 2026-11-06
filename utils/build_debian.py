@@ -75,7 +75,7 @@ Build-Depends:
   %dependencies%,
   %test-dependencies%
 Standards-Version: 4.5.1
-Homepage: https://umbraedit.io
+Homepage: https://umbratools.com/umbraedit
 X-Python3-Version: >= {MIN_PY_VERSION}
 
 Package: umbraedit

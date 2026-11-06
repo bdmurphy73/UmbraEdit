@@ -16,6 +16,6 @@ regularly tested on Debian and Ubuntu Linux, Windows, and MacOS.
 
 UmbraEdit is developed and maintained by [Veronica Berglyd Olsen](https://github.com/vkbo).
 
-**Website:** https://umbraedit.io  
-**Documentation:** https://docs.umbraedit.io/  
+**Website:** https://umbratools.com/umbraedit  
+**Documentation:** https://umbratools.com/umbraedit/docs/  
 **Source Code:** https://github.com/saga-soft/UmbraEdit

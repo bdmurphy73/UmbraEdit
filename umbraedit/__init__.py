@@ -58,7 +58,7 @@ __version__    = "2026.11.0001"  # Changed by B.D. Murphy 2026: YYYY/MM.#### dev
 __hexversion__ = "0x01000000"  # Changed by B.D. Murphy 2026
 __date__       = "2026-11-05"  # Changed by B.D. Murphy 2026
 __status__     = "Stable"
-__domain__     = "umbraedit.io"
+__domain__     = "umbratools.com"
 # fmt: on
 
 logger = logging.getLogger(__name__)

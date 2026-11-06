@@ -329,7 +329,7 @@ class GuiMain(QMainWindow):
                 SHARED.info(
                     "Your version of UmbraEdit was installed from the Ubuntu Launcpad PPA repository. "
                     "This install method is deprecated, and will soon stop working. "
-                    "See <a href='https://umbraedit.io/download/install_linux.html'>Installing on Linux</a> "
+                    "See <a href='https://umbratools.com/umbraedit/download/install_linux.html'>Installing on Linux</a> "
                     "for information on how to migrate.",
                     log=False,
                 )

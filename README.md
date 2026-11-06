@@ -4,7 +4,7 @@
 [![Linting](https://github.com/saga-soft/UmbraEdit/actions/workflows/syntax.yml/badge.svg)](https://github.com/saga-soft/UmbraEdit/actions/workflows/syntax.yml)
 [![Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith&style=flat&link=https%3A%2F%2Fcloudsmith.com)](https://cloudsmith.com)
 
-<img align="left" style="margin: 0 0 4px 0;" src="https://raw.githubusercontent.com/saga-soft/UmbraEdit/main/setup/umbraedit_readme.png">
+<img align="left" style="margin: 0 0 4px 0;" src="https://git.umbratools.com/umbragit/UmbraEdit/raw/main/umbraedit/assets/icons/umbraedit.svg">
 
 UmbraEdit is a plain text editor designed for writing novels assembled from many smaller text
 documents. It uses a minimal formatting syntax inspired by Markdown, and adds a meta data syntax
@@ -20,8 +20,8 @@ documentation.
 
 **Project Links**
 
-* Website: [umbraedit.io](https://umbraedit.io)
-* Documentation: [docs.umbraedit.io](https://docs.umbraedit.io)
+* Website: [UmbraEdit](https://umbratools.com/umbraedit)
+* Documentation: [UmbraEdit Docs](https://umbratools.com/umbraedit/docs)
 * Internationalisation: [crowdin.com/project/umbraedit](https://crowdin.com/project/umbraedit)
 * PyPi Project: [pypi.org/project/UmbraEdit](https://pypi.org/project/UmbraEdit)
 * Social Media: [fosstodon.org/@umbraedit](https://fosstodon.org/@umbraedit)

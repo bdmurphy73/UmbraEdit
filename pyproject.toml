@@ -59,8 +59,8 @@ test = [
 lint = ["pyright", "ruff"]
 
 [project.urls]
-Homepage = "https://umbraedit.io"
-Documentation = "https://docs.umbraedit.io"
+Homepage = "https://umbratools.com/umbraedit"
+Documentation = "https://umbratools.com/umbraedit/docs"
 Repository = "https://github.com/saga-soft/UmbraEdit"
 Issues = "https://github.com/saga-soft/UmbraEdit/issues"
 

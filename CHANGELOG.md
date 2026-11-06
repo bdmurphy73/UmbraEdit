@@ -55,7 +55,7 @@ and is licenced under the same GPL v3.0 license.
 * Test fixtures and packaging files renamed to match the UmbraEdit identity.
 * All 735 existing tests pass on Python 3.12 with PyQt6 6.11.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_2026_11.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_2026_11.html).
 
 ### Detailed Changelog
 
@@ -81,7 +81,7 @@ See the website for complete [Release Notes](https://umbraedit.io/releases/relea
 This is a beta release of the next release version, and is intended for testing purposes. Please be
 careful when using this version on live writing projects, and make sure you take frequent backups.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_26_3.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_26_3.html).
 
 ### Detailed Changelog
 
@@ -183,7 +183,7 @@ paragraphs following a horizontal ruler in the manuscript being indented. The bu
 have also been downgraded to the last version available under the Apache 2.0 licence. The French
 translation has been updated.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_26_2.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_26_2.html).
 
 ### Detailed Changelog
 
@@ -221,7 +221,7 @@ when the app theme changed. It also adds build metadata used in crash reports an
 who installed via the now deprecated Launchpad PPA. French and Russian translations have been
 updated.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_26_2.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_26_2.html).
 
 ### Detailed Changelog
 
@@ -253,7 +253,7 @@ See the website for complete [Release Notes](https://umbraedit.io/releases/relea
 
 The 2026.2 release is based on the features added in 2026.2 Beta 1, Beta 2, RC 1.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_26_2.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_26_2.html).
 
 ### Detailed Changelog
 
@@ -584,7 +584,7 @@ app on Linux.
 
 The 2026.1 release is based on the features added in 2026.1 Beta 1, Beta 2, RC 1.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_26_1.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_26_1.html).
 
 ### Detailed Changelog
 
@@ -813,7 +813,7 @@ Spotlight on MacOS.
 
 The 2.8 release is based on the features added in 2.8 beta 1 and 2.8 RC 1.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_8.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_2_8.html).
 
 ### Detailed Changelog
 
@@ -1153,7 +1153,7 @@ for 2.7 has also been completed.
 The 2.7 release updates the 2.7 RC 1 release and makes an improvement to the build settings tool.
 It also updates most translations and updates the French version of the documentation.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_7.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_2_7.html).
 
 ### Detailed Changelog
 
@@ -1440,7 +1440,7 @@ more details.
 
 The 2.6 release fixes a few minor issues from the RC 1 pre-release, and updates most translations.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_6.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_2_6.html).
 
 ### Detailed Changelog
 
@@ -1746,7 +1746,7 @@ an issue with the Importance labels not being updated in the tabs for tags.
 The 2.5 release fixes a number of minor issues from the RC 1 pre-release, and updates most
 translation files. Polish has also been added.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_5.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_2_5.html).
 
 ### Detailed Changelog
 
@@ -2081,7 +2081,7 @@ instance be used for soft and hard scene breaks.
 
 The **Manuscript Build** tool has also been extended with multiple new formatting options.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_4.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_2_4.html).
 
 ### Detailed Changelog
 
@@ -2255,7 +2255,7 @@ View and Focus character names in chapter titles in Manuscripts. A new feature t
 also been added. It behaves similarly to comments, but is never included in a manuscript even if
 comments in the manuscript are enabled.
 
-See the website for complete [Release Notes](https://umbraedit.io/releases/release_2_3.html).
+See the website for complete [Release Notes](https://umbratools.com/umbraedit/releases/release_2_3.html).
 
 ### Detailed Changelog
 

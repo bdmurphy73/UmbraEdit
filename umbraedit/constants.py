@@ -66,9 +66,9 @@ class nwConst:
     FMT_DSTAMP = "%Y-%m-%d"  # Date only format
 
     # URLs
-    URL_WEB = "https://umbraedit.io"
-    URL_DOCS = "https://docs.umbraedit.io"
-    URL_RELEASES = "https://releases.umbraedit.io"
+    URL_WEB = "https://umbratools.com/umbraedit"
+    URL_DOCS = "https://umbratools.com/umbraedit/docs"
+    URL_RELEASES = "https://umbratools.com/umbraedit/releases"
     URL_CODE = "https://github.com/saga-soft/UmbraEdit"
     URL_REPORT = "https://github.com/saga-soft/UmbraEdit/issues"
     URL_HELP = "https://github.com/saga-soft/UmbraEdit/discussions"

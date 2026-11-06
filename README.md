@@ -10,7 +10,6 @@ The project format is well suited both for version control software and file syn
 
 UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io) and is
 licensed under the same GPL v3.0 license.
-UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io) and is licensed under the same GPL v3.0 license.
 
 B.D. Murphy is modifying the original using AI to make it part of his Umbratools publishing system.
 
@@ -29,6 +28,8 @@ This project is a fork of novelWrite. Taking the great start and extending it. I
 
 * Website: [UmbraEdit](https://umbratools.com/umbraedit)
 * Documentation: [UmbraEdit Docs](https://umbratools.com/umbraedit/docs)
+
+This project is a fork of novelWrite. Taking the great start and extending it. I use AI to help._
 
 ## Implementation
 
@@ -51,20 +52,16 @@ good reason for doing so. Please do not submit AI generated content.
 See our [AI Policy](https://github.com/saga-soft/UmbraEdit/blob/main/AI_POLICY.md) for details.
 
 Fixes and patches are welcome. Contributions related to packaging and installing UmbraEdit will
-also be appreciated, but please make an issue or a discussion topic first. Before contributing any
-code, please read the full
+also be appreciated. Before contributing any code, please read the full
 [Contributing Guide](https://github.com/saga-soft/UmbraEdit/blob/main/CONTRIBUTING.md).
 
-Project credits are available in [CREDITS.md](https://github.com/saga-soft/UmbraEdit/blob/main/CREDITS.md).
+## Original Credits
+
+Project credits are available in [CREDITS.md](https://github.com/saga-soft/novelwriter/blob/main/CREDITS.md).
 
 **Note:** New features and most pre-releases are made on the `main` branch. Full releases are made
 from the `release` branch. So if you're submitting a fix to a current release, **including changes
 to documentation**, they must be made to the `release` branch.
-
-
-### Translations
-
-
 
 
 ## Licence

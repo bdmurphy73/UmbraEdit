@@ -85,7 +85,7 @@ ls -lah .
 # Create icon
 echo "Creating icon ..."
 pushd "$SRC_DIR/setup/macos" || exit 1
-iconutil -c icns ./novelwriter.iconset
+iconutil -c icns ./umbraedit.iconset
 echo "Content of current dir:"
 ls -lah .
 

@@ -8,6 +8,7 @@ include pyproject.toml
 include UmbraEdit.py
 include pkgutils.py
 include run_tests.py
+include build-linux.sh
 
 include setup/macos/*
 include setup/windows/*

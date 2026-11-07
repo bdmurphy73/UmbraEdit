@@ -73,25 +73,74 @@ echo "  Package manager: $PKG_MGR"
 echo "  Prerequisites OK"
 
 #--------------------------------------------------------------
-# Step 2: Install system dependencies (best-effort)
+# Step 2: Install system dependencies
 #--------------------------------------------------------------
 echo ""
 echo "[2/5] Installing system dependencies..."
 
+INSTALL_FAILED=0
+
+if [ "$PKG_MGR" = "apt-get" ]; then
+    echo "  Updating package lists..."
+    if ! sudo apt-get update 2>&1 | tail -5; then
+        echo ""
+        echo "============================================================"
+        echo "  ERROR: apt-get update failed!"
+        echo "============================================================"
+        echo ""
+        echo "  One of your package repositories is broken (likely a PPA or"
+        echo "  third-party repo like NVIDIA's)."
+        echo ""
+        echo "  To fix:"
+        echo "    1. Check /etc/apt/sources.list and /etc/apt/sources.list.d/"
+        echo "    2. Remove or disable any repositories that no longer exist"
+        echo "    3. Run: sudo apt-get update"
+        echo "    4. Then re-run this script: ./build-linux.sh"
+        echo ""
+        exit 1
+    fi
+fi
+
+echo ""
+echo "Installing packages..."
 install_pkg() {
     if [ "$PKG_MGR" = "apt-get" ]; then
-        sudo apt-get install -y "$@" 2>/dev/null || echo "  WARNING: Failed to install $* (may already be installed)"
+        sudo apt-get install -y "$@" 2>&1 | tail -3
     elif [ "$PKG_MGR" = "dnf" ]; then
-        sudo dnf install -y "$@" 2>/dev/null || echo "  WARNING: Failed to install $* (may already be installed)"
+        sudo dnf install -y "$@" 2>&1 | tail -3
     elif [ "$PKG_MGR" = "pacman" ]; then
-        sudo pacman -Sy --noconfirm "$@" 2>/dev/null || echo "  WARNING: Failed to install $* (may already be installed)"
+        sudo pacman -Sy --noconfirm "$@" 2>&1 | tail -3
     fi
 }
 
-install_pkg python3 python3-pip python3-pyqt6 python3-enchant 2>/dev/null || true
-install_pkg dh-python debhelper python3-build python3-setuptools appimagetool 2>/dev/null || true
+echo "  Installing: python3 python3-pip python3-pyqt6 python3-enchant"
+install_pkg python3 python3-pip python3-pyqt6 python3-enchant 2>&1 | tail -3 || {
+    echo ""
+    echo "============================================================"
+    echo "  ERROR: Failed to install core dependencies"
+    echo "============================================================"
+    echo ""
+    echo "  Please install manually and re-run:"
+    echo "    sudo apt-get install python3 python3-pip python3-pyqt6 python3-enchant"
+    echo ""
+    exit 1
+}
 
-echo "  Dependencies installed (or already present)"
+echo ""
+echo "  Installing: dh-python debhelper python3-build appimagetool"
+install_pkg dh-python debhelper python3-build appimagetool 2>&1 | tail -3 || {
+    echo ""
+    echo "============================================================"
+    echo "  WARNING: Some build tools failed to install"
+    echo "============================================================"
+    echo ""
+    echo "  You may need to install these manually:"
+    echo "    sudo apt-get install dh-python debhelper python3-build appimagetool"
+    echo ""
+    echo "  Continuing anyway..."
+}
+
+echo "  System dependencies installed"
 
 #--------------------------------------------------------------
 # Step 3: Download source tarball

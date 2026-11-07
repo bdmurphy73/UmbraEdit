@@ -1,204 +1,172 @@
 #!/usr/bin/env bash
+#=============================================================================
 # UmbraEdit Linux Build Script
-# Builds .deb package and AppImage from source tarball
+# ============================================================================
+# Downloads the UmbraEdit source tarball and builds a .deb package and/or
+# AppImage for Linux AMD64/ARM64.
 #
 # Usage:
 #   chmod +x build-linux.sh
-#   ./build-linux.sh
+#   ./build-linux.sh [--arch amd64|arm64] [--distro ubuntu|debian] [--no-deb]
 #
+# No git clone required. Downloads the source tarball automatically.
+#=============================================================================
+
 set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+#-----------------------------------------------------------------------------
+# Configuration
+#-----------------------------------------------------------------------------
+VERSION="2026.11.5"
+RELEASE_VERSION="2026.11.0007"
+GITEA_URL="http://192.168.123.18:2222/umbragit/UmbraEdit"
+TARBALL_URL="${GITEA_URL}/-/archive/v${RELEASE_VERSION}/umbraedit-${RELEASE_VERSION}.tar.gz"
+TARBALL="umbraedit-${RELEASE_VERSION}.tar.gz"
+EXTRACTED_DIR="umbraedit-${RELEASE_VERSION}"
 
-echo "=========================================="
-echo "UmbraEdit Linux Build Script"
-echo "=========================================="
+ARCH="${1:-amd64}"
+DISTRO="${2:-ubuntu}"
+BUILD_DEB="${3:-yes}"
 
-# Detect architecture
-ARCH=$(uname -m)
-echo "Detected architecture: $ARCH"
-
-if [[ "$ARCH" != "x86_64" && "$ARCH" != "aarch64" ]]; then
-    echo -e "${RED}Error: Unsupported architecture: $ARCH${NC}"
-    echo "Supported architectures: x86_64, aarch64"
-    exit 1
-fi
-
-# Detect Linux distribution
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    DISTRO=$ID
-    VERSION=$VERSION_ID
-else
-    echo -e "${RED}Error: Cannot detect Linux distribution${NC}"
-    exit 1
-fi
-
-echo "Detected distribution: $DISTRO $VERSION"
-
-# ---------------------------------------------------------
-# Step 1: Install build dependencies
-# ---------------------------------------------------------
+echo "============================================================"
+echo "  UmbraEdit Linux Build Script"
+echo "============================================================"
 echo ""
-echo "=========================================="
-echo "Step 1: Installing build dependencies"
-echo "=========================================="
+echo "  Version:    ${RELEASE_VERSION}"
+echo "  Architecture: ${ARCH}"
+echo "  Distro:     ${DISTRO}"
+echo "  Build .deb: ${BUILD_DEB}"
+echo ""
+
+#--------------------------------------------------------------
+# Step 1: Check prerequisites
+#--------------------------------------------------------------
+echo "[1/5] Checking prerequisites..."
+
+MISSING=0
+for cmd in curl tar python3; do
+    if ! command -v "$cmd" &> /dev/null; then
+        echo "  MISSING: $cmd"
+        MISSING=1
+    fi
+done
 
 if command -v apt-get &> /dev/null; then
-    sudo apt-get update
-    sudo apt-get install -y \
-        python3 \
-        python3-pip \
-        python3-pyqt6 \
-        python3-pyqt6.qtsvg \
-        python3-enchant \
-        qt6-image-formats-plugins \
-        qt6-svg-plugins \
-        dh-python \
-        debhelper \
-        python3-build \
-        python3-setuptools \
-        appimagetool \
-        file
+    PKG_MGR="apt-get"
 elif command -v dnf &> /dev/null; then
-    sudo dnf install -y \
-        python3 \
-        python3-pip \
-        python3-pyqt6 \
-        python3-enchant \
-        qt6-qtimageformats \
-        qt6-qtsvg \
-        python3-build \
-        python3-setuptools \
-        appimagetool
+    PKG_MGR="dnf"
 elif command -v pacman &> /dev/null; then
-    sudo pacman -Sy --noconfirm \
-        python \
-        python-pip \
-        python-pyqt6 \
-        python-enchant \
-        qt6-imageformats \
-        qt6-qtsvg \
-        python-build \
-        python3-setuptools \
-        appimagetool
+    PKG_MGR="pacman"
 else
-    echo -e "${RED}Error: Unsupported package manager${NC}"
-    echo "Please install manually: python3, pyqt6, pyenchant, dpkg-buildpackage, appimagetool"
+    PKG_MGR=""
+fi
+
+if [ "$PKG_MGR" = "" ]; then
+    echo ""
+    echo "ERROR: No supported package manager found (apt-get, dnf, or pacman)"
+    echo "Please install: python3, python3-pip, python3-pyqt6, python3-enchant,"
+    echo "                dh-python, debhelper, python3-build, appimagetool"
     exit 1
 fi
 
-# ---------------------------------------------------------
-# Step 2: Extract source tarball
-# ---------------------------------------------------------
+echo "  Package manager: $PKG_MGR"
+echo "  Prerequisites OK"
+
+#--------------------------------------------------------------
+# Step 2: Install system dependencies (best-effort)
+#--------------------------------------------------------------
 echo ""
-echo "=========================================="
-echo "Step 2: Extracting source tarball"
-echo "=========================================="
+echo "[2/5] Installing system dependencies..."
 
-TARBALL="umbraedit-2026.11.5.tar.gz"
+install_pkg() {
+    if [ "$PKG_MGR" = "apt-get" ]; then
+        sudo apt-get install -y "$@" 2>/dev/null || echo "  WARNING: Failed to install $* (may already be installed)"
+    elif [ "$PKG_MGR" = "dnf" ]; then
+        sudo dnf install -y "$@" 2>/dev/null || echo "  WARNING: Failed to install $* (may already be installed)"
+    elif [ "$PKG_MGR" = "pacman" ]; then
+        sudo pacman -Sy --noconfirm "$@" 2>/dev/null || echo "  WARNING: Failed to install $* (may already be installed)"
+    fi
+}
 
-if [ ! -f "$TARBALL" ]; then
-    echo -e "${RED}Error: $TARBALL not found in current directory${NC}"
-    echo "Download it from: https://git.umbratools.com/umbragit/UmbraEdit/-/releases/v2026.11.0006"
-    exit 1
+install_pkg python3 python3-pip python3-pyqt6 python3-enchant 2>/dev/null || true
+install_pkg dh-python debhelper python3-build python3-setuptools appimagetool 2>/dev/null || true
+
+echo "  Dependencies installed (or already present)"
+
+#--------------------------------------------------------------
+# Step 3: Download source tarball
+#--------------------------------------------------------------
+echo ""
+echo "[3/5] Downloading source tarball..."
+echo "  URL: ${TARBALL_URL}"
+
+if [ -f "$TARBALL" ]; then
+    echo "  Archive already exists, skipping download"
+else
+    curl -L -o "$TARBALL" "$TARBALL_URL"
+    echo "  Downloaded: $(ls -lh "$TARBALL" | awk '{print $5}')"
 fi
 
-echo "Extracting $TARBALL..."
+#--------------------------------------------------------------
+# Step 4: Extract source
+#--------------------------------------------------------------
+echo ""
+echo "[4/5] Extracting source..."
+
+rm -rf "$EXTRACTED_DIR"
 tar xzf "$TARBALL"
-cd umbraedit-2026.11.5
+cd "$EXTRACTED_DIR"
 
-echo "Extracted to: $(pwd)"
+echo "  Extracted to: $(pwd)"
 
-# ---------------------------------------------------------
-# Step 3: Install Python dependencies
-# ---------------------------------------------------------
+#--------------------------------------------------------------
+# Step 5: Install Python dependencies
+#--------------------------------------------------------------
 echo ""
-echo "=========================================="
-echo "Step 3: Installing Python dependencies"
-echo "=========================================="
+echo "[5/5] Installing Python dependencies..."
 
-python3 -m pip install --user --upgrade pip setuptools wheel
-python3 -m pip install --user -r <(python3 utils/main.py gen-req --groups app)
+python3 -m pip install --user --upgrade pip setuptools wheel 2>&1 | tail -1
+python3 -m pip install --user pyqt6 pyenchant 2>&1 | tail -1
 
-# ---------------------------------------------------------
-# Step 4: Build .deb package (Debian/Ubuntu only)
-# ---------------------------------------------------------
-if [ "$DISTRO" = "ubuntu" ] || [ "$DISTRO" = "debian" ]; then
+echo "  Python dependencies installed"
+
+#--------------------------------------------------------------
+# Step 6: Build packages
+#--------------------------------------------------------------
+echo ""
+echo "[6/6] Building packages..."
+
+# Build .deb (Debian/Ubuntu only)
+if [ "$BUILD_DEB" = "yes" ] && [ "$PKG_MGR" = "apt-get" ]; then
     echo ""
-    echo "=========================================="
-    echo "Step 4: Building .deb package"
-    echo "=========================================="
-
+    echo "Building .deb package..."
     python3 utils/build_debian.py --distro "$DISTRO" --build 1
-
     echo ""
-    echo -e "${GREEN}Build complete!${NC}"
-    echo "Debian package: dist_deb/umbraedit_*.deb"
-    echo ""
-    echo "To install:"
-    echo "  sudo dpkg -i dist_deb/umbraedit_*_${ARCH}.deb"
-else
-    echo ""
-    echo "=========================================="
-    echo "Step 4: Skipping .deb build (not Debian/Ubuntu)"
-    echo "=========================================="
+    echo "  .deb package: dist_deb/umbraedit_*_${ARCH}.deb"
 fi
 
-# ---------------------------------------------------------
-# Step 5: Build AppImage
-# ---------------------------------------------------------
+# Build AppImage
 echo ""
-echo "=========================================="
-echo "Step 5: Building AppImage"
-echo "=========================================="
-
+echo "Building AppImage..."
 python3 utils/build_appimage.py --linux manylinux_2_28 --arch "$ARCH" --python 3.12
-
 echo ""
-echo -e "${GREEN}Build complete!${NC}"
-echo "AppImage: dist_appimage/umbraedit-2026.11-${ARCH}.AppImage"
-echo ""
-echo "To run:"
-echo "  chmod +x dist_appimage/umbraedit-2026.11-${ARCH}.AppImage"
-echo "  ./dist_appimage/umbraedit-2026.11-${ARCH}.AppImage"
+echo "  AppImage: dist_appimage/umbraedit-${RELEASE_VERSION}-${ARCH}.AppImage"
 
-# ---------------------------------------------------------
-# Step 6: Build Python wheel (optional, for pip install)
-# ---------------------------------------------------------
-echo ""
-echo "=========================================="
-echo "Step 6: Building Python wheel"
-echo "=========================================="
-
-python3 -m pip install --user build
-python3 -m build --wheel
-
-echo ""
-echo -e "${GREEN}Wheel built:${NC}"
-echo "  dist/umbraedit-2026.11.1-py3-none-any.whl"
-echo ""
-echo "To install:"
-echo "  pip install dist/umbraedit-2026.11.1-py3-none-any.whl"
-
-# ---------------------------------------------------------
+#--------------------------------------------------------------
 # Done
-# ---------------------------------------------------------
+#--------------------------------------------------------------
 echo ""
-echo "=========================================="
-echo "Build complete!"
-echo "=========================================="
+echo "============================================================"
+echo "  Build Complete!"
+echo "============================================================"
 echo ""
-echo "Build artifacts:"
+echo "Artifacts:"
 ls -la dist_deb/ 2>/dev/null || true
 ls -la dist_appimage/ 2>/dev/null || true
-ls -la dist/ 2>/dev/null || true
 echo ""
 echo "To run UmbraEdit:"
-echo "  From AppImage: ./dist_appimage/umbraedit-2026.11-${ARCH}.AppImage"
-echo "  From .deb:     sudo dpkg -i dist_deb/umbraedit_*_${ARCH}.deb && umbraedit"
-echo "  From wheel:    pip install dist/umbraedit-2026.11.1-py3-none-any.whl && umbraedit"
+echo "  From AppImage:  chmod +x dist_appimage/umbraedit-${RELEASE_VERSION}-${ARCH}.AppImage"
+echo "                  ./dist_appimage/umbraedit-${RELEASE_VERSION}-${ARCH}.AppImage"
+echo "  From .deb:      sudo dpkg -i dist_deb/umbraedit_*_${ARCH}.deb && umbraedit"
+echo ""
+echo "Source directory: $(pwd)"

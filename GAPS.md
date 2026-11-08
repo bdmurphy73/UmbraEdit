@@ -89,3 +89,20 @@ specified, with reasons.
 | G51 | R7: sync/backup travel by SHA-256 deferred | Matrices are P04 assets (content-addressed) and travel with the asset store; registry sync is a P15 sidecar concern. |
 | G52 | R9: series bible matrices (P26) deferred | Cross-book matrix availability by code depends on P26 series support. |
 | G53 | P08 manual pages not written | `names-and-voices/voices` and `reference/voice-matrix-format` remain stubs (same reason as G31/G38/G45: umbra-example directive and screenshot pipeline). |
+
+## P09
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G54 | R1: Annotate mode View toggle (Alt+Shift+A) and gutter chips deferred | The gutter drawing and chip rendering require the editor/line-number-area GUI work. The chip computation logic (`chipForParagraph`, `tagColor`, `tagInitials`) is implemented and tested. |
+| G55 | R2: Speaker picker popup (Alt+S / chip click) deferred | The popup list and applying speaker via the editor document are GUI work. The application logic (`applySpeaker`, `resolvePick`) is implemented and tested. |
+| G56 | R3: alias-prompt dialog and `speakers.addAliasesAutomatically` wiring deferred | The prompt UI and the setting hook into the picker are GUI work. `addAlias` and the setting default are implemented and tested. |
+| G57 | R4: Enter alternation/unclosed-quote proposal UI deferred | Showing the proposed chip and accepting on Enter/click are editor GUI work. The proposal logic (`enterProposal`) is implemented and tested. |
+| G58 | R5: Split/merge integration with editor document changes deferred | Observing `document.changed` and making the edit + notice one undo step is GUI work. `splitParagraph`/`mergeParagraphs` are implemented and tested. |
+| G59 | R6: Speakers dock deferred | The dock (Summary/Needs a speaker/Proposals/New in this scene/Cast) requires the dock creation system (same blocker as G12/G16/G34/G46). |
+| G60 | R7: review flag marking in the editor deferred | Marking the amber-dot chip until clicked is editor GUI work. `loadReviewFlags`/`saveReviewFlags`/`toggleReviewFlag` are implemented and tested. |
+| G61 | R8: attribution name red underline deferred | The underline drawing and click-to-actions are editor/highlighter GUI work. `unattributedNames` is implemented and tested. |
+| G62 | R9: gates implemented but not wired into docbuild/audio flow | `speakerUnassigned` and `oneoffUnpromoted` are registered via `umbra.gates`; calling `requireGates` before audio.chapter/build.run is deferred (same blocker as G13). |
+| G63 | R10: shortcut registration and conflict checking deferred | `speakers.addAliasesAutomatically`/`speakers.proposeAlternation` settings and defaults are implemented; Alt+Shift+A / Alt+S registration via the shortcut system is GUI work. |
+| G64 | R11: keystroke performance benchmark deferred | The 5,000-word paragraph-heavy scene benchmark requires a harness; the logic is O(paragraph) per edit. |
+| G65 | P09 manual pages not written | `names-and-voices/speakers` and `tutorials/speakers-and-voices` remain stubs (same reason as prior manual-page gaps). |

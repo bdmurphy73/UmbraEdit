@@ -259,5 +259,6 @@ registerGate(GateRule(
 from umbraedit.umbra import (
     prongates,  # noqa: F401
     sheetgates,  # noqa: F401
+    speakergates,  # noqa: F401
     voicematrixgates,  # noqa: F401
 )

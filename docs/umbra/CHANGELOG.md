@@ -200,3 +200,27 @@ See `docs/umbra/BASE.md` for the full list. Key upstream files touched:
 
 - `umbraedit/umbra/assets.py`: MIME detection for UVMX (P08 import)
 - `umbraedit/umbra/gates.py`: operation stamping on GateScope (gate rule context)
+
+## P09
+
+### Added
+
+- `umbraedit/umbra/speakers.py` — speaker authoring logic (Qt-free)
+  - `SpeakerChip`, `SpeakerProposal`, `SplitResult`, `MergeResult`
+  - `chipForParagraph` (R1): assigned/proposed/unassigned/needs_review/none
+  - `applySpeaker` (R2): insert/update/remove the ``%Voice:`` line above a paragraph
+  - `resolvePick` (R3): aliasNorm matching over tag, name parts, aliases, full name
+  - `enterProposal` (R4): alternation / unclosed-quote proposals
+  - `splitParagraph` / `mergeParagraphs` (R5): voice-line preservation and drop notice
+  - `loadReviewFlags` / `saveReviewFlags` / `toggleReviewFlag` (R7): ``umbra/cache/review.json``
+  - `unattributedNames` (R8): attribution names matching no entity
+  - `speakerSetting` (R10): ``speakers.addAliasesAutomatically`` / ``speakers.proposeAlternation``
+  - `tagColor` / `tagInitials` — chip rendering helpers
+- `umbraedit/umbra/speakergates.py` — gate rules `speakerUnassigned` (block audio.chapter) and `oneoffUnpromoted` (advisory), registered via `umbra.gates`
+
+### Upstream Files Touched
+
+- `umbraedit/umbra/gates.py`: registers `speakergates` (P09 gate rules);
+  operation stamping on `GateScope` was added earlier (P07/P08). All
+  P09 logic is otherwise self-contained in `umbraedit/umbra/`; GUI
+  pieces are deferred to GAPS.md G54–G64.

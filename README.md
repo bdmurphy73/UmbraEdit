@@ -16,11 +16,12 @@ B.D. Murphy is modifying the original using AI to make it part of his Umbratools
 The ideas:
 
 1) Write the novel. Make it simple while writing. Formatting is later.
-2) Have the entire project together. Not the novel text here and metadata you need somewhere else. All together. 2.a) ePub, paperback (print pdf), audio all start with the same story text, but each needs something different. Put everything into one project ISBN, book blurb, search terms, genere/categories BISAC codes, cover, etc
-3) With everything together publishing is simpler
+2) Have the entire project together. Not the novel text here and metadata you need somewhere else. All together. 2.a) ePub, paperback (print pdf), audio all start with the same story text, but each needs something different. Put everything into one project (ISBNs, book blurb, search terms, genere/categories BISAC codes, cover, etc)
+3) With everything together formatting and publishing is simpler
 4) The goal is to write (human written) a novel, then use AI to help with everything else. At the end of the process there will be ePub, Paperback/Hard cover, audio versions in 10 languages.
 
-For more details, and how to install and use UmbraEdit, please see the main website and documentation.
+For more details, and how to install and use UmbraEdit, please see the main website and documentation. [UmbraTools](https://umbratools.com) 
+B.D. Murphy's website is [authorbdmurphy](https://authorbdmurphy.com)
 
 This project is a fork of novelWrite. Taking the great start and extending it. I use AI to help.
 
@@ -44,6 +45,7 @@ supports Qt, PyQt and Python.
 
 ## Project Contributions
 
+****** Issues need to be - github ****
 Please don't make feature pull requests without first having discussed them with the maintainer.
 You can make a feature request in the [issues tracker](https://github.com/saga-soft/UmbraEdit/issues),
 or if the idea isn't fully formed, start a [discussion](https://github.com/saga-soft/UmbraEdit/discussions).

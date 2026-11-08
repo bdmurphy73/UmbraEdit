@@ -7,6 +7,7 @@ Documentation: http://www.sphinx-doc.org/en/master/config
 
 import datetime
 import os
+import sys
 import time
 
 # -- Project Information -----------------------------------------------------
@@ -83,3 +84,8 @@ latex_elements = {
 }
 latex_logo = "_static/umbraedit-pdf.png"
 latex_documents = [(master_doc, "manual.tex", None, author, "manual")]
+
+# -- UmbraEdit Extensions -----------------------------------------------------
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "_ext"))
+extensions.append("umbra_docs")

@@ -197,6 +197,16 @@ def main(sysArgs: list | None = None) -> GuiMain | None:
 
     logger.info("Starting UmbraEdit %s (%s) %s", __version__, __hexversion__, __date__)
 
+    # Single Instance Check
+    # =====================
+    # Check if another instance is already running. If so, try to switch
+    # to it. If it appears hung, kill it and start a new instance.
+    from umbraedit.singleinstance import checkSingleInstance
+
+    if not checkSingleInstance():
+        logger.info("Another UmbraEdit instance took over, exiting.")
+        sys.exit(0)
+
     # Disable GC, running in GuiMain instead (#2927)
     gc.disable()
 

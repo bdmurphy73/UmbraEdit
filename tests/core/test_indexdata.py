@@ -334,6 +334,7 @@ def testIndexHeading_References():
         "@location": [],
         "@alias": [],
         "@attr": [],
+        "@pron": [],
     }
     assert head.getReferencesByKeyword("@tag") == []
 
@@ -360,6 +361,7 @@ def testIndexHeading_References():
         "@location": [],
         "@alias": [],
         "@attr": [],
+        "@pron": [],
     }
 
     # Check them individually

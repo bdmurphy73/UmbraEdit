@@ -138,3 +138,37 @@ See `docs/umbra/BASE.md` for the full list. Key upstream files touched:
 - `umbraedit/core/index.py`: entity recording in `_indexKeyword`, sync in
   `clear`/`deleteHandle`, hook binding in `scanText`, entity query methods
   (P06 requirement R1)
+
+## P07
+
+### Added
+
+- `umbraedit/umbra/pronunciation.py` — Pronunciation model and store
+  - `Pron`, `EntityPron`, `PronSpan`, `Pronunciations` class
+  - `getPronunciation(tag, lang)`, `setPronunciation(tag, lang, respelling, ipa)`, `markAsWritten(tag)`
+  - `validateIpa(text)`: validates allowed IPA codepoints, balanced `/` and `[ ]` delimiters, with positions
+  - `parsePronNote(body)`: reads `@tag`, `@alias` respelling, `@pron`, `pron_status`
+  - `runPronPreview(command, text, ipa)`: runs a user-configured preview command without a shell (R5)
+  - `pronunciationSpans(text, lang, project)`: pronounced name spans for the utterance index (P11) (R8)
+  - `PRON_CLASSES` = CHARACTER, WORLD, OBJECT, ENTITY (PLOT/TIMELINE excluded) (R2)
+  - `updatePronSeen()` / `staleEntities()` staleness cache in `umbra/cache/pron-seen.json`
+  - 16 default tones are seeded once; a missing tones.json is recreated; a hand-edited unknown tone is flagged, never removed
+- `umbraedit/umbra/mentions.py` — Name mention detection (R3/R6/R10)
+  - `findMentions(text, entities)`: tag, display name, fn, mn, ln, nick, title, full_name, aliases; longest match wins; word boundaries; possessives and hyphenated forms; CJK without boundaries; cached per document via `textHash` (MentionCache)
+  - `findUntrackedNames(texts, entities, stoplist)`: capitalised words occurring >= 3 times matching no entity, excluding sentence-initial-only words
+- `umbraedit/umbra/lexicon.py` — Lexicon export (R7)
+  - `exportLexicon(project, lang)`: deterministic W3C PLS 1.0 XML + JSON copy; `<phoneme>` for IPA entries, `<alias>` for respelling-only; asWritten omitted; sorted by grapheme then tag
+- `umbraedit/umbra/prongates.py` — gate rules: pronunciationMissing, pronunciationLanguageMissing, pronunciationInvalidIpa, nameUntracked, pronunciationStale; registered via `umbra.gates`
+
+### Changed
+
+- `umbraedit/constants.py`: nwKeyWords.PRON_KEY (`@pron`) added to VALID_KEYS; nwLabels.KEY_NAME entry added
+- `umbraedit/core/index.py`: `_indexKeyword` records `@pron` on the entity index; `Index` owns an `EntityIndex` instance; public `getEntity(tag)`, `iterEntities(kind=None)`, `entityHandle(tag)`; `__slots__` extended
+- `umbraedit/umbra/sheet.py`: EntityRow gains displayName, prons, aliasPron fields
+- `umbraedit/umbra/entityindex.py`: records @pron values; EntityRow carries pron data
+- `umbraedit/umbra/sheetedit.py`: @pron rendering/parsing; header (`+++`) aware keyword block; IPA delimiter stripping
+
+### Upstream Files Touched
+
+- `umbraedit/constants.py`: PRON_KEY, VALID_KEYS, KEY_NAME (P07 requirement R1)
+- `umbraedit/core/index.py`: entity keyword recording, Index-owned EntityIndex, entity query methods (P07 R1, P06 R1)

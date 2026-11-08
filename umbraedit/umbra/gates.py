@@ -16,7 +16,7 @@ import json
 import logging
 
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -71,6 +71,8 @@ class GateScope:
     handles: list[str] | None = None
     edition: str | None = None
     options: dict = field(default_factory=dict)
+    # Set by runGates so checks can tell which operation is running
+    operation: str = ""
 
 
 @dataclass(frozen=True)
@@ -144,6 +146,7 @@ def _runSingleRule(rule: GateRule, scope: GateScope, settings: Any) -> list[Find
 
 def runGates(operation: str, scope: GateScope, settings: Any | None = None) -> GateReport:
     ranAt = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    scope = replace(scope, operation=operation)
     allFindings: list[Finding] = []
     for rule in sorted(_gates.values(), key=lambda r: r.ruleId):
         if operation not in rule.operations:
@@ -251,6 +254,9 @@ registerGate(GateRule(
     defaultSeverity="block", relaxable=False, check=_checkUnknownReferenceTag,
 ))
 
-# UmbraEdit (P06): feature gate rules. Imported last so the built-in
-# rules above are registered first; sheetgates imports this module.
-from umbraedit.umbra import sheetgates  # noqa: E402, F401
+# UmbraEdit (P06/P07): feature gate rules. Imported last so the built-in
+# rules above are registered first; the feature modules import this one.
+from umbraedit.umbra import (
+    prongates,  # noqa: F401
+    sheetgates,  # noqa: F401
+)

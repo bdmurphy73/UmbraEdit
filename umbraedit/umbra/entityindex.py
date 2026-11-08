@@ -39,12 +39,22 @@ class _EntityRecord:
     displayName: str = ""
     aliases: list[tuple[str, str]] = field(default_factory=list)  # (alias, pronunciation)
     attrs: dict[str, str] = field(default_factory=dict)
+    prons: list[tuple[str, str, str]] = field(default_factory=list)  # (lang, respelling, ipa)
 
 
 def _splitValue(value: str) -> tuple[str, str]:
     """Split a keyword value into (name, display) on the first pipe."""
     name, _, display = value.partition("|")
     return name.strip(), display.strip()
+
+
+def _stripIpaDelims(text: str) -> str:
+    """Strip matching surrounding IPA delimiters (`/.../` or `[...]`)."""
+    if len(text) >= 2 and text[0] == "/" and text[-1] == "/":
+        return text[1:-1].strip()
+    if len(text) >= 2 and text[0] == "[" and text[-1] == "]":
+        return text[1:-1].strip()
+    return text
 
 
 class EntityIndex:
@@ -81,11 +91,14 @@ class EntityIndex:
         self._records[tHandle] = record
 
     def recordKeyword(self, tHandle: str, key: str, values: list[str]) -> None:
-        """Record an `@alias` or `@attr` keyword value.
+        """Record an `@alias`, `@attr` or `@pron` keyword value.
 
         Values are pre-split by the index scanner, one value per list
         entry. An `@alias` value may contain a pronunciation after a
-        pipe; an `@attr` value is `key | value`.
+        pipe; an `@attr` value is `key | value`; an `@pron` value is
+        `lang | respelling [| ipa]` with the IPA written between
+        slashes. Note: the index scanner splits values on commas, so
+        `@pron` fields must not contain commas.
         """
         record = self._records.get(tHandle)
         if record is None:
@@ -102,6 +115,15 @@ class EntityIndex:
                 attrKey, attrValue = _splitValue(value)
                 if attrKey:
                     record.attrs[attrKey] = attrValue
+        elif key == "@pron":
+            for value in values:
+                lang, _, rest = value.partition("|")
+                lang = lang.strip()
+                if not lang:
+                    continue
+                respelling, _, ipaRaw = rest.partition("|")
+                ipa = _stripIpaDelims(ipaRaw.strip())
+                record.prons.append((lang, respelling.strip(), ipa))
 
     def dropHandle(self, tHandle: str) -> None:
         """Drop all data for a document handle."""
@@ -157,8 +179,11 @@ class EntityIndex:
             tag=record.tag,
             handle=rHandle,
             kind=self._kindForHandle(project, rHandle),
+            displayName=record.displayName,
             aliases=[alias for alias, _ in record.aliases],
             attrs=dict(record.attrs),
+            prons=list(record.prons),
+            aliasPron={alias: pron for alias, pron in record.aliases if pron},
         )
 
     def iterEntities(self, project: Any, kind: str | None = None) -> list[EntityRow]:
@@ -177,8 +202,11 @@ class EntityIndex:
                     tag=record.tag,
                     handle=tHandle,
                     kind=entityKind,
+                    displayName=record.displayName,
                     aliases=[alias for alias, _ in record.aliases],
                     attrs=dict(record.attrs),
+                    prons=list(record.prons),
+                    aliasPron={alias: pron for alias, pron in record.aliases if pron},
                 )
             )
         rows.sort(key=lambda r: r.tag.casefold())
@@ -190,60 +218,3 @@ class EntityIndex:
             if record.tag and record.tag.casefold() == tag.casefold():
                 return tHandle
         return None
-
-
-##
-#  Module singleton
-##
-
-_state: dict[str, Any] = {"instance": None, "bound": False}
-
-
-def entityIndex() -> EntityIndex:
-    """Return the shared entity index instance."""
-    if _state["instance"] is None:
-        _state["instance"] = EntityIndex()
-    return _state["instance"]
-
-
-def _onScanLine(tHandle: str, text: str) -> None:
-    """Handle the start of a document scan (index.scanLine hook)."""
-    entityIndex().scanStarted(tHandle, text)
-
-
-def _onProjectClosing(project: Any) -> None:
-    """Handle project closing by dropping all collected data."""
-    entityIndex().clear()
-
-
-def ensureBound() -> None:
-    """Register the index hooks once per session.
-
-    `core.index.scanText` calls this before the scan hooks fire, so the
-    scan-start handler is in place for the first scanned document.
-    """
-    if _state["bound"]:
-        return
-    from umbraedit.umbra import hooks as _hooks
-
-    _hooks.register(_hooks.INDEX_SCAN_LINE, _onScanLine)
-    _hooks.register(_hooks.PROJECT_CLOSING, _onProjectClosing)
-    _state["bound"] = True
-
-
-def recordKeyword(tHandle: str, key: str, values: list[str]) -> None:
-    """Record an `@alias`/`@attr` keyword on the shared index.
-
-    This is the entry point used by `core.index._indexKeyword`.
-    """
-    entityIndex().recordKeyword(tHandle, key, values)
-
-
-def clearEntities() -> None:
-    """Clear the shared index (called when the project index clears)."""
-    entityIndex().clear()
-
-
-def dropEntityHandle(tHandle: str) -> None:
-    """Drop one document from the shared index (called on deletion)."""
-    entityIndex().dropHandle(tHandle)

@@ -64,3 +64,15 @@ specified, with reasons.
 | G36 | R7: one-off promotion rewrite of %Voice: lines deferred | `SheetManager.promoteOneOff` creates the tag, slot, and alias. Rewriting `spk=~label` to `spk=<tag>` across all project documents as one undoable batch is an editor batch operation; deferred with the GUI (G34). |
 | G37 | R1: @alias/@attr deliberately not in ALL_KEYS | Adding them to ALL_KEYS would add entries to the Insert menu and require shortcut table entries. They are valid parser keys (VALID_KEYS), accepted by the editor completer, and stored by the index. The Insert-menu entry can be added with the Sheets GUI work. |
 | G38 | P06 manual pages not written | `names-and-voices/entity-sheets` and `names-and-voices/tones` remain stubs with ownership P06 (same reason as G31: the umbra-example directive and screenshot pipeline are part of the docs-system follow-up). |
+
+## P07
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G39 | R4: Pronunciation dock GUI deferred | The dock table (kind, status, respelling, IPA, mentions per chapter; Missing/Mentioned filters; inline edit; Mark as written; Copy from language) requires the novelWriter dock creation system (same blocker as G12/G16/G34). All backing data (getPronunciation/setPronunciation/markAsWritten, mention detection, lexicon export) is implemented and tested. |
+| G40 | R5: Preview button deferred | `runPronPreview(command, text, ipa)` is implemented and tested; wiring it to a dock button with the `pron.previewCommand` setting is GUI work deferred with G39. No preview command exists by default. |
+| G41 | R6: "Names without a sheet" dock section deferred | `findUntrackedNames` is implemented and tested; the dock section and "Create entity" button (kind choice, uses P06 note creation with `pron_status = todo`) are GUI work deferred with G39. |
+| G42 | Pronunciation dock not keyboard-complete | Deferred with G39 (dock GUI). |
+| G43 | R7: lexicon export writes no file | `exportLexicon` returns (plsXml, json) strings; writing them to disk is left to the caller/export flow. Golden-file test verifies the PLS output byte for byte and XML-parseable. |
+| G44 | `pron.classes` setting not exposed | `PRON_CLASSES` hard-coded to CHARACTER/WORLD/OBJECT/ENTITY per R2; a user-overridable `pron.classes` setting requires a settings registry entry (deferred). |
+| G45 | P07 manual page not written | `names-and-voices/pronunciation` remains a stub (same reason as G31/G38: umbra-example directive and screenshot pipeline). |

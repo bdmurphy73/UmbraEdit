@@ -100,8 +100,13 @@ class EntityRow:
     tag: str
     handle: str
     kind: str
+    displayName: str = ""
     aliases: list[str] = field(default_factory=list)
     attrs: dict[str, str] = field(default_factory=dict)
+    # P07: pronunciation entries as (lang, respelling, ipa), and alias
+    # respellings keyed by alias text
+    prons: list[tuple[str, str, str]] = field(default_factory=list)
+    aliasPron: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass

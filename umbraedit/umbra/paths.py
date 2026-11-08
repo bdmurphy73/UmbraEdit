@@ -110,6 +110,11 @@ def metadataFile(projectPath: Path) -> Path:
     return umbraDir(projectPath) / METADATA_JSON
 
 
+def pronSeenFile(projectPath: Path) -> Path:
+    """Return `<project>/umbra/cache/pron-seen.json`."""
+    return cacheDir(projectPath) / "pron-seen.json"
+
+
 def coversFile(projectPath: Path) -> Path:
     """Return `<project>/umbra/covers.json`."""
     return umbraDir(projectPath) / COVERS_JSON

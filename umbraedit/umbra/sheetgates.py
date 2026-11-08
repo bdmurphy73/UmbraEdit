@@ -43,11 +43,13 @@ _CLASS_KIND = {
 }
 
 
-def _iterEntityDocs(scope: Any) -> Iterable[tuple[Any, str, str]]:
+def _iterEntityDocs(scope: Any, respectHandles: bool = True) -> Iterable[tuple[Any, str, str]]:
     """Yield (item, kind, noteText) for documents in the name roots.
 
     The note text is the body after the `+++` header separator when one
-    exists. Only documents in the scope's handle filter are yielded.
+    exists. With `respectHandles` the scope's handle filter limits the
+    yield; entity collection passes False because entity notes are
+    needed regardless of which chapters are being built.
     """
     proj = scope.project
     if not proj:
@@ -61,7 +63,7 @@ def _iterEntityDocs(scope: Any) -> Iterable[tuple[Any, str, str]]:
         kind = _CLASS_KIND.get(item.itemClass.name, "")
         if not kind:
             continue
-        if scope.handles and item.itemHandle not in scope.handles:
+        if respectHandles and scope.handles and item.itemHandle not in scope.handles:
             continue
         docFile = contentPath / f"{item.itemHandle}.md"
         if not docFile.is_file():
@@ -72,11 +74,11 @@ def _iterEntityDocs(scope: Any) -> Iterable[tuple[Any, str, str]]:
         yield item, kind, body
 
 
-def _iterAllDocs(scope: Any) -> Iterable[tuple[Any, str]]:
+def _iterAllDocs(scope: Any, respectHandles: bool = True) -> Iterable[tuple[Any, str]]:
     """Yield (item, body) for every file-type document in the scope.
 
-    Used by the tone check, because `%Voice:` lines live in novel
-    chapters as well as in notes.
+    Used by the tone check and the mention scan, because `%Voice:`
+    lines and name mentions live in novel chapters as well as in notes.
     """
     proj = scope.project
     if not proj:
@@ -87,7 +89,7 @@ def _iterAllDocs(scope: Any) -> Iterable[tuple[Any, str]]:
     for item in proj.tree:
         if not item.isFileType():
             continue
-        if scope.handles and item.itemHandle not in scope.handles:
+        if respectHandles and scope.handles and item.itemHandle not in scope.handles:
             continue
         docFile = contentPath / f"{item.itemHandle}.md"
         if not docFile.is_file():

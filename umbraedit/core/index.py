@@ -100,6 +100,7 @@ class Index:
         "_novelModels",
         "_project",
         "_tagsIndex",
+        "_umbraEntities",
     )
 
     def __init__(self, project: NWProject) -> None:
@@ -110,6 +111,11 @@ class Index:
         self._tagsIndex = TagsIndex()
         self._itemIndex = ItemIndex(project, self._tagsIndex)
         self._indexUpgrade = False
+
+        # UmbraEdit (P06): entity sheet data collected during scans
+        from umbraedit.umbra.entityindex import EntityIndex
+
+        self._umbraEntities = EntityIndex()
 
         # Models
         self._novelModels: dict[str, NovelModel] = {}
@@ -167,10 +173,8 @@ class Index:
         """Clear the index dictionaries."""
         self._tagsIndex.clear()
         self._itemIndex.clear()
+        self._umbraEntities.clear()
         self._indexRevision += 1  # We must not reset the revision number
-        from umbraedit.umbra.entityindex import clearEntities
-
-        clearEntities()
         SHARED.emitIndexCleared(self._project)
 
     def rebuild(self) -> None:
@@ -194,9 +198,7 @@ class Index:
         for tTag in delTags:
             del self._tagsIndex[tTag]
         del self._itemIndex[tHandle]
-        from umbraedit.umbra.entityindex import dropEntityHandle
-
-        dropEntityHandle(tHandle)
+        self._umbraEntities.dropHandle(tHandle)
         self._indexRevision += 1
         SHARED.emitIndexChangedTags(self._project, [], delTags)
 
@@ -334,11 +336,10 @@ class Index:
         files before we save them, in which case we already have the
         text.
         """
-        from umbraedit.umbra import entityindex as _umbraEntities
         from umbraedit.umbra import hooks as _umbraHooks
 
-        # UmbraEdit (P06): bind the entity index hooks before they fire
-        _umbraEntities.ensureBound()
+        # UmbraEdit (P06): reset the entity record for this document
+        self._umbraEntities.scanStarted(tHandle, text)
         _umbraHooks.call(_umbraHooks.INDEX_SCAN_LINE, tHandle, text)
 
         tItem = self._project.tree[tHandle]
@@ -502,12 +503,10 @@ class Index:
             self._tagsIndex.add(tagKey, displayName, tHandle, sTitle, itemClass.name)
             self._itemIndex.setHeadingTag(tHandle, sTitle, tagKey)
             tags[tagKey.lower()] = True
-        elif tBits[0] in (nwKeyWords.ALIAS_KEY, nwKeyWords.ATTR_KEY):
-            # UmbraEdit (P06): entity sheet data is recorded on the
+        elif tBits[0] in (nwKeyWords.ALIAS_KEY, nwKeyWords.ATTR_KEY, nwKeyWords.PRON_KEY):
+            # UmbraEdit (P06/P07): entity sheet data is recorded on the
             # entity index, not stored as heading references.
-            from umbraedit.umbra.entityindex import recordKeyword
-
-            recordKeyword(tHandle, tBits[0], tBits[1:])
+            self._umbraEntities.recordKeyword(tHandle, tBits[0], tBits[1:])
         else:
             self._itemIndex.addHeadingRef(tHandle, sTitle, tBits[1:], tBits[0])
 
@@ -734,15 +733,15 @@ class Index:
 
     def getEntity(self, tag: str) -> EntityRow | None:
         """Return the entity row for a tag, or None."""
-        from umbraedit.umbra.entityindex import entityIndex
-
-        return entityIndex().getEntity(self._project, tag)
+        return self._umbraEntities.getEntity(self._project, tag)
 
     def iterEntities(self, kind: str | None = None) -> list[EntityRow]:
         """Return all entities, optionally filtered by kind."""
-        from umbraedit.umbra.entityindex import entityIndex
+        return self._umbraEntities.iterEntities(self._project, kind)
 
-        return entityIndex().iterEntities(self._project, kind)
+    def entityHandle(self, tag: str) -> str | None:
+        """Return the note handle holding a tag, or None."""
+        return self._umbraEntities.entityHandle(tag)
 
     def getDocumentTags(self, tHandle: str | None) -> list[str]:
         """Return all tags used by a specific document."""

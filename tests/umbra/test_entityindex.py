@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from umbraedit.umbra.entityindex import EntityIndex, entityIndex
+from umbraedit.umbra.entityindex import EntityIndex
 
 if TYPE_CHECKING:  # pragma: no cover
     from pathlib import Path
@@ -186,24 +186,65 @@ def test_entityindex_R1_entityHandle(idx: EntityIndex):
 
 
 @pytest.mark.umbra
-def test_entityindex_R1_singletonBoundHooks():
-    """R1: the shared index registers hooks once and records keywords."""
-    from umbraedit.umbra import entityindex as ei
-    from umbraedit.umbra import hooks as umbraHooks
+def test_entityindex_P07_recordPron(idx: EntityIndex):
+    """P07 R1: @pron values are recorded as (lang, respelling, ipa)."""
+    idx.recordKeyword("h1", "@pron", ["en | KAT-niss ev-er-DEEN | /\u02c8k\u00e6tn\u026as/"])
+    idx.recordKeyword("h1", "@pron", ["es | KAT-nis"])
+    assert idx._records["h1"].prons == [
+        ("en", "KAT-niss ev-er-DEEN", "\u02c8k\u00e6tn\u026as"),
+        ("es", "KAT-nis", ""),
+    ]
 
-    umbraHooks.clear()
-    ei._state["bound"] = False
-    ei._state["instance"] = None
-    ei.ensureBound()
-    assert umbraHooks.handlerCount(umbraHooks.INDEX_SCAN_LINE) == 1
-    assert umbraHooks.handlerCount(umbraHooks.PROJECT_CLOSING) == 1
-    # Second call does not register again
-    ei.ensureBound()
-    assert umbraHooks.handlerCount(umbraHooks.INDEX_SCAN_LINE) == 1
-    ei.recordKeyword("h1", "@attr", ["slot | 1"])
-    assert entityIndex()._records["h1"].attrs == {"slot": "1"}
-    umbraHooks.clear()
-    ei._state["bound"] = False
+
+@pytest.mark.umbra
+def test_entityindex_P07_recordPron_bracketDelims(idx: EntityIndex):
+    """P07 R1: square-bracket IPA delimiters are stripped too."""
+    idx.recordKeyword("h1", "@pron", ["en | KAT | [k\u00e6t]"])
+    assert idx._records["h1"].prons == [("en", "KAT", "k\u00e6t")]
+
+
+@pytest.mark.umbra
+def test_entityindex_P07_entityRowPronFields(idx: EntityIndex):
+    """P07 R1: getEntity carries prons and alias respellings."""
+    project = _FakeProject({"h1": _FakeItem("CHARACTER")})
+    idx.scanStarted("h1", "# Bob\n\n@tag: Bob | Bob Vega\n@alias: Uncle Bob | UN-kul bob\n")
+    idx.recordKeyword("h1", "@alias", ["Uncle Bob | UN-kul bob"])
+    idx.recordKeyword("h1", "@pron", ["en | BOB | /b\u0252b/"])
+    row = idx.getEntity(project, "Bob")
+    assert row is not None
+    assert row.displayName == "Bob Vega"
+    assert row.prons == [("en", "BOB", "b\u0252b")]
+    assert row.aliasPron == {"Uncle Bob": "UN-kul bob"}
+
+
+@pytest.mark.umbra
+def test_entityindex_P07_integrationWithRealIndex(monkeypatch: pytest.MonkeyPatch, fncPath, mockRnd, nwGUI):
+    """P07: the real index records @pron via a project scan."""
+    from umbraedit.core.project import NWProject
+
+    from tests.helpers import C, buildTestProject
+
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+
+    cHandle = project.newFile("Katniss Everdeen", C.hCharRoot)
+    assert isinstance(cHandle, str)
+    aDoc = project.storage.getDocument(cHandle)
+    aDoc.writeDocument(
+        "# Katniss Everdeen\n\n"
+        "@tag: Katniss | Katniss Everdeen\n"
+        "@pron: en | KAT-niss ev-er-DEEN | /\u02c8k\u00e6tn\u026as/\n"
+        "@attr: kind | character\n"
+        "@attr: pron_status | confirmed\n"
+    )
+    project.index.reIndexHandle(cHandle)
+
+    row = project.index.getEntity("Katniss")
+    assert row is not None
+    assert row.prons == [("en", "KAT-niss ev-er-DEEN", "\u02c8k\u00e6tn\u026as")]
+    assert row.displayName == "Katniss Everdeen"
+    assert row.attrs["pron_status"] == "confirmed"
 
 
 @pytest.mark.umbra

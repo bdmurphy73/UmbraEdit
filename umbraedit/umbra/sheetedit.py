@@ -31,12 +31,15 @@ class SheetEdit:
         aliases: The full new list of aliases (without pronunciation).
         pronunciations: Alias text -> pronunciation, when present.
         attrs: The full new dict of attributes.
+        prons: Pronunciation entries as (lang, respelling, ipa), the
+            IPA stored without the surrounding slashes.
 
     """
 
     aliases: list[str] = field(default_factory=list)
     pronunciations: dict[str, str] = field(default_factory=dict)
     attrs: dict[str, str] = field(default_factory=dict)
+    prons: list[tuple[str, str, str]] = field(default_factory=list)
 
 
 def _attrSortKey(key: str) -> tuple[int, str]:
@@ -68,10 +71,19 @@ def keywordBlockRange(lines: list[str]) -> tuple[int, int] | None:
     """Return the (start, end) slice of the keyword block.
 
     The keyword block is the first contiguous run of lines starting
-    with `@`. Returns None when the note has no keyword block.
+    with `@`. A `+++` document header block at the top of the note is
+    skipped before searching. Returns None when the note has no
+    keyword block.
     """
+    first = 0
+    if lines and lines[0].strip() == "+++":
+        close = 1
+        while close < len(lines) and lines[close].strip() != "+++":
+            close += 1
+        first = close + 1 if close < len(lines) else 0
     start = -1
-    for i, line in enumerate(lines):
+    for i in range(first, len(lines)):
+        line = lines[i]
         if line.startswith("@"):
             start = i
             break
@@ -91,8 +103,8 @@ def renderKeywordBlock(edit: SheetEdit, keepLines: list[str]) -> list[str]:
     """Render the new keyword block lines.
 
     `keepLines` are the existing keyword lines. `@tag` and any upstream
-    keywords keep their original relative order; `@alias` and `@attr`
-    lines are rebuilt from the edit in canonical order.
+    keywords keep their original relative order; `@pron`, `@alias` and
+    `@attr` lines are rebuilt from the edit in canonical order.
     """
     keep: list[str] = []
     for line in keepLines:
@@ -101,11 +113,17 @@ def renderKeywordBlock(edit: SheetEdit, keepLines: list[str]) -> list[str]:
             keep.append(line)
             continue
         key, _ = parsed
-        if key == "@alias":
-            continue  # rebuilt
-        if key == "@attr":
+        if key in ("@alias", "@attr", "@pron"):
             continue  # rebuilt
         keep.append(line)
+
+    pronLines: list[str] = []
+    for lang, respelling, ipa in sorted(edit.prons, key=lambda p: p[0]):
+        value = f"{lang} | {respelling}" if respelling else lang
+        if ipa:
+            clean = ipa[1:-1].strip() if len(ipa) >= 2 and ipa[0] == "/" and ipa[-1] == "/" else ipa
+            value = f"{value} | /{clean}/"
+        pronLines.append(_keywordLine("@pron", value))
 
     aliasLines: list[str] = []
     for alias in edit.aliases:
@@ -118,7 +136,7 @@ def renderKeywordBlock(edit: SheetEdit, keepLines: list[str]) -> list[str]:
         value = edit.attrs[key]
         attrLines.append(_keywordLine("@attr", f"{key} | {value}" if value else key))
 
-    return keep + aliasLines + attrLines
+    return keep + pronLines + aliasLines + attrLines
 
 
 def aliasNormKey(text: str) -> str:
@@ -151,6 +169,16 @@ def parseSheetNote(text: str) -> SheetEdit:
             attrKey = attrKey.strip()
             if attrKey:
                 edit.attrs[attrKey] = attrValue.strip()
+        elif key == "@pron":
+            lang, _, rest = value.partition("|")
+            lang = lang.strip()
+            if not lang:
+                continue
+            respelling, _, ipaRaw = rest.partition("|")
+            ipa = ipaRaw.strip()
+            if len(ipa) >= 2 and ipa[0] in "/[" and ipa[0] == ipa[-1]:
+                ipa = ipa[1:-1].strip()
+            edit.prons.append((lang, respelling.strip(), ipa))
     return edit
 
 

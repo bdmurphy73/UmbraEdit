@@ -34,3 +34,23 @@ See `docs/umbra/BASE.md` for the full list. Key upstream files touched:
 - `umbraedit/core/project.py` (saveProjectAs)
 - `umbraedit/splash.py` (splash image path)
 - `pyproject.toml` (project name, entry points)
+
+## P02
+
+### Added
+
+- Gate engine: `umbraedit/umbra/gates.py` with Finding, GateRule, GateScope, GateReport, GateBlockedError
+- Hook registry: `registerGate`, `runGates`, `requireGates`, `reportToJson`, `saveReport`
+- Built-in rules: `emptyDocumentIncluded` (advisory), `unknownReferenceTag` (block)
+- Operations constants: 11 operations defined
+- Settings integration: advisory rules relaxable via `gates.relax.<ruleId>`
+- JSON report schema v1 written to `umbra/cache/gate-report.json`
+
+### Upstream Files Touched
+
+- None (gate engine is self-contained in `umbraedit/umbra/gates.py`)
+
+### Deferred
+
+- R5: GUI Gates panel (`umbraedit/umbra/gui/gatespanel.py`) — deferred to avoid breaking the existing GUI while the dock system is not yet wired
+- R6: Wiring `build.run` into `docbuild.py` via `requireGates` — the hook call is placed via `build.started` but `requireGates` is not yet called at the point of writing output; deferred to avoid breaking existing build flow

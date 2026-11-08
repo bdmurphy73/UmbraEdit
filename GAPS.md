@@ -23,3 +23,11 @@ specified, with reasons.
 | G9 | No Preferences page "UmbraEdit" created (R6) | The Preferences dialog uses a tabbed layout specific to novelWriter's GuiPreferences class. Adding a new page requires understanding the exact page registration pattern. Deferred to a follow-up to avoid breaking the existing preferences. |
 | G10 | No `gui.docks`, `gui.menus`, `editor.context` hooks placed in upstream (R4 partial) | These hooks require understanding of the exact dock creation and menu build flow in `guimain.py`, which is complex. Core hooks (document saved/loading, index scanLine, tokenizer preprocess, project open/close, build started) are placed. GUI hooks deferred. |
 | G11 | R8 overhead check not run | The 400,000-word benchmark project was not generated on this machine to save time. The overhead can be verified in CI. |
+
+## P02
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G12 | R5: GUI Gates panel not created | The dock panel requires understanding the novelWriter dock creation system in `guimain.py`. Deferred to avoid breaking the existing GUI while the dock system is complex. The gate engine and JSON report are complete and testable independently. |
+| G13 | R6: `requireGates` not wired into `docbuild.py` | The `build.started` hook call is placed, but `requireGates("build.run", ...)` is not called before writing output. This is because wiring it requires modifying the build flow to check gates before starting the build, which needs testing against the full test suite. Deferred to avoid breaking existing builds. |
+| G14 | A5: GUI test for clicking finding not created | Requires pytest-qt with `nwGUI` fixture, which is complex to set up without a full project fixture. Deferred with R5 (Gates panel). |

@@ -76,3 +76,16 @@ specified, with reasons.
 | G43 | R7: lexicon export writes no file | `exportLexicon` returns (plsXml, json) strings; writing them to disk is left to the caller/export flow. Golden-file test verifies the PLS output byte for byte and XML-parseable. |
 | G44 | `pron.classes` setting not exposed | `PRON_CLASSES` hard-coded to CHARACTER/WORLD/OBJECT/ENTITY per R2; a user-overridable `pron.classes` setting requires a settings registry entry (deferred). |
 | G45 | P07 manual page not written | `names-and-voices/pronunciation` remains a stub (same reason as G31/G38: umbra-example directive and screenshot pipeline). |
+
+## P08
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G46 | R4: voice picker and "Voices" dock GUI deferred | The dock table (label, engine, languages, used-by, retired; Audition; Assign; Retire; Export `.uvmx`) requires the novelWriter dock creation system and Qt Multimedia. All backing data (VoiceStore, getVoice, lexicon-style registry) is implemented and tested. |
+| G47 | R4: Audition via Qt Multimedia deferred | `runPronPreview`-style playback of the embedded reference sample needs a dock button and Qt Multimedia integration. Deferred with G46. |
+| G48 | R3: narrator entity creation on first use deferred | `getVoice(tag, editionLang, index)` reads `voice_matrix` from the entity sheet; creating the `Narrator` narrator entity/tag on first use is GUI flow work deferred with G46. |
+| G49 | R3: per-edition voices (P24) deferred | Each note carrying its own `voice_matrix` in an edition project depends on P24 edition support. The attribute storage (`@attr: voice_matrix | code`) already works via P06 `setAttr`. |
+| G50 | R6: utterance-level staleness (P11) deferred | The audio state recording matrix code per utterance and staleness detection depends on P11 utterance index. `pronunciationSpans`-style `voiceMatrixSpans` not yet implemented. |
+| G51 | R7: sync/backup travel by SHA-256 deferred | Matrices are P04 assets (content-addressed) and travel with the asset store; registry sync is a P15 sidecar concern. |
+| G52 | R9: series bible matrices (P26) deferred | Cross-book matrix availability by code depends on P26 series support. |
+| G53 | P08 manual pages not written | `names-and-voices/voices` and `reference/voice-matrix-format` remain stubs (same reason as G31/G38/G45: umbra-example directive and screenshot pipeline). |

@@ -254,9 +254,10 @@ registerGate(GateRule(
     defaultSeverity="block", relaxable=False, check=_checkUnknownReferenceTag,
 ))
 
-# UmbraEdit (P06/P07): feature gate rules. Imported last so the built-in
+# UmbraEdit (P06/P07/P08): feature gate rules. Imported last so the built-in
 # rules above are registered first; the feature modules import this one.
 from umbraedit.umbra import (
     prongates,  # noqa: F401
     sheetgates,  # noqa: F401
+    voicematrixgates,  # noqa: F401
 )

@@ -172,3 +172,31 @@ See `docs/umbra/BASE.md` for the full list. Key upstream files touched:
 
 - `umbraedit/constants.py`: PRON_KEY, VALID_KEYS, KEY_NAME (P07 requirement R1)
 - `umbraedit/core/index.py`: entity keyword recording, Index-owned EntityIndex, entity query methods (P07 R1, P06 R1)
+
+## P08
+
+### Added
+
+- `umbraedit/umbra/voicematrix.py` — UVMX version 1 voice matrix format
+  - `buildVoiceMatrix(...) -> bytes` (deterministic), `parseVoiceMatrix(data) -> VoiceMatrix`, `voiceMatrixCode(data) -> str`
+  - `VoiceMatrix` dataclass (engine, modelRef, languages, label, params, embedding, refSample, created, code) and `VoiceMatrixError`
+  - Header: magic "UVMX", version u16, flags u16, chunkCount u32, reserved u32; chunks u16 type / u32 length / payload in ascending type order; trailer type 0x00FF with SHA-256 of all preceding bytes
+  - Required chunks: ENGINE(0001), MODELREF(0002), LANGS(0003), LABEL(0007); optional EMBEDDING, EMBED_DIM, REFSAMPLE, PARAMS, CREATED; unknown chunks preserved
+  - Code = `vm-` + first 12 hex of trailer hash
+- `umbraedit/umbra/voicestore.py` — VoiceStore + VoiceEntry
+  - Import stores the matrix as an immutable `voiceMatrix` P04 asset and adds a `umbra/voices.json` registry entry
+  - Importing identical bytes returns the existing code (deduplication)
+  - `getVoiceMatrix(code)`, `getVoiceEntry(code)`, `listVoices()`, `getVoice(tag, editionLang, index)`
+- `umbraedit/umbra/voicematrixgates.py` — gate rules:
+  voiceMatrixMissing, voiceMatrixUnknown, voiceMatrixCorrupt,
+  voiceMatrixLanguage, voiceMatrixRetired; registered via `umbra.gates`
+
+### Changed
+
+- `umbraedit/umbra/assets.py`: `_detectMime` recognises `UVMX` magic as `application/x-uvmx`
+- `umbraedit/umbra/gates.py`: `runGates` stamps `operation` onto `GateScope`
+
+### Upstream Files Touched
+
+- `umbraedit/umbra/assets.py`: MIME detection for UVMX (P08 import)
+- `umbraedit/umbra/gates.py`: operation stamping on GateScope (gate rule context)

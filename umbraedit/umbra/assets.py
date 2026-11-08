@@ -60,6 +60,7 @@ def _detectMime(data: bytes, fileName: str = "") -> str:
     if data[:3] == b"ID3" or (len(data) > 2 and data[0] == 0xFF and (data[1] & 0xE0) == 0xE0): return "audio/mpeg"
     if data[:5] == b"<?xml" or data[:4] == b"<svg": return "image/svg+xml"
     if data[:4] == b"%PDF": return "application/pdf"
+    if data[:4] == b"UVMX": return "application/x-uvmx"
     mime, _ = mimetypes.guess_type(fileName)
     return mime or "application/octet-stream"
 

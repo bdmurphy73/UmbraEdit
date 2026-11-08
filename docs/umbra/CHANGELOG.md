@@ -72,3 +72,25 @@ See `docs/umbra/BASE.md` for the full list. Key upstream files touched:
 ### Upstream Files Touched
 
 - None (asset store is self-contained in `umbraedit/umbra/assets.py`)
+
+## P05
+
+### Added
+
+- `umbraedit/umbra/voiceline.py` — parseVoiceLine, formatVoiceLine, VoiceData, isVoiceLine
+  - Canonical key order: spk, src, tone, ntone, lang, scope
+  - Unknown keys preserved for round-trip in extra dict
+  - Round-trip verified for 200 generated lines (A1)
+- `umbraedit/umbra/units.py` — iterUnits for document unit splitting
+  - Detects headings, paragraphs, comments, keywords, blank lines
+  - Attaches VoiceData to paragraphs, detects orphan %Voice: lines
+- `umbraedit/umbra/dialogue.py` — findDialogueSpans with DialogueConfig
+  - Supports curly, straight, German, French, and dash-style quotes
+  - Handles unclosed quotes, alternate symbols, line-start dashes
+- `umbraedit/umbra/canonical.py` — canonicalTextHash (SHA-256)
+  - Strips %Voice: lines, [attr]/[utt] tags, trailing whitespace
+  - Changing annotations does not change the hash; changing text does (A5)
+
+### Upstream Files Touched
+
+- None (all parsers are self-contained in `umbraedit/umbra/`)

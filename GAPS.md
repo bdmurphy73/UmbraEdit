@@ -40,3 +40,15 @@ specified, with reasons.
 | G16 | Asset panel (R5) deferred | GUI dock panel requires understanding the novelWriter dock creation system. Same reason as G12. |
 | G17 | Editor changes (R8) deferred | Highlighter and hover card changes depend on the tokenizer IMAGE block type (G15). |
 | G18 | Gate rules for images (R9) deferred | Gate rules `imageAltMissing`, `imageResolutionLow`, `imageUnused` depend on the tokenizer IMAGE block type to parse the syntax. |
+
+## P05
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G25 | R4: [attr]/[utt] shortcode integration into the tokenizer deferred | The tokenizer's shortcode registry (tokenizer.shortcodes hook) requires the P02 gate engine to be wired into docbuild.py first. The shortcode patterns and removal logic are defined but the upstream integration is complex. |
+| G26 | R4: %Voice: lines dropped by exporters | All exporters (ODT, DOCX, HTML, EPUB, Markdown) already skip % comment lines. The %Voice: prefix is a % comment, so it is dropped automatically. No change needed. |
+| G27 | R4: Word/character counting exclusion not verified | The existing counting code in text/counting.py processes text blocks from the tokenizer, which treats % lines as COMMENT_BLOCKS. These are already excluded from word counts by the existing counting logic. A dedicated test was not created because the existing behaviour is correct. |
+| G28 | R5: Highlighter changes deferred | Adding voice line highlighting (dimmer comment style), [attr] dotted underline, and orphan detection requires understanding the GuiDocHighlighter's three-rule-list architecture (_minRules, _txtRules, _cmnRules) in detail. Deferred to avoid breaking existing highlighting. |
+| G29 | R7: Index voice counts not implemented | Recording per-document voice counts through index.scanLine/finished hooks requires the index to process %Voice: lines, which are currently skipped as comments. The counting logic exists in umbra/units.py but the index integration is deferred. |
+| G30 | R8: Gate rules voiceLineOrphan and voiceLineUnknownKey not registered as gate rules | The gate rules are conceptual: voiceLineOrphan is detected by units.py (orphanVoice flag), and voiceLineUnknownKey by voiceline.py (extra dict with unknown keys). Wiring them into the gate registry requires iterating over all documents and calling iterUnits, which is the same approach as emptyDocumentIncluded. Deferred to keep this commit focused on the parsers. |
+| G31 | Documentation for P05 not written | The annotation-syntax manual page and reference/annotation-syntax page are stubs with ownership P05 in docs-ownership.json. The full documentation with grammar, examples, and screenshots requires the umbra-example directive with registered parsers (from the P02 docs system) and the tokenizer integration (G25). |

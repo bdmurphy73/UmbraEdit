@@ -175,6 +175,7 @@ markers = [
     "base: Base classes tests",
     "core: Core classes tests",
     "gui: GUI classes tests",
+    "umbra: UmbraEdit-specific tests",
 ]
 
 [tool.coverage.run]

@@ -1,0 +1,8 @@
+# Upstream novelWriter brand graphic hashes (SHA-256, lower-case hex)
+# Generated from the recorded base tag in docs/umbra/BASE.md
+# These hashes must NOT appear in the fork.
+# Lines starting with # are comments.
+# Format: one hash per line.
+# Empty until upstream brand graphics are hashed from the original repository.
+# To regenerate: checkout the upstream base tag, hash the files listed in
+# BRAND_ASSETS.md, and paste the results here.

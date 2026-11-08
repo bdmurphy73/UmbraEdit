@@ -327,6 +327,9 @@ class Index:
         files before we save them, in which case we already have the
         text.
         """
+        from umbraedit.umbra import hooks as _umbraHooks
+        _umbraHooks.call(_umbraHooks.INDEX_SCAN_LINE, tHandle, text)
+
         tItem = self._project.tree[tHandle]
         oldRefs = self._itemRefHandles(tHandle)
         if tItem is None:

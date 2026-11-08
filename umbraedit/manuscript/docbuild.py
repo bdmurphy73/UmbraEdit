@@ -113,6 +113,8 @@ class DocumentBuilder:
 
     def queueAll(self) -> None:
         """Queue all document as defined by the build settings."""
+        from umbraedit.umbra import hooks as _umbraHooks
+        _umbraHooks.call(_umbraHooks.BUILD_STARTED, self._build)
         self._queue = []
         withRoots = self._build.getBool("text.addNoteHeadings")
         filtered = self._build.buildItemFilter(self._project, withRoots=withRoots)

@@ -14,3 +14,12 @@ specified, with reasons.
 | G5 | `desktop-file-validate` and `xmllint` not run | Tools not installed on this macOS machine. The packaging files were updated but not validated. Listed for CI to check. |
 | G6 | `branding/umbraedit-icon-source.svg` is the old `umbraedit/assets/icons/umbraedit.svg` (itself a rename of the upstream SVG) | The actual UmbraEdit logo is a JPEG (`UmbraEdit.jpg`) supplied by the author. The SVG in `branding/` is a placeholder. The author should supply a proper SVG source for a fully vector icon set. |
 | G7 | Test coverage report not generated | `run_tests.py -orl` requires a working PyQt6 environment with offscreen rendering, which is available in the project `.venv` but the full test suite has pre-existing failures unrelated to P00. Individual P00 tests are in `tests/umbra/`. |
+
+## P01
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G8 | Package directory is `umbraedit/umbra/` not `novelwriter/umbra/` | Same as G1: package already renamed. |
+| G9 | No Preferences page "UmbraEdit" created (R6) | The Preferences dialog uses a tabbed layout specific to novelWriter's GuiPreferences class. Adding a new page requires understanding the exact page registration pattern. Deferred to a follow-up to avoid breaking the existing preferences. |
+| G10 | No `gui.docks`, `gui.menus`, `editor.context` hooks placed in upstream (R4 partial) | These hooks require understanding of the exact dock creation and menu build flow in `guimain.py`, which is complex. Core hooks (document saved/loading, index scanLine, tokenizer preprocess, project open/close, build started) are placed. GUI hooks deferred. |
+| G11 | R8 overhead check not run | The 400,000-word benchmark project was not generated on this machine to save time. The overhead can be verified in CI. |

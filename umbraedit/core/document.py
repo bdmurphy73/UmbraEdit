@@ -226,6 +226,8 @@ class ProjectDocument:
 
         self._lastHash = hashlib.sha1(text.encode()).hexdigest()
 
+        from umbraedit.umbra import hooks as _umbraHooks
+        _umbraHooks.call(_umbraHooks.DOCUMENT_LOADING, self._handle, text)
         return stripUnsafe(text)
 
     def writeDocument(self, text: str, forceWrite: bool = False) -> bool:
@@ -321,6 +323,9 @@ class ProjectDocument:
         except OSError:
             self._lastStat = None
         self._hashError = False
+
+        from umbraedit.umbra import hooks as _umbraHooks
+        _umbraHooks.call(_umbraHooks.DOCUMENT_SAVED, self._handle, text)
 
         return True
 

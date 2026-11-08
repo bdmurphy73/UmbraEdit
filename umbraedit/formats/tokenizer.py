@@ -682,6 +682,12 @@ class Tokenizer(ABC):
         """
         if self._keepRaw:
             self._raw.append(f"{self._text.rstrip()}\n\n")
+        from umbraedit.umbra import hooks as _umbraHooks
+        self._text = "\n".join(
+            filter(None, _umbraHooks.call(
+                _umbraHooks.TOKENIZER_PREPROCESS, self._handle, self._text
+            ))
+        ) or self._text
         if self._noTokens:
             return
         if self._isNovel:

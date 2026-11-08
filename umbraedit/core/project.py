@@ -403,6 +403,8 @@ class NWProject:
 
         self.updateCounts()
         self._session.startSession()
+        from umbraedit.umbra import hooks as _umbraHooks
+        _umbraHooks.call(_umbraHooks.PROJECT_OPENED, self)
         self.setProjectChanged(False)
 
         # Check for copies and update recent projects
@@ -626,6 +628,8 @@ class NWProject:
         self._tree.writeToCFile()
         self._session.appendSession(idleTime)
         self._storage.closeSession()
+        from umbraedit.umbra import hooks as _umbraHooks
+        _umbraHooks.call(_umbraHooks.PROJECT_CLOSING, self)
         self._reportErrors(self.tr("Issues encountered when closing project:"))
 
     def backupProject(self, doNotify: bool) -> bool:

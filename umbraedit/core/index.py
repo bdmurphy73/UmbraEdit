@@ -54,6 +54,7 @@ if TYPE_CHECKING:
 
     from umbraedit.core.item import ProjectItem
     from umbraedit.core.project import NWProject
+    from umbraedit.umbra.sheet import EntityRow
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +168,9 @@ class Index:
         self._tagsIndex.clear()
         self._itemIndex.clear()
         self._indexRevision += 1  # We must not reset the revision number
+        from umbraedit.umbra.entityindex import clearEntities
+
+        clearEntities()
         SHARED.emitIndexCleared(self._project)
 
     def rebuild(self) -> None:
@@ -190,6 +194,9 @@ class Index:
         for tTag in delTags:
             del self._tagsIndex[tTag]
         del self._itemIndex[tHandle]
+        from umbraedit.umbra.entityindex import dropEntityHandle
+
+        dropEntityHandle(tHandle)
         self._indexRevision += 1
         SHARED.emitIndexChangedTags(self._project, [], delTags)
 
@@ -327,7 +334,11 @@ class Index:
         files before we save them, in which case we already have the
         text.
         """
+        from umbraedit.umbra import entityindex as _umbraEntities
         from umbraedit.umbra import hooks as _umbraHooks
+
+        # UmbraEdit (P06): bind the entity index hooks before they fire
+        _umbraEntities.ensureBound()
         _umbraHooks.call(_umbraHooks.INDEX_SCAN_LINE, tHandle, text)
 
         tItem = self._project.tree[tHandle]
@@ -491,6 +502,12 @@ class Index:
             self._tagsIndex.add(tagKey, displayName, tHandle, sTitle, itemClass.name)
             self._itemIndex.setHeadingTag(tHandle, sTitle, tagKey)
             tags[tagKey.lower()] = True
+        elif tBits[0] in (nwKeyWords.ALIAS_KEY, nwKeyWords.ATTR_KEY):
+            # UmbraEdit (P06): entity sheet data is recorded on the
+            # entity index, not stored as heading references.
+            from umbraedit.umbra.entityindex import recordKeyword
+
+            recordKeyword(tHandle, tBits[0], tBits[1:])
         else:
             self._itemIndex.addHeadingRef(tHandle, sTitle, tBits[1:], tBits[0])
 
@@ -712,6 +729,20 @@ class Index:
     def getTagDisplay(self, tagKey: str) -> str:
         """Return the display name of a given tag."""
         return self._tagsIndex.tagDisplay(tagKey)
+
+    # UmbraEdit (P06): entity sheet queries, delegated to the entity index
+
+    def getEntity(self, tag: str) -> EntityRow | None:
+        """Return the entity row for a tag, or None."""
+        from umbraedit.umbra.entityindex import entityIndex
+
+        return entityIndex().getEntity(self._project, tag)
+
+    def iterEntities(self, kind: str | None = None) -> list[EntityRow]:
+        """Return all entities, optionally filtered by kind."""
+        from umbraedit.umbra.entityindex import entityIndex
+
+        return entityIndex().iterEntities(self._project, kind)
 
     def getDocumentTags(self, tHandle: str | None) -> list[str]:
         """Return all tags used by a specific document."""

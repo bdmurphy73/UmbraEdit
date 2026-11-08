@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from utils.umbra_brand_audit import checkHashes, checkOldName
+from utils.umbra_brand_audit import checkHashes
 
 
 @pytest.mark.umbra

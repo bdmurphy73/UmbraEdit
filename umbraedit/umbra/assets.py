@@ -3,11 +3,19 @@
 This file is a part of UmbraEdit, a fork of novelWriter.
 Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 Content-addressed store for binary project assets.
-"""  # noqa
+"""
 
 from __future__ import annotations
 
-import hashlib, json, logging, mimetypes, os, re, shutil, tempfile
+import hashlib
+import json
+import logging
+import mimetypes
+import os
+import re
+import shutil
+import tempfile
+
 from pathlib import Path
 from typing import Any
 
@@ -60,6 +68,7 @@ def _imageDims(data: bytes, mime: str) -> dict[str, int]:
     if not mime.startswith("image/") or mime == "image/svg+xml": return {}
     try:
         from io import BytesIO
+
         from PIL import Image
         img = Image.open(BytesIO(data))
         return {"width": img.width, "height": img.height}

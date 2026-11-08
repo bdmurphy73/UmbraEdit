@@ -94,3 +94,47 @@ See `docs/umbra/BASE.md` for the full list. Key upstream files touched:
 ### Upstream Files Touched
 
 - None (all parsers are self-contained in `umbraedit/umbra/`)
+
+## P06
+
+### Added
+
+- `umbraedit/umbra/sheet.py` — SheetManager (resolveSpeaker, addAlias, setAttr,
+  getVoiceCode, nextSlot, promoteOneOff, buildFromProject, iterEntities,
+  getEntity, loadTones, saveTones), EntityRow, ToneEntry, DEFAULT_TONES
+  (16 seeded tones), aliasNorm, full_name, CHARACTER_COLUMNS
+- `umbraedit/umbra/entityindex.py` — EntityIndex: collects `@tag`, `@alias`,
+  `@attr` data during index scans; exposes getEntity and iterEntities with
+  kind resolution from the item class; module singleton bound to the index
+  hooks (index.scanLine, project.closing)
+- `umbraedit/umbra/sheetedit.py` — SheetEdit, applySheetEdit, parseSheetNote:
+  rewrites the keyword block of a note (canonical @tag/@alias/@attr order)
+  preserving everything outside the block byte for byte
+- `umbraedit/umbra/sheetgates.py` — gate rules aliasCollision (advisory),
+  slotDuplicate (blocks build.run), toneNotInSet (blocks audio.chapter),
+  entityKindMissing (advisory); registered via umbra.gates import
+- `nwKeyWords.ALIAS_KEY`/`ATTR_KEY` (`@alias`, `@attr`) added to VALID_KEYS;
+  nwLabels.KEY_NAME entries added; `core/index.py` records alias/attr data
+  on the entity index instead of heading references, and exposes
+  `getEntity(tag)`/`iterEntities(kind)`
+
+### Changed
+
+- `core/index.py`: `scanText` binds the entity index hooks before the scan
+  hooks fire; `clear` and `deleteHandle` keep the entity index in sync
+- `tests/core/test_indexdata.py`: reference key sets now include `@alias`
+  and `@attr` (consequence of the new valid keys)
+
+### Upgrade notes
+
+- Notes in Character/World/Object/Entity roots can now carry `@alias:` and
+  `@attr: key | value` lines; they are indexed and checked by gates, and
+  excluded from heading references and outline cross-references.
+
+### Upstream Files Touched
+
+- `umbraedit/constants.py`: nwKeyWords.ALIAS_KEY/ATTR_KEY, VALID_KEYS,
+  nwLabels.KEY_NAME (P06 requirement R1)
+- `umbraedit/core/index.py`: entity recording in `_indexKeyword`, sync in
+  `clear`/`deleteHandle`, hook binding in `scanText`, entity query methods
+  (P06 requirement R1)

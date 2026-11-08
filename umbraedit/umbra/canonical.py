@@ -4,14 +4,12 @@ This file is a part of UmbraEdit, a fork of novelWriter.
 Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 SHA-256 hash of text with annotations removed. Used for translation
 and audio staleness tracking.
-"""  # noqa
+"""
 
 from __future__ import annotations
 
 import hashlib
 import re
-
-from umbraedit.umbra.voiceline import VOICE_PREFIX
 
 # Patterns to strip for the canonical form
 _VOICE_LINE_RE = re.compile(r"^%Voice:.*$", re.MULTILINE)

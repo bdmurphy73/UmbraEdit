@@ -17,7 +17,7 @@ import logging
 
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -143,7 +143,7 @@ def _runSingleRule(rule: GateRule, scope: GateScope, settings: Any) -> list[Find
 
 
 def runGates(operation: str, scope: GateScope, settings: Any | None = None) -> GateReport:
-    ranAt = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ranAt = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     allFindings: list[Finding] = []
     for rule in sorted(_gates.values(), key=lambda r: r.ruleId):
         if operation not in rule.operations:
@@ -250,3 +250,7 @@ registerGate(GateRule(
     operations=frozenset({OP_BUILD_RUN, OP_PREVIEW_BUILD}),
     defaultSeverity="block", relaxable=False, check=_checkUnknownReferenceTag,
 ))
+
+# UmbraEdit (P06): feature gate rules. Imported last so the built-in
+# rules above are registered first; sheetgates imports this module.
+from umbraedit.umbra import sheetgates  # noqa: E402, F401

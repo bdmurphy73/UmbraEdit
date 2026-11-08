@@ -4,13 +4,12 @@ This file is a part of UmbraEdit, a fork of novelWriter.
 Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 Detects dialogue spans in a paragraph using the project's dialogue
 settings (quote style, alternate symbols, dash style).
-"""  # noqa
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import NamedTuple
-
 
 # Quote style constants (matching config.py dialogStyle values)
 QUOTE_CURLY = 0

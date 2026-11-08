@@ -1,7 +1,7 @@
 """UmbraEdit - Voice Line Parser Tests.
 
 Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
-"""  # noqa
+"""
 
 from __future__ import annotations
 

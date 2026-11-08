@@ -26,7 +26,7 @@ def test_umbra_brand_R2_appName():
 def test_umbra_brand_R2_appId():
     """R2: APP_ID is set and is a lower-case identifier."""
     assert isinstance(APP_ID, str)
-    assert APP_ID == APP_ID.lower()
+    assert APP_ID.lower() == APP_ID
     assert APP_ID == "umbraedit"
 
 

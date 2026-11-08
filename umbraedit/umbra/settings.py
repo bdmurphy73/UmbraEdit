@@ -13,8 +13,7 @@ format `<feature>.<name>`.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from umbraedit.umbra.jsonio import readJson, writeJson

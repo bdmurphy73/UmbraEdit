@@ -3,13 +3,13 @@
 This file is a part of UmbraEdit, a fork of novelWriter.
 Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 Splits a document into logical units for the audio pipeline.
-"""  # noqa
+"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from collections.abc import Iterator
+from dataclasses import dataclass
 from enum import IntEnum
-from typing import Iterator
 
 from umbraedit.umbra.voiceline import VoiceData, isVoiceLine, parseVoiceLine
 

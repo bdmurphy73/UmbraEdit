@@ -209,6 +209,8 @@ class nwKeyWords:
     CUSTOM_KEY = "@custom"
     STORY_KEY = "@story"
     MENTION_KEY = "@mention"
+    ALIAS_KEY = "@alias"
+    ATTR_KEY = "@attr"
 
     # Note: The order here affects the order of menu entries
     ALL_KEYS: ClassVar[list[str]] = [
@@ -251,7 +253,10 @@ class nwKeyWords:
     ]
 
     # Set of Valid Keys
-    VALID_KEYS: ClassVar[set[str]] = set(ALL_KEYS)
+    # UmbraEdit (P06): @alias and @attr are valid for the parser and the
+    # index, but deliberately not in ALL_KEYS, so they get no entry in
+    # the Insert menu or shortcut tables.
+    VALID_KEYS: ClassVar[set[str]] = set(ALL_KEYS) | {ALIAS_KEY, ATTR_KEY}
 
     # Map from Keys to Item Class
     KEY_CLASS: ClassVar[dict[str, nwItemClass]] = {
@@ -410,6 +415,8 @@ class nwLabels:
         nwKeyWords.CUSTOM_KEY: QT_TRANSLATE_NOOP("Constant", "Custom"),
         nwKeyWords.STORY_KEY: QT_TRANSLATE_NOOP("Constant", "Story"),
         nwKeyWords.MENTION_KEY: QT_TRANSLATE_NOOP("Constant", "Mentions"),
+        nwKeyWords.ALIAS_KEY: QT_TRANSLATE_NOOP("Constant", "Alias"),
+        nwKeyWords.ATTR_KEY: QT_TRANSLATE_NOOP("Constant", "Attribute"),
     }
     KEY_SHORTCUT: ClassVar[dict[str, str]] = {
         nwKeyWords.TAG_KEY: "Ctrl+K, G",

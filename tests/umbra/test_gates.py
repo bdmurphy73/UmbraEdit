@@ -14,15 +14,15 @@ from pathlib import Path
 import pytest
 
 from umbraedit.umbra.gates import (
+    OP_BUILD_RUN,
     Finding,
     GateBlockedError,
     GateRule,
     GateScope,
-    OP_BUILD_RUN,
     registerGate,
+    reportToJson,
     requireGates,
     runGates,
-    reportToJson,
     saveReport,
 )
 

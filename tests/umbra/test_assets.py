@@ -11,17 +11,20 @@ from __future__ import annotations
 
 import json
 
+from io import BytesIO
 from pathlib import Path
 
 import pytest
 
-from umbraedit.umbra.assets import (
-    AssetStore, ROLE_FIGURE, ROLE_COVER, ROLE_VOICE_MATRIX, ROLE_OTHER,
-    _detectMime, _validateSvg,
-)
-
 from PIL import Image
-from io import BytesIO
+
+from umbraedit.umbra.assets import (
+    ROLE_COVER,
+    ROLE_FIGURE,
+    ROLE_OTHER,
+    AssetStore,
+    _detectMime,
+)
 
 
 def _makePng(width: int = 100, height: int = 50, color: tuple = (200, 100, 50)) -> bytes:

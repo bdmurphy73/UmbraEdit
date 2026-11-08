@@ -1,7 +1,7 @@
 """UmbraEdit - Dialogue Span Tests.
 
 Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
-"""  # noqa
+"""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ import pytest
 
 from umbraedit.umbra.dialogue import (
     QUOTE_CURLY,
-    QUOTE_GERMAN,
     QUOTE_FRENCH,
+    QUOTE_GERMAN,
     QUOTE_STRAIGHT,
     DialogueConfig,
     findDialogueSpans,

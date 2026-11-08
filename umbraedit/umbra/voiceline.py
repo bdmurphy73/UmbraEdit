@@ -45,6 +45,7 @@ class VoiceData:
         lang: BCP 47 language code for the dialogue.
         scope: "scene" marks the scene annotation line.
         extra: Unknown keys preserved for round-trip.
+
     """
 
     spk: str | None = None

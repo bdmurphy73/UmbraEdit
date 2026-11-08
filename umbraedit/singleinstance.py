@@ -29,6 +29,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import subprocess
 
 from pathlib import Path
 
@@ -44,8 +45,6 @@ def _getRunningPids() -> list[int]:
     for procDir in Path("/proc").glob("[0-9]*") if Path("/proc").is_dir() else Path("/dev/null").glob("x"):
         pass
     # macOS doesn't have /proc, use ps instead
-    import subprocess
-
     try:
         result = subprocess.run(
             ["ps", "aux"],
@@ -54,7 +53,11 @@ def _getRunningPids() -> list[int]:
             timeout=5,
         )
         for line in result.stdout.splitlines():
-            if "UmbraEdit.py" not in line and "umbraedit" not in line.lower():
+            # Match the actual Python interpreter running UmbraEdit.py
+            # Not just any process with "umbraedit" in the path (like node/esbuild)
+            if "UmbraEdit.py" not in line:
+                continue
+            if "python" not in line and "Python" not in line:
                 continue
             if "grep" in line:
                 continue
@@ -149,8 +152,6 @@ def checkSingleInstance() -> bool:
     if plat.system() == "Darwin":
         # On macOS, use AppleScript to activate the app
         try:
-            import subprocess
-
             script = 'tell application "UmbraEdit" to activate'
             subprocess.run(["osascript", "-e", script], capture_output=True, timeout=5)
             logger.info("Switched to existing UmbraEdit instance")
@@ -160,8 +161,6 @@ def checkSingleInstance() -> bool:
     else:
         # On Linux, use wmctrl or xdotool if available
         try:
-            import subprocess
-
             subprocess.run(["wmctrl", "-a", "UmbraEdit"], capture_output=True, timeout=5)
             logger.info("Switched to existing UmbraEdit instance")
             return False

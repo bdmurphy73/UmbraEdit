@@ -54,3 +54,21 @@ See `docs/umbra/BASE.md` for the full list. Key upstream files touched:
 
 - R5: GUI Gates panel (`umbraedit/umbra/gui/gatespanel.py`) — deferred to avoid breaking the existing GUI while the dock system is not yet wired
 - R6: Wiring `build.run` into `docbuild.py` via `requireGates` — the hook call is placed via `build.started` but `requireGates` is not yet called at the point of writing output; deferred to avoid breaking existing build flow
+
+## P03 (Part A: Asset Store)
+
+### Added
+
+- `umbraedit/umbra/assets.py` — content-addressed binary asset store
+  - `addAsset(path_or_bytes, role, attrs, name) -> assetId` (streamed, content-hashed)
+  - `assetPath(id)`, `iterAssets(role)`, `usedBy(id)`, `unusedAssets()`
+  - `removeAsset(id)` (refused while used or immutable), `replaceAsset(id, source)`
+  - `verifyAssets()` — integrity check returning gate finding dicts
+- MIME type detection by content magic bytes (not extension)
+- SVG security validation (rejects script, on* handlers, javascript: URLs, external refs)
+- Pillow for image dimension detection
+- 17 tests in tests/umbra/test_assets.py
+
+### Upstream Files Touched
+
+- None (asset store is self-contained in `umbraedit/umbra/assets.py`)

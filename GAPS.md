@@ -31,3 +31,12 @@ specified, with reasons.
 | G12 | R5: GUI Gates panel not created | The dock panel requires understanding the novelWriter dock creation system in `guimain.py`. Deferred to avoid breaking the existing GUI while the dock system is complex. The gate engine and JSON report are complete and testable independently. |
 | G13 | R6: `requireGates` not wired into `docbuild.py` | The `build.started` hook call is placed, but `requireGates("build.run", ...)` is not called before writing output. This is because wiring it requires modifying the build flow to check gates before starting the build, which needs testing against the full test suite. Deferred to avoid breaking existing builds. |
 | G14 | A5: GUI test for clicking finding not created | Requires pytest-qt with `nwGUI` fixture, which is complex to set up without a full project fixture. Deferred with R5 (Gates panel). |
+
+## P03 (Part A: Asset Store)
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G15 | Part B (tokenizer, format writers, editor) deferred | The tokenizer requires adding a new BlockTyp.IMAGE enum member and handling it in 7+ format writers (ODT, DOCX, HTML, EPUB, Markdown, Qt doc, raw). Each writer needs its own image embedding approach. This is a significant multi-file change best done as a focused follow-up. |
+| G16 | Asset panel (R5) deferred | GUI dock panel requires understanding the novelWriter dock creation system. Same reason as G12. |
+| G17 | Editor changes (R8) deferred | Highlighter and hover card changes depend on the tokenizer IMAGE block type (G15). |
+| G18 | Gate rules for images (R9) deferred | Gate rules `imageAltMissing`, `imageResolutionLow`, `imageUnused` depend on the tokenizer IMAGE block type to parse the syntax. |

@@ -252,3 +252,22 @@ See `docs/umbra/BASE.md` for the full list. Key upstream files touched:
 ### Upstream Files Touched
 
 - `umbraedit/umbra/gates.py`: registers `voicegates` (P10 gate rules)
+
+## P11
+
+### Added
+
+- `umbraedit/umbra/utterances.py` — utterance derivation (Qt-free)
+  - `Utterance` dataclass with id, handle, para, kind, speaker, text, joinAfter, tone, toneI, lang, src, skip, attribution, voice, pron, hash
+  - `deriveUtterances(handle, text, project, index, settings, store)` — derives utterances from document text
+  - `parseTone`, `toneNeutral`, `effectiveDrop`, `parseAttrSpans`, `parseUttSpans` — re-exported from voice.py
+  - `narrationSpeaker` — resolves @pov tag or narrator
+  - `_speakerFromFollowingText` — resolves speaker from "said X." text following dialogue
+  - `_utteranceHash` — SHA-256 of kind|speaker|text|tone|toneI|lang|voice|pron
+  - `_stripShortcodes` / `_restoreShortcodes` — keyword shortcode stripping/restoration for join invariant
+  - `_splitParagraphIntoSegments` — splits text into dialogue/attribution/narration segments
+- `umbraedit/umbra/voicegates.py` — gate rules `attribDropSameVoice` (block audio.chapter) and `attribProposalOpen` (advisory), registered via `umbra.gates`
+
+### Upstream Files Touched
+
+- `umbraedit/umbra/gates.py`: registers `voicegates` (P10 gate rules)

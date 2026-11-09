@@ -122,3 +122,14 @@ specified, with reasons.
 | G74 | R9: Gates implemented | `attribDropSameVoice` (block audio.chapter) and `attribProposalOpen` (advisory) are registered via `umbra.gates` and tested. Wiring `requireGates` into the audio chapter build is deferred (same blocker as G13/G62). |
 | G75 | R10: Metadata-edit hooks deferred | Verifying that `document.saved`/history/change-record hooks fire on metadata edits requires editor integration; the underlying `applySpeaker`/tone/attr edits are normal note writes. |
 | G76 | P10 manual pages not written | `names-and-voices/tone-narration-attribution` and tutorial extension remain stubs (same reason as prior manual-page gaps). |
+
+## P11
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G77 | R1: GUI dialog "Export utterance list" deferred | The export command is implemented in `utterances.py` but the GUI dialog is deferred to the dock/feature GUI work. |
+| G78 | R7: Editor cues (tone chip next to speaker chip, attribution underlines) deferred | `pronunciationSpans` and tone data are computed but the editor rendering is deferred to the editor GUI work. |
+| G79 | R8: "Override speaker for selection" command deferred | `parseUttSpans` and `effectiveUtteranceSpeaker` are implemented but the command UI is deferred. |
+| G80 | R9: Gates implemented | `attribDropSameVoice` and `attribProposalOpen` are registered via `umbra.gates` and tested. Wiring `requireGates` into audio chapter build is deferred (same blocker as G13/G62/G74). |
+| G81 | R10: Metadata-edit hooks (document.saved, history snapshot, change record) deferred | The underlying note edits are standard writes; hook integration is deferred to P12/P15. |
+| G82 | P11 manual pages not written | `names-and-voices/spoken-units` and reference page for utterance record format remain stubs (same reason as prior manual-page gaps). |

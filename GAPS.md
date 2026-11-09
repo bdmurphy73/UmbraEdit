@@ -106,3 +106,19 @@ specified, with reasons.
 | G63 | R10: shortcut registration and conflict checking deferred | `speakers.addAliasesAutomatically`/`speakers.proposeAlternation` settings and defaults are implemented; Alt+Shift+A / Alt+S registration via the shortcut system is GUI work. |
 | G64 | R11: keystroke performance benchmark deferred | The 5,000-word paragraph-heavy scene benchmark requires a harness; the logic is O(paragraph) per edit. |
 | G65 | P09 manual pages not written | `names-and-voices/speakers` and `tutorials/speakers-and-voices` remain stubs (same reason as prior manual-page gaps). |
+
+## P10
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G66 | R1: Tone picker GUI (Alt+T) deferred | The picker popup, intensity keys 1/2/3, and clear-tone entry are GUI work. The tone parsing (`parseTone`, `ToneRef`) and resolution (`effectiveDialogueTone`, `effectiveNarrationTone`) are implemented and tested. |
+| G67 | R2: Scene narration tone command deferred | Writing `%Voice: scope=scene ntone=calm` under a heading is editor GUI work. The scene tone parsing is implemented and tested. |
+| G68 | R3: narrationSpeaker wiring to editor deferred | `narrationSpeaker(sceneHandle, index)` reads `@pov` from the entity row; integrating it into the narrator-voice UI is deferred. |
+| G69 | R4: voice-ignores-tone behavior verified | `getVoice` (P08) ignores tone by design; the P10 test verifies two tones return the same matrix code. |
+| G70 | R5: Attribution picker (Alt+A) deferred | The three-way Mark/Drop/Keep/Clear menu and span insertion are editor GUI work. Span parsing (`parseAttrSpans`) and `effectiveDrop` are implemented and tested. |
+| G71 | R6: effectiveDrop fully implemented and tested | All 8 combinations (span × character × project setting) are covered by tests. |
+| G72 | R7: Editor cues (tone chip, attribution underlines) deferred | GUI rendering work deferred with G66/G70. |
+| G73 | R8: Utterance override `[utt:...]` implemented and tested | `parseUttSpans` and `effectiveUtteranceSpeaker` implement the resolution order (utt → paragraph → defaults). |
+| G74 | R9: Gates implemented | `attribDropSameVoice` (block audio.chapter) and `attribProposalOpen` (advisory) are registered via `umbra.gates` and tested. Wiring `requireGates` into the audio chapter build is deferred (same blocker as G13/G62). |
+| G75 | R10: Metadata-edit hooks deferred | Verifying that `document.saved`/history/change-record hooks fire on metadata edits requires editor integration; the underlying `applySpeaker`/tone/attr edits are normal note writes. |
+| G76 | P10 manual pages not written | `names-and-voices/tone-narration-attribution` and tutorial extension remain stubs (same reason as prior manual-page gaps). |

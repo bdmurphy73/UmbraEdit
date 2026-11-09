@@ -224,3 +224,31 @@ See `docs/umbra/BASE.md` for the full list. Key upstream files touched:
   operation stamping on `GateScope` was added earlier (P07/P08). All
   P09 logic is otherwise self-contained in `umbraedit/umbra/`; GUI
   pieces are deferred to GAPS.md G54–G64.
+
+## P10
+
+### Added
+
+- `umbraedit/umbra/voice.py` — tone, narration voice and attribution
+  resolution (Qt-free)
+  - `ToneRef`, `parseTone`, `toneNeutral` — tone key + intensity (1-3,
+    default 2), rendered as ``key`` or ``key:intensity``
+  - `UnitVoice`, `parseUnitVoice` — extracts tone/ntone/scene tone from
+    a paragraph's ``%Voice:`` line
+  - `effectiveDialogueTone` (R3): unit tone or neutral:2
+  - `effectiveNarrationTone` (R3): unit ntone or scene ntone or neutral:2
+  - `narrationSpeaker` (R3): @pov tag of the scene, else "narrator"
+  - `AttrSpan`, `parseAttrSpans` (R5): [attr], [attr:drop], [attr:keep],
+    [attr:proposal] parsing
+  - `effectiveDrop` (R6): span drop/keep, else speaker drop_attrib, else
+    project setting audio.dropAttributions (default false)
+  - `UtteranceSpan`, `parseUttSpans`, `effectiveUtteranceSpeaker` (R8):
+    [utt:spk=...;tone=...] override spans, resolution order utt →
+    paragraph → defaults
+- `umbraedit/umbra/voicegates.py` — gate rules
+  `attribDropSameVoice` (block audio.chapter) and
+  `attribProposalOpen` (advisory), registered via `umbra.gates` (R9)
+
+### Upstream Files Touched
+
+- `umbraedit/umbra/gates.py`: registers `voicegates` (P10 gate rules)

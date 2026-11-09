@@ -261,4 +261,5 @@ from umbraedit.umbra import (
     sheetgates,  # noqa: F401
     speakergates,  # noqa: F401
     voicematrixgates,  # noqa: F401
+    voicegates,  # noqa: F401
 )

@@ -1,0 +1,12 @@
+{
+  "id": "epilogue",
+  "label": "Epilogue",
+  "matter": "back",
+  "order": 5,
+  "fields": [
+    {"key": "text", "label": "Epilogue text", "type": "textarea", "optional": true}
+  ],
+  "template": "# Epilogue\n\n{{text}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "normal"},
+  "requiredFor": ["print", "epub"]
+}

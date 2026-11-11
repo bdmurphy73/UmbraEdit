@@ -1,0 +1,31 @@
+{
+  "id": "audioCopyrightNotice",
+  "label": "Audio Copyright Notice",
+  "matter": "back",
+  "order": 90,
+  "fields": [
+    {"key": "title", "label": "Title", "type": "text", "from": "book.title"},
+    {"key": "author", "label": "Author", "type": "text", "from": "book.author"},
+    {"key": "narrator", "label": "Narrator", "type": "text", "from": "format.narrator"},
+    {"key": "copyrightYear", "label": "Copyright year", "type": "text", "from": "book.copyrightYear"},
+    {"key": "copyrightHolder", "label": "Copyright holder", "type": "text", "from": "book.copyrightHolder"},
+    {"key": "isbn", "label": "ISBN", "type": "text", "from": "format.isbn"},
+    {"key": "publisher", "label": "Publisher", "type": "text", "from": "format.publisher", "optional": true},
+    {"key": "rights", "label": "Rights statement", "type": "textarea", "optional": true}
+  ],
+  "template": "# Copyright\n\n{{title}}\n\nCopyright © {{copyrightYear}} {{copyrightHolder}}\n\nNarrated by {{narrator}}\n\nISBN: {{isbn}}\n\n{% if publisher %}Published by {{publisher}}\n{% endif %}\n{% if rights %}\n{{rights}}\n{% endif %}\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden", "spoken": true},
+  "requiredFor": ["audiobook"],
+  "variants": {
+    "audio": {
+      "enabled": true,
+      "spoken": true
+    },
+    "print": {
+      "enabled": false
+    },
+    "epub": {
+      "enabled": false
+    }
+  }
+}

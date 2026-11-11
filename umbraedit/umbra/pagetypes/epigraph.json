@@ -1,0 +1,13 @@
+{
+  "id": "epigraph",
+  "label": "Epigraph",
+  "matter": "front",
+  "order": 60,
+  "fields": [
+    {"key": "text", "label": "Epigraph text", "type": "textarea", "optional": true},
+    {"key": "source", "label": "Source/author", "type": "text", "optional": true}
+  ],
+  "template": "# Epigraph\n\n{{text}}\n\n{% if source %}— {{source}}\n{% endif %}\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden"},
+  "requiredFor": ["print", "epub"]
+}

@@ -47,6 +47,7 @@ class RegExPatterns:
     _rxSCPlain = re.compile(nwRegEx.FMT_SC)
     _rxSCValue = re.compile(nwRegEx.FMT_SV)
     _rxAutoRep = re.compile(nwRegEx.AUTO_REP)
+    _rxMarkTag = re.compile(nwRegEx.FMT_MARK)
 
     @property
     def url(self) -> re.Pattern:
@@ -82,6 +83,11 @@ class RegExPatterns:
     def markdownMark(self) -> re.Pattern:
         """Markdown highlight style."""
         return self._rxMark
+
+    @property
+    def markTag(self) -> re.Pattern:
+        """Review annotation mark tag style."""
+        return self._rxMarkTag
 
     @property
     def markdownLink(self) -> re.Pattern:

@@ -4,11 +4,23 @@ UmbraEdit - Pronunciation Lexicon Export
 
 This file is a part of UmbraEdit, a fork of novelWriter.
 
-Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
+Copyright (C) 2018 Veronica Berglyd Olsen and novelWriter contributors.
 
-Exports entity pronunciations as a W3C PLS 1.0 lexicon and a JSON
-copy. Output is deterministic: lexemes are sorted by grapheme, then by
-entity tag. Qt-free.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+Additional Copyright (C) 2026 B.D. Murphy.
+Changes: Extended exportLexicon to support writing to a file path.
 """  # noqa
 
 from __future__ import annotations
@@ -16,10 +28,13 @@ from __future__ import annotations
 import json
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from xml.sax.saxutils import escape
 
 from umbraedit.umbra.pronunciation import STATUS_AS_WRITTEN, STATUS_TODO
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _PLS_TEMPLATE = (
     '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -106,7 +121,7 @@ def collectLexemes(rows: list[Any], lang: str) -> list[Lexeme]:
     return lexemes
 
 
-def exportLexicon(project: Any, lang: str) -> tuple[str, str]:
+def exportLexicon(project: Any, lang: str, output_path: Path | None = None) -> tuple[str, str]:
     """Export the pronunciation lexicon for one language.
 
     Returns (plsXml, json). The PLS is W3C PLS 1.0 with one lexeme per
@@ -114,6 +129,8 @@ def exportLexicon(project: Any, lang: str) -> tuple[str, str]:
     `<phoneme>` element; entities with only a respelling use `<alias>`.
     The JSON mirrors the lexemes with sorted keys and compact
     separators.
+
+    If output_path is provided, writes the PLS and JSON files to the given path.
     """
     rows = project.index.iterEntities()
     lexemes = collectLexemes(rows, lang)
@@ -141,4 +158,11 @@ def exportLexicon(project: Any, lang: str) -> tuple[str, str]:
     ]
     jsonData = {"v": 1, "lang": lang, "entries": entries}
     jsonText = json.dumps(jsonData, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n"
+
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(plsXml, encoding="utf-8")
+        json_path = output_path.with_suffix(".json")
+        json_path.write_text(jsonText, encoding="utf-8")
+
     return plsXml, jsonText

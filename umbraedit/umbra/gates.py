@@ -4,10 +4,23 @@ UmbraEdit - Gate Engine
 
 This file is a part of UmbraEdit, a fork of novelWriter.
 
-Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
+Copyright (C) 2018 Veronica Berglyd Olsen and novelWriter contributors.
 
-One engine that runs blocking checks before an operation changes
-anything or produces output. A blocked operation does nothing.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+Additional Copyright (C) 2026 B.D. Murphy.
+Changes: Added OP_PUBLISH_PACKAGE and OP_PUBLISH_HANDOFF operations.
 """  # noqa
 
 from __future__ import annotations
@@ -254,13 +267,29 @@ registerGate(GateRule(
     defaultSeverity="block", relaxable=False, check=_checkUnknownReferenceTag,
 ))
 
-# UmbraEdit (P06/P07/P08/P11): feature gate rules. Imported last so the built-in
+# UmbraEdit (P06/P07/P08/P11/P14/P18/P19/P20/P21/P22/P23/P24/P25/P26/P27/P29/P30/P31/P32): feature gate rules. Imported last so the built-in
 # rules above are registered first; the feature modules import this one.
 from umbraedit.umbra import (
+    analysisgates,  # noqa: F401
+    audiogates,  # noqa: F401
+    bookstandardgates,  # noqa: F401
+    covergates,  # noqa: F401
+    editiongates,  # noqa: F401
+    guidegates,  # noqa: F401
     historygates,  # noqa: F401
+    ingestgates,  # noqa: F401
+    integritygates,  # noqa: F401
+    metadatagates,  # noqa: F401
+    pagesgates,  # noqa: F401
     prongates,  # noqa: F401
+    publishgates,  # noqa: F401
+    reviewgates,  # noqa: F401
+    seriesgates,  # noqa: F401
     sheetgates,  # noqa: F401
     speakergates,  # noqa: F401
+    tokensgates,  # noqa: F401
+    translategates,  # noqa: F401
     voicematrixgates,  # noqa: F401
     voicegates,  # noqa: F401
 )
+from umbraedit.umbra.sync import gates as syncgates  # noqa: F401

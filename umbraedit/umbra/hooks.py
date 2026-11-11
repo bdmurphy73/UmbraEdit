@@ -80,6 +80,7 @@ def handlerCount(name: str) -> int:
 
 
 # Hook name constants (for type safety and documentation)
+DOCUMENT_PRE_SAVE = "document.preSave"
 DOCUMENT_SAVED = "document.saved"
 DOCUMENT_LOADING = "document.loading"
 INDEX_SCAN_LINE = "index.scanLine"
@@ -91,6 +92,8 @@ BUILD_STAGES = "build.stages"
 BUILD_STARTED = "build.started"
 PROJECT_OPENED = "project.opened"
 PROJECT_CLOSING = "project.closing"
+PROJECT_SAVED = "project.saved"
 GUI_DOCKS = "gui.docks"
 GUI_MENUS = "gui.menus"
 EDITOR_CONTEXT = "editor.context"
+SIDECAR_WRITTEN = "sidecar.written"

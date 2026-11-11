@@ -111,6 +111,8 @@ class UmbraSettings:
         """Save project-level settings to `<project>/umbra/settings.json`."""
         if self._projectPath is not None:
             writeJson(settingsFile(self._projectPath), self._projValues)
+            from umbraedit.umbra import hooks as _umbraHooks
+            _umbraHooks.call(_umbraHooks.SIDECAR_WRITTEN, settingsFile(self._projectPath))
 
     ##
     #  Listing (for Preferences page)
@@ -131,3 +133,34 @@ class UmbraSettings:
 
 # Global singleton
 umbraSettings = UmbraSettings()
+
+
+# Declare sync settings (P17)
+def _declareSyncSettings() -> None:
+    """Declare sync-related settings."""
+    umbraSettings.declare("sync.store", "str", "", "UmbraStore server URL")
+    umbraSettings.declare("sync.token", "str", "", "Authentication token")
+    umbraSettings.declare("sync.projectId", "str", "", "Linked project ID")
+    umbraSettings.declare("sync.blockBuildsOnConflict", "bool", True, "Block builds when conflicts are open")
+    umbraSettings.declare("sync.staleMinutes", "int", 60, "Minutes after which a stale pull warning is shown")
+
+
+# Declare token settings (P18)
+def _declareTokenSettings() -> None:
+    """Declare token-related settings."""
+    umbraSettings.declare("tokens.createAutomatically", "bool", True, "Automatically create character notes for unresolved slots")
+
+
+# Declare analysis settings (P23)
+def _declareAnalysisSettings() -> None:
+    """Declare analysis-related settings."""
+    umbraSettings.declare("analysis.endpoint", "str", "http://127.0.0.1:11434", "Local model endpoint (Ollama/LM Studio)")
+    umbraSettings.declare("analysis.model", "str", "", "Model name for analysis")
+    umbraSettings.declare("analysis.temperature", "str", "0.2", "Temperature for generation")
+    umbraSettings.declare("analysis.contextTokens", "int", 8192, "Context token budget")
+    umbraSettings.declare("analysis.timeoutSeconds", "int", 300, "Request timeout in seconds")
+
+
+_declareSyncSettings()
+_declareTokenSettings()
+_declareAnalysisSettings()

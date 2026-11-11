@@ -1,0 +1,12 @@
+{
+  "id": "colophon",
+  "label": "Colophon",
+  "matter": "back",
+  "order": 100,
+  "fields": [
+    {"key": "text", "label": "Colophon text", "type": "textarea", "optional": true}
+  ],
+  "template": "# Colophon\n\n{{text}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden"},
+  "requiredFor": []
+}

@@ -494,6 +494,10 @@ class NWProject:
         SHARED.newStatusMessage(self.tr("Saved Project: {0}").format(self._data.name))
         self.setProjectChanged(False)
 
+        # Notify listeners that the project (tree) was saved
+        from umbraedit.umbra import hooks as _umbraHooks
+        _umbraHooks.call(_umbraHooks.PROJECT_SAVED, self)
+
         return True
 
     def saveProjectAs(self, newPath: str | Path, newName: str) -> bool:

@@ -1,0 +1,13 @@
+{
+  "id": "appendix",
+  "label": "Appendix",
+  "matter": "back",
+  "order": 15,
+  "fields": [
+    {"key": "title", "label": "Appendix title", "type": "text", "optional": true},
+    {"key": "text", "label": "Appendix content", "type": "textarea", "optional": true}
+  ],
+  "template": "# {{title}}\n\n{{text}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "normal"},
+  "requiredFor": []
+}

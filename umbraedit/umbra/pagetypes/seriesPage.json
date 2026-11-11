@@ -1,0 +1,14 @@
+{
+  "id": "seriesPage",
+  "label": "Series Page",
+  "matter": "front",
+  "order": 20,
+  "fields": [
+    {"key": "seriesName", "label": "Series name", "type": "text", "from": "book.series"},
+    {"key": "seriesNumber", "label": "Book number", "type": "text", "from": "book.seriesNumber"},
+    {"key": "previousBooks", "label": "Previous books (one per line)", "type": "textarea", "optional": true}
+  ],
+  "template": "# {{seriesName}}\n\n{% if seriesNumber %}Book {{seriesNumber}}\n{% endif %}\n\n{% if previousBooks %}\nPrevious books in the series:\n{{previousBooks}}\n{% endif %}\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden"},
+  "requiredFor": ["print", "epub"]
+}

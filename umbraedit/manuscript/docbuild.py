@@ -40,6 +40,8 @@ from umbraedit.formats.tomarkdown import ToMarkdown
 from umbraedit.formats.toodt import ToOdt
 from umbraedit.formats.toqdoc import ToQTextDocument
 from umbraedit.formats.toraw import ToRaw
+from umbraedit.formats.toPandocEpub import build_epub_validated
+from umbraedit.formats.toTypst import toTypst
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -192,6 +194,28 @@ class DocumentBuilder:
             makeObj.initDocument()
             yield from self._iterBuild(makeObj, filtered)
             makeObj.closeDocument()
+
+        elif bFormat == nwBuildFmt.EPUB_VALIDATED:
+            # Build EPUB with Pandoc and validate with EPUBCheck
+            success, result = build_epub_validated(self._project, path)
+            if not success:
+                logger.error("EPUB validation failed: %s", result)
+                self._error = result
+                return
+            self._error = None
+            self._cache = None
+            return
+
+        elif bFormat == nwBuildFmt.PRINT_PDF:
+            # Build print PDF with Typst
+            success, result = toTypst(self._project, path)
+            if not success:
+                logger.error("Print PDF generation failed: %s", result)
+                self._error = result
+                return
+            self._error = None
+            self._cache = None
+            return
 
         elif bFormat == nwBuildFmt.PDF:
             makeObj = ToQTextDocument(self._project, pdf=True)

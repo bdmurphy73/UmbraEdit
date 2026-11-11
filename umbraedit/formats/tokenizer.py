@@ -23,6 +23,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import logging
+import re
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -50,7 +51,6 @@ from umbraedit.text.formats import processComment
 from umbraedit.text.patterns import REGEX_PATTERNS, DialogParser
 
 if TYPE_CHECKING:
-    import re
 
     from pathlib import Path
 
@@ -688,6 +688,12 @@ class Tokenizer(ABC):
                 _umbraHooks.TOKENIZER_PREPROCESS, self._handle, self._text
             ))
         ) or self._text
+
+        # Strip review annotation marks for export (R1)
+        # [mark:an-XXXXXX]...[/mark] -> keep text, drop tags
+        mark_tag_pattern = re.compile(r"\[mark:an-[a-z0-9]{6}\](.+?)\[/mark\]")
+        self._text = mark_tag_pattern.sub(r"\1", self._text)
+
         if self._noTokens:
             return
         if self._isNovel:

@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.jsonio import readJson, writeJson
-from umbraedit.umbra.paths import tonesFile
+from umbraedit.umbra.paths import sheetFile, tonesFile
 
 if TYPE_CHECKING:  # pragma: no cover
     from pathlib import Path
@@ -107,6 +107,8 @@ class EntityRow:
     # respellings keyed by alias text
     prons: list[tuple[str, str, str]] = field(default_factory=list)
     aliasPron: dict[str, str] = field(default_factory=dict)
+    # P26: origin of entity ("book" or "bible")
+    origin: str = "book"
 
 
 @dataclass
@@ -152,6 +154,10 @@ class SheetManager:
     def __init__(self, projectPath: Path) -> None:
         self._projectPath = projectPath
         self._entityMap: dict[str, EntityRow] = {}
+        # Bible entities (read-only, merged for queries)
+        self._bibleEntityMap: dict[str, EntityRow] = {}
+        # Bible slots (from bible project)
+        self._bibleSlots: set[int] = set()
 
     ##
     #  Speaker Resolution
@@ -189,69 +195,56 @@ class SheetManager:
         return results
 
     ##
-    #  Alias and Attribute Management
+    #  Bible Integration
     ##
 
-    def addAlias(self, tag: str, alias: str, originHandle: str = "") -> bool:
-        """Add an alias to an entity. Idempotent on aliasNorm.
+    def setBibleEntities(self, entities: list[EntityRow], slots: set[int]) -> None:
+        """Set bible entities (read-only) and their slots.
 
-        Returns True when the alias was added, False when it was
-        already present or the tag is unknown.
+        Bible entities are merged into the entity map for queries but
+        marked with origin='bible' and cannot be modified.
         """
-        norm = aliasNorm(alias)
-        if not norm:
+        self._bibleEntityMap = {e.tag: e for e in entities}
+        self._bibleSlots = slots
+        # Merge into entity map for resolution, but mark as bible
+        for entity in entities:
+            if entity.tag not in self._entityMap:
+                self._entityMap[entity.tag] = entity
+
+    def getBibleSlots(self) -> set[int]:
+        """Return the set of slot numbers used in the bible."""
+        return self._bibleSlots.copy()
+
+    def isBibleEntity(self, tag: str) -> bool:
+        """Check if an entity originates from the bible."""
+        entity = self._entityMap.get(tag)
+        if entity is None:
             return False
-        row = self._entityMap.get(tag)
-        if row is None:
-            return False
-        if any(aliasNorm(existing) == norm for existing in row.aliases):
-            return False
-        row.aliases.append(alias)
-        return True
+        return entity.origin == "bible" or entity.attrs.get("_origin") == "bible"
 
-    def setAttr(self, tag: str, key: str, value: str) -> bool:
-        """Set an attribute on an entity. Returns False on unknown tag."""
-        row = self._entityMap.get(tag)
-        if row is None:
-            return False
-        row.attrs[key] = value
-        return True
-
-    ##
-    #  Voice Reference
-    ##
-
-    def getVoiceCode(self, tag: str, editionLang: str | None = None) -> str | None:
-        """Return the voice_matrix code for a tag, or None.
-
-        The voice matrix itself is a P08 concept; here only the code is
-        resolved. `editionLang` is accepted for interface compatibility
-        with later features.
-        """
-        row = self._entityMap.get(tag)
-        if row is None:
-            return None
-        return row.attrs.get("voice_matrix", None)
-
-    ##
-    #  Slots
-    ##
+    def canEditEntity(self, tag: str) -> bool:
+        """Check if an entity can be edited (not a bible entity)."""
+        return not self.isBibleEntity(tag)
 
     def nextSlot(self) -> int:
-        """Return the next free slot number across all characters."""
-        slots = set()
+        """Return the next free slot number across all characters.
+
+        Bible slots use 1-1000. Book-only slots start above 1000.
+        """
+        slots = set(self._bibleSlots)
         for row in self._entityMap.values():
             slotVal = row.attrs.get("slot", "")
             if slotVal and slotVal.isdigit():
                 slots.add(int(slotVal))
-        slot = 1
-        while slot in slots:
-            slot += 1
-        return slot
 
-    ##
-    #  One-Off Speakers
-    ##
+        # First try bible slots (1-1000)
+        for slot in range(1, 1001):
+            if slot not in slots:
+                return slot
+
+        # All bible slots used, use book-only slot above 1000
+        slot = max(1001, max(slots, default=1000) + 1)
+        return slot
 
     def promoteOneOff(self, label: str) -> str | None:
         """Promote a one-off speaker (`~the_guard`) to a full entity.
@@ -277,7 +270,60 @@ class SheetManager:
         return tag
 
     ##
-    #  Project Introspection
+    #  Alias and Attribute Management
+    ##
+
+    def addAlias(self, tag: str, alias: str, originHandle: str = "") -> bool:
+        """Add an alias to an entity. Idempotent on aliasNorm.
+
+        Returns True when the alias was added, False when it was
+        already present or the tag is unknown or a bible entity.
+        """
+        if not self.canEditEntity(tag):
+            return False
+        norm = aliasNorm(alias)
+        if not norm:
+            return False
+        row = self._entityMap.get(tag)
+        if row is None:
+            return False
+        if any(aliasNorm(existing) == norm for existing in row.aliases):
+            return False
+        row.aliases.append(alias)
+        return True
+
+    def setAttr(self, tag: str, key: str, value: str) -> bool:
+        """Set an attribute on an entity. Returns False on unknown tag or bible entity."""
+        if not self.canEditEntity(tag):
+            return False
+        row = self._entityMap.get(tag)
+        if row is None:
+            return False
+        row.attrs[key] = value
+        return True
+
+    ##
+    #  Voice Reference
+    ##
+
+    def getVoiceCode(self, tag: str, editionLang: str | None = None) -> str | None:
+        """Return the voice_matrix code for a tag, or None.
+
+        The voice matrix itself is a P08 concept; here only the code is
+        resolved. `editionLang` is accepted for interface compatibility
+        with later features.
+        """
+        row = self._entityMap.get(tag)
+        if row is None:
+            return None
+        return row.attrs.get("voice_matrix", None)
+
+    def addEntity(self, entity: EntityRow) -> None:
+        """Add an entity to the sheet. Used for copying bible entities to book."""
+        self._entityMap[entity.tag] = entity
+
+    ##
+    #  Slots
     ##
 
     def buildFromProject(self, project: Any) -> None:
@@ -370,3 +416,27 @@ class SheetManager:
             ],
         }
         writeJson(tonesFile(self._projectPath), data)
+        from umbraedit.umbra import hooks as _umbraHooks
+        _umbraHooks.call(_umbraHooks.SIDECAR_WRITTEN, tonesFile(self._projectPath))
+
+    def save(self) -> None:
+        """Save the entity sheet to umbra/sheet.json."""
+        data = {
+            "v": 1,
+            "entities": [
+                {
+                    "tag": row.tag,
+                    "handle": row.handle,
+                    "kind": row.kind,
+                    "displayName": row.displayName,
+                    "aliases": row.aliases,
+                    "attrs": row.attrs,
+                    "prons": row.prons,
+                    "aliasPron": row.aliasPron,
+                }
+                for row in self._entityMap.values()
+            ],
+        }
+        writeJson(sheetFile(self._projectPath), data)
+        from umbraedit.umbra import hooks as _umbraHooks
+        _umbraHooks.call(_umbraHooks.SIDECAR_WRITTEN, sheetFile(self._projectPath))

@@ -1,0 +1,146 @@
+{
+  "v": 1,
+  "retailers": [
+    {
+      "id": "kdp-paperback",
+      "name": "KDP Paperback",
+      "formats": ["paperback"],
+      "requires": [
+        "book.title",
+        "book.author",
+        "book.description",
+        "edition.isbn.paperback",
+        "edition.trim"
+      ],
+      "limits": {
+        "book.description": 4000,
+        "book.keywords": 7,
+        "book.title": 200,
+        "book.subtitle": 200
+      }
+    },
+    {
+      "id": "kdp-hardback",
+      "name": "KDP Hardback",
+      "formats": ["hardback"],
+      "requires": [
+        "book.title",
+        "book.author",
+        "book.description",
+        "edition.isbn.hardback",
+        "edition.trim"
+      ],
+      "limits": {
+        "book.description": 4000,
+        "book.keywords": 7,
+        "book.title": 200,
+        "book.subtitle": 200
+      }
+    },
+    {
+      "id": "kdp-ebook",
+      "name": "KDP Ebook",
+      "formats": ["epub"],
+      "requires": [
+        "book.title",
+        "book.author",
+        "book.description",
+        "edition.isbn.ebook"
+      ],
+      "limits": {
+        "book.description": 4000,
+        "book.keywords": 7,
+        "book.title": 200,
+        "book.subtitle": 200
+      }
+    },
+    {
+      "id": "ingram-paperback",
+      "name": "IngramSpark Paperback",
+      "formats": ["paperback"],
+      "requires": [
+        "book.title",
+        "book.author",
+        "book.description",
+        "edition.isbn.paperback",
+        "edition.trim"
+      ],
+      "limits": {
+        "book.description": 4000,
+        "book.keywords": 7,
+        "book.title": 200,
+        "book.subtitle": 200
+      }
+    },
+    {
+      "id": "ingram-hardback",
+      "name": "IngramSpark Hardback",
+      "formats": ["hardback"],
+      "requires": [
+        "book.title",
+        "book.author",
+        "book.description",
+        "edition.isbn.hardback",
+        "edition.trim"
+      ],
+      "limits": {
+        "book.description": 4000,
+        "book.keywords": 7,
+        "book.title": 200,
+        "book.subtitle": 200
+      }
+    },
+    {
+      "id": "ingram-ebook",
+      "name": "IngramSpark Ebook",
+      "formats": ["epub"],
+      "requires": [
+        "book.title",
+        "book.author",
+        "book.description",
+        "edition.isbn.ebook"
+      ],
+      "limits": {
+        "book.description": 4000,
+        "book.keywords": 7,
+        "book.title": 200,
+        "book.subtitle": 200
+      }
+    },
+    {
+      "id": "d2d-ebook",
+      "name": "Draft2Digital Ebook",
+      "formats": ["epub"],
+      "requires": [
+        "book.title",
+        "book.author",
+        "book.description",
+        "edition.isbn.ebook"
+      ],
+      "limits": {
+        "book.description": 4000,
+        "book.keywords": 10,
+        "book.title": 200,
+        "book.subtitle": 200
+      }
+    },
+    {
+      "id": "audible-audiobook",
+      "name": "Audible Audiobook",
+      "formats": ["audiobook"],
+      "requires": [
+        "book.title",
+        "book.author",
+        "book.description",
+        "edition.isbn.audiobook",
+        "edition.narrator"
+      ],
+      "limits": {
+        "book.description": 4000,
+        "book.keywords": 10,
+        "book.title": 200,
+        "book.subtitle": 200
+      }
+    }
+  ]
+}

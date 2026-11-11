@@ -1,0 +1,10 @@
+{
+  "id": "tableOfContents",
+  "label": "Table of Contents",
+  "matter": "front",
+  "order": 70,
+  "fields": [],
+  "template": "# Table of Contents\n\n[Generated at build time]\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden", "generated": true},
+  "requiredFor": ["print", "epub"]
+}

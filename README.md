@@ -1,6 +1,6 @@
 # UmbraEdit
 
-<img align="left" style="margin: 0 0 4px 0;" src="https://git.umbratools.com/umbragit/UmbraEdit/raw/main/umbraedit/assets/icons/umbraedit.svg">
+<img align="left" style="margin: 0 0 4px 0;" src="https://github.com/bdmurphy73/UmbraEdit/blob/main/UmbraEdit.svg">
 
 UmbraEdit is a plain text editor designed for writing novels assembled from many smaller text
 documents. It uses a minimal formatting syntax inspired by Markdown, and adds a meta data syntax
@@ -27,8 +27,8 @@ This project is a fork of novelWrite. Taking the great start and extending it. I
 
 **Project Links**
 
-* Website: [UmbraEdit](https://umbratools.com/umbraedit)
-* Documentation: [UmbraEdit Docs](https://umbratools.com/umbraedit/docs)
+* Website: [UmbraEdit](https://umbratools.com/edit)
+* Documentation: [UmbraEdit Docs](https://umbratools.com/edit/docs)
 
 This project is a fork of novelWrite. Taking the great start and extending it. I use AI to help._
 
@@ -47,8 +47,9 @@ supports Qt, PyQt and Python.
 
 ****** Issues need to be - github ****
 Please don't make feature pull requests without first having discussed them with the maintainer.
-You can make a feature request in the [issues tracker](https://github.com/saga-soft/UmbraEdit/issues),
-or if the idea isn't fully formed, start a [discussion](https://github.com/saga-soft/UmbraEdit/discussions).
+You can make a feature request in the [issues tracker](https://github.com/bdmurphy73/UmbraEdit/issues),
+or if the idea isn't fully formed, start a [discussion](https://github.com/bdmurphy73/UmbraEdit/discussions).
+
 Please also don't make pull requests to reformat or rewrite existing code unless there is a very
 good reason for doing so. Please do not submit AI generated content.
 See our [AI Policy](https://github.com/saga-soft/UmbraEdit/blob/main/AI_POLICY.md) for details.

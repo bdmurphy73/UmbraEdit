@@ -43,11 +43,12 @@ class VoiceEntry:
 class VoiceStore:
     """Manages voice matrix assets and the voice registry for a project."""
 
-    def __init__(self, projectPath: Path) -> None:
+    def __init__(self, projectPath: Path, bibleVoiceStore: VoiceStore | None = None) -> None:
         self._projectPath = projectPath
         self._assets = AssetStore(projectPath)
         self._registryPath = voicesFile(projectPath)
         self._voices: dict[str, VoiceEntry] = {}
+        self._bibleVoiceStore = bibleVoiceStore
         self._loadRegistry()
 
     ##
@@ -88,6 +89,8 @@ class VoiceStore:
             for v in sorted(self._voices.values(), key=lambda v: v.code)
         ]
         writeJson(self._registryPath, {"v": 1, "voices": entries})
+        from umbraedit.umbra import hooks as _umbraHooks
+        _umbraHooks.call(_umbraHooks.SIDECAR_WRITTEN, self._registryPath)
 
     def listVoices(self, includeRetired: bool = False) -> list[VoiceEntry]:
         """Return all registered voices, optionally including retired ones."""
@@ -163,6 +166,9 @@ class VoiceStore:
         """Return the raw UVMX bytes for a registered code, or None."""
         entry = self._voices.get(code)
         if entry is None:
+            # Fall back to bible voice store
+            if self._bibleVoiceStore is not None:
+                return self._bibleVoiceStore.getVoiceMatrix(code)
             return None
         try:
             path = self._assets.assetPath(entry.assetId)

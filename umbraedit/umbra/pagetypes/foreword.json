@@ -1,0 +1,13 @@
+{
+  "id": "foreword",
+  "label": "Foreword/Preface",
+  "matter": "front",
+  "order": 80,
+  "fields": [
+    {"key": "author", "label": "Foreword author", "type": "text", "optional": true},
+    {"key": "text", "label": "Foreword text", "type": "textarea", "optional": true}
+  ],
+  "template": "# Foreword\n\n{% if author %}By {{author}}\n\n{% endif %}{{text}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "normal"},
+  "requiredFor": []
+}

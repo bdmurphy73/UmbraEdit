@@ -1,0 +1,10 @@
+{
+  "id": "glossary",
+  "label": "Glossary",
+  "matter": "back",
+  "order": 35,
+  "fields": [],
+  "template": "# Glossary\n\n[Generated at build time]\n",
+  "build": {"newPageBefore": true, "headingStyle": "normal", "generated": true},
+  "requiredFor": []
+}

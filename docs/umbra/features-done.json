@@ -1,1 +1,404 @@
-{"P05":{"deferred":["tokenizer shortcodes","highlighter","index voice counts","voice gate rules","manual pages"],"modules":["umbraedit/umbra/voiceline.py","umbraedit/umbra/units.py","umbraedit/umbra/dialogue.py","umbraedit/umbra/canonical.py"],"status":"core-implemented","title":"Annotation syntax and dialogue span parser"},"P06":{"deferred":["sheets table dock","tone-set dialog","editor undo integration","manual pages"],"modules":["umbraedit/umbra/sheet.py","umbraedit/umbra/entityindex.py","umbraedit/umbra/sheetedit.py","umbraedit/umbra/sheetgates.py"],"status":"core-implemented","title":"Entity sheets: characters, places, things, organisations"},"P07":{"deferred":["pronunciation dock","preview button","untracked-names dock section","manual page"],"modules":["umbraedit/umbra/pronunciation.py","umbraedit/umbra/mentions.py","umbraedit/umbra/lexicon.py","umbraedit/umbra/prongates.py"],"status":"core-implemented","title":"Pronunciation of names"},"P08":{"deferred":["voice picker dock","audition UI","narrator creation","per-edition voices","utterance staleness","sync/backup","series bible","manual pages"],"modules":["umbraedit/umbra/voicematrix.py","umbraedit/umbra/voicestore.py","umbraedit/umbra/voicematrixgates.py"],"status":"core-implemented","title":"Voice matrix: definitive voice stored as binary item"},"P09":{"deferred":["annotate mode toggle","gutter chips","picker popup","speakers dock","editor review marking","attribution underline","shortcuts","keystroke benchmark","manual pages"],"modules":["umbraedit/umbra/speakers.py","umbraedit/umbra/speakergates.py"],"status":"core-implemented","title":"Speaker authoring"},"P10":{"deferred":["tone picker GUI","scene narration tone command","attribution picker GUI","editor cues","utterance override UI","metadata-edit hooks","manual pages"],"modules":["umbraedit/umbra/voice.py","umbraedit/umbra/voicegates.py"],"status":"core-implemented","title":"Tone, narration voice, attribution"},"P11":{"deferred":["utterance list export GUI","editor cues","utterance override command","gate wiring into audio build","metadata-edit hooks","manual pages"],"modules":["umbraedit/umbra/utterances.py","umbraedit/umbra/voicegates.py"],"status":"core-implemented","title":"Utterance derivation and staleness"}}
+{
+  "P05": {
+    "deferred": [
+      "tokenizer shortcodes",
+      "highlighter",
+      "index voice counts",
+      "voice gate rules",
+      "manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/voiceline.py",
+      "umbraedit/umbra/units.py",
+      "umbraedit/umbra/dialogue.py",
+      "umbraedit/umbra/canonical.py"
+    ],
+    "status": "core-implemented",
+    "title": "Annotation syntax and dialogue span parser"
+  },
+  "P06": {
+    "deferred": [
+      "sheets table dock",
+      "tone-set dialog",
+      "editor undo integration",
+      "manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/sheet.py",
+      "umbraedit/umbra/entityindex.py",
+      "umbraedit/umbra/sheetedit.py",
+      "umbraedit/umbra/sheetgates.py"
+    ],
+    "status": "core-implemented",
+    "title": "Entity sheets: characters, places, things, organisations"
+  },
+  "P07": {
+    "deferred": [
+      "pronunciation dock",
+      "preview button",
+      "untracked-names dock section",
+      "manual page"
+    ],
+    "modules": [
+      "umbraedit/umbra/pronunciation.py",
+      "umbraedit/umbra/mentions.py",
+      "umbraedit/umbra/lexicon.py",
+      "umbraedit/umbra/prongates.py"
+    ],
+    "status": "core-implemented",
+    "title": "Pronunciation of names"
+  },
+  "P08": {
+    "deferred": [
+      "voice picker dock",
+      "audition UI",
+      "narrator creation",
+      "per-edition voices",
+      "utterance staleness",
+      "sync/backup",
+      "series bible",
+      "manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/voicematrix.py",
+      "umbraedit/umbra/voicestore.py",
+      "umbraedit/umbra/voicematrixgates.py"
+    ],
+    "status": "core-implemented",
+    "title": "Voice matrix: definitive voice stored as binary item"
+  },
+  "P09": {
+    "deferred": [
+      "annotate mode toggle",
+      "gutter chips",
+      "picker popup",
+      "speakers dock",
+      "editor review marking",
+      "attribution underline",
+      "shortcuts",
+      "keystroke benchmark",
+      "manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/speakers.py",
+      "umbraedit/umbra/speakergates.py"
+    ],
+    "status": "core-implemented",
+    "title": "Speaker authoring"
+  },
+  "P10": {
+    "deferred": [
+      "tone picker GUI",
+      "scene narration tone command",
+      "attribution picker GUI",
+      "editor cues",
+      "utterance override UI",
+      "metadata-edit hooks",
+      "manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/voice.py",
+      "umbraedit/umbra/voicegates.py"
+    ],
+    "status": "core-implemented",
+    "title": "Tone, narration voice, attribution"
+  },
+  "P11": {
+    "deferred": [
+      "utterance list export GUI",
+      "editor cues",
+      "utterance override command",
+      "gate wiring into audio build",
+      "metadata-edit hooks",
+      "manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/utterances.py",
+      "umbraedit/umbra/voicegates.py"
+    ],
+    "status": "core-implemented",
+    "title": "Utterance derivation and staleness"
+  },
+  "P15": {
+    "deferred": [
+      "status bar chip",
+      "sidecar hook calls for sheet.json/metadata.json/pages.json/series.json/edition.json",
+      "manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/outbox.py",
+      "umbraedit/umbra/paths.py",
+      "umbraedit/umbra/hooks.py",
+      "umbraedit/umbra/settings.py",
+      "umbraedit/umbra/voicestore.py",
+      "umbraedit/umbra/sheet.py",
+      "umbraedit/core/project.py"
+    ],
+    "status": "core-implemented",
+    "title": "Change log, identity, and outbox"
+  },
+  "P16": {
+    "deferred": [
+      "CLI verify output format",
+      "run script",
+      "10,000-write performance test",
+      "kill-during-PUT fault test",
+      "make check for docs"
+    ],
+    "modules": [
+      "umbrastore/__init__.py",
+      "umbrastore/auth.py",
+      "umbrastore/blobs.py",
+      "umbrastore/cli.py",
+      "umbrastore/database.py",
+      "umbrastore/server.py"
+    ],
+    "status": "core-implemented",
+    "title": "UmbraStore server"
+  },
+  "P17": {
+    "deferred": [
+      "Connect to UmbraStore command and GUI dialog",
+      "QThread worker for sync timers",
+      "Tree structural merge and sidecar set-union merge",
+      "Pull deferral during typing (800ms threshold)",
+      "Conflicts panel and dialog",
+      "Also open on device soft notice",
+      "P17 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/sync/client.py",
+      "umbraedit/umbra/sync/conflicts.py",
+      "umbraedit/umbra/sync/gates.py",
+      "umbraedit/umbra/sync/__init__.py",
+      "umbraedit/umbra/settings.py",
+      "umbraedit/umbra/paths.py",
+      "umbraedit/umbra/gates.py"
+    ],
+    "status": "core-implemented",
+    "title": "Sync client, offline behavior, conflict list and dialog"
+  },
+  "P18": {
+    "deferred": [
+      "Highlighter token chip style",
+      "Inline prompt on typing '}'",
+      "Viewer pane token underline",
+      "Speaker resolution accepts token text",
+      "P18 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/tokens.py",
+      "umbraedit/umbra/tokensgates.py",
+      "umbraedit/umbra/settings.py"
+    ],
+    "status": "core-implemented",
+    "title": "Character slot tokens"
+  },
+  "P19": {
+    "deferred": [
+      "Project Settings Book tab GUI",
+      "metadata.json sidecar hook calls",
+      "bookValues service function integration",
+      "Tokenizer preprocess hook for variables",
+      "P19 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/metadata.py",
+      "umbraedit/umbra/metadatagates.py",
+      "umbraedit/umbra/tokens.py",
+      "umbraedit/umbra/settings.py",
+      "umbraedit/umbra/paths.py"
+    ],
+    "status": "core-implemented",
+    "title": "Book metadata and variables (per book, per format, per edition)"
+  },
+  "P20": {
+    "deferred": [
+      "Covers area in Book tab GUI",
+      "covers.json sidecar hook calls",
+      "coversForBuild service function integration",
+      "P20 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/covers.py",
+      "umbraedit/umbra/covergates.py",
+      "umbraedit/umbra/paths.py"
+    ],
+    "status": "core-implemented",
+    "title": "Covers: one cover per format and per edition"
+  },
+  "P21": {
+    "deferred": [
+      "Page form dock (dock \"Page\")",
+      "Generated pages (TOC, list of characters)",
+      "New-project wizard",
+      "Per-format variants integration",
+      "Matter by format view",
+      "pageVariantMissing gate wiring",
+      "@page and @field keyword parser integration",
+      "Template rendering with Jinja2",
+      "P21 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/pages.py",
+      "umbraedit/umbra/pagesgates.py",
+      "umbraedit/umbra/pagetypes/",
+      "umbraedit/umbra/paths.py"
+    ],
+    "status": "core-implemented",
+    "title": "Typed pages, templates, default page set"
+  },
+  "P22": {
+    "deferred": [
+      "Guide dock (tree filtered to Guide root)",
+      "Chapter identity logic (chapterOf)",
+      "Paragraph staleness (staleParaNotes)",
+      "New guide document / Open analysis commands",
+      "Editor markers for approved/stale analysis",
+      "Gates (guideKeywordMisplaced, analysisChapterMissing, guideDuplicateAnalysis)",
+      "P22 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/guide.py",
+      "umbraedit/umbra/guidegates.py",
+      "umbraedit/umbra/paths.py"
+    ],
+    "status": "core-implemented",
+    "title": "Translation Guide: a top-level category for translation instructions"
+  },
+  "P24": {
+    "deferred": [
+      "Edition creation command with language picker (BCP 47)",
+      "Edition dock with side-by-side editing",
+      "Metadata translation table in edition dock",
+      "Covers per format in edition",
+      "Alignment UI (paragraph units aligned by index or umbra/align/<handle>.json)",
+      "Utterance inheritance from aligned source",
+      "P24 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/edition.py",
+      "umbraedit/umbra/editiongates.py",
+      "umbraedit/umbra/guide.py",
+      "umbraedit/umbra/units.py",
+      "umbraedit/umbra/paths.py"
+    ],
+    "status": "core-implemented",
+    "title": "Editions: translation is a new project linked to the original"
+  },
+  "P25": {
+    "deferred": [
+      "\"Run on local model\" GUI integration",
+      "\"Export job\" for external tool GUI",
+      "Review view (side-by-side with intent notes)",
+      "Per-paragraph Accept/Edit/Re-translate actions",
+      "Socket guard enforcement in tests",
+      "P25 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/translate.py",
+      "umbraedit/umbra/translategates.py",
+      "umbraedit/umbra/edition.py",
+      "umbraedit/umbra/guide.py",
+      "umbraedit/umbra/units.py",
+      "umbraedit/umbra/paths.py"
+    ],
+    "status": "core-implemented",
+    "title": "Translation prompts and round trip"
+  },
+  "P26": {
+    "deferred": [
+      "Characters table (P06) shows bible rows with \"series\" mark",
+      "Tokens (P18) include bible rows",
+      "Voice matrices and tone set from bible are base",
+      "Slots allocated from bible's counter",
+      "Editing bible data - command opens bible project in second window",
+      "P26 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/series.py",
+      "umbraedit/umbra/seriesgates.py",
+      "umbraedit/umbra/sheet.py",
+      "umbraedit/umbra/voicestore.py",
+      "umbraedit/umbra/entityindex.py",
+      "umbraedit/umbra/paths.py"
+    ],
+    "status": "core-implemented",
+    "title": "Series bible: shared characters, places, voices across books"
+  },
+  "P27": {
+    "deferred": [
+      "Intake validation (SHA-256, encrypted/macro check, Pandoc version)",
+      "Pre-pass structural extraction (styles, numbering, comments, footnotes, docProps)",
+      "Pandoc conversion with media extraction",
+      "Block classification (heading, front/back matter, body, scene)",
+      "Scene splitting at chapter/scene breaks",
+      "Syntax conversion (smart quotes, formatting, footnotes, comments, images)",
+      "Character/metadata/page-type proposal",
+      "ImportPlan JSON output to `umbra/cache/import/`",
+      "Gate rules (ingestNoHeadings, ingestEmptyScene, ingestUnknownStyle, ingestLostFeature, ingestImageFailed, ingestFootnoteUnmapped)",
+      "Test fixtures (basic, styles-only, manual-headings, comments-footnotes, images, tables-textbox)",
+      "Determinism (same file + Pandoc version = same plan)",
+      "Performance (100k words < 60s)",
+      "P27 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/ingest/__init__.py",
+      "umbraedit/umbra/ingest/docx_intake.py",
+      "umbraedit/umbra/ingest/docx_prepass.py",
+      "umbraedit/umbra/ingest/docx_convert.py",
+      "umbraedit/umbra/ingest/docx_classify.py",
+      "umbraedit/umbra/ingest/docx_split.py",
+      "umbraedit/umbra/ingest/docx_syntax.py",
+      "umbraedit/umbra/ingest/docx_propose.py",
+      "umbraedit/umbra/ingest/docx_output.py",
+      "umbraedit/umbra/ingest/pipeline.py",
+      "umbraedit/umbra/ingestgates.py",
+      "umbraedit/umbra/paths.py"
+    ],
+    "status": "core-implemented",
+    "title": "DOCX ingest engine (headless)"
+  },
+  "P28": {
+    "deferred": [
+      "Command \"Import manuscript (DOCX)...\" with file picker and progress dialog",
+      "Review dialog with tree, text pane, and right panel",
+      "Commit with atomic operation and undo record",
+      "Undo import command",
+      "Source file hash tracking in `umbra/ingest-runs.json`",
+      "Large manuscript responsiveness (lazy text pane)",
+      "P28 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/ingest/commit.py",
+      "umbraedit/umbra/ingest/worker.py",
+      "umbraedit/umbra/ingest/ingest_runs.py",
+      "umbraedit/gui/importmanuscript.py",
+      "umbraedit/gui/undoimport.py",
+      "umbraedit/dialogs/importreview.py",
+      "umbraedit/umbra/ingest/ingest_runs.py",
+      "umbraedit/umbra/paths.py"
+    ],
+    "status": "core-implemented",
+    "title": "DOCX ingest review and atomic commit"
+  },
+  "P29": {
+    "deferred": [
+      "Commands: Add note on selection (Alt+N), Reply, Resolve, Reopen, Delete",
+      "Dock 'Review': list filtered by status, kind, author; jump to location; export as Markdown",
+      "Orphan handling: `[mark:id]` with no record or record whose tag is gone reported (`annotationOrphan`, advisory) and repairable with one click",
+      "P29 manual pages"
+    ],
+    "modules": [
+      "umbraedit/umbra/annotations.py",
+      "umbraedit/umbra/reviewgates.py",
+      "umbraedit/text/patterns.py",
+      "umbraedit/editor/highlighter.py",
+      "umbraedit/formats/tokenizer.py",
+      "umbraedit/constants.py",
+      "umbraedit/gui/theme.py"
+    ],
+    "status": "core-implemented",
+    "title": "Review annotations"
+  }
+}

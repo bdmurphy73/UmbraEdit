@@ -306,7 +306,10 @@ class ProjectDocument:
             return False
 
         # If we're here, the file was successfully saved, so we can
-        # replace the temp file with the actual file
+        # notify listeners before replacing the temp file with the actual file
+        from umbraedit.umbra import hooks as _umbraHooks
+        _umbraHooks.call(_umbraHooks.DOCUMENT_PRE_SAVE, self._handle, str(docPath))
+
         try:
             docTemp.replace(docPath)
         except OSError as exc:
@@ -324,7 +327,6 @@ class ProjectDocument:
             self._lastStat = None
         self._hashError = False
 
-        from umbraedit.umbra import hooks as _umbraHooks
         _umbraHooks.call(_umbraHooks.DOCUMENT_SAVED, self._handle, text)
 
         return True

@@ -1,0 +1,10 @@
+{
+  "id": "bibliography",
+  "label": "Bibliography",
+  "matter": "back",
+  "order": 45,
+  "fields": [],
+  "template": "# Bibliography\n\n[Generated at build time]\n",
+  "build": {"newPageBefore": true, "headingStyle": "normal", "generated": true},
+  "requiredFor": []
+}

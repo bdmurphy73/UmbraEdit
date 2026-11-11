@@ -40,6 +40,7 @@ class _EntityRecord:
     aliases: list[tuple[str, str]] = field(default_factory=list)  # (alias, pronunciation)
     attrs: dict[str, str] = field(default_factory=dict)
     prons: list[tuple[str, str, str]] = field(default_factory=list)  # (lang, respelling, ipa)
+    origin: str = "book"  # "book" or "bible"
 
 
 def _splitValue(value: str) -> tuple[str, str]:
@@ -184,6 +185,7 @@ class EntityIndex:
             attrs=dict(record.attrs),
             prons=list(record.prons),
             aliasPron={alias: pron for alias, pron in record.aliases if pron},
+            origin=record.origin,
         )
 
     def iterEntities(self, project: Any, kind: str | None = None) -> list[EntityRow]:
@@ -207,6 +209,7 @@ class EntityIndex:
                     attrs=dict(record.attrs),
                     prons=list(record.prons),
                     aliasPron={alias: pron for alias, pron in record.aliases if pron},
+                    origin=record.origin,
                 )
             )
         rows.sort(key=lambda r: r.tag.casefold())

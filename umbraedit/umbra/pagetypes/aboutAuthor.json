@@ -1,0 +1,12 @@
+{
+  "id": "aboutAuthor",
+  "label": "About the Author",
+  "matter": "back",
+  "order": 20,
+  "fields": [
+    {"key": "text", "label": "Author bio", "type": "textarea", "optional": true}
+  ],
+  "template": "# About the Author\n\n{{text}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "normal"},
+  "requiredFor": ["print", "epub"]
+}

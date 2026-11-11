@@ -1,0 +1,29 @@
+{
+  "id": "audioClosingCredits",
+  "label": "Closing Credits",
+  "matter": "back",
+  "order": 100,
+  "fields": [
+    {"key": "title", "label": "Title", "type": "text", "from": "book.title"},
+    {"key": "author", "label": "Author", "type": "text", "from": "book.author"},
+    {"key": "narrator", "label": "Narrator", "type": "text", "from": "format.narrator"},
+    {"key": "publisher", "label": "Publisher", "type": "text", "from": "format.publisher", "optional": true},
+    {"key": "copyrightYear", "label": "Copyright year", "type": "text", "from": "book.copyrightYear"},
+    {"key": "copyrightHolder", "label": "Copyright holder", "type": "text", "from": "book.copyrightHolder"}
+  ],
+  "template": "End of {{title}}\n\nBy {{author}}\n\nNarrated by {{narrator}}\n\n{% if publisher %}Published by {{publisher}}\n{% endif %}\n\nCopyright © {{copyrightYear}} {{copyrightHolder}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden", "spoken": true},
+  "requiredFor": ["audiobook"],
+  "variants": {
+    "audio": {
+      "enabled": true,
+      "spoken": true
+    },
+    "print": {
+      "enabled": false
+    },
+    "epub": {
+      "enabled": false
+    }
+  }
+}

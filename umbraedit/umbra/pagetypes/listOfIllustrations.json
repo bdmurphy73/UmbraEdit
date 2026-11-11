@@ -1,0 +1,10 @@
+{
+  "id": "listOfIllustrations",
+  "label": "List of Illustrations",
+  "matter": "front",
+  "order": 65,
+  "fields": [],
+  "template": "# List of Illustrations\n\n[Generated at build time]\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden", "generated": true},
+  "requiredFor": []
+}

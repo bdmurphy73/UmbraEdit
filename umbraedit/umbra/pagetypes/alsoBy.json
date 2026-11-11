@@ -1,0 +1,12 @@
+{
+  "id": "alsoBy",
+  "label": "Also by this Author",
+  "matter": "back",
+  "order": 30,
+  "fields": [
+    {"key": "books", "label": "Book list (one per line)", "type": "textarea", "optional": true}
+  ],
+  "template": "# Also by {{book.author}}\n\n{{books}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "normal"},
+  "requiredFor": []
+}

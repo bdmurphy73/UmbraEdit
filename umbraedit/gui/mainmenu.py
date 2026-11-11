@@ -46,6 +46,8 @@ from umbraedit.constants import (
 )
 from umbraedit.enum import nwDocAction, nwDocInsert, nwFocus, nwView
 from umbraedit.extensions.eventfilters import StatusTipFilter
+from umbraedit.gui.importmanuscript import importManuscript
+from umbraedit.gui.undoimport import undoImport
 from umbraedit.types import QtWidgetShortcut
 
 if TYPE_CHECKING:
@@ -228,6 +230,23 @@ class GuiMainMenu(QMenuBar):
         self.aProjectSettings = qtAddAction(self.projMenu, self.tr("Project Settings"))
         self.aProjectSettings.setShortcut("Ctrl+Shift+,")
         self.aProjectSettings.triggered.connect(self.mainGui.showProjectSettingsDialog)
+
+        # Project > Separator
+        self.projMenu.addSeparator()
+
+        # Project > Import Manuscript
+        self.aImportManuscript = qtAddAction(self.projMenu, self.tr("Import Manuscript (DOCX)..."))
+        self.aImportManuscript.setShortcut("Ctrl+Shift+I")
+        self.aImportManuscript.triggered.connect(
+            qtLambda(importManuscript, SHARED.project, self.mainGui)
+        )
+
+        # Project > Undo Import
+        self.aUndoImport = qtAddAction(self.projMenu, self.tr("Undo Import"))
+        self.aUndoImport.setShortcut("Ctrl+Shift+U")
+        self.aUndoImport.triggered.connect(
+            qtLambda(undoImport, SHARED.project, self.mainGui)
+        )
 
         # Project > Separator
         self.projMenu.addSeparator()

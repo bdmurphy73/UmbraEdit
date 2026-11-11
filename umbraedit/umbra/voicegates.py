@@ -4,24 +4,41 @@ UmbraEdit - Attribution Gate Rules
 
 This file is a part of UmbraEdit, a fork of novelWriter.
 
-Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
+Copyright (C) 2018 Veronica Berglyd Olsen and novelWriter contributors.
 
-Gate rules for attribution spans (P10): duplicate speaker voice and
-open attribution proposals. Registered via ``umbra.gates``.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+Additional Copyright (C) 2026 B.D. Murphy.
+Changes: Updated attribProposalOpen gate to also count proposals from the
+proposals system and added OP_PUBLISH_PACKAGE operation.
 """  # noqa
 
 from __future__ import annotations
 
 import logging
 import re
+
 from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.gates import (
+    OP_AUDIO_CHAPTER,
+    OP_PUBLISH_PACKAGE,
     Finding,
     GateRule,
-    OP_AUDIO_CHAPTER,
     registerGate,
 )
+from umbraedit.umbra.proposals import count_open_proposals
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -47,7 +64,8 @@ def _findPovTag(text: str) -> str | None:
 
 def _checkAttribDropSameVoice(scope: Any) -> Iterable[Finding]:
     """Block: effective drop is true for a speaker whose voice_matrix
-    equals the scene narration voice's voice_matrix."""
+    equals the scene narration voice's voice_matrix.
+    """
     proj = scope.project
     if proj is None:
         return
@@ -95,25 +113,25 @@ def _checkAttribDropSameVoice(scope: Any) -> Iterable[Finding]:
                 continue
             if speakerVoiceMatrix == povVoiceMatrix:
                 yield Finding(
-                    ruleId="attribDropSameVoice", severity="block",
-                    message=f"Attribution drop for '{speakerName}' would silence "
-                            f"the scene narration voice.",
-                    fix="Remove the attribution drop or assign a different "
-                        "voice matrix.",
-                    handle=item.itemHandle, line=None,
-                    detail={"tag": speakerName,
-                            "voice_matrix": speakerVoiceMatrix},
+                    ruleId="attribDropSameVoice",
+                    severity="block",
+                    message=f"Attribution drop for '{speakerName}' would silence the scene narration voice.",
+                    fix="Remove the attribution drop or assign a different voice matrix.",
+                    handle=item.itemHandle,
+                    line=None,
+                    detail={"tag": speakerName, "voice_matrix": speakerVoiceMatrix},
                 )
 
 
 def _checkAttribProposalOpen(scope: Any) -> Iterable[Finding]:
-    """Advisory: unaccepted [attr:proposal] spans exist."""
+    """Advisory: unaccepted [attr:proposal] spans or proposal files exist."""
     proj = scope.project
     if proj is None:
         return
     contentPath = proj.storage.contentPath
     if not contentPath:
         return
+    count = 0
     for item in proj.tree:
         if not item.isFileType():
             continue
@@ -126,23 +144,50 @@ def _checkAttribProposalOpen(scope: Any) -> Iterable[Finding]:
             logger.exception("Could not read %s", docFile)
             continue
         if _ATTR_PROPOSAL_RE.search(text):
+            count += 1
             yield Finding(
-                ruleId="attribProposalOpen", severity="advisory",
+                ruleId="attribProposalOpen",
+                severity="advisory",
                 message="Unaccepted attribution proposal exists.",
                 fix="Accept or reject the attribution proposal.",
-                handle=item.itemHandle, line=None,
+                handle=item.itemHandle,
+                line=None,
                 detail={},
             )
+    # Also count proposals from the proposals system (P34)
+    try:
+        proposal_count = count_open_proposals(proj)
+        if proposal_count > 0:
+            yield Finding(
+                ruleId="attribProposalOpen",
+                severity="advisory",
+                message=f"{proposal_count} open proposal(s) awaiting review",
+                fix="Accept or reject proposals in the Speakers dock",
+                handle=None,
+                detail={"openProposals": proposal_count},
+            )
+    except Exception:
+        logger.exception("Could not count open proposals")
 
 
-registerGate(GateRule(
-    ruleId="attribDropSameVoice", title="Attribution Drop Same Voice",
-    operations=frozenset({OP_AUDIO_CHAPTER}),
-    defaultSeverity="block", relaxable=False, check=_checkAttribDropSameVoice,
-))
+registerGate(
+    GateRule(
+        ruleId="attribDropSameVoice",
+        title="Attribution Drop Same Voice",
+        operations=frozenset({OP_AUDIO_CHAPTER}),
+        defaultSeverity="block",
+        relaxable=False,
+        check=_checkAttribDropSameVoice,
+    )
+)
 
-registerGate(GateRule(
-    ruleId="attribProposalOpen", title="Attribution Proposal Open",
-    operations=frozenset({OP_AUDIO_CHAPTER}),
-    defaultSeverity="advisory", relaxable=True, check=_checkAttribProposalOpen,
-))
+registerGate(
+    GateRule(
+        ruleId="attribProposalOpen",
+        title="Attribution Proposal Open",
+        operations=frozenset({OP_AUDIO_CHAPTER, OP_PUBLISH_PACKAGE}),
+        defaultSeverity="advisory",
+        relaxable=True,
+        check=_checkAttribProposalOpen,
+    )
+)

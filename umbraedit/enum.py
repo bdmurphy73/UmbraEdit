@@ -47,6 +47,7 @@ class nwItemClass(Enum):
     ARCHIVE = 9
     TEMPLATE = 10
     TRASH = 11
+    GUIDE = 12
 
 
 class nwItemLayout(Enum):
@@ -203,6 +204,8 @@ class nwBuildFmt(Enum):
     NWD = 8
     J_HTML = 9
     J_NWD = 10
+    EPUB_VALIDATED = 11
+    PRINT_PDF = 12
 
 
 class nwStatusShape(Enum):

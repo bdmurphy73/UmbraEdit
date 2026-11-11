@@ -104,6 +104,7 @@ class nwRegEx:
     FMT_SC = r"(?i)(?<!\\)(\[(?:b|/b|i|/i|s|/s|u|/u|m|/m|sup|/sup|sub|/sub|br)\])"
     FMT_SV = r"(?i)(?<!\\)(\[(?:footnote|field):)(.+?)(?<!\\)(\])"
     AUTO_REP = r"<([^\s<>]+)>"
+    FMT_MARK = r"(?<!\\)(\[mark:an-[a-z0-9]{6}\])(.+?)(?<!\\)(\[/mark\])"
 
 
 class nwShortcode:
@@ -213,6 +214,14 @@ class nwKeyWords:
     ATTR_KEY = "@attr"
     PRON_KEY = "@pron"
 
+    # UmbraEdit (P22): Guide document keywords
+    GUIDE_KEY = "@guide"
+    CHAPTER_KEY = "@chapter"
+    SRCHASH_KEY = "@srchash"
+    STATUS_KEY = "@status"
+    LANG_KEY = "@lang"
+    MARK_KEY = "@mark"
+
     # Note: The order here affects the order of menu entries
     ALL_KEYS: ClassVar[list[str]] = [
         TAG_KEY,
@@ -227,6 +236,12 @@ class nwKeyWords:
         CUSTOM_KEY,
         STORY_KEY,
         MENTION_KEY,
+        GUIDE_KEY,
+        CHAPTER_KEY,
+        SRCHASH_KEY,
+        STATUS_KEY,
+        LANG_KEY,
+        MARK_KEY,
     ]
     CAN_CREATE: ClassVar[list[str]] = [
         POV_KEY,
@@ -238,6 +253,11 @@ class nwKeyWords:
         OBJECT_KEY,
         ENTITY_KEY,
         CUSTOM_KEY,
+        GUIDE_KEY,
+        CHAPTER_KEY,
+        SRCHASH_KEY,
+        STATUS_KEY,
+        LANG_KEY,
     ]
     CAN_LOOKUP: ClassVar[list[str]] = [
         POV_KEY,
@@ -251,13 +271,28 @@ class nwKeyWords:
         CUSTOM_KEY,
         STORY_KEY,
         MENTION_KEY,
+        GUIDE_KEY,
+        CHAPTER_KEY,
+        SRCHASH_KEY,
+        STATUS_KEY,
+        LANG_KEY,
     ]
 
     # Set of Valid Keys
-    # UmbraEdit (P06/P07): @alias, @attr and @pron are valid for the
-    # parser and the index, but deliberately not in ALL_KEYS, so they
-    # get no entry in the Insert menu or shortcut tables.
-    VALID_KEYS: ClassVar[set[str]] = set(ALL_KEYS) | {ALIAS_KEY, ATTR_KEY, PRON_KEY}
+    # UmbraEdit (P06/P07/P22): @alias, @attr, @pron, and guide keywords are
+    # valid for the parser and the index, but deliberately not in ALL_KEYS,
+    # so they get no entry in the Insert menu or shortcut tables.
+    VALID_KEYS: ClassVar[set[str]] = set(ALL_KEYS) | {
+        ALIAS_KEY,
+        ATTR_KEY,
+        PRON_KEY,
+        GUIDE_KEY,
+        CHAPTER_KEY,
+        SRCHASH_KEY,
+        STATUS_KEY,
+        LANG_KEY,
+        MARK_KEY,
+    }
 
     # Map from Keys to Item Class
     KEY_CLASS: ClassVar[dict[str, nwItemClass]] = {
@@ -271,6 +306,11 @@ class nwKeyWords:
         ENTITY_KEY: nwItemClass.ENTITY,
         CUSTOM_KEY: nwItemClass.CUSTOM,
         STORY_KEY: nwItemClass.NOVEL,
+        GUIDE_KEY: nwItemClass.GUIDE,
+        CHAPTER_KEY: nwItemClass.GUIDE,
+        SRCHASH_KEY: nwItemClass.GUIDE,
+        STATUS_KEY: nwItemClass.GUIDE,
+        LANG_KEY: nwItemClass.GUIDE,
     }
 
     # Map to Class Icons
@@ -286,6 +326,11 @@ class nwKeyWords:
         CUSTOM_KEY: "cls_custom:root",
         STORY_KEY: "cls_novel:root",
         MENTION_KEY: "key_mention:root",
+        GUIDE_KEY: "cls_guide:root",
+        CHAPTER_KEY: "cls_guide:root",
+        SRCHASH_KEY: "cls_guide:root",
+        STATUS_KEY: "cls_guide:root",
+        LANG_KEY: "cls_guide:root",
     }
 
 
@@ -300,6 +345,7 @@ class nwLists:
         nwItemClass.OBJECT,
         nwItemClass.ENTITY,
         nwItemClass.CUSTOM,
+        nwItemClass.GUIDE,
     ]
 
 
@@ -358,6 +404,7 @@ class nwLabels:
         nwItemClass.ARCHIVE: QT_TRANSLATE_NOOP("Constant", "Archive"),
         nwItemClass.TEMPLATE: QT_TRANSLATE_NOOP("Constant", "Templates"),
         nwItemClass.TRASH: QT_TRANSLATE_NOOP("Constant", "Trash"),
+        nwItemClass.GUIDE: QT_TRANSLATE_NOOP("Constant", "Translation Guide"),
     }
     CLASS_ICON: ClassVar[dict[nwItemClass, str]] = {
         nwItemClass.NO_CLASS: "cls_none:root",
@@ -372,6 +419,7 @@ class nwLabels:
         nwItemClass.ARCHIVE: "cls_archive:root",
         nwItemClass.TEMPLATE: "cls_template:root",
         nwItemClass.TRASH: "cls_trash:root",
+        nwItemClass.GUIDE: "cls_guide:root",
     }
     LAYOUT_NAME: ClassVar[dict[nwItemLayout, str]] = {
         nwItemLayout.NO_LAYOUT: QT_TRANSLATE_NOOP("Constant", "None"),
@@ -394,6 +442,8 @@ class nwLabels:
         "doc_h3": QT_TRANSLATE_NOOP("Constant", "Novel Scene"),
         "doc_h4": QT_TRANSLATE_NOOP("Constant", "Novel Section"),
         "note": QT_TRANSLATE_NOOP("Constant", "Project Note"),
+        "guide_root": QT_TRANSLATE_NOOP("Constant", "Translation Guide"),
+        "guide_document": QT_TRANSLATE_NOOP("Constant", "Guide Document"),
     }
     ACTIVE_NAME: ClassVar[dict[bool, str]] = {
         True: QT_TRANSLATE_NOOP("Constant", "Active"),
@@ -419,6 +469,12 @@ class nwLabels:
         nwKeyWords.ALIAS_KEY: QT_TRANSLATE_NOOP("Constant", "Alias"),
         nwKeyWords.ATTR_KEY: QT_TRANSLATE_NOOP("Constant", "Attribute"),
         nwKeyWords.PRON_KEY: QT_TRANSLATE_NOOP("Constant", "Pronunciation"),
+        nwKeyWords.GUIDE_KEY: QT_TRANSLATE_NOOP("Constant", "Guide"),
+        nwKeyWords.CHAPTER_KEY: QT_TRANSLATE_NOOP("Constant", "Chapter"),
+        nwKeyWords.SRCHASH_KEY: QT_TRANSLATE_NOOP("Constant", "Source Hash"),
+        nwKeyWords.STATUS_KEY: QT_TRANSLATE_NOOP("Constant", "Status"),
+        nwKeyWords.LANG_KEY: QT_TRANSLATE_NOOP("Constant", "Language"),
+        nwKeyWords.MARK_KEY: QT_TRANSLATE_NOOP("Constant", "Review Mark"),
     }
     KEY_SHORTCUT: ClassVar[dict[str, str]] = {
         nwKeyWords.TAG_KEY: "Ctrl+K, G",
@@ -433,6 +489,12 @@ class nwLabels:
         nwKeyWords.CUSTOM_KEY: "Ctrl+K, X",
         nwKeyWords.STORY_KEY: "Ctrl+K, N",
         nwKeyWords.MENTION_KEY: "Ctrl+K, M",
+        nwKeyWords.GUIDE_KEY: "Ctrl+K, G",
+        nwKeyWords.CHAPTER_KEY: "Ctrl+K, H",
+        nwKeyWords.SRCHASH_KEY: "Ctrl+K, S",
+        nwKeyWords.STATUS_KEY: "Ctrl+K, S",
+        nwKeyWords.LANG_KEY: "Ctrl+K, L",
+        nwKeyWords.MARK_KEY: "Ctrl+K, M",
     }
     STATS_NAME: ClassVar[dict[str, str]] = {
         nwStats.CHARS: QT_TRANSLATE_NOOP("Stats", "Characters"),
@@ -478,6 +540,8 @@ class nwLabels:
         nwBuildFmt.PDF: QT_TRANSLATE_NOOP("Constant", "Portable Document Format (.pdf)"),
         nwBuildFmt.J_HTML: QT_TRANSLATE_NOOP("Constant", "JSON + HTML 5 (.json)"),
         nwBuildFmt.J_NWD: QT_TRANSLATE_NOOP("Constant", "JSON + UmbraEdit Markup (.json)"),
+        nwBuildFmt.EPUB_VALIDATED: QT_TRANSLATE_NOOP("Constant", "EPUB 3 Validated (.epub)"),
+        nwBuildFmt.PRINT_PDF: QT_TRANSLATE_NOOP("Constant", "Print PDF (Typst) (.pdf)"),
     }
     BUILD_EXT: ClassVar[dict[nwBuildFmt, str]] = {
         nwBuildFmt.ODT: ".odt",
@@ -491,6 +555,8 @@ class nwLabels:
         nwBuildFmt.PDF: ".pdf",
         nwBuildFmt.J_HTML: ".json",
         nwBuildFmt.J_NWD: ".json",
+        nwBuildFmt.EPUB_VALIDATED: ".epub",
+        nwBuildFmt.PRINT_PDF: ".pdf",
     }
     SHAPES_PLAIN: ClassVar[dict[nwStatusShape, str]] = {
         nwStatusShape.SQUARE: QT_TRANSLATE_NOOP("Constant", "Square"),

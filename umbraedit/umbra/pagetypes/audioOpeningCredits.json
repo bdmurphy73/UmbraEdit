@@ -1,0 +1,26 @@
+{
+  "id": "audioOpeningCredits",
+  "label": "Opening Credits",
+  "matter": "front",
+  "order": 5,
+  "fields": [
+    {"key": "title", "label": "Title", "type": "text", "from": "book.title"},
+    {"key": "author", "label": "Author", "type": "text", "from": "book.author"},
+    {"key": "narrator", "label": "Narrator", "type": "text", "from": "format.narrator"}
+  ],
+  "template": "# {{title}}\n\nBy {{author}}\n\nNarrated by {{narrator}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden", "spoken": true},
+  "requiredFor": ["audiobook"],
+  "variants": {
+    "audio": {
+      "enabled": true,
+      "spoken": true
+    },
+    "print": {
+      "enabled": false
+    },
+    "epub": {
+      "enabled": false
+    }
+  }
+}

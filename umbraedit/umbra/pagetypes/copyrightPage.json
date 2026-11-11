@@ -1,0 +1,67 @@
+{
+  "id": "copyrightPage",
+  "label": "Copyright page",
+  "matter": "front",
+  "order": 40,
+  "fields": [
+    {"key": "title", "label": "Title", "type": "text", "from": "book.title"},
+    {"key": "author", "label": "Author", "type": "text", "from": "book.author"},
+    {"key": "copyrightYear", "label": "Copyright year", "type": "text", "from": "book.copyrightYear"},
+    {"key": "copyrightHolder", "label": "Copyright holder", "type": "text", "from": "book.copyrightHolder"},
+    {"key": "isbn", "label": "ISBN", "type": "text", "from": "format.isbn"},
+    {"key": "edition", "label": "Edition", "type": "text", "optional": true},
+    {"key": "publisher", "label": "Publisher", "type": "text", "from": "format.publisher", "optional": true},
+    {"key": "rights", "label": "Rights statement", "type": "textarea", "optional": true}
+  ],
+  "template": "# Copyright\n\n{{title}}\n\nCopyright © {{copyrightYear}} {{copyrightHolder}}\n\nISBN: {{isbn}}\n\n{% if publisher %}Publisher: {{publisher}}\n{% endif %}\n{% if edition %}Edition: {{edition}}\n{% endif %}\n{% if rights %}\n{{rights}}\n{% endif %}\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden"},
+  "requiredFor": ["print", "epub"],
+  "variants": {
+    "print": {
+      "fields": [
+        {"key": "title", "label": "Title", "type": "text", "from": "book.title"},
+        {"key": "author", "label": "Author", "type": "text", "from": "book.author"},
+        {"key": "copyrightYear", "label": "Copyright year", "type": "text", "from": "book.copyrightYear"},
+        {"key": "copyrightHolder", "label": "Copyright holder", "type": "text", "from": "book.copyrightHolder"},
+        {"key": "isbn", "label": "ISBN", "type": "text", "from": "format.isbn"},
+        {"key": "edition", "label": "Edition", "type": "text", "optional": true},
+        {"key": "publisher", "label": "Publisher", "type": "text", "from": "format.publisher", "optional": true},
+        {"key": "rights", "label": "Rights statement", "type": "textarea", "optional": true}
+      ],
+      "template": "# Copyright\n\n{{title}}\n\nCopyright © {{copyrightYear}} {{copyrightHolder}}\n\nISBN: {{isbn}}\n\n{% if publisher %}Publisher: {{publisher}}\n{% endif %}\n{% if edition %}Edition: {{edition}}\n{% endif %}\n{% if rights %}\n{{rights}}\n{% endif %}\n",
+      "build": {"newPageBefore": true, "headingStyle": "hidden"},
+      "requiredFor": ["print"]
+    },
+    "epub": {
+      "fields": [
+        {"key": "title", "label": "Title", "type": "text", "from": "book.title"},
+        {"key": "author", "label": "Author", "type": "text", "from": "book.author"},
+        {"key": "copyrightYear", "label": "Copyright year", "type": "text", "from": "book.copyrightYear"},
+        {"key": "copyrightHolder", "label": "Copyright holder", "type": "text", "from": "book.copyrightHolder"},
+        {"key": "isbn", "label": "ISBN", "type": "text", "from": "format.isbn"},
+        {"key": "publisher", "label": "Publisher", "type": "text", "from": "format.publisher", "optional": true},
+        {"key": "rights", "label": "Rights statement", "type": "textarea", "optional": true}
+      ],
+      "template": "# Copyright\n\n{{title}}\n\nCopyright © {{copyrightYear}} {{copyrightHolder}}\n\nISBN: {{isbn}}\n\n{% if publisher %}Publisher: {{publisher}}\n{% endif %}\n{% if rights %}\n{{rights}}\n{% endif %}\n",
+      "build": {"newPageBefore": true, "headingStyle": "hidden"},
+      "requiredFor": ["epub"]
+    },
+    "audio": {
+      "enabled": true,
+      "spoken": true,
+      "fields": [
+        {"key": "title", "label": "Title", "type": "text", "from": "book.title"},
+        {"key": "author", "label": "Author", "type": "text", "from": "book.author"},
+        {"key": "narrator", "label": "Narrator", "type": "text", "from": "format.narrator"},
+        {"key": "copyrightYear", "label": "Copyright year", "type": "text", "from": "book.copyrightYear"},
+        {"key": "copyrightHolder", "label": "Copyright holder", "type": "text", "from": "book.copyrightHolder"},
+        {"key": "isbn", "label": "ISBN", "type": "text", "from": "format.isbn"},
+        {"key": "publisher", "label": "Publisher", "type": "text", "from": "format.publisher", "optional": true},
+        {"key": "rights", "label": "Rights statement", "type": "textarea", "optional": true}
+      ],
+      "template": "# Copyright\n\n{{title}}\n\nCopyright © {{copyrightYear}} {{copyrightHolder}}\n\nNarrated by {{narrator}}\n\nISBN: {{isbn}}\n\n{% if publisher %}Published by {{publisher}}\n{% endif %}\n{% if rights %}\n{{rights}}\n{% endif %}\n",
+      "build": {"newPageBefore": true, "headingStyle": "hidden", "spoken": true},
+      "requiredFor": ["audiobook"]
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "id": "halfTitle",
+  "label": "Half title",
+  "matter": "front",
+  "order": 10,
+  "fields": [
+    {"key": "title", "label": "Title", "type": "text", "from": "book.title"}
+  ],
+  "template": "# {{title}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden"},
+  "requiredFor": ["print", "epub"]
+}

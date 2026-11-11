@@ -1,0 +1,13 @@
+{
+  "id": "mapPage",
+  "label": "Map Page",
+  "matter": "front",
+  "order": 55,
+  "fields": [
+    {"key": "title", "label": "Map title", "type": "text", "optional": true},
+    {"key": "image", "label": "Map image", "type": "text", "optional": true, "help": "Asset ID or path to map image"}
+  ],
+  "template": "# {{title}}\n\n{% if image %}[image:{{image}}]\n{% endif %}\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden"},
+  "requiredFor": []
+}

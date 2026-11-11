@@ -37,10 +37,22 @@ PAGES_JSON = "pages.json"
 JOURNAL_JSONL = "journal.jsonl"
 DEVICE_JSON = "device.json"
 
-# Sub-folder names for later prompts
+# Sync sub-folder
+STATE_JSON = "state.json"
+ACKED_JSON = "acked.json"
+
 PROMPTS_DIR = "prompts"
 ALIGN_DIR = "align"
 PROPOSALS_DIR = "proposals"
+LOST_FOUND_DIR = "lost+found"
+SYNC_DIR = "sync"
+
+
+def lostFoundDir(projectPath: Path) -> Path:
+    """Return `<project>/umbra/cache/lost+found/`, creating it if needed."""
+    path = cacheDir(projectPath) / LOST_FOUND_DIR
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def umbraDir(projectPath: Path) -> Path:
@@ -143,6 +155,47 @@ def journalFile(projectPath: Path) -> Path:
 def deviceFile(projectPath: Path) -> Path:
     """Return `<project>/umbra/device.json`."""
     return umbraDir(projectPath) / DEVICE_JSON
+
+
+def syncDir(projectPath: Path) -> Path:
+    """Return `<project>/umbra/sync/`, creating it if needed."""
+    path = umbraDir(projectPath) / SYNC_DIR
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def stateFile(projectPath: Path) -> Path:
+    """Return `<project>/umbra/sync/state.json`."""
+    return syncDir(projectPath) / STATE_JSON
+
+
+def ackedFile(projectPath: Path) -> Path:
+    """Return `<project>/umbra/sync/acked.json`."""
+    return syncDir(projectPath) / ACKED_JSON
+
+
+CONFLICTS_JSON = "conflicts.json"
+
+
+def conflictsFile(projectPath: Path) -> Path:
+    """Return `<project>/umbra/sync/conflicts.json`."""
+    return syncDir(projectPath) / CONFLICTS_JSON
+
+
+BIBLE_SEEN_JSON = "bible-seen.json"
+
+
+def bibleSeenFile(projectPath: Path) -> Path:
+    """Return `<project>/umbra/cache/bible-seen.json`."""
+    return cacheDir(projectPath) / BIBLE_SEEN_JSON
+
+
+INGEST_RUNS_JSON = "ingest-runs.json"
+
+
+def ingestRunsFile(projectPath: Path) -> Path:
+    """Return `<project>/umbra/ingest-runs.json`."""
+    return umbraDir(projectPath) / INGEST_RUNS_JSON
 
 
 def promptsDir(projectPath: Path) -> Path:

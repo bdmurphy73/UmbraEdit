@@ -1,0 +1,14 @@
+{
+  "id": "titlePage",
+  "label": "Title page",
+  "matter": "front",
+  "order": 30,
+  "fields": [
+    {"key": "title", "label": "Title", "type": "text", "from": "book.title"},
+    {"key": "subtitle", "label": "Subtitle", "type": "text", "from": "book.subtitle", "optional": true},
+    {"key": "author", "label": "Author", "type": "text", "from": "book.author"}
+  ],
+  "template": "# {{title}}\n\n{{subtitle}}\n\n{{author}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden"},
+  "requiredFor": ["print", "epub"]
+}

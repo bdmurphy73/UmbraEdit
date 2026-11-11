@@ -1,0 +1,10 @@
+{
+  "id": "notes",
+  "label": "Notes",
+  "matter": "back",
+  "order": 25,
+  "fields": [],
+  "template": "# Notes\n\n[Generated at build time]\n",
+  "build": {"newPageBefore": true, "headingStyle": "normal", "generated": true},
+  "requiredFor": []
+}

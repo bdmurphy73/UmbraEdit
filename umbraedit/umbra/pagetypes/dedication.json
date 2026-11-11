@@ -1,0 +1,12 @@
+{
+  "id": "dedication",
+  "label": "Dedication",
+  "matter": "front",
+  "order": 50,
+  "fields": [
+    {"key": "text", "label": "Dedication text", "type": "textarea", "optional": true}
+  ],
+  "template": "# Dedication\n\n{{text}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "hidden"},
+  "requiredFor": ["print", "epub"]
+}

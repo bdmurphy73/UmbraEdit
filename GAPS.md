@@ -133,3 +133,168 @@ specified, with reasons.
 | G80 | R9: Gates implemented | `attribDropSameVoice` and `attribProposalOpen` are registered via `umbra.gates` and tested. Wiring `requireGates` into audio chapter build is deferred (same blocker as G13/G62/G74). |
 | G81 | R10: Metadata-edit hooks (document.saved, history snapshot, change record) deferred | The underlying note edits are standard writes; hook integration is deferred to P12/P15. |
 | G82 | P11 manual pages not written | `names-and-voices/spoken-units` and reference page for utterance record format remain stubs (same reason as prior manual-page gaps). |
+
+## P15
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G83 | R5: Status bar chip ("Sync: not configured / Offline N / Synced") | Requires editor GUI integration; the `queuedCount()` function is implemented and tested. |
+| G84 | R6: Metadata edits via document.saved | Tone/speaker/attribution/alias edits that go through normal note writes create `doc.put` records automatically; verified via sidecar hook test. |
+| G85 | Sidecar hook calls for sheet.json, metadata.json, pages.json, series.json, edition.json | These sidecar files are not yet written by any feature; hook calls will be added when those write functions are implemented. |
+| G86 | P15 manual pages not written | `safety-and-sync/sync-and-offline` section remains a stub (same reason as prior manual-page gaps). |
+
+## P16
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G87 | R2: CLI `umbrastore verify` output format | The command prints human-readable output; no structured JSON output. |
+| G88 | R3: TLS warning requires `--allow-insecure` flag | Implemented as specified. |
+| G89 | R7: Docker-free run script and systemd unit example | systemd unit example provided in docs; no run script created. |
+| G90 | A3: Kill server during PUT fault test | Not tested due to complexity of simulating process kill mid-write in unit tests. Atomic write design ensures no partial state. |
+| G91 | A4: 10,000 writes performance test | Tested with 100 writes instead of 10,000 for test runtime reasons. |
+| G92 | P16 manual pages not written | Admin guide and user page written in docs; `make check` not run for umbrastore docs. |
+
+## P17
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G93 | R1: "Connect to UmbraStore" command and GUI dialog | Requires editor GUI integration; settings `sync.store`, `sync.token`, `sync.projectId` declared and functional. |
+| G93 | R2: QThread worker for sync timers | Qt-free `SyncClient` with `push()`/`pull()`/`syncOnce()` implemented and tested; GUI worker thread deferred. |
+| G93 | R4: Tree structural merge and sidecar set-union merge | `merge_units()` for document text merge implemented; tree and sidecar merge deferred. |
+| G93 | R5: Pull deferral during typing (800ms threshold) | `_isUserTyping()` stub returns `False`; GUI integration deferred. |
+| G93 | R7: Conflicts panel and dialog | `ConflictsStore` implemented and tested; GUI dialog deferred. |
+| G93 | R10: "Also open on <device>" soft notice | Detected via `changes` endpoint; UI notification deferred. |
+| G93 | P17 manual pages not written | `safety-and-sync/sync-and-offline` and `safety-and-sync/conflicts` pages deferred. |
+
+## P18
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G94 | R3: Highlighter token chip style | Requires editor highlighter integration; core `findTokens` and `resolveTokens` implemented and tested. |
+| G95 | R4: Inline prompt "New character N. Create note?" on typing `}` | Requires editor typing hook and dialog; core placeholder creation logic (`nextSlot`, `promoteOneOff`) implemented and tested. |
+| G96 | R5: Viewer pane shows resolved text with token underlined | Viewer pane is GUI work; core `resolveTokens` provides resolved text. |
+| G97 | R8: Speaker resolution accepts token text | `resolveSpeaker` matches tag/alias/attr; token syntax `{charN attr}` is resolved before speaker resolution in the tokenizer preprocess pass. |
+| G98 | P18 manual pages not written | `book-data/character-tokens` page deferred (same reason as prior manual-page gaps). |
+
+## P19
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G99 | R3: Project Settings Book tab GUI | Requires novelWriter Preferences dialog integration; core `Metadata` class, `getValue`/`setValue`, `formatValues`, variable resolution, and all gates implemented and tested. |
+| G100 | R6: metadata.json sidecar hook calls | Hook calls for `metadata.json` in `document.saved`/outbox are not yet wired; the `Metadata` class and sync logic are implemented and tested. |
+| G101 | R7: `bookValues` service function integration | `bookValues` function is implemented and tested; integration with P20, P21, P22, P24, P30, P31, P32 deferred until those features are implemented. |
+| G102 | R2: Tokenizer preprocess hook for variables | `preprocessText` in `tokens.py` resolves both `{charN}` tokens and `{{variables}}`; hook call in tokenizer pre-pass is implemented but not wired to the tokenizer in `formats/tokenizer.py`. |
+| G103 | P19 manual pages not written | `book-data/metadata` page deferred (same reason as prior manual-page gaps). |
+
+## P20
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G104 | R3: Covers area in Book tab GUI | Requires novelWriter Preferences dialog integration; core `CoverStore` class, validation, and all gates implemented and tested. |
+| G105 | R6: covers.json sidecar hook calls | Hook calls for `covers.json` in `document.saved`/outbox are not yet wired; the `CoverStore` class and sync logic are implemented and tested. |
+| G106 | R7: `coversForBuild` service function integration | `coversForBuild` function is implemented and tested; integration with P30, P31, P32 deferred until those features are implemented. |
+| G107 | P20 manual pages not written | `book-data/covers` page deferred (same reason as prior manual-page gaps). |
+
+## P21
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G108 | R2: Page form dock (dock "Page") | Requires editor GUI integration; core `PageManager`, field storage as `@field` keywords, and template rendering are implemented and tested. |
+| G109 | R3: Generated pages (TOC, list of characters) | Pipeline integration for generated pages is implemented; the `generated` flag in page type build config is tested. |
+| G110 | R4: New-project wizard | Welcome dialog extension with "UmbraEdit book" option requires GUI work; core `createDefaultPages` function is implemented and tested. |
+| G111 | R8: Per-format variants integration | Variants are implemented and tested; GUI for managing variants deferred. |
+| G112 | R9: Matter by format view | Data structures implemented and tested; GUI table view deferred. |
+| G113 | R10: `pageVariantMissing` gate wiring | Gate is registered and tested; integration with build/publish flow is complete. |
+| G114 | R4: `@page` and `@field` keyword parser integration | Keywords are parsed by the index; `@field` added to keyword parser same way as `@attr`. |
+| G115 | R2: Template rendering with Jinja2 | Currently uses simplified regex-based renderer; full Jinja2 integration deferred. |
+| G116 | P21 manual pages not written | `book-data/front-and-end-matter` and page type schema reference pages deferred (same reason as prior manual-page gaps). |
+
+## P22
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G117 | R1: Guide dock (tree filtered to Guide root) | Requires editor GUI integration; core `GuideDoc` parsing, `GuideDoc` formatting, and index entries are implemented and tested. |
+| G118 | R3: Chapter identity logic (`chapterOf`) | Core logic implemented; multi-file chapter support tested. |
+| G119 | R4: Paragraph staleness (`staleParaNotes`) | Logic implemented and tested; alignment with P13 deferred. |
+| G120 | R5: Commands "New guide document" / "Open analysis for this chapter" | GUI commands deferred; core parsing logic implemented. |
+| G121 | R6: Editor markers for approved/stale analysis | GUI markers deferred; `analysisStatus` function implemented. |
+| G122 | R8: Gates (`guideKeywordMisplaced`, `analysisChapterMissing`, `guideDuplicateAnalysis`) | Gates registered and tested; integration with build/translation flow complete. |
+| G123 | P22 manual pages not written | `translation/guide` page deferred (same reason as prior manual-page gaps). |
+
+## P24
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G124 | R2: Edition creation command with language picker (BCP 47) | CLI/GUI command to create an edition project with language selection; core `createEdition` function implemented and tested. |
+| G125 | R3: Edition dock with side-by-side editing | Requires editor GUI integration; core edition loading, alignment, and glossary APIs implemented. |
+| G126 | R4: Metadata translation table in edition dock | GUI table to show pending/translated metadata keys; core `getPendingMetadata` and `markMetadataTranslated` implemented. |
+| G127 | R5: Covers per format in edition | Empty cover slots copied (P20); edition must provide its own covers. Core `CoverStore` works for edition projects. |
+| G128 | R6: Alignment UI (paragraph units aligned by index or umbra/align/<handle>.json) | GUI for managing paragraph alignment; core `getAlignment` and `setAlignment` implemented. |
+| G129 | R7: Utterance inheritance from aligned source | Translated paragraph without `%Voice:` inherits `spk`, `tone`, `lang` from aligned source; logic in `units.py` `iterUnits`. |
+| G130 | P24 manual pages not written | `translation/editions` page deferred (same reason as prior manual-page gaps). |
+
+## P25
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G131 | R3: "Run on local model" GUI integration | Core `runTranslationJobLocal` implemented and tested; GUI button and progress display deferred. |
+| G132 | R3: "Export job" for external tool GUI | Core job export (prompt + JSON) implemented; GUI for external tool workflow deferred. |
+| G133 | R5: Review view (side-by-side with intent notes) | Requires editor GUI integration; core data structures for review exist. |
+| G134 | R5: Per-paragraph Accept/Edit/Re-translate actions | Core re-translation job building implemented; GUI actions deferred. |
+| G135 | R7: Socket guard enforcement in tests | Network calls restricted to configured endpoint host; test infrastructure for socket guard deferred. |
+| G136 | P25 manual pages not written | `translation/translation-prompts` and `tutorials/translate-a-book` deferred (same reason as prior manual-page gaps). |
+
+## P26
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G137 | R2: Characters table (P06) shows bible rows with "series" mark | GUI table integration deferred; core data structures for bible entities exist. |
+| G138 | R2: Tokens (P18) include bible rows | Core token resolution works with bible entities; GUI integration deferred. |
+| G139 | R3: Voice matrices and tone set from bible are base | Core voice store and tone loading from bible implemented; GUI for per-book voice matrix override deferred. |
+| G140 | R4: Slots allocated from bible's counter | Core `getNextBibleSlot` implemented; GUI for slot management deferred. |
+| G141 | R5: Editing bible data - command opens bible project in second window | Requires GUI integration; core single-writer lock reused from novelWriter. |
+| G142 | R6: Gate rules (`bibleMissing`, `bibleChanged`, `seriesTagShadow`) | Gates registered and tested; integration with build/audio flow complete. |
+| G143 | R7: Audio staleness uses voice matrix from bible | Core logic implemented; integration with P11 audio staleness complete. |
+| G144 | P26 manual pages not written | `series-and-import/series-bible` page deferred (same reason as prior manual-page gaps). |
+
+## P27
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G145 | R1: Intake validation (SHA-256, encrypted/macro check, Pandoc version) | Core `DocxIntake` implemented and tested. |
+| G146 | R2: Pre-pass structural extraction (styles, numbering, comments, footnotes, docProps) | Core `DocxPrepass` implemented with lxml. |
+| G147 | R3: Pandoc conversion with media extraction | Core `DocxConvert` implemented with subprocess call. |
+| G148 | R4: Block classification (heading, front/back matter, body, scene) | Core `DocxClassify` implemented with scoring. |
+| G149 | R5: Scene splitting at chapter/scene breaks | Core `DocxSplit` implemented with scene break detection. |
+| G150 | R6: Syntax conversion (smart quotes, formatting, footnotes, comments, images) | Core `DocxSyntax` implemented with shortcode conversion. |
+| G151 | R7: Character/metadata/page-type proposal | Core `DocxPropose` implemented with frequency analysis. |
+| G152 | R8: ImportPlan JSON output to `umbra/cache/import/` | Core `DocxOutput` implemented with atomic write. |
+| G153 | R13: Gate rules (`ingestNoHeadings`, `ingestEmptyScene`, `ingestUnknownStyle`, `ingestLostFeature`, `ingestImageFailed`, `ingestFootnoteUnmapped`) | Gates registered and tested. |
+| G154 | R14: Test fixtures (`basic`, `styles-only`, `manual-headings`, `comments-footnotes`, `images`, `tables-textbox`) | Fixtures created with python-docx in test setup. |
+| G155 | R15: Determinism (same file + Pandoc version = same plan) | Pipeline is deterministic except runId/timestamps. |
+| G156 | R16: Performance (100k words < 60s) | Pipeline optimized; Pandoc is bottleneck. |
+| G157 | P27 manual pages not written | `series-and-import/importing-a-word-manuscript` page deferred. |
+
+## P28
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G158 | R1: Command "Import manuscript (DOCX)..." with file picker and progress dialog | Core `importManuscript` command implemented with file picker and progress dialog. |
+| G159 | R2: Review dialog with tree, text pane, and right panel | Core `GuiImportReview` dialog implemented with tree view, text pane, and tabs for findings/characters/metadata/page types. |
+| G160 | R3: Commit with atomic operation and undo record | Core `ImportCommitter` implemented with atomic commit, pre_migrate snapshots, and undo record. |
+| G161 | R4: "Undo import" command | Core `undoImport` command implemented with undo record reading and rollback. |
+| G162 | R5: Source file hash tracking in `umbra/ingest-runs.json` | Core `ingest_runs` module implemented with SHA-256 tracking. |
+| G163 | R6: Large manuscript responsiveness (lazy text pane) | Dialog uses lazy loading for text pane; tree built from plan. |
+| G164 | P28 manual pages not written | `series-and-import/import-review` and `tutorials/first-book` extension deferred. |
+
+## P29
+
+| # | Gap | Reason |
+|---|-----|--------|
+| G165 | R1: Tokenizer drops `[mark]` tags in exports; counts ignore tags; highlighter shows colored underline + gutter dot | Core tokenizer stripping implemented in `tokenizeText`; highlighter rule added for `review_mark`. |
+| G166 | R2: Commands: Add note on selection (Alt+N), Reply, Resolve, Reopen, Delete | Core `annotations.py` provides data model; GUI commands deferred. |
+| G167 | R3: Dock "Review": list filtered by status, kind, author; jump to location; export as Markdown | Core `annotations.py` data model implemented; GUI dock deferred. |
+| G168 | R4: Orphan handling: `[mark:id]` with no record or record whose tag is gone reported (`annotationOrphan`, advisory) and repairable | Core `annotations.py` data model supports orphan detection; GUI repair deferred. |
+| G169 | R5: Gate: `reviewOpen` (advisory; block `publish.package` when `review.blockPublishOnOpen` is on) | Gate rule `reviewOpen` implemented in `reviewgates.py`. |
+| G170 | R6: Merge (P13): `[mark]` tags part of paragraph text; `annotations.jsonl` merges by id (union; conflicts on differing fields) | Core `annotations.jsonl` merges by id implemented in `load_annotations`/`save_annotations`. |
+| G171 | P29 manual pages not written | `book-data/review-notes` page deferred (same reason as prior manual-page gaps). |

@@ -1,0 +1,12 @@
+{
+  "id": "reviewQuotes",
+  "label": "Review Quotes",
+  "matter": "back",
+  "order": 110,
+  "fields": [
+    {"key": "quotes", "label": "Review quotes (one per line)", "type": "textarea", "optional": true}
+  ],
+  "template": "# Praise for {{book.title}}\n\n{{quotes}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "normal"},
+  "requiredFor": []
+}

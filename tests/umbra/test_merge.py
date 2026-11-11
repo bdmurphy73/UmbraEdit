@@ -13,12 +13,12 @@ from umbraedit.umbra.merge import (
     Change,
     MergeResult,
     Unit,
-    UnitKind,
     align_units,
     apply_choices,
     merge_units,
     word_diff,
 )
+from umbraedit.umbra.units import UnitKind
 
 
 def _unit(kind: UnitKind, text: str, start_line: int = 1) -> Unit:

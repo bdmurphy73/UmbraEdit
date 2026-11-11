@@ -1,0 +1,10 @@
+{
+  "id": "indexPlaceholder",
+  "label": "Index Placeholder",
+  "matter": "back",
+  "order": 55,
+  "fields": [],
+  "template": "# Index\n\n[Generated at build time]\n",
+  "build": {"newPageBefore": true, "headingStyle": "normal", "generated": true},
+  "requiredFor": []
+}

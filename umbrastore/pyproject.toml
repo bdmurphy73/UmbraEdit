@@ -1,0 +1,119 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "UmbraStore"
+authors = [{ name = "UmbraEdit contributors" }]
+description = "Self-hosted revision store server for UmbraEdit"
+license = "GPL-3.0-or-later"
+license-files = ["../../LICENSE.md"]
+version = "2026.11.0001"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Development Status :: 4 - Beta",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: System :: Archiving :: Backup",
+]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.34",
+]
+
+[dependency-groups]
+dev = [
+    { include-group = "test" },
+    { include-group = "lint" },
+]
+test = [
+    "coverage>=7.16.0",
+    "httpx>=0.27",
+    "pytest>=8.0",
+    "pytest-timeout",
+]
+lint = ["pyright", "ruff"]
+
+[project.urls]
+Homepage = "https://umbratools.com/umbrastore"
+Repository = "https://github.com/saga-soft/UmbraEdit"
+Issues = "https://github.com/saga-soft/UmbraEdit/issues"
+
+[project.scripts]
+umbrastore = "umbrastore.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["umbrastore*"]
+
+[tool.ruff]
+line-length = 120
+preview = false
+
+[tool.ruff.lint]
+select = [
+    "A", "ANN", "B", "C4", "CPY", "D", "E", "F", "FA", "G", "I", "ISC",
+    "LOG", "PERF", "PIE", "PLC", "PLE", "PLR17", "PLW", "PT", "Q", "RET",
+    "RUF", "SIM", "SLF", "SLOT", "TC", "TID", "UP", "W",
+]
+ignore = [
+    "ANN401",
+    "D107",
+    "D203",
+    "D205",
+    "D213",
+    "PLC0415",
+    "PLC1901",
+    "PLW0108",
+    "PLW0717",
+    "PLW2901",
+    "RET505",
+    "RUF015",
+    "RUF067",
+    "SIM108",
+    "UP015",
+    "UP030",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN201", "ANN202", "ANN204", "ANN205", "PLC2701", "RUF069", "SLF", "TC"]
+
+[tool.ruff.lint.pydocstyle]
+ignore-decorators = [
+    "abc.abstractmethod",
+    "property",
+    "typing.overload",
+    "pytest.fixture",
+]
+
+[tool.ruff.lint.isort]
+lines-between-types = 1
+forced-separate = ["tests"]
+required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.format]
+quote-style = "double"
+preview = true
+
+[tool.pyright]
+include = ["umbrastore", "tests/umbrastore"]
+reportIncompatibleMethodOverride = false
+pythonVersion = "3.11"
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+testpaths = ["tests/umbrastore"]
+log_level = "DEBUG"
+markers = []
+
+[tool.coverage.run]
+branch = true
+source = ["umbrastore"]
+relative_files = true
+
+[tool.coverage.report]
+precision = 2

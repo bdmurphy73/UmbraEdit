@@ -1,0 +1,12 @@
+{
+  "id": "acknowledgments",
+  "label": "Acknowledgments",
+  "matter": "back",
+  "order": 10,
+  "fields": [
+    {"key": "text", "label": "Acknowledgments text", "type": "textarea", "optional": true}
+  ],
+  "template": "# Acknowledgments\n\n{{text}}\n",
+  "build": {"newPageBefore": true, "headingStyle": "normal"},
+  "requiredFor": ["print", "epub"]
+}

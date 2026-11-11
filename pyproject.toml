@@ -29,6 +29,11 @@ dependencies = [
     "pyqt6>=6.4",
     "pyenchant>=3.3.0",
     "pyobjc-framework-Cocoa; sys_platform == 'darwin'",
+    "jsonschema>=4.26.0",
+    "python-docx>=1.1.0",
+    "lxml>=5.0.0",
+    "httpx>=0.28.0",
+    "pillow>=13.0.0",
 ]
 
 [dependency-groups]
@@ -63,6 +68,9 @@ Homepage = "https://umbratools.com/umbraedit"
 Documentation = "https://umbratools.com/umbraedit/docs"
 Repository = "https://github.com/saga-soft/UmbraEdit"
 Issues = "https://github.com/saga-soft/UmbraEdit/issues"
+
+[project.scripts]
+umbraedit-cli = "umbraedit.cli.main:main"
 
 [project.gui-scripts]
 umbraedit = "umbraedit:main"

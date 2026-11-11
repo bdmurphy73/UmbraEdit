@@ -122,6 +122,7 @@ class GuiDocHighlighter(QSyntaxHighlighter):
         self._addCharFormat("italic", colEmph, "i")
         self._addCharFormat("strike", syntax.hidden, "s")
         self._addCharFormat("mark", syntax.mark, "bg")
+        self._addCharFormat("review_mark", syntax.reviewMark, "ul")
         self._addCharFormat("nobreak", syntax.space, "bg")
         self._addCharFormat("altdialog", syntax.dialA)
         self._addCharFormat("dialog", syntax.dialN)
@@ -197,6 +198,17 @@ class GuiDocHighlighter(QSyntaxHighlighter):
         hlRule = {
             1: self._hStyles["markup"],
             2: self._hStyles["mark"],
+            3: self._hStyles["markup"],
+        }
+        self._minRules.append((rxRule, hlRule))
+        self._txtRules.append((rxRule, hlRule))
+        self._cmnRules.append((rxRule, hlRule))
+
+        # Review Annotation Mark
+        rxRule = REGEX_PATTERNS.markTag
+        hlRule = {
+            1: self._hStyles["markup"],
+            2: self._hStyles["review_mark"],
             3: self._hStyles["markup"],
         }
         self._minRules.append((rxRule, hlRule))

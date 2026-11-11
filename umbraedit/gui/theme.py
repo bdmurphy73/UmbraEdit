@@ -161,6 +161,7 @@ class SyntaxColors:
     repTag: QColor = QColor(0, 0, 0)
     mod: QColor = QColor(0, 0, 0)
     mark: QColor = QColor(255, 255, 255, 128)
+    reviewMark: QColor = QColor(0, 120, 215, 180)
 
 
 class GuiTheme:

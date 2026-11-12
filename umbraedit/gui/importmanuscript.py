@@ -25,8 +25,9 @@ from __future__ import annotations
 import logging
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
+from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QProgressDialog
 
 from umbraedit import SHARED
@@ -42,10 +43,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class ImportManuscriptCommand:
+class ImportManuscriptCommand(QObject):
     """Command to import a manuscript from a DOCX file."""
 
     def __init__(self, project: NWProject, parent: Any) -> None:
+        super().__init__()
         self._project = project
         self._parent = parent
         self._dispatcher: IngestDispatcher | None = None

@@ -33,8 +33,8 @@ i18n/*.qph
 __pycache__
 *.pyc
 
-# Sample Project
-/umbraedit/assets/sample.zip
+# Sample Project - sample.zip is tracked in git
+# /umbraedit/assets/sample.zip
 /sample/meta
 /sample/**/*.bak
 /sample/*.lock

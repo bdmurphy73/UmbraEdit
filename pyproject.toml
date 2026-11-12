@@ -34,6 +34,7 @@ dependencies = [
     "lxml>=5.0.0",
     "httpx>=0.28.0",
     "pillow>=13.0.0",
+    "setproctitle; sys_platform == 'darwin'",
 ]
 
 [dependency-groups]

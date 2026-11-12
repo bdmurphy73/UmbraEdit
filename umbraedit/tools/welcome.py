@@ -75,7 +75,7 @@ logger = logging.getLogger(__name__)
 
 PANEL_ALPHA = 178
 SAMPLE_KEY = "%CREATE_SAMPLE%"
-SAMPLE_NAME = "Sample Project"
+SAMPLE_NAME = "UmbraEdit_Sample"
 
 
 class GuiWelcome(NDialog):

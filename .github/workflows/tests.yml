@@ -19,8 +19,6 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
-          - "3.14"
-          - "3.15"
       fail-fast: false
     name: Linux Python ${{ matrix.python-version }}
     permissions:
@@ -29,7 +27,7 @@ jobs:
       COVERAGE_FILE: .coverage.py${{ matrix.python-version }}
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Install System Packages
         timeout-minutes: 5
@@ -38,7 +36,7 @@ jobs:
           sudo apt install qttools5-dev-tools
 
       - name: Install UV and Python
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
@@ -59,7 +57,7 @@ jobs:
           uv run --no-sync coverage report --skip-covered --show-missing
 
       - name: Upload Coverage Data
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-data-py${{ matrix.python-version }}
           path: ${{ env.COVERAGE_FILE }}
@@ -68,23 +66,23 @@ jobs:
 
   testMac:
     runs-on: macos-latest
-    name: MacOS Python 3.14
+    name: MacOS Python 3.13
     permissions:
       contents: read
     env:
       COVERAGE_FILE: .coverage.mac
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Install System Packages
         run: |
           brew install enchant
 
       - name: Install UV and Python
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.14"
+          python-version: "3.13"
           enable-cache: true
 
       - name: Install Dependencies
@@ -102,7 +100,7 @@ jobs:
           uv run --no-sync coverage report --skip-covered --show-missing
 
       - name: Upload Coverage Data
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-data-mac
           path: ${{ env.COVERAGE_FILE }}
@@ -111,22 +109,20 @@ jobs:
 
   testWin:
     runs-on: windows-latest
-    name: Windows Python 3.14
+    name: Windows Python 3.13
     permissions:
       contents: read
-    env:
-      COVERAGE_FILE: .coverage.win
     defaults:
       run:
         shell: bash
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Install UV and Python
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.14"
+          python-version: "3.13"
           enable-cache: true
 
       - name: Install Dependencies
@@ -143,7 +139,7 @@ jobs:
           uv run --no-sync coverage report --skip-covered --show-missing
 
       - name: Upload Coverage Data
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-data-win
           path: ${{ env.COVERAGE_FILE }}
@@ -163,16 +159,16 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Download Coverage Data
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           pattern: coverage-data-*
           merge-multiple: true
 
       - name: Install UV
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v5
 
       - name: Combine Coverage Data
         run: |
@@ -215,16 +211,16 @@ jobs:
       contents: read
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Download Coverage Data
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           pattern: coverage-data-*
           merge-multiple: true
 
       - name: Install UV
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v5
 
       - name: Combine Coverage Data
         run: |
@@ -248,7 +244,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Install System Packages
         timeout-minutes: 5
@@ -273,10 +269,10 @@ jobs:
           python3 -m pytest -v --timeout=60
 
   testFedoraLatest:
-    name: Fedora 44 & Sys Packages
+    name: Fedora Latest & Sys Packages
     runs-on: ubuntu-latest
     container:
-      image: fedora:44
+      image: fedora:41
     permissions:
       contents: read
     steps:
@@ -295,7 +291,7 @@ jobs:
             qt6-qtimageformats
 
       - name: Checkout Source
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Run Build Commands
         run: |

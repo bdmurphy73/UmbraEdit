@@ -16,25 +16,25 @@ jobs:
       contents: read
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Download Assets Artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: nw-assets
           path: umbraedit/assets
 
       - name: Install UV and Python
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.14"
+          python-version: "3.13"
           enable-cache: true
 
       - name: Build Package
         run: uv run pkgutils.py build-pypi
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: nw-pypi
           path: |
@@ -54,13 +54,13 @@ jobs:
       contents: read
     steps:
       - name: Download Package Artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: nw-pypi
           path: dist_pypi
 
       - name: Install UV
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v5
 
       - name: Publish Package
         run: uv publish dist_pypi/*

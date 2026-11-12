@@ -41,16 +41,10 @@ jobs:
       - name: Install system deps (Linux)
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update || true
-          sudo apt-get install -y python3-pyqt6 libenchant-2-dev || true
+          sudo apt-get update
+          sudo apt-get install -y python3-pyqt6 libenchant-2-dev
       - run: pip install pyqt6 pyenchant pytest pytest-qt pytest-timeout
       - name: Run tests (offscreen)
         env:
           QT_QPA_PLATFORM: offscreen
-        run: python -m pytest tests/ -v --timeout=120 || true
-
-  brand-audit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 utils/umbra_brand_audit.py
+        run: python -m pytest tests/ -v --timeout=120

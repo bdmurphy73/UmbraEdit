@@ -11,14 +11,14 @@ jobs:
     permissions:
       contents: read
     env:
-      PYTHON_VERSION: "3.14"
+      PYTHON_VERSION: "3.13"
       LINUX_TAG: "manylinux_2_28"
       LINUX_ARCH: "x86_64"
     steps:
       - name: Python Setup
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.14"
+          python-version: "3.13"
           architecture: x64
 
       - name: Install Packages (apt)
@@ -30,10 +30,10 @@ jobs:
         run: pip install python-appimage setuptools
 
       - name: Checkout Source
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: nw-assets
           path: umbraedit/assets
@@ -48,7 +48,7 @@ jobs:
           python pkgutils.py build-appimage $LINUX_TAG $LINUX_ARCH $PYTHON_VERSION
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-Linux-AppImage
           path: dist_appimage/*.AppImage*
@@ -90,7 +90,7 @@ jobs:
           fi
 
       - name: Download AppImage Artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           pattern: UmbraEdit-*-Linux-AppImage
           merge-multiple: true
@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload Smoke Logs
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: appimage-smoke-log-${{ matrix.distro }}
           path: smoke.log

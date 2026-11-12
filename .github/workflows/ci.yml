@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (ruff + pyright)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff and pyright
+        run: |
+          pip install ruff pyright
+
+      - name: Run ruff check
+        run: ruff check .
+
+      - name: Run ruff format check
+        run: ruff format --check .
+
+      - name: Run pyright
+        run: pyright
+
+  test:
+    name: Test (${{ matrix.os }} / Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+        exclude:
+          # macOS + 3.11 sometimes has PyQt6 issues on GH Actions
+          - os: macos-latest
+            python-version: "3.11"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-xfixes0 libsm6 libxrender1 libfontconfig1 libxi6
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyqt6>=6.4 pyenchant>=3.3.0 jsonschema>=4.26.0 python-docx>=1.1.0 lxml>=5.0.0 httpx>=0.28.0 pillow>=13.0.0
+          pip install pytest>=6.0.0 pytest-qt pytest-timeout coverage tzdata
+
+      - name: Run tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python -m pytest tests/ -vv --tb=short
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            .pytest_cache/
+            .coverage
+          retention-days: 7
+
+  test-coverage:
+    name: Test with Coverage
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyqt6>=6.4 pyenchant>=3.3.0 jsonschema>=4.26.0 python-docx>=1.1.0 lxml>=5.0.0 httpx>=0.28.0 pillow>=13.0.0
+          pip install pytest>=6.0.0 pytest-qt pytest-timeout coverage tzdata
+
+      - name: Run tests with coverage
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          coverage run -m pytest tests/ -vv --tb=short
+          coverage xml
+          coverage report --skip-covered --show-missing
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: umbraedit-coverage
+          fail_ci_if_error: false

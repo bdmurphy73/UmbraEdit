@@ -64,10 +64,10 @@ test = [
 lint = ["pyright", "ruff"]
 
 [project.urls]
-Homepage = "https://umbratools.com/umbraedit"
-Documentation = "https://umbratools.com/umbraedit/docs"
-Repository = "https://github.com/saga-soft/UmbraEdit"
-Issues = "https://github.com/saga-soft/UmbraEdit/issues"
+Homepage = "https://github.com/bdmurphy73/UmbraEdit"
+Documentation = "https://github.com/bdmurphy73/UmbraEdit/wiki"
+Repository = "https://github.com/bdmurphy73/UmbraEdit"
+Issues = "https://github.com/bdmurphy73/UmbraEdit/issues"
 
 [project.scripts]
 umbraedit-cli = "umbraedit.cli.main:main"

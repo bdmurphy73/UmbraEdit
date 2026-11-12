@@ -10,19 +10,19 @@ jobs:
       contents: read
     steps:
       - name: Python Setup
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.14"
+          python-version: "3.13"
           architecture: x64
 
       - name: Install Packages (pip)
         run: pip install tzdata
 
       - name: Checkout Source
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Download Assets
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: nw-assets
           path: umbraedit/assets
@@ -35,7 +35,7 @@ jobs:
 
       - name: Upload Unsigned Artifacts
         id: upload-unsigned-artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-Win-Setup
           path: dist/*.exe
@@ -56,7 +56,7 @@ jobs:
             version: "${{ steps.build.outputs.BUILD_VERSION }}"
 
       - name: Upload Signed Artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-Win-Setup-Signed
           path: dist/*.exe

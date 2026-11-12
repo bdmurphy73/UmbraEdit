@@ -244,7 +244,7 @@ class TestProjectLifecycle:
 
         sampleZip = CONFIG.assetPath("sample.zip")
         with zipfile.ZipFile(sampleZip, "r") as z:
-            xmlContent = z.read("nwProject.nwx")
+            xmlContent = z.read("sample/nwProject.nwx")
             root = ET.fromstring(xmlContent)
             assert root.tag == "UmbraEditXML"
             assert root.get("fileVersion") == "1.6"
@@ -255,5 +255,5 @@ class TestProjectLifecycle:
 
         sampleZip = CONFIG.assetPath("sample.zip")
         with zipfile.ZipFile(sampleZip, "r") as z:
-            contentFiles = [n for n in z.namelist() if n.startswith("content/") and n.endswith(".md")]
+            contentFiles = [n for n in z.namelist() if n.startswith("sample/content/") and n.endswith(".md")]
             assert len(contentFiles) > 0, "Sample project must have content files"

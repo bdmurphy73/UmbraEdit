@@ -1,0 +1,189 @@
+<?xml version='1.0' encoding='utf-8'?>
+<UmbraEditXML appVersion="2026.11.0005" hexVersion="0x0106" fileVersion="1.6" fileRevision="1" timeStamp="2026-11-12 08:00:00">
+  <project id="8a3f1c2b-7d4e-4a9f-8c3b-2d1e0f9a8b7c" saveCount="1" autoCount="0" editTime="0" indexRevision="1">
+    <name>UmbraEdit_Sample</name>
+    <author>UmbraEdit Documentation Team</author>
+  </project>
+  <settings>
+    <doBackup>yes</doBackup>
+    <language rtl="no">en_US</language>
+    <spellChecking auto="yes">en_US</spellChecking>
+    <projectTarget date="None" last="0" mode="words">50000</projectTarget>
+    <dailyTarget auto="no" last="0" date="2026-11-12">1000</dailyTarget>
+    <targetSkipRoots>
+    </targetSkipRoots>
+    <lastHandle>
+      <entry key="editor">f1a23972-f365-405f-ab8b-ceab91a9f90b</entry>
+      <entry key="viewer">f1a23972-f365-405f-ab8b-ceab91a9f90b</entry>
+      <entry key="novel">0f034b43-9e26-460a-8ff8-7b79d69880c0</entry>
+      <entry key="story">0f034b43-9e26-460a-8ff8-7b79d69880c0</entry>
+    </lastHandle>
+    <autoReplace ignoreCase="no">
+      <entry key="A">B</entry>
+      <entry key="C">D</entry>
+    </autoReplace>
+    <status>
+      <entry key="sf12341" count="0" color="#969896" shape="STAR">New</entry>
+      <entry key="sf24ce6" count="0" color="red" shape="STAR">Notes</entry>
+      <entry key="sc24b8f" count="0" color="yellow" shape="BARS_1">Started</entry>
+      <entry key="s90e6c9" count="0" color="yellow" shape="BARS_2">1st Draft</entry>
+      <entry key="sd51c5b" count="0" color="yellow" shape="BARS_3">2nd Draft</entry>
+      <entry key="s8ae72a" count="0" color="yellow" shape="BARS_4">3rd Draft</entry>
+      <entry key="s78ea90" count="0" color="green" shape="STAR">Finished</entry>
+      <entry key="s936325" count="0" color="blue" shape="DIAMOND">Sample</entry>
+    </status>
+    <importance>
+      <entry key="ia857f0" count="0" color="faded" shape="STAR">None</entry>
+      <entry key="i4a1d39" count="0" color="purple" shape="BLOCK_1">Background</entry>
+      <entry key="icfb3a5" count="0" color="purple" shape="BLOCK_2">Minor</entry>
+      <entry key="i2d7a54" count="0" color="purple" shape="BLOCK_3">Major</entry>
+      <entry key="i56be10" count="0" color="purple" shape="BLOCK_4">Main</entry>
+    </importance>
+  </settings>
+  <content items="28" novelWords="0" notesWords="0" novelChars="0" notesChars="0">
+    <item handle="0f034b43-9e26-460a-8ff8-7b79d69880c0" parent="None" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="0" type="ROOT" class="NOVEL">
+      <meta expanded="yes" />
+      <name status="sc24b8f" import="ia857f0">Novel</name>
+    </item>
+    <item handle="977290c7-c7ec-400c-986d-e7b7e4a66d2c" parent="0f034b43-9e26-460a-8ff8-7b79d69880c0" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H0" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="s78ea90" import="ia857f0" active="yes">Title Page</name>
+    </item>
+    <item handle="e542d2e1-3c91-45c8-a2cb-132f926475c0" parent="0f034b43-9e26-460a-8ff8-7b79d69880c0" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="1" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sf12341" import="ia857f0" active="yes">Introduction</name>
+    </item>
+    <item handle="edca4be2fcaf8" parent="0f034b43-9e26-460a-8ff8-7b79d69880c0" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="2" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="yes" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sf12341" import="ia857f0" active="yes">Part One: Getting Started</name>
+    </item>
+    <item handle="b1f34418-fdc2-4de6-82ed-1068e56cb41d" parent="edca4be2fcaf8" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="yes" heading="H2" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Chapter 1: Basic Formatting</name>
+    </item>
+    <item handle="9917adf0-0813-45bb-9bab-548516e76473" parent="b1f34418-fdc2-4de6-82ed-1068e56cb41d" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 1.1: Text Emphasis</name>
+    </item>
+    <item handle="d7ea8d3c-21ab-4ecc-ae04-2a1164397498" parent="b1f34418-fdc2-4de6-82ed-1068e56cb41d" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="1" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 1.2: Shortcodes</name>
+    </item>
+    <item handle="6a238c9a-84a9-462e-954f-b81bf6368f4e" parent="b1f34418-fdc2-4de6-82ed-1068e56cb41d" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="2" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 1.3: Lists and Links</name>
+    </item>
+    <item handle="5376553c-7aba-4786-80e7-d90d8813848d" parent="b1f34418-fdc2-4de6-82ed-1068e56cb41d" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="3" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 1.4: Text Alignment</name>
+    </item>
+    <item handle="418794a0-4682-43be-8130-b6b24d74d77a" parent="edca4be2fcaf8" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="3" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="yes" heading="H2" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Chapter 2: Story Structure</name>
+    </item>
+    <item handle="232f6a63-20da-474c-99ff-a1a5219201c9" parent="418794a0-4682-43be-8130-b6b24d74d77a" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 2.1: Chapters and Parts</name>
+    </item>
+    <item handle="40d4b461-21e5-4ba0-909d-94ac71d13c8c" parent="418794a0-4682-43be-8130-b6b24d74d77a" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="1" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 2.2: Tags and References</name>
+    </item>
+    <item handle="10633574-80a4-44fc-9882-83e586c6726d" parent="418794a0-4682-43be-8130-b6b24d74d77a" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="2" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 2.3: Sections</name>
+    </item>
+    <item handle="6b3a7202-c067-42c2-adda-b163ab190223" parent="edca4be2fcaf8" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="4" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="yes" heading="H2" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Chapter 3: Comments and Footnotes</name>
+    </item>
+    <item handle="74542139-1306-432a-869d-9237f7a85476" parent="6b3a7202-c067-42c2-adda-b163ab190223" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 3.1: Story Comments</name>
+    </item>
+    <item handle="e446606b-a8aa-4b55-842c-0730f19df639" parent="6b3a7202-c067-42c2-adda-b163ab190223" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="1" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 3.2: Note Comments</name>
+    </item>
+    <item handle="e904172f-897c-4436-8681-8487b9c979cf" parent="6b3a7202-c067-42c2-adda-b163ab190223" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="2" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 3.3: Footnotes</name>
+    </item>
+    <item handle="66da3184-7275-4ffc-98da-fcdbe0e47066" parent="edca4be2fcaf8" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="5" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="yes" heading="H2" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Chapter 4: Character Examples</name>
+    </item>
+    <item handle="f1a23972-f365-405f-ab8b-ceab91a9f90b" parent="66da3184-7275-4ffc-98da-fcdbe0e47066" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 4.1: POV References</name>
+    </item>
+    <item handle="63703c1c-e89d-46a8-be24-5fe589590600" parent="66da3184-7275-4ffc-98da-fcdbe0e47066" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="1" type="FILE" class="NOVEL" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sc24b8f" import="ia857f0" active="yes">Scene 4.2: Location References</name>
+    </item>
+    <item handle="559dca03-37ad-4f63-9d2d-3a4efcf7083a" parent="None" root="559dca03-37ad-4f63-9d2d-3a4efcf7083a" order="1" type="ROOT" class="CHARACTER">
+      <meta expanded="yes" />
+      <name status="sf12341" import="ia857f0">Characters</name>
+    </item>
+    <item handle="2e0b5d57-0122-4fff-bfd4-367182235611" parent="559dca03-37ad-4f63-9d2d-3a4efcf7083a" root="559dca03-37ad-4f63-9d2d-3a4efcf7083a" order="0" type="FOLDER" class="CHARACTER">
+      <meta expanded="yes" />
+      <name status="sf12341" import="ia857f0">Example Characters</name>
+    </item>
+    <item handle="b101aff9-a674-458d-999a-9d71dfa8d722" parent="2e0b5d57-0122-4fff-bfd4-367182235611" root="559dca03-37ad-4f63-9d2d-3a4efcf7083a" order="0" type="FILE" class="CHARACTER" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sf12341" import="i56be10" active="yes">Jane Smith</name>
+    </item>
+    <item handle="2c8ea398-f415-42df-b3ca-e9262b27c4b5" parent="2e0b5d57-0122-4fff-bfd4-367182235611" root="559dca03-37ad-4f63-9d2d-3a4efcf7083a" order="1" type="FILE" class="CHARACTER" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sf12341" import="i2d7a54" active="yes">John Doe</name>
+    </item>
+    <item handle="1a308cde-d73a-4a39-9d7a-2add296832c1" parent="None" root="1a308cde-d73a-4a39-9d7a-2add296832c1" order="2" type="ROOT" class="WORLD">
+      <meta expanded="yes" />
+      <name status="sf12341" import="ia857f0">Worlds</name>
+    </item>
+    <item handle="35ec2150-b702-4d51-b143-f8101a57d4d3" parent="1a308cde-d73a-4a39-9d7a-2add296832c1" root="1a308cde-d73a-4a39-9d7a-2add296832c1" order="0" type="FILE" class="WORLD" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sf12341" import="i2d7a54" active="yes">Earth</name>
+    </item>
+    <item handle="8444e487-5f0d-4ea9-b5f2-d750c882fea1" parent="1a308cde-d73a-4a39-9d7a-2add296832c1" root="1a308cde-d73a-4a39-9d7a-2add296832c1" order="1" type="FILE" class="WORLD" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sf12341" import="i4a1d39" active="yes">Wonderland</name>
+    </item>
+    <item handle="60723fc1-2092-4079-a90c-ef39c982acf6" parent="None" root="60723fc1-2092-4079-a90c-ef39c982acf6" order="3" type="ROOT" class="ARCHIVE">
+      <meta expanded="yes" />
+      <name status="sf12341" import="ia857f0">Archive</name>
+    </item>
+    <item handle="34c94ac1-4874-4311-a8e0-9bd4b7167b15" parent="60723fc1-2092-4079-a90c-ef39c982acf6" root="60723fc1-2092-4079-a90c-ef39c982acf6" order="0" type="FOLDER" class="ARCHIVE">
+      <meta expanded="yes" />
+      <name status="sf12341" import="ia857f0">Old Scenes</name>
+    </item>
+    <item handle="4a3e25ba-b090-45df-acb3-b1394cf38f1a" parent="34c94ac1-4874-4311-a8e0-9bd4b7167b15" root="60723fc1-2092-4079-a90c-ef39c982acf6" order="0" type="FILE" class="ARCHIVE" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="s90e6c9" import="ia857f0" active="yes">Old Scene</name>
+    </item>
+    <item handle="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" parent="None" root="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" order="4" type="ROOT" class="TEMPLATE">
+      <meta expanded="yes" />
+      <name status="sf12341" import="ia857f0">Templates</name>
+    </item>
+    <item handle="dcc3f972-c445-464b-bf80-360bf280c1fc" parent="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" root="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" order="0" type="FILE" class="TEMPLATE" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sf12341" import="ia857f0" active="yes">Scene Template</name>
+    </item>
+    <item handle="b7f4c535-f584-4a55-8146-a60db956584e" parent="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" root="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" order="1" type="FILE" class="TEMPLATE" layout="DOCUMENT">
+      <meta expanded="no" heading="H2" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sf12341" import="ia857f0" active="yes">Chapter Template</name>
+    </item>
+    <item handle="8c236e2c-1dc2-474b-8df7-6912bae0881a" parent="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" root="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" order="2" type="FILE" class="TEMPLATE" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sf12341" import="ia857f0" active="yes">Character Template</name>
+    </item>
+    <item handle="ec2143e8-006d-47d1-920e-634bec082b41" parent="None" root="ec2143e8-006d-47d1-920e-634bec082b41" order="5" type="ROOT" class="TRASH">
+      <meta expanded="yes" />
+      <name status="sf12341" import="ia857f0">Trash</name>
+    </item>
+    <item handle="cdb109a9-2268-4e42-9ee8-9087a1f6795a" parent="ec2143e8-006d-47d1-920e-634bec082b41" root="ec2143e8-006d-47d1-920e-634bec082b41" order="0" type="FILE" class="TRASH" layout="DOCUMENT">
+      <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
+      <name status="sf12341" import="ia857f0" active="yes">Delete Me!</name>
+    </item>
+  </content>
+</UmbraEditXML>

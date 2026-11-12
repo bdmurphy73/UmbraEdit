@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from PyQt6.QtCore import QAbstractItemModel, QModelIndex, Qt
 from PyQt6.QtGui import QBrush, QIcon
@@ -58,7 +58,7 @@ C_COUNT_ALIGN = 0x0100 | QtTextAlignmentRole
 C_COUNT_COLOR = 0x0100 | QtForegroundRole
 C_COUNT_ACCESS = 0x0100 | QtAccessibleTextRole
 
-T_SearchData = str | QIcon | QBrush | Qt.AlignmentFlag | tuple[int, int] | None
+T_SearchData = Union[str, QIcon, QBrush, Qt.AlignmentFlag, tuple[int], int, None]
 
 
 class SearchNode:

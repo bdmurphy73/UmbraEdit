@@ -313,7 +313,7 @@ class ProjectBuilder:
             path = data.get("path") or None
             if author := data.get("author"):
                 CONFIG.setLastAuthor(author)
-            if isinstance(path, str | Path):
+            if isinstance(path, (str, Path)):
                 self._path = Path(path).resolve()
                 if data.get("sample"):
                     return self._extractSampleProject(self._path, data)

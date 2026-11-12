@@ -565,14 +565,12 @@ class _SearchFilters(NExpandablePanel):
 
     def updateRootItem(self, tHandle: str, change: nwChange) -> None:
         """Update the root folder filters when there was a change."""
-        match change:
-            case nwChange.CREATE | nwChange.UPDATE:
-                if nwItem := SHARED.project.tree[tHandle]:
-                    self._processRootFilterEntry(nwItem)
-            case nwChange.DELETE:
-                self.filterOpt.removeItem(f"root:{tHandle}")
-            case _:  # pragma: no cover
-                pass
+        if change in (nwChange.CREATE, nwChange.UPDATE):
+            if nwItem := SHARED.project.tree[tHandle]:
+                self._processRootFilterEntry(nwItem)
+        elif change == nwChange.DELETE:
+            self.filterOpt.removeItem(f"root:{tHandle}")
+        # pragma: no cover
 
     ##
     #  Private Slots

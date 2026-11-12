@@ -28,7 +28,7 @@ import uuid
 
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-T_BuildValue = str | int | float | bool
+T_BuildValue = Union[str, int, float, bool]
 
 # The Settings Template
 # =====================
@@ -348,12 +348,12 @@ class BuildSettings:
     def getInt(self, key: str) -> int:
         """Type safe value access for integers."""
         value = self._settings.get(key, SETTINGS_TEMPLATE.get(key, (None, None))[1])
-        return int(value) if isinstance(value, int | float) else 0
+        return int(value) if isinstance(value, (int, float)) else 0
 
     def getFloat(self, key: str) -> float:
         """Type safe value access for floats."""
         value = self._settings.get(key, SETTINGS_TEMPLATE.get(key, (None, None))[1])
-        return float(value) if isinstance(value, int | float) else 0.0
+        return float(value) if isinstance(value, (int, float)) else 0.0
 
     ##
     #  Setters

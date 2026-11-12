@@ -29,9 +29,20 @@ import uuid
 import weakref
 import xml.etree.ElementTree as ET
 
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib  # type: ignore
+
 from datetime import date, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeGuard, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
+
+try:
+    from typing import TypeGuard
+except ImportError:
+    TypeGuard = type  # type: ignore
+
 from urllib.parse import urljoin
 from urllib.request import pathname2url
 
@@ -287,7 +298,7 @@ def formatTime(t: int) -> str:
 def formatVersion(value: str) -> str:
     """Format a version number into a more human readable form."""
     major, _, version = value.partition(".")
-    prefix = "20" if checkInt(major, 0) >= 20 else ""
+    prefix = "20" if checkInt(major, 0) >= 20 and len(major) < 4 else ""
     if "." in version:
         version = version.replace(".", " Patch ")
     elif "a" in version:
@@ -673,7 +684,7 @@ def jsonEncode(data: dict | list | tuple, n: int = 0, nmax: int = 0) -> str:
     """Encode a dictionary, list or tuple as a json object or array, and
     indent from level n up to a max level nmax if nmax is larger than 0.
     """
-    if not isinstance(data, dict | list | tuple):
+    if not isinstance(data, (dict, list, tuple)):
         return "[]"
 
     buffer = []

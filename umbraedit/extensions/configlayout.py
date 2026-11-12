@@ -338,15 +338,13 @@ class NColorLabel(QLabel):
     def _refreshTextColor(self) -> None:
         """Refresh the colour of the text on the label."""
         palette = self.palette()
-        match self._state:
-            case nwState.NORMAL:
-                palette.setColor(QPalette.ColorRole.WindowText, self._color)
-            case nwState.INACTIVE:
-                palette.setColor(QPalette.ColorRole.WindowText, self._faded)
-            case nwState.ERROR:
-                palette.setColor(QPalette.ColorRole.WindowText, self._error)
-            case _:  # pragma: no cover
-                pass
+        if self._state == nwState.NORMAL:
+            palette.setColor(QPalette.ColorRole.WindowText, self._color)
+        elif self._state == nwState.INACTIVE:
+            palette.setColor(QPalette.ColorRole.WindowText, self._faded)
+        elif self._state == nwState.ERROR:
+            palette.setColor(QPalette.ColorRole.WindowText, self._error)
+        # pragma: no cover
         self.setPalette(palette)
 
 

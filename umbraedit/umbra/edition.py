@@ -428,7 +428,12 @@ def glossary(editionPath: Path) -> list[dict[str, str]]:
     return entries
 
 
-from datetime import datetime, UTC
+from datetime import datetime
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone as UTC
 from umbraedit.umbra.guide import GuideDoc, parseGuideDoc
 from umbraedit.umbra.guide import analysisStatus, staleParaNotes
 from umbraedit.umbra.sheet import SheetManager, EntityRow

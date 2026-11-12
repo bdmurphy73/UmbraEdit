@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from PyQt6.QtCore import QAbstractItemModel, QMimeData, QModelIndex, Qt
 from PyQt6.QtGui import QFont, QIcon
@@ -71,7 +71,7 @@ NODE_FLAGS = Qt.ItemFlag.ItemIsEnabled
 NODE_FLAGS |= Qt.ItemFlag.ItemIsSelectable
 NODE_FLAGS |= Qt.ItemFlag.ItemIsDropEnabled
 
-T_NodeData = str | QIcon | QFont | Qt.AlignmentFlag | None
+T_NodeData = Union[str, QIcon, QFont, Qt.AlignmentFlag, None]
 
 
 class ProjectNode:

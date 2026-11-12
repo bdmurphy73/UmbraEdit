@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PyQt6.QtGui import QIcon, QPixmap
@@ -51,7 +51,7 @@ R_HANDLE = 0xFF01
 R_KEY = 0xFF02
 R_STATS = 0xFF03
 
-T_NodeData = str | tuple[int, int] | QIcon | QPixmap | Qt.AlignmentFlag | None
+T_NodeData = Union[str, tuple[int], int, QIcon, QPixmap, Qt.AlignmentFlag, None]
 
 
 class NovelModel(QAbstractTableModel):
@@ -87,25 +87,23 @@ class NovelModel(QAbstractTableModel):
 
     def setExtraColumn(self, extra: nwNovelExtra) -> None:
         """Set extra data column settings."""
-        match extra:
-            case nwNovelExtra.HIDDEN:
-                self._columns = 3
-                self._extraKey = ""
-                self._extraLabel = ""
-            case nwNovelExtra.POV:
-                self._columns = 4
-                self._extraKey = nwKeyWords.POV_KEY
-                self._extraLabel = trConst(nwLabels.KEY_NAME[nwKeyWords.POV_KEY])
-            case nwNovelExtra.FOCUS:
-                self._columns = 4
-                self._extraKey = nwKeyWords.FOCUS_KEY
-                self._extraLabel = trConst(nwLabels.KEY_NAME[nwKeyWords.FOCUS_KEY])
-            case nwNovelExtra.PLOT:
-                self._columns = 4
-                self._extraKey = nwKeyWords.PLOT_KEY
-                self._extraLabel = trConst(nwLabels.KEY_NAME[nwKeyWords.PLOT_KEY])
-            case _:  # pragma: no cover
-                pass
+        if extra == nwNovelExtra.HIDDEN:
+            self._columns = 3
+            self._extraKey = ""
+            self._extraLabel = ""
+        elif extra == nwNovelExtra.POV:
+            self._columns = 4
+            self._extraKey = nwKeyWords.POV_KEY
+            self._extraLabel = trConst(nwLabels.KEY_NAME[nwKeyWords.POV_KEY])
+        elif extra == nwNovelExtra.FOCUS:
+            self._columns = 4
+            self._extraKey = nwKeyWords.FOCUS_KEY
+            self._extraLabel = trConst(nwLabels.KEY_NAME[nwKeyWords.FOCUS_KEY])
+        elif extra == nwNovelExtra.PLOT:
+            self._columns = 4
+            self._extraKey = nwKeyWords.PLOT_KEY
+            self._extraLabel = trConst(nwLabels.KEY_NAME[nwKeyWords.PLOT_KEY])
+        # pragma: no cover
 
     ##
     #  Model Interface
@@ -215,7 +213,7 @@ class NovelModel(QAbstractTableModel):
                 for j in scopes:
                     totals[j] += count
                 scopes.append(i)
-            for row, total in zip(self._rows, totals, strict=True):
+            for row, total in zip(self._rows, totals):
                 self._setCount(row, total)
 
     ##

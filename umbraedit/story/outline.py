@@ -994,40 +994,41 @@ class _OutlineDelegate(QStyledItemDelegate):
             painter.restore()
             return
 
-        match index.column():
-            case OutlineModel.C_TITLE:
-                hTitle = self._fmB.height()
-                hLine = self._fm.height()
+        _column = index.column()
+        if _column == OutlineModel.C_TITLE:
+            hTitle = self._fmB.height()
+            hLine = self._fm.height()
 
-                painter.setFont(SHARED.theme.guiFontB)
-                title = self._fmB.elidedText(node.title, QtElideRight, w)
-                painter.drawText(QStyle.visualRect(direction, box, QRect(x, y, w, hTitle)), flags, title)
+            painter.setFont(SHARED.theme.guiFontB)
+            title = self._fmB.elidedText(node.title, QtElideRight, w)
+            painter.drawText(QStyle.visualRect(direction, box, QRect(x, y, w, hTitle)), flags, title)
 
-                painter.setFont(SHARED.theme.guiFont)
-                painter.setPen(self._helpCol)
-                info = [node.counts, node.progress] if node.progress else [node.counts]
-                if len(info) + bool(node.status) >= self._rowLines:
-                    # Not enough lines below the title, so share one
-                    info = [f" {nwUnicode.U_BULL} ".join(info)]
+            painter.setFont(SHARED.theme.guiFont)
+            painter.setPen(self._helpCol)
+            info = [node.counts, node.progress] if node.progress else [node.counts]
+            if len(info) + bool(node.status) >= self._rowLines:
+                # Not enough lines below the title, so share one
+                info = [f" {nwUnicode.U_BULL} ".join(info)]
 
-                yLine = y + hTitle
-                for text in info:
-                    text = self._fm.elidedText(text, QtElideRight, w)
-                    painter.drawText(QStyle.visualRect(direction, box, QRect(x, yLine, w, hLine)), flags, text)
-                    yLine += hLine
+            yLine = y + hTitle
+            for text in info:
+                text = self._fm.elidedText(text, QtElideRight, w)
+                painter.drawText(QStyle.visualRect(direction, box, QRect(x, yLine, w, hLine)), flags, text)
+                yLine += hLine
 
-                if status := node.status:
-                    label, icon = status
-                    wText = max(0, w - self._iconIndent)
-                    icon.paint(painter, QStyle.visualRect(direction, box, QRect(x, yLine, hLine, hLine)))
-                    label = self._fm.elidedText(label, QtElideRight, wText)
-                    lRect = QRect(x + self._iconIndent, yLine, wText, hLine)
-                    painter.drawText(QStyle.visualRect(direction, box, lRect), flags, label)
+            if status := node.status:
+                label, icon = status
+                wText = max(0, w - self._iconIndent)
+                icon.paint(painter, QStyle.visualRect(direction, box, QRect(x, yLine, hLine, hLine)))
+                label = self._fm.elidedText(label, QtElideRight, wText)
+                lRect = QRect(x + self._iconIndent, yLine, wText, hLine)
+                painter.drawText(QStyle.visualRect(direction, box, lRect), flags, label)
 
-            case column:
-                entries = node.entries(column - OutlineModel.C_COLUMNS)
-                if tips := self._paintEntries(painter, box, direction, node, entries):
-                    self._tips[(index.row(), column)] = tips
+        else:
+            column = _column
+            entries = node.entries(column - OutlineModel.C_COLUMNS)
+            if tips := self._paintEntries(painter, box, direction, node, entries):
+                self._tips[(index.row(), column)] = tips
 
         painter.restore()
 

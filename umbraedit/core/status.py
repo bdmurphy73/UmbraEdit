@@ -26,7 +26,12 @@ import dataclasses
 import logging
 import random
 
-from typing import TYPE_CHECKING, Final, Literal, TypeGuard
+from typing import TYPE_CHECKING, Final, Literal, Union
+
+try:
+    from typing import TypeGuard
+except ImportError:
+    TypeGuard = type  # type: ignore
 
 from PyQt6.QtCore import QPointF, Qt
 from PyQt6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPixmap, QPolygonF
@@ -67,7 +72,7 @@ class StatusEntry:
 
 NO_ENTRY = StatusEntry("", QColor(0, 0, 0), CUSTOM_COL, nwStatusShape.SQUARE, QIcon(), 0)
 
-T_UpdateEntry = list[tuple[str | None, StatusEntry]]
+T_UpdateEntry = Union[list[tuple[str, None], StatusEntry]]
 T_StatusKind = Literal["s", "i"]
 
 

@@ -1682,7 +1682,7 @@ class GuiDocEditor(QTextEdit):
                                 self._buildSelections(block, self._spellErrFormat, data.spellErrors),
                             )
                             self._selCacheSpell[key] = cached
-                        for (start, end, _), selection in zip(data.spellErrors, cached[1], strict=True):
+                        for (start, end, _), selection in zip(data.spellErrors, cached[1]):
                             if position + start < cPos <= position + end:
                                 # Don't underline the word under the cursor
                                 suppressed = True
@@ -1697,7 +1697,7 @@ class GuiDocEditor(QTextEdit):
                                 self._buildSelections(block, self._formatErrFormat, data.formatErrors),
                             )
                             self._selCacheFormat[key] = cached
-                        for (start, end, kind), selection in zip(data.formatErrors, cached[1], strict=True):
+                        for (start, end, kind), selection in zip(data.formatErrors, cached[1]):
                             if kind == "trail" and position + start < cPos <= position + end:
                                 # Not yet a real trailing space, still being typed
                                 suppressed = True
@@ -2209,7 +2209,7 @@ class GuiDocEditor(QTextEdit):
     def highlightSearchSelections(self, resS: list[int], resE: list[int]) -> None:
         """Highlight all search results in the document."""
         selections = []
-        for start, end in zip(resS, resE, strict=True):
+        for start, end in zip(resS, resE):
             cursor = QTextCursor(self._qDocument)
             cursor.setPosition(start)
             cursor.setPosition(end, QtKeepAnchor)
@@ -2916,7 +2916,7 @@ class GuiDocEditor(QTextEdit):
             exist = False
             cPos = cursor.selectionStart() - block.position()
             tExist = SHARED.project.index.checkThese(tBits, self._docHandle)
-            for sTag, sPos, sExist in zip(reversed(tBits), reversed(tPos), reversed(tExist), strict=False):
+            for sTag, sPos, sExist in zip(reversed(tBits), reversed(tPos), reversed(tExist)):
                 if cPos >= sPos:
                     # The cursor is between the start of two tags
                     if cPos <= sPos + len(sTag):

@@ -382,14 +382,14 @@ class DocumentBuilder:
             bldObj.setStyles(self._build.getBool("html.addStyles"))
             bldObj.setReplaceUnicode(self._build.getBool("format.stripUnicode"))
 
-        if isinstance(bldObj, ToOdt | ToDocX):
+        if isinstance(bldObj, (ToOdt, ToDocX)):
             bldObj.setHeaderFormat(
                 self._build.getStr("doc.pageHeader"),
                 self._build.getStr("doc.pageHeaderEven"),
                 self._build.getInt("doc.pageCountOffset"),
             )
 
-        if isinstance(bldObj, ToOdt | ToDocX | ToQTextDocument):
+        if isinstance(bldObj, (ToOdt, ToDocX, ToQTextDocument)):
             scale = nwLabels.PAGE_UNIT_SCALE.get(self._build.getStr("format.pageUnit"), 1.0)
             pW, pH = nwLabels.PAPER_SIZE.get(self._build.getStr("format.pageSize"), (-1.0, -1.0))
             bldObj.setPageLayout(

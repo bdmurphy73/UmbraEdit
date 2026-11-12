@@ -28,7 +28,12 @@ import random
 import uuid
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple, Self
+from typing import TYPE_CHECKING, Any, NamedTuple, Union
+
+try:
+    from typing import Self
+except ImportError:
+    Self = Any  # type: ignore
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
@@ -46,7 +51,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-T_ViewValue = str | int | float | bool
+T_ViewValue = Union[str, int, float, bool]
 
 COMMENT_SYNOPSIS = "synopsis"
 MAX_COLUMN_KEYS = 5
@@ -125,11 +130,11 @@ def isColumnKey(key: str) -> bool:
     if key in nwKeyWords.CAN_LOOKUP:
         return True
     modifier, _, name = key.partition(".")
-    match MODIFIERS.get(modifier):
-        case nwComment.SYNOPSIS:
-            return not name
-        case nwComment.STORY | nwComment.NOTE:
-            return bool(name)
+    _mod = MODIFIERS.get(modifier)
+    if _mod == nwComment.SYNOPSIS:
+        return not name
+    if _mod in (nwComment.STORY, nwComment.NOTE):
+        return bool(name)
     return False
 
 
@@ -157,11 +162,11 @@ class StoryViewSettings:
     @classmethod
     def fromDict(cls, data: dict) -> StoryViewSettings | None:
         """Create a story view settings object from a dict."""
-        match data.get("kind"):
-            case "outline":
-                new = OutlineViewSettings()
-            case _:
-                return None
+        _kind = data.get("kind")
+        if _kind == "outline":
+            new = OutlineViewSettings()
+        else:
+            return None
         new.unpack(data)
         return new
 
@@ -255,7 +260,7 @@ class StoryViewSettings:
     def getInt(self, key: str) -> int:
         """Type safe value access for integers."""
         value = self._settings.get(key, SETTINGS_TEMPLATE.get(key, (None, None))[1])
-        return int(value) if isinstance(value, int | float) else 0
+        return int(value) if isinstance(value, (int, float)) else 0
 
     ##
     #  Methods
@@ -419,7 +424,7 @@ class OutlineViewSettings(StoryViewSettings):
             cid = entry.get("id")
             name = entry.get("name")
             keys = entry.get("keys")
-            if not isinstance(name, str) or not isinstance(keys, list | tuple):
+            if not isinstance(name, str) or not isinstance(keys, (list, tuple)):
                 continue
             if not isinstance(cid, str) or not cid or cid in ids:
                 cid = newColumnID()

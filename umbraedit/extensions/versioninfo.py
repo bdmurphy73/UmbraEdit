@@ -41,7 +41,7 @@ from umbraedit.types import QtAlignLeftMiddle
 
 logger = logging.getLogger(__name__)
 
-API_URL = "https://api.github.com/repos/saga-soft/umbraedit/releases/latest"
+API_URL = "https://api.github.com/repos/bdmurphy73/umbraedit/releases/latest"
 
 
 class VersionInfoWidget(QWidget):

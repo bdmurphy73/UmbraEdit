@@ -144,7 +144,12 @@ class VoiceStore:
             name=f"{code}.uvmx",
         )
 
-        from datetime import UTC, datetime
+        from datetime import datetime
+
+        try:
+            from datetime import UTC
+        except ImportError:
+            from datetime import timezone as UTC
 
         createdAt = matrix.created if matrix and matrix.created else datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         languages = matrix.languages.split(",") if matrix and matrix.languages else []

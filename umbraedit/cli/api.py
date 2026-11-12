@@ -42,7 +42,12 @@ TOKEN_FILE = Path.home() / ".umbraedit" / "api-token"
 
 
 def _utc_now_iso() -> str:
-    from datetime import UTC, datetime
+    from datetime import datetime
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone as UTC
 
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 

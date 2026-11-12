@@ -26,7 +26,10 @@ Changes: App icon "umbraedit" now loads UmbraEdit.jpg instead of umbraedit.svg.
 from __future__ import annotations
 
 import logging
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib  # type: ignore
 
 from dataclasses import dataclass
 from math import ceil
@@ -362,15 +365,14 @@ class GuiTheme:
 
     def getStructureColor(self, hLevel: int) -> QColor:
         """Return a structure color."""
-        match hLevel:
-            case 1:
-                name = "title"
-            case 2:
-                name = "chapter"
-            case 3:
-                name = "scene"
-            case _:
-                name = "file"
+        if hLevel == 1:
+            name = "title"
+        elif hLevel == 2:
+            name = "chapter"
+        elif hLevel == 3:
+            name = "scene"
+        else:
+            name = "file"
         return QColor(self._qColors.get(name) or QtTransparent)
 
     ##
@@ -406,13 +408,12 @@ class GuiTheme:
         """Load the currently specified GUI theme. The boolean return
         can be used to determine if the GUI needs refreshing.
         """
-        match CONFIG.themeMode:
-            case nwTheme.LIGHT:
-                darkMode = False
-            case nwTheme.DARK:
-                darkMode = True
-            case _:
-                darkMode = self.isDesktopDarkMode(schemeHint=schemeHint)
+        if CONFIG.themeMode == nwTheme.LIGHT:
+            darkMode = False
+        elif CONFIG.themeMode == nwTheme.DARK:
+            darkMode = True
+        else:
+            darkMode = self.isDesktopDarkMode(schemeHint=schemeHint)
 
         theme = CONFIG.darkTheme if darkMode else CONFIG.lightTheme
         if theme not in self._allThemes:

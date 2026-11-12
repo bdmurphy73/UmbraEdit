@@ -28,7 +28,7 @@ import re
 from enum import Enum
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, TypeVar, Union
 
 from PyQt6.QtCore import QObject, QRunnable, QThreadPool, QTimer, QUrl, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QDesktopServices, QFont, QScreen
@@ -52,7 +52,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 NWidget = TypeVar("NWidget", bound=QWidget)
-T_Msg = str | list[str]
+T_Msg = Union[str, list[str]]
 
 RX_HTML = re.compile(r"<.*?>")
 

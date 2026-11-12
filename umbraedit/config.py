@@ -25,11 +25,15 @@ from __future__ import annotations
 import json
 import logging
 import sys
-import tomllib
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib  # type: ignore
 
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, Union
 
 from PyQt6.QtCore import (
     PYQT_VERSION,
@@ -571,7 +575,7 @@ class Config:
         """Set the last used path. Only the folder is saved, so if the
         path is not a folder, the parent of the path is used instead.
         """
-        if isinstance(path, str | Path):
+        if isinstance(path, (str, Path)):
             path = checkPath(path, self._homePath)
             if not safeIsDir(path):
                 path = path.parent
@@ -745,10 +749,10 @@ class Config:
         and dataPath is mainly intended for the test suite.
         """
         logger.debug("Initialising Config ...")
-        if isinstance(confPath, str | Path):
+        if isinstance(confPath, (str, Path)):
             logger.info("Setting alternative config path: %s", confPath)
             self._confPath = Path(confPath)
-        if isinstance(dataPath, str | Path):
+        if isinstance(dataPath, (str, Path)):
             logger.info("Setting alternative data path: %s", dataPath)
             self._dataPath = Path(dataPath)
 

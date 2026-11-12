@@ -15,7 +15,12 @@ from __future__ import annotations
 
 import logging
 
-from datetime import UTC, datetime
+from datetime import datetime
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone as UTC
 from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.gates import OP_BACKUP_ROTATE, OP_SYNC_PUSH, Finding, GateRule, registerGate

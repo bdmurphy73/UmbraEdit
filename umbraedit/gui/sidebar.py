@@ -142,15 +142,13 @@ class GuiSideBar(QWidget):
     @pyqtSlot()
     def _cycleColorTheme(self) -> None:
         """Go to next colour theme."""
-        match CONFIG.themeMode:
-            case nwTheme.AUTO:
-                CONFIG.themeMode = nwTheme.LIGHT
-            case nwTheme.LIGHT:
-                CONFIG.themeMode = nwTheme.DARK
-            case nwTheme.DARK:
-                CONFIG.themeMode = nwTheme.AUTO
-            case _:  # pragma: no cover
-                pass
+        if CONFIG.themeMode == nwTheme.AUTO:
+            CONFIG.themeMode = nwTheme.LIGHT
+        elif CONFIG.themeMode == nwTheme.LIGHT:
+            CONFIG.themeMode = nwTheme.DARK
+        elif CONFIG.themeMode == nwTheme.DARK:
+            CONFIG.themeMode = nwTheme.AUTO
+        # pragma: no cover
         self.mainGui.checkThemeUpdate()
         self._setThemeModeIcon()
 

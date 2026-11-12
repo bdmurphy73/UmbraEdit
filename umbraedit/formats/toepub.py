@@ -25,7 +25,12 @@ from __future__ import annotations
 import logging
 import xml.etree.ElementTree as ET
 
-from datetime import UTC, datetime
+from datetime import datetime
+
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone as UTC
 from enum import Enum
 from typing import TYPE_CHECKING, Final, NamedTuple
 from zipfile import ZIP_DEFLATED, ZipFile

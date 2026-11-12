@@ -23,11 +23,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import logging
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib  # type: ignore
 
 from enum import Enum
 from pathlib import Path
-from typing import TypeVar, cast
+from typing import TypeVar, cast, Union
 
 from PyQt6.QtGui import QFont
 
@@ -37,10 +40,10 @@ logger = logging.getLogger(__name__)
 
 _T_Enum = TypeVar("_T_Enum", bound=Enum)
 
-T_TomlValue = str | int | float | bool | Path | list[str] | list[int] | Enum | QFont
+T_TomlValue = Union[str, int, float, bool, Path, list[str], list[int], Enum, QFont]
 T_TomlObject = dict[str, T_TomlValue]
 T_TomlConfig = dict[str, T_TomlObject]
-T_ConfigMap = dict[tuple[str | None, str], tuple[str, str]]
+T_ConfigMap = Union[dict[tuple[str, None], str], tuple[str, str]]
 
 
 class NTomlParser:

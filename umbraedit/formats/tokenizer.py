@@ -27,7 +27,7 @@ import re
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, Union
 
 from PyQt6.QtCore import QLocale
 from PyQt6.QtGui import QColor, QFont

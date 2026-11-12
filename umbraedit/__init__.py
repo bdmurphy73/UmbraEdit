@@ -36,6 +36,12 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QApplication, QErrorMessage
 
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli
+    sys.modules['tomllib'] = tomli
+
 from umbraedit.config import Config
 from umbraedit.error import exceptionHandler
 from umbraedit.shared import SharedData
@@ -58,7 +64,7 @@ __version__    = "2026.11.0005"
 __hexversion__ = "0x01000000"  # Changed by B.D. Murphy 2026
 __date__       = "2026-11-05"  # Changed by B.D. Murphy 2026
 __status__     = "Stable"
-__domain__     = "umbratools.com"
+__domain__     = "github.com/bdmurphy73/UmbraEdit"
 # fmt: on
 
 logger = logging.getLogger(__name__)
@@ -213,8 +219,8 @@ def main(sysArgs: list | None = None) -> GuiMain | None:
     # Check Packages and Versions
     errorData = []
     errorCode = 0
-    if sys.hexversion < 0x030B00F0:
-        errorData.append(f"At least Python 3.11 is required, found {CONFIG.verPyString}")
+    if sys.hexversion < 0x030900F0:
+        errorData.append(f"At least Python 3.9 is required, found {CONFIG.verPyString}")
         errorCode |= 0x04
     if CONFIG.verQtValue < 0x060400:
         errorData.append(f"At least Qt6 version 6.4 is required, found {CONFIG.verQtString}")
@@ -302,6 +308,13 @@ def _createApp() -> QApplication:
     """Create the app. This is done in a function to make it easier to
     block app creation during testing.
     """
+    # Set process name so macOS menu bar shows "UmbraEdit" not "Python"
+    try:
+        import setproctitle
+        setproctitle.setproctitle(CONFIG.appName)
+    except Exception:
+        pass
+
     app = QApplication([CONFIG.appName])
     app.setStyle("Fusion")
     app.setApplicationName(CONFIG.appName)

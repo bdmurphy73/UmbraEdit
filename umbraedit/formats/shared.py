@@ -25,6 +25,7 @@ from __future__ import annotations
 import re
 
 from enum import Flag, IntEnum
+from typing import Union
 
 from PyQt6.QtGui import QColor
 

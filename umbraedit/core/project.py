@@ -664,15 +664,15 @@ class NWProject:
             return False
 
         saveTime = time()
-        match CONFIG.backupInterval:
-            case "day":
-                timeStamp = formatTimeStamp(saveTime, fileSafe=True, fmt="%Y-%m-%d")
-            case "week":
-                timeStamp = formatTimeStamp(saveTime, fileSafe=True, fmt="%G-W%V")
-            case "month":
-                timeStamp = formatTimeStamp(saveTime, fileSafe=True, fmt="%Y-%m")
-            case _:  # Option "session" falls through here
-                timeStamp = formatTimeStamp(saveTime, fileSafe=True)
+        _backupInterval = CONFIG.backupInterval
+        if _backupInterval == "day":
+            timeStamp = formatTimeStamp(saveTime, fileSafe=True, fmt="%Y-%m-%d")
+        elif _backupInterval == "week":
+            timeStamp = formatTimeStamp(saveTime, fileSafe=True, fmt="%G-W%V")
+        elif _backupInterval == "month":
+            timeStamp = formatTimeStamp(saveTime, fileSafe=True, fmt="%Y-%m")
+        else:  # Option "session" falls through here
+            timeStamp = formatTimeStamp(saveTime, fileSafe=True)
 
         archName = baseDir / f"{cleanName} {timeStamp}.zip"
         if self._storage.zipIt(archName, saveTime, compression=2):

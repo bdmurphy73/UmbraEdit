@@ -27,7 +27,7 @@ import logging
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
-from PyQt6.QtCore import QObject
+from PyQt6.QtCore import QObject, Qt
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QProgressDialog
 
 from umbraedit import SHARED

@@ -544,8 +544,10 @@ class ProjectBuilder:
         project.data.setEditTime(0)
 
         project.index.rebuild()
-        project.saveProject()
-        project.closeProject()
+        try:
+            project.saveProject()
+        finally:
+            project.closeProject()
 
 
 class DocxImporter:

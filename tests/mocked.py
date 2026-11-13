@@ -67,6 +67,26 @@ class MockGuiMain(QWidget):
         """Return a marker string."""
         return "close"
 
+    def showWelcomeDialog(self):
+        """Mock showWelcomeDialog."""
+        pass
+
+    def saveProject(self):
+        """Mock saveProject."""
+        pass
+
+    def saveProjectAs(self):
+        """Mock saveProjectAs."""
+        pass
+
+    def closeProject(self, *args, **kwargs):
+        """Mock closeProject."""
+        pass
+
+    def showProjectSettingsDialog(self):
+        """Mock showProjectSettingsDialog."""
+        pass
+
 
 class MockTheme:
     """Mock GUI theme."""

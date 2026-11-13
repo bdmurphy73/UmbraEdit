@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+import tempfile
 import time as time_module
 
 from functools import partial
@@ -497,7 +498,18 @@ class ProjectBuilder:
 
         if safeIsFile(sample := CONFIG.assetPath("sample.zip")):
             try:
-                shutil.unpack_archive(sample, path)
+                # The sample.zip contains a 'sample/' directory prefix.
+                # Extract to a temporary location and move contents to the target path.
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    tmpdir_path = Path(tmpdir)
+                    shutil.unpack_archive(sample, tmpdir_path)
+                    # The zip contains a 'sample/' directory; move its contents to the target path.
+                    src = tmpdir_path / "sample"
+                    if not src.exists():
+                        # Fallback: maybe the zip doesn't have the prefix
+                        src = tmpdir_path
+                    for item in src.iterdir():
+                        shutil.move(str(item), str(path / item.name))
                 self._resetProject(path, data)
             except Exception as exc:
                 SHARED.error(self.tr("Failed to create a new example project."), exc=exc)

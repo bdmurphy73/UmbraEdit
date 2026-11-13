@@ -493,7 +493,7 @@ class SyncClient:
                 result = self._applyDocPull(handle, path, rev)
                 if result == "applied":
                     applied += 1
-            elif op == "put" and path == "nwProject.nwx":
+            elif op == "put" and path == "UEProject.UEx":
                 # Tree change - structural merge
                 result = self._applyTreePull(rev)
                 if result == "applied":
@@ -603,14 +603,14 @@ class SyncClient:
     def _applyTreePull(self, rev: str) -> str:
         """Apply a pulled tree (project XML) change."""
         try:
-            resp = self._client.get(f"/v1/projects/{self._projectId}/files/nwProject.nwx?rev={rev}")
+            resp = self._client.get(f"/v1/projects/{self._projectId}/files/UEProject.UEx?rev={rev}")
             if resp.status_code != 200:
                 return "error"
             theirXml = resp.content
         except httpx.RequestError:
             return "error"
 
-        nwxFile = self._projectPath / "nwProject.nwx"
+        nwxFile = self._projectPath / "UEProject.UEx"
         if nwxFile.is_file():
             ourXml = nwxFile.read_bytes()
             if ourXml == theirXml:

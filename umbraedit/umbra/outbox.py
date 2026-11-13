@@ -438,7 +438,7 @@ def _onProjectSaved(project: Any) -> None:
     """Record a tree.put entry when the project is saved."""
     if _outbox is not None:
         storagePath = _outbox._projectPath  # noqa: SLF001
-        nwxFile = storagePath / "nwProject.nwx"
+        nwxFile = storagePath / "UEProject.UEx"
         _outbox.record(OP_TREE_PUT, path=nwxFile)
 
 

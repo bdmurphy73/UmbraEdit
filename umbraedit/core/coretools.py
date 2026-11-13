@@ -498,16 +498,13 @@ class ProjectBuilder:
 
         if safeIsFile(sample := CONFIG.assetPath("sample.zip")):
             try:
-                # The sample.zip contains a 'sample/' directory prefix.
+                # The sample.zip contains files at the root level (UEProject.UEx and content/).
                 # Extract to a temporary location and move contents to the target path.
                 with tempfile.TemporaryDirectory() as tmpdir:
                     tmpdir_path = Path(tmpdir)
                     shutil.unpack_archive(sample, tmpdir_path)
-                    # The zip contains a 'sample/' directory; move its contents to the target path.
-                    src = tmpdir_path / "sample"
-                    if not src.exists():
-                        # Fallback: maybe the zip doesn't have the prefix
-                        src = tmpdir_path
+                    # The zip contains files at root level; move them to the target path.
+                    src = tmpdir_path
                     # Ensure target directory exists
                     path.mkdir(parents=True, exist_ok=True)
                     for item in src.iterdir():

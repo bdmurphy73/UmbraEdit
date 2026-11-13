@@ -181,7 +181,7 @@ class nwFiles:
     RECENT_PATH = "recentPaths.json"
 
     # Project Root Files
-    PROJ_FILE = "nwProject.nwx"
+    PROJ_FILE = "UEProject.UEx"
     PROJ_LOCK = "nwProject.lock"
     MANIFEST_FILE = "manifest.json"
     TOC_FILE = "ToC.txt"

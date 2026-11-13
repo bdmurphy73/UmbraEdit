@@ -508,6 +508,8 @@ class ProjectBuilder:
                     if not src.exists():
                         # Fallback: maybe the zip doesn't have the prefix
                         src = tmpdir_path
+                    # Ensure target directory exists
+                    path.mkdir(parents=True, exist_ok=True)
                     for item in src.iterdir():
                         shutil.move(str(item), str(path / item.name))
                 self._resetProject(path, data)

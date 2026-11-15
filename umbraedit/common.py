@@ -29,10 +29,10 @@ import uuid
 import weakref
 import xml.etree.ElementTree as ET
 
-try:
-    import tomllib
-except ModuleNotFoundError:
-    pass  # type: ignore
+from contextlib import suppress
+
+with suppress(ModuleNotFoundError):
+    import tomllib  # noqa: F401 - used via sys.modules alias
 
 from datetime import date, datetime
 from pathlib import Path

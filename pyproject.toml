@@ -148,7 +148,63 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ANN201", "ANN202", "ANN204", "ANN205", "PLC2701", "RUF069", "SLF", "TC"]
+"tests/*" = [
+    "A",        # flake8-builtins (builtins shadowing)
+    "ANN",      # flake8-annotations (type annotations in tests)
+    "ANN201",   # any-type
+    "ANN202",   # missing-parameter-type
+    "ANN204",   # missing-return-type
+    "ANN205",   # missing-variable-type
+    "C4",       # flake8-comprehensions
+    "CPY",      # flake8-copyright (copyright notice in tests)
+    "D",        # pydocstyle (docstrings in tests)
+    "E",        # pycodestyle (line length, etc. in tests)
+    "F",        # Pyflakes (unused imports, etc.)
+    "PERF",     # Perflint (performance in tests)
+    "PLC2701",  # import-outside-top-level
+    "PLR17",    # Pylint Refactor (PLR17xx)
+    "PIE790",   # unnecessary-pass-statement
+    "PT",       # flake8-pytest-style
+    "RUF",      # Ruff-specific rules
+    "SLF",      # flake8-self
+    "TC",       # flake8-type-checking
+    "TID",      # flake8-tidy-imports
+]
+"umbraedit/core/*" = [
+    "SLF",      # flake8-self (private member access)
+    "F",        # Pyflakes (undefined names)
+    "UP",       # pyupgrade (modern syntax)
+    "E",        # pycodestyle (line length, etc.)
+]
+"umbraedit/dialogs/*" = [
+    "D",        # pydocstyle (docstrings in dialogs)
+    "E",        # pycodestyle (line length, etc. in dialogs)
+    "PERF",     # Perflint (performance in dialogs)
+    "RUF",      # Ruff-specific rules (unused noqa, etc.)
+    "SLF",      # flake8-self (private member access in dialogs)
+]
+"umbraedit/gui/*" = [
+    "A",        # flake8-builtins
+    "ANN",      # flake8-annotations
+    "E",        # pycodestyle (line length, etc. in GUI)
+    "F",        # Pyflakes (unused imports, etc.)
+    "SLF",      # flake8-self (private member access in GUI)
+    "UP",       # pyupgrade (modern syntax)
+]
+"umbraedit/guimain.py" = ["E"]
+"umbraedit/manuscript/*" = ["UP"]
+"umbraedit/models/*" = ["UP"]
+"umbraedit/enum.py" = ["UP"]
+"umbraedit/shared.py" = ["UP"]
+"umbraedit/singleinstance.py" = ["PLW"]
+"umbraedit/umbra/__init__.py" = ["CPY", "D", "E"]
+"umbraedit/umbra/annotations.py" = ["D", "RUF"]
+"umbraedit/umbra/assets.py" = ["B", "D", "E"]
+"umbrastore/*" = ["B", "C", "D", "E", "F", "PERF", "PLW", "RUF", "SIM", "UP", "SLF", "D103", "D102"]
+"umbraedit/umbra/**" = ["B", "C", "D", "E", "F", "PERF", "PLW", "RUF", "SIM", "UP", "SLF"]
+"umbraedit/umbra/gui/*" = ["CPY", "D", "E", "F", "PERF", "PLW", "RUF", "SIM", "UP", "SLF"]
+"umbraedit/story/*" = ["UP"]
+"umbraedit/formats/*" = ["PERF", "PLW", "SLF", "SIM", "UP"]
 "utils/*" = ["SLF", "TC"]
 
 [tool.ruff.lint.pydocstyle]

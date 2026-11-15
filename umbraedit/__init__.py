@@ -37,7 +37,7 @@ from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QApplication, QErrorMessage
 
 try:
-    import tomllib
+    import tomllib  # noqa: F401 - used as sys.modules alias fallback
 except ModuleNotFoundError:
     import tomli
     sys.modules["tomllib"] = tomli

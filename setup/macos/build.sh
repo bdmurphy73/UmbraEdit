@@ -146,7 +146,7 @@ echo "Creating entry script ..."
 cat > UmbraEdit.app/Contents/MacOS/UmbraEdit << EOF
 #!/bin/bash
 DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
-\$DIR/../Resources/bin/python -sE \$DIR/../Resources/UmbraEdit/UmbraEdit.py \$@
+exec -a "UmbraEdit" "\$DIR/../Resources/bin/python" -sE "\$DIR/../Resources/UmbraEdit/UmbraEdit.py" "\$@"
 EOF
 
 # Make it executable

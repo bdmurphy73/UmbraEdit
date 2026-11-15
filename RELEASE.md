@@ -68,9 +68,9 @@ On each target platform, run:
 
 ```bash
 # Clone the tagged release
-git clone https://git.umbratools.com/umbragit/UmbraEdit.git
+git clone https://github.com/bdmurphy73/UmbraEdit.git
 cd UmbraEdit
-git checkout v2026.12
+
 
 # Build all packages for this platform
 python utils/build_all.py --platform <platform> --arch <arch>

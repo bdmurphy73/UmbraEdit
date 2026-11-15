@@ -57,10 +57,12 @@ docs = [
 ]
 test = [
     "coverage>=7.16.0",
+    "fastapi>=0.115",
     "pytest-qt",
     "pytest-timeout",
     "pytest>=6.0.0",
     "tzdata; sys_platform == 'win32'",
+    "uvicorn>=0.34",
 ]
 lint = ["pyright", "ruff"]
 

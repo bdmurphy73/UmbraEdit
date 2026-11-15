@@ -116,7 +116,7 @@ def generateProject(
     output.mkdir(parents=True)
 
     # Write project XML
-    projXml = output / "nwProject.nwx"
+    projXml = output / "UEProject.UEx"
     projXml.write_text(
         "<?xml version='1.0' encoding='utf-8'?>\n"
         "<UmbraEditXML appVersion=\"2026.11.0005\" hexVersion=\"0x01000000\" "

@@ -4,9 +4,9 @@
 
 * Veronica Berglyd Olsen
 
-## Main Product Manager / Developer 
+## Main Product Manager / Developer UmbraEdit
 
-* B.D. Murphy
+* B.D. Murphy [website](https://authorbdmurphy.com)
 
 ## Contributors
 
@@ -128,7 +128,8 @@ The font used for the main UmbraEdit logo, mimetype and text banners is Pridi.
 
 * **Pridi** by Cadson Demak (Open Font License, Version 1.1)
 
---> Caladea <--
+** Caladea 
+Caladea is licensed under the Apache License, Version 2.0 (and is also distributed under the SIL Open Font License in some repositories or packages like CTAN).
 
 ## Special Mentions
 

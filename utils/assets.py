@@ -248,8 +248,8 @@ def buildSampleZip(args: argparse.Namespace | None = None) -> None:
     if srcSample.is_dir():
         dstSample.unlink(missing_ok=True)
         with zipfile.ZipFile(dstSample, mode="w", compression=zipfile.ZIP_DEFLATED, compresslevel=3) as zipObj:
-            log("[cg]Compressing:[e] nwProject.nwx")
-            zipObj.write(srcSample / "nwProject.nwx", "nwProject.nwx")
+            log("[cg]Compressing:[e] UEProject.UEx")
+            zipObj.write(srcSample / "UEProject.UEx", "UEProject.UEx")
             for doc in (srcSample / "content").iterdir():
                 log(f"[cg]Compressing:[e] content/{doc.name}")
                 zipObj.write(doc, f"content/{doc.name}")

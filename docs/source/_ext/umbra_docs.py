@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from docutils import nodes
 from docutils.parsers.rst import Directive, directives
@@ -71,7 +71,7 @@ class UmbraExampleDirective(Directive):
     required_arguments = 1
     optional_arguments = 0
     has_content = True
-    option_spec = {"expect": directives.unchanged, "lang": directives.unchanged}
+    option_spec: ClassVar[dict] = {"expect": directives.unchanged, "lang": directives.unchanged}
 
     def run(self) -> list[nodes.Node]:
         parserName = self.arguments[0].strip()
@@ -100,14 +100,12 @@ class UmbraShotDirective(Directive):
 
     required_arguments = 1
     optional_arguments = 0
-    option_spec = {"alt": directives.unchanged_required, "width": directives.unchanged}
+    option_spec: ClassVar[dict] = {"alt": directives.unchanged_required, "width": directives.unchanged}
 
     def run(self) -> list[nodes.Node]:
         shotName = self.arguments[0].strip()
         altText = self.options.get("alt", f"Screenshot: {shotName}")
         width = self.options.get("width", "80%")
-
-        shotsDir = _DOC_SRC / "_static" / "shots"
 
         image = nodes.image(
             uri=f"_static/shots/{shotName}-light.png",
@@ -134,8 +132,7 @@ class UmbraCatalogDirective(Directive):
         node["umbra-catalog"] = catalogName
         node += nodes.title("", f"Generated {catalogName.title()} Catalog")
         node += nodes.paragraph(
-            "", f"This catalog is generated at build time from the code. "
-            f"Run `make {catalogName}` to regenerate."
+            "", f"This catalog is generated at build time from the code. Run `make {catalogName}` to regenerate."
         )
         return [node]
 

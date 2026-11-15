@@ -144,6 +144,7 @@ def cmdVerify(args: argparse.Namespace) -> int:
 
 
 def buildParser() -> argparse.ArgumentParser:
+    """Build the argument parser for the UmbraStore CLI."""
     parser = argparse.ArgumentParser(
         prog="umbrastore",
         description="UmbraStore - Self-hosted revision store server",
@@ -187,6 +188,7 @@ def buildParser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the UmbraStore CLI."""
     parser = buildParser()
     args = parser.parse_args(argv)
     return args.func(args)

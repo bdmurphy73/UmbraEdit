@@ -147,6 +147,10 @@ ignore = [
     "UP030",   # format-literals
     "D102",    # missing-docstring-in-public-method
     "D103",    # missing-docstring-in-public-function
+    "D102",    # missing-docstring-in-public-method
+    "D103",    # missing-docstring-in-public-function
+    "D102",    # missing-docstring-in-public-method
+    "D103",    # missing-docstring-in-public-function
 ]
 
 [tool.ruff.lint.per-file-ignores]

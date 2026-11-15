@@ -140,9 +140,7 @@ class ImportReviewModel:
         """Get findings that block commit."""
         blocking = []
         for f in self.findings:
-            if f.startswith("ingestNoHeadings:") or f.startswith("ingestEmptyScene:") \
-                    or f.startswith("ingestLostFeature:") or f.startswith("ingestImageFailed:") \
-                    or f.startswith("ingestFootnoteUnmapped:"):
+            if f.startswith(("ingestNoHeadings:", "ingestEmptyScene:", "ingestLostFeature:", "ingestImageFailed:", "ingestFootnoteUnmapped:")):
                 blocking.append(f)
         return blocking
 
@@ -209,7 +207,7 @@ class GuiImportReview:
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
 
-        tree_label = QLabel(self.tr("Planned Documents"))
+        QLabel(self.tr("Planned Documents"))
         self.tree_view = QTreeView()
         self.tree_view.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.tree_view.setDefaultDropAction(Qt.MoveAction)
@@ -474,7 +472,7 @@ class GuiImportReview:
             return
 
         with open(undo_file, encoding="utf-8") as f:
-            undo = json.load(f)
+            json.load(f)
 
         # Check if created items are unchanged
         # If any changed, warn and list what changed

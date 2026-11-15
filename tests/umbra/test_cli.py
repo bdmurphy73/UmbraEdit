@@ -1,16 +1,12 @@
-"""
-Tests for UmbraEdit CLI (P33)
-"""
+"""Tests for UmbraEdit CLI (P33)."""
 
 from __future__ import annotations
 
-import json
-import tempfile
 from pathlib import Path
 
 import pytest
 
-from umbraedit.cli.main import main, build_parser, EXIT_OK, EXIT_BLOCKED, EXIT_ERROR
+from umbraedit.cli.main import EXIT_BLOCKED, EXIT_ERROR, EXIT_OK, build_parser, main
 
 
 class TestParser:

@@ -26,6 +26,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 import signal
@@ -42,7 +43,7 @@ def _getRunningPids() -> list[int]:
     """Find all running UmbraEdit process IDs (excluding this one)."""
     myPid = os.getpid()
     pids = []
-    for procDir in Path("/proc").glob("[0-9]*") if Path("/proc").is_dir() else Path("/dev/null").glob("x"):
+    for _procDir in Path("/proc").glob("[0-9]*") if Path("/proc").is_dir() else Path("/dev/null").glob("x"):
         pass
     # macOS doesn't have /proc, use ps instead
     try:
@@ -190,7 +191,5 @@ def checkSingleInstance() -> bool:
 
 def _writeLockFile(pid: int) -> None:
     """Write the current PID to the lock file."""
-    try:
+    with contextlib.suppress(OSError):
         LOCK_FILE.write_text(str(pid), encoding="utf-8")
-    except OSError:
-        pass

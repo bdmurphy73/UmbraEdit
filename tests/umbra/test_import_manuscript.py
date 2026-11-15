@@ -1,5 +1,4 @@
-"""
-UmbraEdit - Test Suite for Import Manuscript and Project Lifecycle
+"""UmbraEdit - Test Suite for Import Manuscript and Project Lifecycle.
 
 Tests cover:
 1. ImportManuscriptCommand tr() crash fix (AttributeError fix)
@@ -15,19 +14,13 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
 
-import pytest
+from PyQt6.QtCore import QObject
 
-from PyQt6.QtCore import QObject, Qt
-from PyQt6.QtWidgets import QMessageBox
-
-from umbraedit import CONFIG, SHARED
+from umbraedit import CONFIG
 from umbraedit.core.project import NWProject
 from umbraedit.enum import nwItemClass
-from umbraedit.formats.toepub import ToEPub
-from umbraedit.formats.tohtml import ToHtml
-from umbraedit.gui.importmanuscript import ImportManuscriptCommand, importManuscript
+from umbraedit.gui.importmanuscript import ImportManuscriptCommand
 
 
 class TestImportManuscriptCommand:
@@ -221,7 +214,7 @@ class TestProjectLifecycle:
         doc.writeDocument(
             "### Scene 1\n\n"
             "This has **bold**, _italic_, **_bold italic_**, and ~~strike~~.\n"
-            "Quote: \"hello world\".\n"
+            'Quote: "hello world".\n'
             "List:\n* item 1\n* item 2\n"
         )
         project.index.reIndexHandle(scHandle)
@@ -239,8 +232,8 @@ class TestProjectLifecycle:
 
     def test_sample_project_xml_valid(self) -> None:
         """The sample project XML must be well-formed."""
-        import zipfile
         import xml.etree.ElementTree as ET
+        import zipfile
 
         sampleZip = CONFIG.assetPath("sample.zip")
         with zipfile.ZipFile(sampleZip, "r") as z:

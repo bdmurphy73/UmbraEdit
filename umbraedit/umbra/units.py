@@ -7,11 +7,14 @@ Splits a document into logical units for the audio pipeline.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import IntEnum
+from typing import TYPE_CHECKING
 
 from umbraedit.umbra.voiceline import VoiceData, isVoiceLine, parseVoiceLine
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 class UnitKind(IntEnum):
@@ -70,7 +73,7 @@ def iterUnits(text: str) -> Iterator[Unit]:
         j = i + 1
         while j < len(lines):
             nextLine = lines[j]
-            if not nextLine.strip() or nextLine.startswith("#") or nextLine.startswith("@") or nextLine.startswith("%"):
+            if not nextLine.strip() or nextLine.startswith(("#", "@", "%")):
                 break
             paraLines.append(nextLine)
             j += 1

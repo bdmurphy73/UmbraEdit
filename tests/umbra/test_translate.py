@@ -1,26 +1,25 @@
-"""
-Tests for UmbraEdit Translation Module (P25)
-"""
+"""Tests for UmbraEdit Translation Module (P25)."""
 
 from __future__ import annotations
 
 import json
+
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 from umbraedit.enum import nwItemClass
+from umbraedit.umbra.edition import EditionDoc, EditionInfo, loadEdition, saveEdition
+from umbraedit.umbra.guide import GuideDoc, formatGuideDoc
+from umbraedit.umbra.metadata import Metadata, saveMetadata
 from umbraedit.umbra.translate import (
     TranslationJob,
-    TRANSLATION_OUTPUT_SCHEMA,
     _atomic_write_json,
     _atomic_write_text,
     _build_chapter_prompt,
     _build_metadata_prompt,
     _check_glossary_gaps,
     _count_source_paragraphs,
-    _get_analysis,
     _get_analysis_hash,
     _get_cast_voices,
     _get_glossary,
@@ -30,12 +29,8 @@ from umbraedit.umbra.translate import (
     _get_style_guide,
     _load_prompt_template,
     _validate_translation_result,
-    importTranslationResult,
     retranslateStaleChapters,
 )
-from umbraedit.umbra.edition import EditionInfo, EditionDoc, loadEdition, saveEdition
-from umbraedit.umbra.guide import GuideDoc, formatGuideDoc
-from umbraedit.umbra.metadata import Metadata, saveMetadata
 
 
 def _write_doc(content_path: Path, handle: str, body: str) -> None:
@@ -172,7 +167,7 @@ def translation_project(tmp_path: Path):
     source_project = _FakeProject(source_path, source_items, metadata)
     edition_project = _FakeProject(edition_path, edition_items, metadata)
 
-    yield source_path, edition_path, source_project, edition_project
+    return source_path, edition_path, source_project, edition_project
 
 
 class TestTranslationJob:
@@ -269,25 +264,25 @@ class TestHelperFunctions:
     """Tests for helper functions."""
 
     def test_get_source_hash(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        _source_path, _edition_path, source_project, _edition_project = translation_project
         hash_val = _get_source_hash(source_project, "ch1")
         assert len(hash_val) == 16
         assert all(c in "0123456789abcdef" for c in hash_val)
 
     def test_get_analysis_hash_no_analysis(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        _source_path, _edition_path, source_project, _edition_project = translation_project
         hash_val = _get_analysis_hash(source_project, "ch1")
         assert hash_val == ""
 
     def test_get_analysis_hash_with_approved_analysis(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        source_path, _edition_path, source_project, _edition_project = translation_project
         _write_guide(source_path / "content", "guide1", "analysis", chapter="ch1", status="approved", body="Analysis body")
         source_project.tree._items.append(_FakeItem("guide1", "GUIDE", "Guide 1"))
         hash_val = _get_analysis_hash(source_project, "ch1")
         assert len(hash_val) == 16
 
     def test_get_style_guide(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        source_path, _edition_path, source_project, _edition_project = translation_project
         _write_guide(source_path / "content", "guide1", "style", body="Style guide content")
         _write_guide(source_path / "content", "guide2", "language", lang="zh-Hans", body="Language guide content")
         source_project.tree._items.append(_FakeItem("guide1", "GUIDE", "Guide 1"))
@@ -297,15 +292,15 @@ class TestHelperFunctions:
         assert "Language Guide (zh-Hans)" in guide_text
 
     def test_get_glossary(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        _source_path, edition_path, _source_project, _edition_project = translation_project
         glossary_text = _get_glossary(edition_path)
         assert "bob → 鲍勃" in glossary_text
 
     def test_get_cast_voices(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        source_path, edition_path, source_project, _edition_project = translation_project
         # Add voice line to chapter
         _write_doc(source_path / "content", "ch1", "# Chapter 1\n\n%Voice: spk=bob\nHello world.")
-        
+
         # Debug
         print(f"source_project.storage.contentPath: {source_project.storage.contentPath}")
         doc_file = source_project.storage.contentPath / "ch1.md"
@@ -313,24 +308,24 @@ class TestHelperFunctions:
         print(f"exists: {doc_file.is_file()}")
         if doc_file.is_file():
             text = doc_file.read_text(encoding="utf-8")
-            print(f"text: {repr(text)}")
-        
+            print(f"text: {text!r}")
+
         print(f"edition_path: {edition_path}")
         sheet_file = edition_path / "umbra" / "sheet.json"
         print(f"sheet_file: {sheet_file}")
         print(f"exists: {sheet_file.is_file()}")
-        
+
         voices = _get_cast_voices(source_project, "ch1", edition_path)
         print(f"Voices: {voices}")
         assert "bob" in voices
 
     def test_get_previous_tail(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        _source_path, edition_path, source_project, _edition_project = translation_project
         tail = _get_previous_tail(source_project, edition_path, "ch1")
         assert tail == "(none)"
 
     def test_get_source_paragraphs(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        source_path, edition_path, source_project, _edition_project = translation_project
         _write_guide(source_path / "content", "guide1", "analysis", chapter="ch1", status="approved",
                      body="%Para: 0 h=abc12345\nIntent: Test intent\nSubtext: Test subtext\nRegister: Formal\nDo not translate literally: hello\nCultural: None")
         source_project.tree._items.append(_FakeItem("guide1", "GUIDE", "Guide 1"))
@@ -340,7 +335,7 @@ class TestHelperFunctions:
         assert "Intent: Test intent" in paragraphs
 
     def test_count_source_paragraphs(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        _source_path, _edition_path, source_project, _edition_project = translation_project
         count = _count_source_paragraphs(source_project, "ch1")
         assert count == 2  # "Hello world." and "This is a test."
 
@@ -419,16 +414,16 @@ class TestGlossaryGaps:
     """Tests for glossary gap checking."""
 
     def test_check_glossary_gaps_no_gaps(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        source_path, edition_path, source_project, _edition_project = translation_project
         _write_doc(source_path / "content", "ch1", "# Chapter 1\n\n%Voice: spk=bob\nHello world.")
         gaps = _check_glossary_gaps(edition_path, source_project, "ch1")
         assert gaps == []
 
     def test_check_glossary_gaps_with_gap(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        source_path, edition_path, source_project, _edition_project = translation_project
         # Speaker "alice" not in glossary
         _write_doc(source_path / "content", "ch1", "# Chapter 1\n\n%Voice: spk=alice\nHello world.")
-        
+
         # Debug
         print(f"source_project.storage.contentPath: {source_project.storage.contentPath}")
         doc_file = source_project.storage.contentPath / "ch1.md"
@@ -436,8 +431,8 @@ class TestGlossaryGaps:
         print(f"exists: {doc_file.is_file()}")
         if doc_file.is_file():
             text = doc_file.read_text(encoding="utf-8")
-            print(f"text: {repr(text)}")
-        
+            print(f"text: {text!r}")
+
         gaps = _check_glossary_gaps(edition_path, source_project, "ch1")
         print(f"Gaps: {gaps}")
         assert "alice" in gaps
@@ -447,7 +442,7 @@ class TestBuildChapterPrompt:
     """Tests for building chapter prompts."""
 
     def test_build_chapter_prompt(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        source_path, edition_path, source_project, _edition_project = translation_project
         _write_guide(source_path / "content", "guide1", "style", body="Be poetic")
         _write_guide(source_path / "content", "guide2", "analysis", chapter="ch1", status="approved",
                      body="%Para: 0 h=abc12345\nIntent: Greeting\nSubtext: Friendly\nRegister: Casual\nDo not translate literally: \nCultural: ")
@@ -473,7 +468,7 @@ class TestBuildMetadataPrompt:
     """Tests for building metadata prompts."""
 
     def test_build_metadata_prompt(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        _source_path, edition_path, source_project, _edition_project = translation_project
 
         edition_info = loadEdition(edition_path)
         prompt, source_hash = _build_metadata_prompt(edition_path, source_project, edition_info)
@@ -489,7 +484,7 @@ class TestReTranslateStale:
     """Tests for re-translating stale chapters."""
 
     def test_retranslate_stale_chapters(self, translation_project):
-        source_path, edition_path, source_project, edition_project = translation_project
+        _source_path, edition_path, _source_project, edition_project = translation_project
         # Set up edition with stale document
         edition_info = loadEdition(edition_path)
         # EditionDoc is frozen, create new one with updated status

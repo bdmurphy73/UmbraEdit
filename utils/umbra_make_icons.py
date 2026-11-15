@@ -128,9 +128,6 @@ def writeIcns(iconsetDir: Path, output: Path) -> None:
             return
 
     # Pure-Python .icns writer (simplified: writes PNG-based icons)
-    icnsTypes = {
-        16: "is32", 32: "il32", 128: "it32", 256: "ic10", 512: "ic14",
-    }
     pngTypes = {
         16: b"icp4", 32: b"icp5", 128: b"ic07", 256: b"ic08",
         512: b"ic09", 1024: b"ic10",

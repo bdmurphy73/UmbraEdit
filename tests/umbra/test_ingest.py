@@ -1,35 +1,22 @@
-"""
-Tests for UmbraEdit DOCX Ingest Engine (P27)
-"""
+"""Tests for UmbraEdit DOCX Ingest Engine (P27)."""
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
 import pytest
 
 from umbraedit.umbra.ingest import (
-    DocxIntake,
-    DocxPrepass,
-    DocxConvert,
     DocxClassify,
-    DocxSplit,
-    DocxSyntax,
-    DocxPropose,
-    DocxOutput,
     DocxIngestPipeline,
+    DocxIntake,
+    DocxOutput,
+    DocxPrepass,
+    DocxSplit,
     IntakeResult,
-    PrepassResult,
     ParagraphRecord,
-    ConvertResult,
-    ClassifyResult,
-    SceneSplitResult,
-    SyntaxResult,
-    ProposeResult,
-    ImportPlan,
+    PrepassResult,
 )
-from umbraedit.umbra.paths import cacheDir
 
 
 class TestIntakeResult:
@@ -200,7 +187,7 @@ class TestPrepass:
   <dc:creator>Author Name</dc:creator>
 </cp:coreProperties>""")
 
-        intake = DocxIntake()
+        DocxIntake()
         intake_result = DocxIntake().process(Path(docx_path))
 
         prepass = DocxPrepass()
@@ -360,11 +347,11 @@ class TestPropose:
         """Test character name proposal."""
         from umbraedit.umbra.ingest.docx_propose import DocxPropose
 
-        text = "John said \"Hello\". Mary replied \"Hi\". John smiled. Mary laughed. John nodded. Mary waved. John left. Mary stayed. John returned."
+        text = 'John said "Hello". Mary replied "Hi". John smiled. Mary laughed. John nodded. Mary waved. John left. Mary stayed. John returned.'
         # John appears 5 times, Mary appears 4 times
         # Both should be proposed if they appear near quotes
 
-        propose = DocxPropose()
+        DocxPropose()
         # We can't easily test the full process without full pipeline
         # But we can test the helper
         from umbraedit.umbra.ingest.docx_propose import _extract_potential_names, _is_likely_name
@@ -385,22 +372,20 @@ class TestOutput:
 
     def test_write_and_load_plan(self, tmp_path: Path):
         """Test writing and loading an import plan."""
-        import tempfile
-
         # Create a temp project
         project_path = tmp_path / "project"
         project_path.mkdir()
         (project_path / "umbra").mkdir()
 
-        output = DocxOutput(project_path)
+        DocxOutput(project_path)
 
         # Create a minimal plan
         from umbraedit.umbra.ingest.docx_intake import IntakeResult
+        from umbraedit.umbra.ingest.docx_propose import ProposeResult
         from umbraedit.umbra.ingest.docx_split import SceneSplitResult
         from umbraedit.umbra.ingest.docx_syntax import SyntaxResult
-        from umbraedit.umbra.ingest.docx_propose import ProposeResult
 
-        intake = IntakeResult(
+        IntakeResult(
             file_path=Path("test.docx"),
             sha256="abc123",
             file_size=1024,
@@ -408,9 +393,9 @@ class TestOutput:
             valid=True,
         )
 
-        split = SceneSplitResult(documents=[{"planId": "ch1", "kind": "chapter", "title": "Chapter 1", "text": "Content"}])
-        syntax = SyntaxResult(documents=[{"planId": "ch1", "kind": "chapter", "title": "Chapter 1", "text": "Converted content"}])
-        propose = ProposeResult(characters=[], metadata={}, page_types={})
+        SceneSplitResult(documents=[{"planId": "ch1", "kind": "chapter", "title": "Chapter 1", "text": "Content"}])
+        SyntaxResult(documents=[{"planId": "ch1", "kind": "chapter", "title": "Chapter 1", "text": "Converted content"}])
+        ProposeResult(characters=[], metadata={}, page_types={})
 
         plan_file = DocxOutput(project_path).write(
             IntakeResult(file_path=Path("test.docx"), sha256="abc", file_size=100, pandoc_version="3.1", valid=True),

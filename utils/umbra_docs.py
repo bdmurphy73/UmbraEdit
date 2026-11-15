@@ -44,7 +44,7 @@ def build_html() -> bool:
 def build_pdf(paper: str = "a4") -> bool:
     """Build the PDF documentation."""
     print(f"[pdf] Building PDF ({paper})...")
-    env = {"PAPER": paper, **{k: v for k, v in __import__("os").environ.items()}}
+    {"PAPER": paper, **dict(__import__("os").environ.items())}
     return _run([sys.executable, "-m", "sphinx", "-b", "latex", "-W", "--keep-going",
                  str(SOURCE_DIR), str(BUILD_DIR / "latex")], cwd=ROOT_DIR)
 
@@ -80,10 +80,10 @@ def build_check() -> bool:
     if htmlDir.is_dir():
         for htmlFile in htmlDir.rglob("*.html"):
             content = htmlFile.read_text(encoding="utf-8")
-            for ext in ["http://", "https://"]:
+            for _ext in ["http://", "https://"]:
                 # Skip <a href> links (those are fine, they're navigation)
                 # Only flag resource URLs (img src, script src, link href)
-                for resource in ["src=\"http", "src='http"]:
+                for resource in ['src="http', "src='http"]:
                     if resource in content:
                         print(f"  EXTERNAL RESOURCE: {htmlFile.name} contains '{resource}'")
                         ok = False

@@ -1,16 +1,13 @@
-"""
-Tests for UmbraEdit Book Standard Gates (P30)
-"""
+"""Tests for UmbraEdit Book Standard Gates (P30)."""
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 from umbraedit.enum import nwItemClass
-from umbraedit.umbra.gates import OP_BUILD_RUN, OP_PUBLISH_PACKAGE, GateScope, runGates
+from umbraedit.umbra.gates import OP_BUILD_RUN, GateScope, runGates
 from umbraedit.umbra.guide import GuideDoc, formatGuideDoc
 from umbraedit.umbra.metadata import Metadata, saveMetadata
 
@@ -94,7 +91,7 @@ def book_standard_project(tmp_path: Path):
     }, separators=(",", ":")) + "\n", encoding="utf-8")
 
     # Create book entities (one shadows bible)
-    _write_doc(content, "ch1", "# Chapter 1\n\nJohn said \"hello\" to Jane.")
+    _write_doc(content, "ch1", '# Chapter 1\n\nJohn said "hello" to Jane.')
     _write_doc(content, "ch2", "# Chapter 2\n\nJane replied.")
     _write_doc(content, "ch3", "# Chapter 3\n\nEnd.")
 
@@ -107,7 +104,7 @@ def book_standard_project(tmp_path: Path):
     }, separators=(",", ":")) + "\n", encoding="utf-8")
 
     # Create series.json
-    from umbraedit.umbra.edition import EditionInfo, EditionDoc, saveEdition
+    from umbraedit.umbra.edition import EditionDoc, EditionInfo, saveEdition
     edition_info = EditionInfo(
         v=1,
         editionId="en",
@@ -178,7 +175,7 @@ def book_standard_project(tmp_path: Path):
         "docBuild": type("DocBuild", (), {"getBool": lambda self, k: True, "_format": "PRINT_PDF"})()
     })()
 
-    yield tmp_path / "project", source_project, book_project
+    return tmp_path / "project", source_project, book_project
 
 
 class TestBookStandardGates:
@@ -187,7 +184,6 @@ class TestBookStandardGates:
     @pytest.mark.umbra
     def test_bs_straight_quotes_block(self, tmp_path: Path):
         """Straight quotes should trigger bsStraightQuotes gate."""
-        from umbraedit.umbra.gates import OP_BUILD_RUN, GateScope, runGates
         from umbraedit.enum import nwItemClass
 
         class _FakeItem:
@@ -252,7 +248,6 @@ class TestBookStandardGates:
         })()
 
         # Create GateScope
-        from umbraedit.umbra.gates import GateScope
         # Create test project with simple classes
         class TestItem:
             def __init__(self):

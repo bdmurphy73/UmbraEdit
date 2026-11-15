@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from umbraedit.umbra.ingest.docx_classify import ClassifyResult, DocxClassify
 from umbraedit.umbra.ingest.docx_convert import ConvertResult, DocxConvert
@@ -35,6 +35,9 @@ from umbraedit.umbra.ingest.docx_prepass import DocxPrepass, PrepassResult
 from umbraedit.umbra.ingest.docx_propose import DocxPropose, ProposeResult
 from umbraedit.umbra.ingest.docx_split import DocxSplit, SceneSplitResult
 from umbraedit.umbra.ingest.docx_syntax import DocxSyntax, SyntaxResult
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 

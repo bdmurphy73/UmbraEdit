@@ -213,7 +213,7 @@ class NovelModel(QAbstractTableModel):
                 for j in scopes:
                     totals[j] += count
                 scopes.append(i)
-            for row, total in zip(self._rows, totals):
+            for row, total in zip(self._rows, totals, strict=False):
                 self._setCount(row, total)
 
     ##

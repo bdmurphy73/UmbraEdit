@@ -27,9 +27,11 @@ import re
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import TYPE_CHECKING
 
-from umbraedit.umbra.ingest.docx_convert import ConvertResult
-from umbraedit.umbra.ingest.docx_prepass import ParagraphRecord, PrepassResult
+if TYPE_CHECKING:
+    from umbraedit.umbra.ingest.docx_convert import ConvertResult
+    from umbraedit.umbra.ingest.docx_prepass import ParagraphRecord, PrepassResult
 
 logger = logging.getLogger(__name__)
 
@@ -304,7 +306,4 @@ class DocxClassify:
                 return True
 
         # Empty paragraph with section break
-        if not stripped and para.section_break:
-            return True
-
-        return False
+        return bool(not stripped and para.section_break)

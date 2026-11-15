@@ -13,18 +13,20 @@ import os
 
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi import Path as PathParam
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
-from starlette.requests import Request
 
 from umbrastore import __version__
 from umbrastore.auth import verifyToken
 from umbrastore.blobs import BlobStore
 from umbrastore.database import Database, connect, initDatabase, ulid
+
+if TYPE_CHECKING:
+    from starlette.requests import Request
 
 # ---------------------------------------------------------------------------
 # Request/Response models
@@ -303,7 +305,7 @@ async def putFile(
     # Get current head revision
     fileRow = db.getFile(projectId, path)
     headRev = fileRow["headRev"] if fileRow else None
-    deleted = fileRow["deleted"] if fileRow else 0
+    fileRow["deleted"] if fileRow else 0
 
     # If-Match handling
     if ifMatch is not None:
@@ -378,7 +380,7 @@ async def putFile(
         raise
 
     # Get the event seq for cursor
-    eventSeq = db.countEvents(projectId)
+    db.countEvents(projectId)
     # Actually we need the seq of the event we just inserted.
     # Use lastrowid from the event insert.
     # Re-query to be safe:

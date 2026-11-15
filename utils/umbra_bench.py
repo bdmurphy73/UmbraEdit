@@ -101,14 +101,14 @@ def bench(project: Path) -> dict[str, object]:
 
     # 5. DOCX build time (if the manuscript module is available)
     try:
-        from umbraedit.manuscript.docbuild import DocBuild
         from umbraedit.manuscript.buildsettings import BuildSettings
+        from umbraedit.manuscript.docbuild import DocBuild
 
         t0 = time.monotonic()
         build = DocBuild(openProj)
         settings = BuildSettings(openProj)
         settings.fmtGroup.setFormat("std", True)
-        docBuild = build.buildDocument(settings)
+        build.buildDocument(settings)
         t1 = time.monotonic()
         results["docx_build_s"] = round(t1 - t0, 4)
     except Exception as exc:

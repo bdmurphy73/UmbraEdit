@@ -243,8 +243,7 @@ class SheetManager:
                 return slot
 
         # All bible slots used, use book-only slot above 1000
-        slot = max(1001, max(slots, default=1000) + 1)
-        return slot
+        return max(1001, max(slots, default=1000) + 1)
 
     def promoteOneOff(self, label: str) -> str | None:
         """Promote a one-off speaker (`~the_guard`) to a full entity.

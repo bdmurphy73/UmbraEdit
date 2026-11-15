@@ -13,6 +13,7 @@ unknown styles, lost features, image failures, unmapped footnotes.
 from __future__ import annotations
 
 import logging
+
 from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.gates import (

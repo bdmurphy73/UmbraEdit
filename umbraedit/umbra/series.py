@@ -25,7 +25,6 @@ from __future__ import annotations
 import logging
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.jsonio import readJson, writeJson
@@ -34,6 +33,7 @@ from umbraedit.umbra.sheet import EntityRow, SheetManager, ToneEntry
 
 if TYPE_CHECKING:  # pragma: no cover
     from collections.abc import Iterable
+    from pathlib import Path
 
     from umbraedit.umbra.voicestore import VoiceStore
 

@@ -69,23 +69,18 @@ class MockGuiMain(QWidget):
 
     def showWelcomeDialog(self):
         """Mock showWelcomeDialog."""
-        pass
 
     def saveProject(self):
         """Mock saveProject."""
-        pass
 
     def saveProjectAs(self):
         """Mock saveProjectAs."""
-        pass
 
-    def closeProject(self, *args, **kwargs):
+    def closeProject(self, *args: Any, **kwargs: Any):
         """Mock closeProject."""
-        pass
 
     def showProjectSettingsDialog(self):
         """Mock showProjectSettingsDialog."""
-        pass
 
 
 class MockTheme:

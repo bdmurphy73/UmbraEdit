@@ -38,9 +38,9 @@ from umbraedit.formats.toepub import ToEPub
 from umbraedit.formats.tohtml import ToHtml
 from umbraedit.formats.tomarkdown import ToMarkdown
 from umbraedit.formats.toodt import ToOdt
+from umbraedit.formats.toPandocEpub import build_epub_validated
 from umbraedit.formats.toqdoc import ToQTextDocument
 from umbraedit.formats.toraw import ToRaw
-from umbraedit.formats.toPandocEpub import build_epub_validated
 from umbraedit.formats.toTypst import toTypst
 
 if TYPE_CHECKING:

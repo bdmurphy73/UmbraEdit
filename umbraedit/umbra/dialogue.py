@@ -60,7 +60,7 @@ def findDialogueSpans(paragraph: str, config: DialogueConfig) -> list[Span]:
     - Dash-style dialogue (em-dash at line start)
     """
     openChar, closeChar = QUOTE_PAIRS.get(config.quoteStyle, QUOTE_PAIRS[QUOTE_CURLY])
-    altOpen, altClose = _parseAltSymbols(config.altSymbols)
+    altOpen, _altClose = _parseAltSymbols(config.altSymbols)
 
     spans: list[Span] = []
     pos = 0

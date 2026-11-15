@@ -22,32 +22,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import logging
-import re
-import subprocess
-import tempfile
 import uuid
+
 from dataclasses import dataclass, field
-from datetime import datetime
 
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone as UTC
+with contextlib.suppress(ImportError):
+    pass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from umbraedit.formats.tokenizer import Tokenizer
-from umbraedit.umbra.edition import EditionDoc, EditionInfo, loadEdition, saveEdition
+from umbraedit.umbra.edition import loadEdition, saveEdition
 from umbraedit.umbra.guide import parseGuideDoc
 from umbraedit.umbra.paths import jobsDir, promptsDir
 from umbraedit.umbra.settings import umbraSettings
 from umbraedit.umbra.units import UnitKind, iterUnits
-
-if TYPE_CHECKING:  # pragma: no cover
-    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -566,8 +558,7 @@ def _count_source_paragraphs(source_project: Any, chapter_handle: str) -> int:
 
 
 def importTranslationResult(edition_project: Any, job_id: str) -> tuple[bool, str | None]:
-    """
-    Import a translation result from a job file.
+    """Import a translation result from a job file.
 
     Args:
         edition_project: The edition project object
@@ -575,6 +566,7 @@ def importTranslationResult(edition_project: Any, job_id: str) -> tuple[bool, st
 
     Returns:
         (success, error_message)
+
     """
     edition_path = Path(edition_project.storage.storagePath)
     jobs_dir = jobsDir(edition_path)
@@ -650,12 +642,11 @@ def _apply_translation_draft(edition_project: Any, job: TranslationJob) -> bool:
     current_text = doc_file.read_text(encoding="utf-8")
 
     # Create snapshot (pre_restore kind)
-    from umbraedit.umbra.history import snapshotDocument
     snapshotDocument(edition_path, chapter_handle, "pre_restore", current_text)
 
     # Parse current units to preserve %Voice: lines
     units = list(iterUnits(current_text))
-    para_units = [u for u in units if u.kind == UnitKind.PARAGRAPH]
+    [u for u in units if u.kind == UnitKind.PARAGRAPH]
 
     # Build new text with translated paragraphs
     result_paragraphs = {p["index"]: p for p in job.result.get("paragraphs", [])}
@@ -670,7 +661,7 @@ def _apply_translation_draft(edition_project: Any, job: TranslationJob) -> bool:
 
                 # Preserve %Voice: line if present
                 voice_lines = [line for line in unit.lines if line.strip().startswith("%Voice:")]
-                other_lines = [line for line in unit.lines if not line.strip().startswith("%Voice:")]
+                [line for line in unit.lines if not line.strip().startswith("%Voice:")]
 
                 # Replace paragraph text with translated text
                 new_lines.extend(voice_lines)
@@ -700,7 +691,7 @@ def _apply_translation_draft(edition_project: Any, job: TranslationJob) -> bool:
 def _apply_metadata_draft(edition_project: Any, job: TranslationJob) -> bool:
     """Apply metadata translation result as draft."""
     edition_path = Path(edition_project.storage.storagePath)
-    edition_info = loadEdition(edition_path)
+    loadEdition(edition_path)
 
     # Result should have chapter field with metadata key translations
     # For metadata, we expect result to have a different structure
@@ -709,8 +700,7 @@ def _apply_metadata_draft(edition_project: Any, job: TranslationJob) -> bool:
 
 
 def runTranslationJobLocal(edition_project: Any, job_id: str) -> tuple[bool, str | None]:
-    """
-    Run a translation job using the local model endpoint.
+    """Run a translation job using the local model endpoint.
 
     Args:
         edition_project: The edition project object
@@ -718,6 +708,7 @@ def runTranslationJobLocal(edition_project: Any, job_id: str) -> tuple[bool, str
 
     Returns:
         (success, error_message)
+
     """
     edition_path = Path(edition_project.storage.storagePath)
     jobs_dir = jobsDir(edition_path)
@@ -805,14 +796,14 @@ def runTranslationJobLocal(edition_project: Any, job_id: str) -> tuple[bool, str
 
 
 def retranslateStaleChapters(edition_project: Any) -> list[str]:
-    """
-    Queue translation jobs for stale chapters only.
+    """Queue translation jobs for stale chapters only.
 
     Args:
         edition_project: The edition project object
 
     Returns:
         List of job IDs created
+
     """
     edition_path = Path(edition_project.storage.storagePath)
     edition_info = loadEdition(edition_path)
@@ -877,8 +868,4 @@ def _check_glossary_gaps(edition_path: Path, source_project: Any, chapter_handle
     return gaps
 
 
-from umbraedit.umbra.history import HistoryManager, _historyManager
-from umbraedit.umbra.edition import saveEdition
 from umbraedit.umbra.history import snapshotDocument
-from umbraedit.umbra.units import iterUnits, UnitKind
-from umbraedit.umbra.units import iterUnits, UnitKind

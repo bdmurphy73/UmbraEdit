@@ -1,5 +1,4 @@
-"""
-UmbraEdit - Multi-Platform Build Script
+"""UmbraEdit - Multi-Platform Build Script.
 =======================================
 
 Builds install packages for all supported platforms:
@@ -41,7 +40,7 @@ import argparse
 import platform
 import shutil
 import subprocess
-import sys
+
 from pathlib import Path
 
 from umbraedit import __version__
@@ -113,8 +112,8 @@ def build_linux_amd64() -> None:
     ])
 
     print("\nLinux AMD64 build complete.")
-    print(f"  .deb:   dist_deb/umbraedit_*.deb")
-    print(f"  AppImage: dist_appimage/umbraedit-*-amd64.AppImage")
+    print("  .deb:   dist_deb/umbraedit_*.deb")
+    print("  AppImage: dist_appimage/umbraedit-*-amd64.AppImage")
 
 
 def build_linux_arm64() -> None:
@@ -141,8 +140,8 @@ def build_linux_arm64() -> None:
     ])
 
     print("\nLinux ARM64 build complete.")
-    print(f"  .deb:   dist_deb/umbraedit_*_arm64.deb")
-    print(f"  AppImage: dist_appimage/umbraedit-*-arm64.AppImage")
+    print("  .deb:   dist_deb/umbraedit_*_arm64.deb")
+    print("  AppImage: dist_appimage/umbraedit-*-arm64.AppImage")
 
 
 def build_macos_arm64() -> None:
@@ -161,7 +160,7 @@ def build_macos_arm64() -> None:
     run(["bash", "setup/macos/build.sh", "3.12", "arm64", "arm64"])
 
     print("\nmacOS ARM64 build complete.")
-    print(f"  .dmg: dist_macos/umbraedit-2026.11-arm64.dmg")
+    print("  .dmg: dist_macos/umbraedit-2026.11-arm64.dmg")
 
 
 def build_macos_amd64() -> None:
@@ -180,7 +179,7 @@ def build_macos_amd64() -> None:
     run(["bash", "setup/macos/build.sh", "3.12", "amd64", "amd64"])
 
     print("\nmacOS AMD64 build complete.")
-    print(f"  .dmg: dist_macos/umbraedit-2026.11-amd64.dmg")
+    print("  .dmg: dist_macos/umbraedit-2026.11-amd64.dmg")
 
 
 def build_windows_amd64() -> None:
@@ -200,8 +199,8 @@ def build_windows_amd64() -> None:
     run(["python", "utils/build_windows.py", "--arch", "amd64"])
 
     print("\nWindows AMD64 build complete.")
-    print(f"  .exe: dist_win/umbraedit-*.exe")
-    print(f"  .msi: dist_win/umbraedit-*.msi")
+    print("  .exe: dist_win/umbraedit-*.exe")
+    print("  .msi: dist_win/umbraedit-*.msi")
 
 
 def build_windows_arm64() -> None:
@@ -220,8 +219,8 @@ def build_windows_arm64() -> None:
     run(["python", "utils/build_windows.py", "--arch", "arm64"])
 
     print("\nWindows ARM64 build complete.")
-    print(f"  .exe: dist_win/umbraedit-*-arm64.exe")
-    print(f"  .msi: dist_win/umbraedit-*-arm64.msi")
+    print("  .exe: dist_win/umbraedit-*-arm64.exe")
+    print("  .msi: dist_win/umbraedit-*-arm64.msi")
 
 
 def build_all_platforms() -> None:

@@ -1,31 +1,22 @@
-"""
-Tests for UmbraEdit Audio Package (P31)
-"""
+"""Tests for UmbraEdit Audio Package (P31)."""
 
 from __future__ import annotations
 
 import json
-import tempfile
+
 from pathlib import Path
 
 import pytest
 
 from umbraedit.umbra.audio import (
     AudioManifest,
-    AudioPackageBuilder,
-    ChapterAudio,
-    CharacterInfo,
-    MatterAudio,
     UtteranceRecord,
-    VoiceInfo,
-    _utc_now_iso,
-    _sha256_file,
     _atomic_write_json,
     _atomic_write_text,
     _is_ready,
+    _sha256_file,
+    _utc_now_iso,
 )
-from umbraedit.umbra.metadata import Metadata, saveMetadata
-from umbraedit.umbra.edition import EditionInfo, EditionDoc, saveEdition
 
 
 class TestAudioManifest:
@@ -106,7 +97,6 @@ class TestAtomicWrite:
 
 class TestIsReady:
     def test_is_ready_all_ready(self):
-        from umbraedit.umbra.audio import UtteranceRecord, _is_ready
         # UtteranceRecord doesn't have a status field
         # _is_ready is a stub that always returns True for now
         # This test verifies the function exists and can be called
@@ -127,7 +117,6 @@ class TestAudioPackageBuilder:
     def test_builder_creation(self, tmp_path: Path):
         """Test that AudioPackageBuilder can be created."""
         # This test is a placeholder - would need a full project mock
-        pass
 
 
 class TestAudioManifestSchema:

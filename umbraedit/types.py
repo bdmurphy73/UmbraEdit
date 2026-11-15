@@ -22,7 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-from typing import Literal, TypeVar, Union
+from typing import Literal, TypeVar
 
 from PyQt6.QtCore import QAbstractAnimation, Qt
 from PyQt6.QtGui import (

@@ -23,6 +23,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import logging
+
 try:
     import tomllib
 except ModuleNotFoundError:
@@ -30,7 +31,7 @@ except ModuleNotFoundError:
 
 from enum import Enum
 from pathlib import Path
-from typing import TypeVar, cast, Union
+from typing import TypeVar, Union, cast
 
 from PyQt6.QtGui import QFont
 

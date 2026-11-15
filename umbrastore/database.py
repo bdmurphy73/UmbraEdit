@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import sqlite3
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS account (

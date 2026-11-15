@@ -23,13 +23,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import logging
+
 from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QMessageBox
 
 from umbraedit import SHARED
-from umbraedit.umbra.ingest.ingest_runs import _load_runs
 from umbraedit.umbra.ingest.commit import undo_import_plan
+from umbraedit.umbra.ingest.ingest_runs import _load_runs
 
 if TYPE_CHECKING:
     from umbraedit.core.project import NWProject
@@ -37,7 +38,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def undoImport(project: "NWProject", parent: Any) -> None:
+def undoImport(project: NWProject, parent: Any) -> None:
     """Undo the most recent import."""
     # Find the most recent completed import
     runs = _load_runs(SHARED.project.storage.storagePath)
@@ -68,7 +69,6 @@ def undoImport(project: "NWProject", parent: Any) -> None:
         return
 
     # Perform undo
-    from umbraedit.umbra.ingest.commit import undo_import_plan
     success = undo_import_plan(SHARED.project, latest_run.run_id)
 
     if success:

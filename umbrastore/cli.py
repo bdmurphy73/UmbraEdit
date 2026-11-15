@@ -8,6 +8,7 @@ CLI commands: serve, add-account, backup, verify.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import os
 import sys
 import zipfile
@@ -29,18 +30,17 @@ def cmdServe(args: argparse.Namespace) -> int:
     port = args.port
 
     # TLS check
-    if host not in ("127.0.0.1", "localhost", "::1", "0.0.0.0"):
-        if args.cert is None or args.key is None:
-            if not args.allow_insecure:
-                print(
-                    "Error: Binding to a non-loopback host requires TLS (--cert and --key) or --allow-insecure",
-                    file=sys.stderr,
-                )
-                return 1
+    if host not in ("127.0.0.1", "localhost", "::1", "0.0.0.0") and (args.cert is None or args.key is None):
+        if not args.allow_insecure:
             print(
-                "Warning: Binding to non-loopback host without TLS",
+                "Error: Binding to a non-loopback host requires TLS (--cert and --key) or --allow-insecure",
                 file=sys.stderr,
             )
+            return 1
+        print(
+            "Warning: Binding to non-loopback host without TLS",
+            file=sys.stderr,
+        )
 
     # Set environment for the server module
     os.environ["UMBRASTORE_DATA_DIR"] = str(dataDir)
@@ -56,10 +56,8 @@ def cmdServe(args: argparse.Namespace) -> int:
         log_level="info",
     )
     server = uvicorn.Server(config)
-    try:
+    with contextlib.suppress(KeyboardInterrupt):
         server.run()
-    except KeyboardInterrupt:
-        pass
     return 0
 
 

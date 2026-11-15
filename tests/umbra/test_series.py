@@ -1,34 +1,32 @@
-"""
-Tests for UmbraEdit Series Bible (P26)
-"""
+"""Tests for UmbraEdit Series Bible (P26)."""
 
 from __future__ import annotations
 
 import json
+
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 from umbraedit.enum import nwItemClass
 from umbraedit.umbra.series import (
     SeriesInfo,
-    loadSeries,
-    saveSeries,
-    getBiblePath,
-    loadBibleEntities,
-    loadBibleSlots,
-    getNextBibleSlot,
-    checkTagShadow,
-    copyEntityToBook,
     _loadBibleSeen,
     _saveBibleSeen,
-    getBibleChangeCounter,
     checkBibleChanged,
-    markBibleSeen,
+    checkTagShadow,
+    copyEntityToBook,
+    getBibleChangeCounter,
+    getBiblePath,
+    getNextBibleSlot,
     iterBibleEntities,
+    loadBibleEntities,
+    loadBibleSlots,
+    loadSeries,
+    markBibleSeen,
+    saveSeries,
 )
-from umbraedit.umbra.sheet import SheetManager, EntityRow
+from umbraedit.umbra.sheet import EntityRow, SheetManager
 
 
 def _makeManager(tmpPath: Path) -> SheetManager:
@@ -200,7 +198,7 @@ def series_projects(tmp_path: Path):
     )
     saveSeries(book_path, series_info)
 
-    yield bible_path, book_path
+    return bible_path, book_path
 
 
 class TestSeriesInfo:
@@ -238,7 +236,7 @@ class TestSeriesFile:
     """Tests for series.json file operations."""
 
     def test_load_series(self, series_projects):
-        bible_path, book_path = series_projects
+        _bible_path, book_path = series_projects
         series = loadSeries(book_path)
         assert series.series == "Salt Road"
         assert series.bible == "../salt-road-bible"
@@ -284,7 +282,7 @@ class TestBibleEntities:
     """Tests for loading bible entities."""
 
     def test_load_bible_entities(self, series_projects):
-        bible_path, book_path = series_projects
+        bible_path, _book_path = series_projects
         entities = loadBibleEntities(bible_path)
         assert len(entities) == 3
         tags = {e.tag for e in entities}
@@ -293,12 +291,12 @@ class TestBibleEntities:
         assert "Arena" in tags
 
     def test_load_bible_slots(self, series_projects):
-        bible_path, book_path = series_projects
+        bible_path, _book_path = series_projects
         slots = loadBibleSlots(bible_path)
         assert slots == {1, 2}
 
     def test_load_bible_entities_marked_origin(self, series_projects):
-        bible_path, book_path = series_projects
+        bible_path, _book_path = series_projects
         entities = loadBibleEntities(bible_path)
         for entity in entities:
             assert entity.attrs.get("_origin") == "bible"
@@ -317,7 +315,7 @@ class TestNextBibleSlot:
         assert slot == 3
 
     def test_next_bible_slot_above_1000(self, series_projects):
-        bible_path, book_path = series_projects
+        _bible_path, book_path = series_projects
         book_sheet = _makeManager(book_path / "umbra")
 
         # Mock bible having all slots 1-1000
@@ -330,7 +328,7 @@ class TestTagShadow:
     """Tests for tag shadowing detection."""
 
     def test_check_tag_shadow_shadowed(self, series_projects):
-        bible_path, book_path = series_projects
+        _bible_path, book_path = series_projects
         book_project = _FakeProject(book_path, [
             _FakeItem("ch1", "NOVEL", "Chapter 1"),
             _FakeItem("char-peeta", "CHARACTER", "Peeta"),
@@ -339,7 +337,7 @@ class TestTagShadow:
         assert checkTagShadow(book_project, "Peeta")
 
     def test_check_tag_shadow_not_shadowed(self, series_projects):
-        bible_path, book_path = series_projects
+        _bible_path, book_path = series_projects
         book_project = _FakeProject(book_path, [
             _FakeItem("ch1", "NOVEL", "Chapter 1"),
             _FakeItem("char-peeta", "CHARACTER", "Peeta"),
@@ -348,7 +346,7 @@ class TestTagShadow:
         assert not checkTagShadow(book_project, "Katniss")
 
     def test_check_tag_shadow_no_series(self, series_projects):
-        bible_path, book_path = series_projects
+        _bible_path, book_path = series_projects
         book_project = _FakeProject(book_path, [
             _FakeItem("ch1", "NOVEL", "Chapter 1"),
         ])
@@ -389,7 +387,7 @@ class TestBibleSeen:
         assert seen["bibleChangeCounter"] == 42
 
     def test_get_bible_change_counter(self, series_projects):
-        bible_path, book_path = series_projects
+        bible_path, _book_path = series_projects
         counter = getBibleChangeCounter(bible_path)
         assert counter >= 3
 
@@ -410,7 +408,7 @@ class TestIterBibleEntities:
     """Tests for iterating bible entities."""
 
     def test_iter_bible_entities(self, series_projects):
-        bible_path, book_path = series_projects
+        _bible_path, book_path = series_projects
 
         entities = list(iterBibleEntities(book_path))
         assert len(entities) == 3
@@ -420,7 +418,7 @@ class TestIterBibleEntities:
         assert "Arena" in tags
 
     def test_iter_bible_entities_filter_kind(self, series_projects):
-        bible_path, book_path = series_projects
+        _bible_path, book_path = series_projects
 
         characters = list(iterBibleEntities(book_path, kind="character"))
         assert len(characters) == 2
@@ -521,7 +519,7 @@ class TestSheetBibleIntegration:
         assert slot == 3
 
     def test_next_slot_all_bible_used(self, series_projects):
-        bible_path, book_path = series_projects
+        _bible_path, book_path = series_projects
         book_sheet = _makeManager(book_path / "umbra")
 
         # Mock bible having all slots 1-1000

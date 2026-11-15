@@ -26,8 +26,8 @@ try:
     from enum import StrEnum
 except ImportError:
     class StrEnum(str, Enum):
-        """StrEnum shim for Python < 3.11"""
-        pass
+        """StrEnum shim for Python < 3.11."""
+
 
 
 class nwItemType(Enum):

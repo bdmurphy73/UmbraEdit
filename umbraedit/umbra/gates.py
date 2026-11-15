@@ -28,7 +28,6 @@ from __future__ import annotations
 import json
 import logging
 
-from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 
@@ -36,8 +35,11 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +247,7 @@ def _checkUnknownReferenceTag(scope: GateScope) -> Iterable[Finding]:
         itemNode = index.getItemData(tHandle)
         if itemNode is None:
             continue
-        for headingKey, heading in itemNode.headings():
+        for _headingKey, heading in itemNode.headings():
             for tagName, keywordClasses in heading.references.items():
                 if tagName not in index._tagsIndex:
                     item_ = proj.tree[tHandle]
@@ -294,7 +296,7 @@ from umbraedit.umbra import (
     speakergates,  # noqa: F401
     tokensgates,  # noqa: F401
     translategates,  # noqa: F401
-    voicematrixgates,  # noqa: F401
     voicegates,  # noqa: F401
+    voicematrixgates,  # noqa: F401
 )
 from umbraedit.umbra.sync import gates as syncgates  # noqa: F401

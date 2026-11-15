@@ -26,11 +26,12 @@ import logging
 import zipfile
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from lxml import etree  # type: ignore[import]
 
-from umbraedit.umbra.ingest.docx_intake import IntakeResult
+if TYPE_CHECKING:
+    from umbraedit.umbra.ingest.docx_intake import IntakeResult
 
 logger = logging.getLogger(__name__)
 

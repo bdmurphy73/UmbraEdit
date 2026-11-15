@@ -14,11 +14,15 @@ Hashes are SHA-256 lower-case hex.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import tempfile
 
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 SCHEMA_VERSION = 1
 
@@ -72,8 +76,6 @@ def writeJson(path: Path, data: dict | list) -> None:
             os.fsync(fObj.fileno())
         os.rename(tempPath, str(path))
     except Exception:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tempPath)
-        except OSError:
-            pass
         raise

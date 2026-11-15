@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import re
+
 from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.gates import (
@@ -66,7 +67,7 @@ ADVISORY_RULES = {
 }
 
 
-def _bsHeadingSkipFindings(scope: Any) -> "Iterable[Finding]":
+def _bsHeadingSkipFindings(scope: Any) -> Iterable[Finding]:
     """Block: heading levels skip (e.g., H1 to H3)."""
     project = scope.project
     if not project:
@@ -108,19 +109,18 @@ def _bsHeadingSkipFindings(scope: Any) -> "Iterable[Finding]":
             prev_level = level
 
 
-def _bsDoubleSpaceFindings(scope: Any) -> "Iterable[Any]":
+def _bsDoubleSpaceFindings(scope: Any) -> Iterable[Any]:
     """Advisory: double spaces after sentences."""
     # TODO: Implement
     return
 
 
-def _bsStraightQuotesFindings(scope: Any) -> "Iterable[Any]":
+def _bsStraightQuotesFindings(scope: Any) -> Iterable[Any]:
     """Block/Advisory: straight quotes used in text."""
     project = scope.project
     if not project:
         return
 
-    storage_path = project.storage.storagePath
     content_path = project.storage.contentPath
     if not content_path:
         return
@@ -162,13 +162,13 @@ def _bsStraightQuotesFindings(scope: Any) -> "Iterable[Any]":
                 )
 
 
-def _bsMixedQuoteStyleFindings(scope: Any) -> "Iterable[Any]":
+def _bsMixedQuoteStyleFindings(scope: Any) -> Iterable[Any]:
     """Advisory: mixed quote styles."""
     # TODO: Implement
     return
 
 
-def _bsDashUseFindings(scope: Any) -> "Iterable[Any]":
+def _bsDashUseFindings(scope: Any) -> Iterable[Any]:
     """Advisory: hyphen used as dash between spaces."""
     project = scope.project
     if not project:
@@ -178,7 +178,7 @@ def _bsDashUseFindings(scope: Any) -> "Iterable[Any]":
     if not content_path:
         return
 
-    dash_pattern = re.compile(r"\s-\s")
+    re.compile(r"\s-\s")
 
     for item in scope.project.tree:
         if not item.isFileType():
@@ -205,7 +205,7 @@ def _bsDashUseFindings(scope: Any) -> "Iterable[Any]":
             )
 
 
-def _bsEllipsisStyleFindings(scope: Any) -> "Iterable[Any]":
+def _bsEllipsisStyleFindings(scope: Any) -> Iterable[Any]:
     """Advisory: inconsistent ellipsis style."""
     project = scope.project
     if not project:
@@ -247,7 +247,7 @@ def _bsEllipsisStyleFindings(scope: Any) -> "Iterable[Any]":
         )
 
 
-def _bsEmptyChapterFindings(scope: Any) -> "Iterable[Any]":
+def _bsEmptyChapterFindings(scope: Any) -> Iterable[Any]:
     """Block/Advisory: chapter with no content."""
     project = scope.project
     if not project:
@@ -299,7 +299,7 @@ def _bsEmptyChapterFindings(scope: Any) -> "Iterable[Any]":
             )
 
 
-def _bsSceneBreakAtEdgeFindings(scope: Any) -> "Iterable[Any]":
+def _bsSceneBreakAtEdgeFindings(scope: Any) -> Iterable[Any]:
     """Block/Advisory: scene break at start or end of chapter."""
     project = scope.project
     if not project:
@@ -313,7 +313,7 @@ def _bsSceneBreakAtEdgeFindings(scope: Any) -> "Iterable[Any]":
     if not content_path:
         return
 
-    from umbraedit.formats.tokenizer import Tokenizer, BlockTyp
+    from umbraedit.formats.tokenizer import BlockTyp, Tokenizer
 
     for item in scope.project.tree:
         if not item.isFileType() or not item.isDocumentLayout():
@@ -366,13 +366,13 @@ def _bsSceneBreakAtEdgeFindings(scope: Any) -> "Iterable[Any]":
             )
 
 
-def _bsFrontMatterOrderFindings(scope: Any) -> "Iterable[Any]":
+def _bsFrontMatterOrderFindings(scope: Any) -> Iterable[Any]:
     """Block/Advisory: front matter order incorrect."""
     # TODO: Implement proper front matter order checking
     return
 
 
-def _bsTocMissingFindings(scope: Any) -> "Iterable[Any]":
+def _bsTocMissingFindings(scope: Any) -> Iterable[Any]:
     """Block: Table of Contents missing for print/EPUB."""
     project = scope.project
     if not project:
@@ -397,7 +397,7 @@ def _bsTocMissingFindings(scope: Any) -> "Iterable[Any]":
     )
 
 
-def _bsOrphanFootnoteFindings(scope: Any) -> "Iterable[Any]":
+def _bsOrphanFootnoteFindings(scope: Any) -> Iterable[Any]:
     """Block: footnote without reference."""
     project = scope.project
     if not project:

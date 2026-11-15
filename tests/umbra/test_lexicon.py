@@ -58,7 +58,7 @@ def lexProject(monkeypatch: pytest.MonkeyPatch, fncPath: Path, mockRnd, nwGUI):
         "@attr: pron_status | confirmed\n"
     )
     project.index.reIndexHandle(cHandle)
-    yield project
+    return project
 
 
 @pytest.mark.umbra

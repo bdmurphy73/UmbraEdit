@@ -200,7 +200,7 @@ def _diff_units(base_units: list[Unit], ours_units: list[Unit]) -> list[Change]:
     matcher = _align_texts(base_units, ours_units)
     changes: list[Change] = []
 
-    for i, (b, o) in enumerate(matcher):
+    for _i, (b, o) in enumerate(matcher):
         if b is None and o is not None:
             changes.append(
                 Change(
@@ -219,16 +219,15 @@ def _diff_units(base_units: list[Unit], ours_units: list[Unit]) -> list[Change]:
                     theirs=None,
                 )
             )
-        elif b is not None and o is not None:
-            if _unit_text(b) != _unit_text(o):
-                changes.append(
-                    Change(
-                        kind="text",
-                        base=b,
-                        ours=o,
-                        theirs=None,
-                    )
+        elif b is not None and o is not None and _unit_text(b) != _unit_text(o):
+            changes.append(
+                Change(
+                    kind="text",
+                    base=b,
+                    ours=o,
+                    theirs=None,
                 )
+            )
 
     return changes
 
@@ -243,7 +242,7 @@ def _align_texts(a_units: list[Unit], b_units: list[Unit]) -> list[tuple[Unit | 
     result: list[tuple[Unit | None, Unit | None]] = []
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
-            for i, j in zip(range(i1, i2), range(j1, j2)):
+            for i, j in zip(range(i1, i2), range(j1, j2), strict=False):
                 result.append((a_units[i], b_units[j]))
         elif tag == "delete":
             for i in range(i1, i2):
@@ -282,8 +281,8 @@ def merge_units(base: str, ours: str, theirs: str) -> MergeResult:
     theirs_units = list(iterUnits(theirs))
 
     # Compute diffs from base to each side
-    base_ours = _diff_units(base_units, ours_units)
-    base_theirs = _diff_units(base_units, theirs_units)
+    _diff_units(base_units, ours_units)
+    _diff_units(base_units, theirs_units)
 
     # Build merged result: start with base, apply changes
     merged_units: list[Unit] = []
@@ -425,7 +424,7 @@ def apply_choices(result: MergeResult, choices: dict[int, str]) -> str:
 
     """
     result_units: list[Unit] = []
-    conflict_map: dict[int, Change] = {i: c for i, c in enumerate(result.conflicts)}
+    conflict_map: dict[int, Change] = dict(enumerate(result.conflicts))
 
     for i, unit in enumerate(result.units):
         if i in conflict_map:

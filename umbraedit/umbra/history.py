@@ -41,12 +41,16 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from pathlib import Path
-from typing import Any
+import contextlib
+
+from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.hooks import DOCUMENT_SAVED, PROJECT_CLOSING, PROJECT_OPENED, register
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import deviceFile, historyDir, journalFile
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -163,10 +167,8 @@ def _atomicWriteText(path: Path, text: str) -> None:
             os.fsync(f.fileno())
         os.replace(tmpPath, path)
     except Exception:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmpPath)
-        except OSError:
-            pass
         raise
 
 
@@ -180,10 +182,8 @@ def _atomicWriteBytes(path: Path, data: bytes) -> None:
             os.fsync(f.fileno())
         os.replace(tmpPath, path)
     except Exception:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmpPath)
-        except OSError:
-            pass
         raise
 
 
@@ -603,6 +603,7 @@ def snapshotDocument(projectPath: Path, handle: str, kind: str, text: str) -> No
         handle: Document handle
         kind: Snapshot kind (e.g., "pre_restore", "manual")
         text: Document text content
+
     """
     mgr = _historyManager
     if mgr is not None:

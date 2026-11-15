@@ -98,7 +98,7 @@ def checkOldName() -> list[str]:
             for lineNo, line in enumerate(content.splitlines(), 1):
                 stripped = line.strip()
                 # Skip comments and license headers
-                if stripped.startswith("#") or stripped.startswith('"""'):
+                if stripped.startswith(("#", '"""')):
                     continue
                 # Check for old name in user-visible strings (self.tr, tr, format)
                 if oldName in line and ("tr(" in line or "self.tr(" in line or "QCoreApplication" in line):

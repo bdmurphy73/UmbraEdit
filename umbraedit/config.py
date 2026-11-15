@@ -33,7 +33,7 @@ except ModuleNotFoundError:
 
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, Final, Union
+from typing import TYPE_CHECKING, Final
 
 from PyQt6.QtCore import (
     PYQT_VERSION,
@@ -121,13 +121,13 @@ class Config:
         "_homePath",
         "_lastAuthor",
         "_manuals",
-        "_ueLangPath",
         "_qLocale",
         "_qtLangPath",
         "_qtTrans",
         "_recentPaths",
         "_recentProjects",
         "_splash",
+        "_ueLangPath",
         "allowOpenDialog",
         "altDialogClose",
         "altDialogOpen",

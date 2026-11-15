@@ -26,13 +26,15 @@ import logging
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import jsonschema
 
 from umbraedit.umbra.jsonio import readJson, writeJson
-from umbraedit.umbra.metadata import Metadata
 from umbraedit.umbra.paths import pagesFile
+
+if TYPE_CHECKING:
+    from umbraedit.umbra.metadata import Metadata
 
 logger = logging.getLogger(__name__)
 
@@ -399,7 +401,7 @@ class PageManager:
         self, page: dict[str, Any], pageType: PageType, format_: str, metadata: Metadata | dict[str, Any]
     ) -> dict[str, Any]:
         """Build context for template rendering."""
-        from umbraedit.umbra.metadata import formatValuesForBuild, Metadata
+        from umbraedit.umbra.metadata import Metadata, formatValuesForBuild
 
         # Convert dict to Metadata if needed
         if isinstance(metadata, dict):

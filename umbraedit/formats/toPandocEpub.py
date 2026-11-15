@@ -25,19 +25,16 @@ Changes: Added field import to dataclass.
 
 from __future__ import annotations
 
-import json
+import contextlib
 import logging
-import os
-import re
-import shutil
 import subprocess
 import tempfile
+
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from umbraedit.formats.toPandocJson import toPandocJson
-from umbraedit.umbra.metadata import loadMetadata
 
 if TYPE_CHECKING:  # pragma: no cover
     from umbraedit.core.project import NWProject
@@ -48,6 +45,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class EpubValidationResult:
     """Result of EPUB validation."""
+
     valid: bool
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
@@ -87,6 +85,7 @@ def validate_epub(epub_path: Path, epubcheck_jar: str | None = None) -> tuple[bo
 
     Returns:
         Tuple of (is_valid, errors, warnings).
+
     """
     if not epub_path.is_file():
         return False, [f"EPUB file not found: {epub_path}"], []
@@ -126,7 +125,7 @@ def validate_epub(epub_path: Path, epubcheck_jar: str | None = None) -> tuple[bo
 
 
 def build_epub_with_pandoc(
-    project: "NWProject",
+    project: NWProject,
     output_path: Path,
     pandoc_args: list[str] | None = None,
 ) -> tuple[bool, str]:
@@ -139,9 +138,8 @@ def build_epub_with_pandoc(
 
     Returns:
         Tuple of (success, output_path_or_error).
-    """
-    from umbraedit.formats.toPandocJson import toPandocJson
 
+    """
     try:
         # Generate Pandoc JSON
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -149,7 +147,7 @@ def build_epub_with_pandoc(
             json_path = tmpdir_path / "manuscript.json"
 
             # Generate Pandoc JSON
-            json_output = toPandocJson(project, json_path)
+            toPandocJson(project, json_path)
 
             # Build Pandoc command
             cmd = ["pandoc", str(json_path), "-o", str(output_path), "--from=json", "--to=epub3"]
@@ -195,7 +193,7 @@ def build_epub_with_pandoc(
 
 
 def build_epub_validated(
-    project: "NWProject",
+    project: NWProject,
     output_path: Path,
     epubcheck_jar: str | None = None,
 ) -> tuple[bool, str]:
@@ -208,6 +206,7 @@ def build_epub_validated(
 
     Returns:
         Tuple of (success, output_path_or_error).
+
     """
     # Build EPUB with Pandoc
     success, result = build_epub_with_pandoc(project, output_path)
@@ -217,13 +216,11 @@ def build_epub_validated(
     epub_path = Path(result)
 
     # Validate with EPUBCheck
-    is_valid, errors, warnings = validate_epub(epub_path)
+    is_valid, errors, _warnings = validate_epub(epub_path)
     if not is_valid:
         # Remove invalid EPUB
-        try:
+        with contextlib.suppress(Exception):
             epub_path.unlink()
-        except Exception:
-            pass
         return False, f"EPUBCheck validation failed: {'; '.join(errors)}"
 
     logger.info("EPUB validated successfully: %s", output_path)

@@ -26,6 +26,7 @@ Changes: App icon "umbraedit" now loads UmbraEdit.jpg instead of umbraedit.svg.
 from __future__ import annotations
 
 import logging
+
 try:
     import tomllib
 except ModuleNotFoundError:

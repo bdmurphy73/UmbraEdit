@@ -564,18 +564,17 @@ class NWProject:
 
         # Copy all meta files from old meta to new meta
         newMetaPath = self._storage._runtimePath / "meta" if self._storage._runtimePath else None
-        if oldMetaPath and newMetaPath:
-            if oldMetaPath.is_dir():
-                newMetaPath.mkdir(exist_ok=True)
-                for metaFile in oldMetaPath.glob("*"):
-                    if metaFile.is_file():
-                        destFile = newMetaPath / metaFile.name
-                        try:
-                            shutil.copy2(metaFile, destFile)
-                        except Exception as exc:
-                            logger.error(
-                                "Failed to copy meta file %s: %s", metaFile.name, exc
-                            )
+        if oldMetaPath and newMetaPath and oldMetaPath.is_dir():
+            newMetaPath.mkdir(exist_ok=True)
+            for metaFile in oldMetaPath.glob("*"):
+                if metaFile.is_file():
+                    destFile = newMetaPath / metaFile.name
+                    try:
+                        shutil.copy2(metaFile, destFile)
+                    except Exception as exc:
+                        logger.error(
+                            "Failed to copy meta file %s: %s", metaFile.name, exc
+                        )
 
         # Copy manifest.json if it exists
         oldManifestPath = (

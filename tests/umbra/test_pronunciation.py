@@ -58,7 +58,7 @@ def pronProject(monkeypatch: pytest.MonkeyPatch, fncPath: Path, mockRnd, nwGUI):
     aDoc.writeDocument("# The Hollow\n\n@tag: Hollow | The Hollow\n@attr: kind | place\n")
     project.index.reIndexHandle(wHandle)
 
-    yield project
+    return project
 
 
 @pytest.mark.umbra
@@ -180,9 +180,11 @@ def test_pronunciation_R1_setPronunciation_replacesPerLang(pronProject):
     assert mgr.setPronunciation("Katniss", "es", "KAT-nis ev-er-DIN") == []
     assert mgr.setPronunciation("Katniss", "es", "KAT-nis") == []
     pronEs = mgr.getPronunciation("Katniss", "es")
-    assert pronEs is not None and pronEs.respelling == "KAT-nis"
+    assert pronEs is not None
+    assert pronEs.respelling == "KAT-nis"
     pronEn = mgr.getPronunciation("Katniss", "en")
-    assert pronEn is not None and pronEn.respelling == "KAT-niss ev-er-DEEN"
+    assert pronEn is not None
+    assert pronEn.respelling == "KAT-niss ev-er-DEEN"
     text = (pronProject.storage.contentPath / _handleOf(pronProject, "Katniss")).read_text(encoding="utf-8")
     assert text.count("@pron:") == 2
 

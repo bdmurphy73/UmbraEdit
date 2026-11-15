@@ -47,7 +47,7 @@ def store(tmp_path: Path) -> AssetStore:
 
 
 @pytest.mark.umbra
-def test_umbra_assets_A1_addAndDedup(store):
+def test_umbra_assets_A1_addAndDedup(store: AssetStore):
     """A1: Same bytes added twice gives one asset."""
     png = _makePng()
     id1 = store.addAsset(png, ROLE_FIGURE, name="test.png")
@@ -57,7 +57,7 @@ def test_umbra_assets_A1_addAndDedup(store):
 
 
 @pytest.mark.umbra
-def test_umbra_assets_A1_mimeByContent(store):
+def test_umbra_assets_A1_mimeByContent(store: AssetStore):
     """A1: A renamed .jpg that is really PNG is typed image/png."""
     png = _makePng()
     assetId = store.addAsset(png, ROLE_FIGURE, name="renamed.jpg")
@@ -66,7 +66,7 @@ def test_umbra_assets_A1_mimeByContent(store):
 
 
 @pytest.mark.umbra
-def test_umbra_assets_R1_addFromBytes(store):
+def test_umbra_assets_R1_addFromBytes(store: AssetStore):
     """R1: addAsset from bytes creates file."""
     png = _makePng()
     assetId = store.addAsset(png, ROLE_FIGURE, name="test.png")
@@ -75,7 +75,7 @@ def test_umbra_assets_R1_addFromBytes(store):
 
 
 @pytest.mark.umbra
-def test_umbra_assets_R1_addFromFile(store, tmp_path):
+def test_umbra_assets_R1_addFromFile(store: AssetStore, tmp_path: Path):
     """R1: addAsset from a Path streams the file."""
     pngPath = tmp_path / "test.png"
     pngPath.write_bytes(_makePng())
@@ -84,7 +84,7 @@ def test_umbra_assets_R1_addFromFile(store, tmp_path):
 
 
 @pytest.mark.umbra
-def test_umbra_assets_R1_iterByRole(store):
+def test_umbra_assets_R1_iterByRole(store: AssetStore):
     """R1: iterAssets filters by role."""
     png = _makePng()
     jpeg = _makeJpeg()
@@ -95,14 +95,14 @@ def test_umbra_assets_R1_iterByRole(store):
 
 
 @pytest.mark.umbra
-def test_umbra_assets_R1_unused(store):
+def test_umbra_assets_R1_unused(store: AssetStore):
     """R1: unusedAssets returns unreferenced assets."""
     store.addAsset(_makePng(), ROLE_FIGURE, name="unused.png")
     assert len(store.unusedAssets()) == 1
 
 
 @pytest.mark.umbra
-def test_umbra_assets_R1_remove(store):
+def test_umbra_assets_R1_remove(store: AssetStore):
     """R1: removeAsset removes an unused asset."""
     assetId = store.addAsset(_makePng(), ROLE_FIGURE, name="rem.png")
     store.removeAsset(assetId)
@@ -110,7 +110,7 @@ def test_umbra_assets_R1_remove(store):
 
 
 @pytest.mark.umbra
-def test_umbra_assets_A5_removeUsedRefused(store, tmp_path):
+def test_umbra_assets_A5_removeUsedRefused(store: AssetStore, tmp_path: Path):
     """A5: Deleting a used asset is refused."""
     assetId = store.addAsset(_makePng(), ROLE_FIGURE, name="used.png")
     contentDir = tmp_path / "content"
@@ -121,7 +121,7 @@ def test_umbra_assets_A5_removeUsedRefused(store, tmp_path):
 
 
 @pytest.mark.umbra
-def test_umbra_assets_A5_removeImmutableRefused(store):
+def test_umbra_assets_A5_removeImmutableRefused(store: AssetStore):
     """A5: Deleting an immutable asset is refused."""
     assetId = store.addAsset(_makePng(), ROLE_OTHER, name="test.dat")
     entry = store.getAsset(assetId)
@@ -132,7 +132,7 @@ def test_umbra_assets_A5_removeImmutableRefused(store):
 
 
 @pytest.mark.umbra
-def test_umbra_assets_A5_replaceKeepsId(store):
+def test_umbra_assets_A5_replaceKeepsId(store: AssetStore):
     """A5: Replacing a figure keeps the id."""
     png1 = _makePng(color=(255, 0, 0))
     png2 = _makePng(color=(0, 0, 255))
@@ -142,28 +142,28 @@ def test_umbra_assets_A5_replaceKeepsId(store):
 
 
 @pytest.mark.umbra
-def test_umbra_assets_A2_svgScriptRejected(store):
+def test_umbra_assets_A2_svgScriptRejected(store: AssetStore):
     """A2: SVG with script is rejected."""
     with pytest.raises(ValueError, match="script"):
         store.addAsset(b'<svg><script>alert("xss")</script></svg>', ROLE_FIGURE, name="evil.svg")
 
 
 @pytest.mark.umbra
-def test_umbra_assets_A2_svgOnAttrRejected(store):
+def test_umbra_assets_A2_svgOnAttrRejected(store: AssetStore):
     """A2: SVG with on* handler is rejected."""
     with pytest.raises(ValueError, match="handler"):
         store.addAsset(b'<svg><rect onload="alert(1)"/></svg>', ROLE_FIGURE, name="evil.svg")
 
 
 @pytest.mark.umbra
-def test_umbra_assets_A2_svgJsUrlRejected(store):
+def test_umbra_assets_A2_svgJsUrlRejected(store: AssetStore):
     """A2: SVG with javascript: URL is rejected."""
     with pytest.raises(ValueError, match="javascript"):
         store.addAsset(b'<svg><a href="javascript:alert(1)">click</a></svg>', ROLE_FIGURE, name="evil.svg")
 
 
 @pytest.mark.umbra
-def test_umbra_assets_A2_corruptDetected(store):
+def test_umbra_assets_A2_corruptDetected(store: AssetStore):
     """A2: Flipped byte in stored file is reported as assetCorrupt."""
     assetId = store.addAsset(_makePng(), ROLE_FIGURE, name="test.png")
     filePath = store.assetPath(assetId)
@@ -176,7 +176,7 @@ def test_umbra_assets_A2_corruptDetected(store):
 
 
 @pytest.mark.umbra
-def test_umbra_assets_R3_missingDetected(store):
+def test_umbra_assets_R3_missingDetected(store: AssetStore):
     """R3: Missing file is reported as assetMissing."""
     assetId = store.addAsset(_makePng(), ROLE_FIGURE, name="test.png")
     store.assetPath(assetId).unlink()
@@ -186,14 +186,14 @@ def test_umbra_assets_R3_missingDetected(store):
 
 
 @pytest.mark.umbra
-def test_umbra_assets_R2_mimeByContent(store):
+def test_umbra_assets_R2_mimeByContent(store: AssetStore):
     """R2: MIME type detected by content, not extension."""
     assert _detectMime(_makePng(), "file.jpg") == "image/png"
     assert _detectMime(_makeJpeg(), "file.png") == "image/jpeg"
 
 
 @pytest.mark.umbra
-def test_umbra_assets_R6_indexAtomic(store):
+def test_umbra_assets_R6_indexAtomic(store: AssetStore):
     """R6: Index file written atomically with schema v1."""
     store.addAsset(_makePng(), ROLE_FIGURE, name="test.png")
     assert store._indexPath.is_file()

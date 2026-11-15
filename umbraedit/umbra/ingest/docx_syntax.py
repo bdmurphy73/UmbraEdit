@@ -26,9 +26,10 @@ import logging
 import re
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from umbraedit.umbra.ingest.docx_split import SceneSplitResult
+if TYPE_CHECKING:
+    from umbraedit.umbra.ingest.docx_split import SceneSplitResult
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +56,7 @@ SMART_QUOTES = {
     "\u201c": '"',  # Left double quote
     "\u201d": '"',  # Right double quote
     "\u2018": "'",  # Left single quote
-    "\u2019": "'",  # Right single quote
-    "\u201c": '"',
-    "\u201d": '"',
+    "\u2019": "'",
 }
 
 # Non-breaking space and soft hyphen
@@ -90,8 +89,7 @@ def _convert_formatting(text: str) -> str:
     text = re.sub(r"__(.+?)__", r"{b}\1{/b}", text)
     text = re.sub(r"\*(.+?)\*", r"{i}\1{/i}", text)
     text = re.sub(r"_(.+?)_", r"{i}\1{/i}", text)
-    text = re.sub(r"~~(.+?)~~", r"{s}\1{/s}", text)
-    return text
+    return re.sub(r"~~(.+?)~~", r"{s}\1{/s}", text)
 
 
 def _convert_footnotes(text: str, footnotes: dict[str, str]) -> str:

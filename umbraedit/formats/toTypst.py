@@ -22,22 +22,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
-import subprocess
 import tempfile
+
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from umbraedit.formats.shared import BlockTyp
 from umbraedit.formats.tokenizer import Tokenizer
-from umbraedit.formats.shared import BlockFmt, BlockTyp, T_Block, T_Formats, T_Note, TextFmt
 from umbraedit.umbra.metadata import loadMetadata
 from umbraedit.umbra.paths import assetsDir
 
 if TYPE_CHECKING:  # pragma: no cover
+    from pathlib import Path
+
     from umbraedit.core.project import NWProject
 
 logger = logging.getLogger(__name__)
@@ -139,6 +139,7 @@ DEFAULT_TYPST_TEMPLATE = r"""
 @dataclass
 class TypstConfig:
     """Configuration for Typst output."""
+
     trim_width: str = "152mm"  # 6x9 inches
     trim_height: str = "229mm"
     gutter: str = "6mm"
@@ -162,14 +163,14 @@ class ToTypst(Tokenizer):
     """
 
     __slots__ = (
-        "_project",
-        "_config",
-        "_template",
-        "_metadata",
         "_assets_dir",
+        "_config",
+        "_metadata",
+        "_project",
+        "_template",
     )
 
-    def __init__(self, project: "NWProject", config: TypstConfig | None = None) -> None:
+    def __init__(self, project: NWProject, config: TypstConfig | None = None) -> None:
         super().__init__(project)
         self._project = project
         self._config = config or TypstConfig()
@@ -228,7 +229,7 @@ class ToTypst(Tokenizer):
         # Get embedded fonts from assets
         embedded_fonts = []
         assets_dir = assetsDir(self._project.storage.storagePath)
-        for asset_file in assets_dir.glob("*.otf"):
+        for _asset_file in assets_dir.glob("*.otf"):
             try:
                 # Could parse font metadata here
                 pass
@@ -326,8 +327,7 @@ class ToTypst(Tokenizer):
         text = re.sub(r"\*\*(.+?)\*\*", r"*\1*", text)  # Bold
         text = re.sub(r"\*(.+?)\*", r"_\1_", text)  # Italic
         text = re.sub(r"~~(.+?)~~", r"~~\1~~", text)  # Strikethrough
-        text = re.sub(r"==(.+?)==", r"`\1`", text)  # Highlight/Mark
-        return text
+        return re.sub(r"==(.+?)==", r"`\1`", text)  # Highlight/Mark
 
     def _list_to_typst(self, items: list[str], ordered: bool) -> str:
         lines = []
@@ -352,7 +352,7 @@ class ToTypst(Tokenizer):
         return "#table()"  # Would need full implementation
 
 
-def toTypst(project: "NWProject", output_path: Path | None = None, config: TypstConfig | None = None) -> str:
+def toTypst(project: NWProject, output_path: Path | None = None, config: TypstConfig | None = None) -> str:
     """Convert a project to Typst source and compile to PDF.
 
     Args:
@@ -362,6 +362,7 @@ def toTypst(project: "NWProject", output_path: Path | None = None, config: Typst
 
     Returns:
         Path to the generated PDF file.
+
     """
     tokenizer = ToTypst(project, config)
     if output_path:

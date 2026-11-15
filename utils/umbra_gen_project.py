@@ -60,8 +60,7 @@ NARRATIVE_STARTERS = [
 def _loremSentence(rng: random.Random) -> str:
     """Generate a single lorem-style sentence."""
     words = [rng.choice(LOREM_WORDS) for _ in range(rng.randint(8, 20))]
-    sentence = " ".join(words).capitalize() + "."
-    return sentence
+    return " ".join(words).capitalize() + "."
 
 
 def _loremParagraph(rng: random.Random, isDialogue: bool, name: str) -> str:
@@ -119,18 +118,18 @@ def generateProject(
     projXml = output / "UEProject.UEx"
     projXml.write_text(
         "<?xml version='1.0' encoding='utf-8'?>\n"
-        "<UmbraEditXML appVersion=\"2026.11.0005\" hexVersion=\"0x01000000\" "
-        "fileVersion=\"1.6\" fileRevision=\"1\" timeStamp=\"2026-01-01T00:00:00Z\">\n"
-        "  <project id=\"bench-project-0000\" saveCount=\"0\" autoCount=\"0\" "
-        "editTime=\"0\" indexRevision=\"0\">\n"
+        '<UmbraEditXML appVersion="2026.11.0005" hexVersion="0x01000000" '
+        'fileVersion="1.6" fileRevision="1" timeStamp="2026-01-01T00:00:00Z">\n'
+        '  <project id="bench-project-0000" saveCount="0" autoCount="0" '
+        'editTime="0" indexRevision="0">\n'
         "    <name>Benchmark Project</name>\n"
         "    <author>Benchmark Generator</author>\n"
         "  </project>\n"
         "  <settings>\n"
         "    <doBackup>no</doBackup>\n"
         "  </settings>\n"
-        "  <content items=\"0\" novelWords=\"0\" notesWords=\"0\" "
-        "novelChars=\"0\" notesChars=\"0\">\n"
+        '  <content items="0" novelWords="0" notesWords="0" '
+        'novelChars="0" notesChars="0">\n'
         "  </content>\n"
         "</UmbraEditXML>\n",
         encoding="utf-8",
@@ -145,8 +144,8 @@ def generateProject(
         noteHandle = f"char_{i:04d}"
         noteFile = contentDir / f"{noteHandle}.md"
         noteFile.write_text(
-            f"+++\nname = \"{name}\"\nparent = \"chars\"\nhandle = \"{noteHandle}\"\n"
-            f"class = \"CHARACTER\"\nlayout = \"NOTE\"\n+++\n\n"
+            f'+++\nname = "{name}"\nparent = "chars"\nhandle = "{noteHandle}"\n'
+            f'class = "CHARACTER"\nlayout = "NOTE"\n+++\n\n'
             f"# {name}\n\n@tag: {name.split()[0].lower()}\n\n"
             f"A character in the benchmark project.\n",
             encoding="utf-8",
@@ -157,8 +156,8 @@ def generateProject(
         noteHandle = f"place_{i:04d}"
         noteFile = contentDir / f"{noteHandle}.md"
         noteFile.write_text(
-            f"+++\nname = \"{place}\"\nparent = \"places\"\nhandle = \"{noteHandle}\"\n"
-            f"class = \"WORLD\"\nlayout = \"NOTE\"\n+++\n\n"
+            f'+++\nname = "{place}"\nparent = "places"\nhandle = "{noteHandle}"\n'
+            f'class = "WORLD"\nlayout = "NOTE"\n+++\n\n'
             f"# {place}\n\n@tag: {place.lower().replace(' ', '')}\n\n"
             f"A location in the benchmark project.\n",
             encoding="utf-8",
@@ -167,8 +166,8 @@ def generateProject(
     # Write scenes
     totalWords = 0
     for sceneIdx in range(scenes):
-        chapterIdx = sceneIdx // 4 + 1
-        sceneInChapter = sceneIdx % 4 + 1
+        sceneIdx // 4 + 1
+        sceneIdx % 4 + 1
         sceneHandle = f"scene_{sceneIdx:04d}"
         sceneFile = contentDir / f"{sceneHandle}.md"
 
@@ -187,9 +186,9 @@ def generateProject(
         totalWords += wordCount
 
         meta = (
-            f"+++\nname = \"Scene {sceneIdx + 1}\"\nparent = \"novel\"\n"
-            f"handle = \"{sceneHandle}\"\nclass = \"NOVEL\"\nlayout = \"DOCUMENT\"\n"
-            f"heading = \"H3\"\n+++\n\n"
+            f'+++\nname = "Scene {sceneIdx + 1}"\nparent = "novel"\n'
+            f'handle = "{sceneHandle}"\nclass = "NOVEL"\nlayout = "DOCUMENT"\n'
+            f'heading = "H3"\n+++\n\n'
             f"### Scene {sceneIdx + 1}\n\n"
             f"@pov: {povName.split()[0].lower()}\n"
             f"@char: {charName.split()[0].lower()}\n"

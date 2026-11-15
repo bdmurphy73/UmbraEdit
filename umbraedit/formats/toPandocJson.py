@@ -22,20 +22,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import subprocess
-import json
+
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from umbraedit.formats.shared import BlockTyp
 from umbraedit.formats.tokenizer import Tokenizer
-from umbraedit.formats.shared import BlockFmt, BlockTyp, T_Block, T_Formats, T_Note, TextFmt
 from umbraedit.umbra.metadata import loadMetadata
-from umbraedit.umbra.paths import assetsDir
 
 if TYPE_CHECKING:  # pragma: no cover
+    from pathlib import Path
+
     from umbraedit.core.project import NWProject
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ PandocInline = dict[str, Any]
 @dataclass
 class PandocAST:
     """Pandoc JSON AST document."""
+
     meta: PandocMeta
     blocks: list[PandocBlock]
 
@@ -62,10 +64,10 @@ class ToPandocJson(Tokenizer):
     """
 
     __slots__ = (
-        "_project",
-        "_pandoc_version",
         "_api_version",
         "_metadata",
+        "_pandoc_version",
+        "_project",
     )
 
     def __init__(self, project: NWProject) -> None:
@@ -93,7 +95,7 @@ class ToPandocJson(Tokenizer):
                 version_match = re.search(r"pandoc\s+(\d+\.\d+\.\d+)", self._pandoc_version)
                 if version_match:
                     version = version_match.group(1)
-                    major, minor, patch = map(int, version.split("."))
+                    major, minor, _patch = map(int, version.split("."))
                     # Pandoc API version follows major.minor
                     self._api_version = f"{major}.{minor}"
         except Exception as e:
@@ -271,7 +273,7 @@ class ToPandocJson(Tokenizer):
         return {"t": "Table", "c": [[], [], [], []]}
 
 
-def toPandocJson(project: "NWProject", output_path: Path | None = None) -> str:
+def toPandocJson(project: NWProject, output_path: Path | None = None) -> str:
     """Convert a project to Pandoc JSON AST.
 
     Args:
@@ -280,9 +282,8 @@ def toPandocJson(project: "NWProject", output_path: Path | None = None) -> str:
 
     Returns:
         JSON string of the Pandoc AST.
-    """
-    from umbraedit.formats.tokenizer import Tokenizer
 
+    """
     tokenizer = ToPandocJson(project)
     tokenizer.tokenizeText()
     json_output = tokenizer._text

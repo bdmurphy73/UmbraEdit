@@ -264,7 +264,7 @@ def test_history_R4_createDraft(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 @pytest.mark.umbra
 def test_history_device_info(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     """Device info is created in umbra/device.json."""
-    mgr, project = _makeHistoryManager(tmp_path, mockRnd, nwGUI)
+    _mgr, _project = _makeHistoryManager(tmp_path, mockRnd, nwGUI)
 
     devFile = tmp_path / "umbra" / "device.json"
     assert devFile.is_file()

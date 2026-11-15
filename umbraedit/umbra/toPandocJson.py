@@ -22,39 +22,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
-import os
-import re
-import subprocess
-import tempfile
-import uuid
-from dataclasses import dataclass, field
-from datetime import datetime
 
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone as UTC
-from pathlib import Path
+with contextlib.suppress(ImportError):
+    pass
 from typing import TYPE_CHECKING, Any
 
 from umbraedit.formats.tokenizer import Tokenizer
-from umbraedit.umbra.edition import EditionDoc, EditionInfo, loadEdition, saveEdition
-from umbraedit.umbra.guide import parseGuideDoc
-from umbraedit.umbra.paths import jobsDir, promptsDir
-from umbraedit.umbra.settings import umbraSettings
-from umbraedit.umbra.units import UnitKind, iterUnits
 
-if TYPE_CHECKING:  # pragma: no cover
-    from collections.abc import Iterable
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = 1
 
 
-def toPandocJson(project: "NWProject", output_path: Path | None = None) -> str:
+def toPandocJson(project: NWProject, output_path: Path | None = None) -> str:
     """Convert a project to Pandoc JSON AST.
 
     Args:
@@ -63,6 +49,7 @@ def toPandocJson(project: "NWProject", output_path: Path | None = None) -> str:
 
     Returns:
         The Pandoc JSON AST as a string.
+
     """
     tokenizer = ToPandocJson(project)
     tokenizer.tokenizeText()
@@ -82,12 +69,12 @@ class ToPandocJson(Tokenizer):
     """
 
     __slots__ = (
-        "_project",
-        "_metadata",
         "_blocks",
+        "_metadata",
+        "_project",
     )
 
-    def __init__(self, project: "NWProject") -> None:
+    def __init__(self, project: NWProject) -> None:
         super().__init__(project)
         self._project = project
         self._metadata = project.metadata if hasattr(project, "metadata") else None
@@ -123,9 +110,7 @@ class ToPandocJson(Tokenizer):
         for block in self._blocks:
             block_type = block[0]
 
-            if block_type == 1:  # TITLE
-                blocks.append({"t": "Header", "c": [1, ["", [], []], [{"t": "Str", "c": block[2]}]]})
-            elif block_type == 2:  # PART
+            if block_type in {1, 2}:  # TITLE
                 blocks.append({"t": "Header", "c": [1, ["", [], []], [{"t": "Str", "c": block[2]}]]})
             elif block_type in (3, 4, 5, 6):  # HEAD1-4
                 level = block_type - 3 + 2  # HEAD1 -> level 2

@@ -32,11 +32,13 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import ingestRunsFile
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 

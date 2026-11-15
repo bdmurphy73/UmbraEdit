@@ -32,7 +32,7 @@ import xml.etree.ElementTree as ET
 try:
     import tomllib
 except ModuleNotFoundError:
-    import tomli as tomllib  # type: ignore
+    pass  # type: ignore
 
 from datetime import date, datetime
 from pathlib import Path

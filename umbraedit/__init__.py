@@ -40,7 +40,7 @@ try:
     import tomllib
 except ModuleNotFoundError:
     import tomli
-    sys.modules['tomllib'] = tomli
+    sys.modules["tomllib"] = tomli
 
 from umbraedit.config import Config
 from umbraedit.error import exceptionHandler

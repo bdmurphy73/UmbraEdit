@@ -34,14 +34,17 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from umbraedit.umbra.ingest.docx_intake import IntakeResult
-from umbraedit.umbra.ingest.docx_propose import ProposeResult
-from umbraedit.umbra.ingest.docx_split import SceneSplitResult
-from umbraedit.umbra.ingest.docx_syntax import SyntaxResult
 from umbraedit.umbra.paths import cacheDir
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from umbraedit.umbra.ingest.docx_intake import IntakeResult
+    from umbraedit.umbra.ingest.docx_propose import ProposeResult
+    from umbraedit.umbra.ingest.docx_split import SceneSplitResult
+    from umbraedit.umbra.ingest.docx_syntax import SyntaxResult
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +115,7 @@ class DocxOutput:
     ) -> Path:
         """Write the import plan to cache."""
         run_id = _generate_run_id()
-        timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         # Collect all findings
         all_findings = []

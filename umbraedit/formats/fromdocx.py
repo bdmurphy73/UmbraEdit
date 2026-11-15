@@ -27,21 +27,14 @@ from __future__ import annotations
 import logging
 import re
 import xml.etree.ElementTree as ET
+
 from dataclasses import dataclass, field
-from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING
 from zipfile import ZipFile, is_zipfile
 
-from umbraedit import CONFIG
 from umbraedit.constants import (
     nwShortcode,
-    nwStyles,
 )
-from umbraedit.enum import nwItemClass, nwItemLayout
-
-if TYPE_CHECKING:
-    from pathlib import Path as _Path
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +124,7 @@ class FromDocxDocument:
     (images, headers, footers, comments, footnotes) into notes.
     """
 
-    __slots__ = ("_file_path", "_zip", "_result", "_rels", "_images", "_headers", "_footers")
+    __slots__ = ("_file_path", "_footers", "_headers", "_images", "_rels", "_result", "_zip")
 
     def __init__(self, file_path: str | Path) -> None:
         self._file_path = Path(file_path)

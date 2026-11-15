@@ -13,21 +13,17 @@ missing tags, missing covers, and missing source project.
 from __future__ import annotations
 
 import logging
+
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from umbraedit.constants import nwItemClass
 from umbraedit.umbra.covers import CoverStore
-from umbraedit.umbra.edition import EditionDoc, loadEdition, getEditionStatus
+from umbraedit.umbra.edition import loadEdition
 from umbraedit.umbra.gates import (
-    OP_AUDIO_CHAPTER,
-    OP_BUILD_RUN,
-    OP_PUBLISH_PACKAGE,
     Finding,
     GateRule,
     registerGate,
 )
-from umbraedit.umbra.metadata import loadMetadata
 from umbraedit.umbra.sheet import SheetManager
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -105,13 +101,13 @@ def _editionTagMissingFindings(scope: Any) -> Iterable[Finding]:
         return
 
     editionPath = Path(scope.project.storage.storagePath)
-    edition = loadEdition(storagePath)
+    loadEdition(storagePath)
 
     sheet = SheetManager(editionPath)
     sheet.buildFromProject(scope.project)  # type: ignore
 
     # Get all speaker tags used in edition documents
-    from umbraedit.umbra.units import iterUnits, UnitKind
+    from umbraedit.umbra.units import UnitKind, iterUnits
 
     contentPath = project.storage.contentPath
     if not contentPath:
@@ -153,7 +149,7 @@ def _editionCoverMissingFindings(scope: Any) -> Iterable[Finding]:
     if not storagePath:
         return
 
-    editionPath = Path(storagePath)
+    Path(storagePath)
     edition = loadEdition(storagePath)
     coverStore = CoverStore(storagePath)
 

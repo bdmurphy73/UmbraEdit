@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from PyQt6.QtCore import QObject, Qt
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QProgressDialog
@@ -66,7 +66,7 @@ class ImportManuscriptCommand(QObject):
         if not file_path:
             return
 
-        path = Path(file_path)
+        Path(file_path)
 
         # Check if file was already imported
         pipeline = DocxIngestPipeline(self._project.storage.storagePath)

@@ -22,22 +22,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-import hashlib
-import json
 import logging
-import os
 import shutil
+
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.jsonio import readJson, writeJson
-from umbraedit.umbra.metadata import loadMetadata, Metadata
-from umbraedit.umbra.paths import editionFile, metadataFile
-from umbraedit.umbra.sheet import SheetManager, EntityRow
+from umbraedit.umbra.metadata import Metadata, loadMetadata
+from umbraedit.umbra.paths import editionFile
+from umbraedit.umbra.sheet import EntityRow, SheetManager
 
-if TYPE_CHECKING:  # pragma: no cover
-    from collections.abc import Iterable
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +134,7 @@ def loadEdition(projectPath: Path) -> EditionInfo:
             return EditionInfo.from_dict(data)
         logger.warning("edition.json does not contain an object, returning defaults")
         return EditionInfo()
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to load edition from %s", path)
         return EditionInfo()
 
@@ -161,8 +158,7 @@ def createEdition(
     emptyText: bool = False,
     copyPronunciation: bool = False,
 ) -> Path | None:
-    """
-    Create a new edition project from a source project.
+    """Create a new edition project from a source project.
 
     Args:
         sourceProjectPath: Path to the source project
@@ -173,6 +169,7 @@ def createEdition(
 
     Returns:
         Path to the new edition project, or None on failure
+
     """
     editionPath = editionDirPath(sourceProjectPath, editionId)
 
@@ -325,7 +322,7 @@ def getEditionStatus(
 
     # Check if source document has changed
     sourceProjectPath = editionPath.parent / edition.source["path"]
-    sourceMetadata = loadMetadata(sourceProjectPath)
+    loadMetadata(sourceProjectPath)
     sourceHash = sourceProject.getDocumentHash(handle)  # type: ignore
 
     if doc.baseTextHash != sourceHash:
@@ -416,7 +413,6 @@ def glossary(editionPath: Path) -> list[dict[str, str]]:
             continue
         if entity.kind != "character":
             continue
-        tag = entity.tag
         sourceForm = entity.tag
         targetForm = entity.attrs.get("name_target", entity.tag)
         pronunciation = entity.attrs.get("pronunciation", "")
@@ -434,7 +430,3 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from umbraedit.umbra.guide import GuideDoc, parseGuideDoc
-from umbraedit.umbra.guide import analysisStatus, staleParaNotes
-from umbraedit.umbra.sheet import SheetManager, EntityRow
-from umbraedit.umbra.paths import alignDir

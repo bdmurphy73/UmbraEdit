@@ -7,6 +7,7 @@ Content-addressed store for binary project assets.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import logging
@@ -159,8 +160,7 @@ class AssetStore:
                             dst.flush(); os.fsync(dst.fileno())
                         os.rename(tmp, str(absFile))
                     except Exception:
-                        try: os.unlink(tmp)
-                        except OSError: pass
+                        with contextlib.suppress(OSError): os.unlink(tmp)
                         raise
             else:
                 fd, tmp = tempfile.mkstemp(dir=str(absFile.parent), suffix=".tmp")
@@ -169,8 +169,7 @@ class AssetStore:
                         dst.write(source); dst.flush(); os.fsync(dst.fileno())
                     os.rename(tmp, str(absFile))
                 except Exception:
-                    try: os.unlink(tmp)
-                    except OSError: pass
+                    with contextlib.suppress(OSError): os.unlink(tmp)
                     raise
 
         self._index[assetId] = entry
@@ -284,6 +283,5 @@ class AssetStore:
                 f.write(text); f.flush(); os.fsync(f.fileno())
             os.rename(tmp, str(self._indexPath))
         except Exception:
-            try: os.unlink(tmp)
-            except OSError: pass
+            with contextlib.suppress(OSError): os.unlink(tmp)
             raise

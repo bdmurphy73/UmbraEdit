@@ -28,9 +28,11 @@ import tempfile
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from umbraedit.umbra.ingest.docx_intake import IntakeResult
-from umbraedit.umbra.ingest.docx_prepass import ParagraphRecord, PrepassResult
+if TYPE_CHECKING:
+    from umbraedit.umbra.ingest.docx_intake import IntakeResult
+    from umbraedit.umbra.ingest.docx_prepass import ParagraphRecord, PrepassResult
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +76,7 @@ class DocxConvert:
         pandoc_paragraphs = self._split_markdown_paragraphs(markdown)
 
         # Map Pandoc paragraphs to pre-pass records
-        mapped = self._map_paragraphs(prepass.paragraphs, pandoc_paragraphs)
+        self._map_paragraphs(prepass.paragraphs, pandoc_paragraphs)
 
         return ConvertResult(
             markdown=markdown,

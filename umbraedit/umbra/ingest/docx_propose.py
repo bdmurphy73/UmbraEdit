@@ -27,10 +27,11 @@ import re
 
 from collections import Counter
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from umbraedit.umbra.ingest.docx_split import SceneSplitResult
-from umbraedit.umbra.ingest.docx_syntax import SyntaxResult
+if TYPE_CHECKING:
+    from umbraedit.umbra.ingest.docx_split import SceneSplitResult
+    from umbraedit.umbra.ingest.docx_syntax import SyntaxResult
 
 logger = logging.getLogger(__name__)
 
@@ -92,8 +93,7 @@ STOP_WORDS = {
 def _extract_potential_names(text: str) -> list[str]:
     """Extract capitalized words that could be names."""
     # Find words that start with uppercase, possibly with apostrophes/hyphens
-    words = re.findall(r"\b[A-Z][a-zA-Z'-]*\b", text)
-    return words
+    return re.findall(r"\b[A-Z][a-zA-Z'-]*\b", text)
 
 
 def _is_likely_name(word: str, context: str) -> bool:

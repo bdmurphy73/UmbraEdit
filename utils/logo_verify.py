@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-UmbraEdit Logo Verification Tool
+"""UmbraEdit Logo Verification Tool.
 ================================
 Analyzes the UmbraEdit.jpg reference logo and compares it against all other
 logo/icon images in the project. Shows a GUI for the user to confirm or
@@ -9,16 +8,14 @@ flag images that don't match the UmbraEdit branding.
 
 from __future__ import annotations
 
-import os
 import sys
+import tkinter as tk
 
 from dataclasses import dataclass
 from pathlib import Path
-
-from PIL import Image, ImageDraw, ImageFont, ImageTk
-
-import tkinter as tk
 from tkinter import ttk
+
+from PIL import Image, ImageTk
 
 ROOT = Path(__file__).resolve().parent.parent
 REFERENCE = ROOT / "UmbraEdit.jpg"

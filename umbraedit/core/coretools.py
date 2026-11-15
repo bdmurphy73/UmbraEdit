@@ -34,25 +34,19 @@ from zipfile import ZipFile, is_zipfile
 
 from PyQt6.QtCore import QCoreApplication
 
-from umbraedit import CONFIG, SHARED, __hexversion__, __version__
+from umbraedit import CONFIG, SHARED
 from umbraedit.common import (
-    checkBool,
-    checkInt,
-    formatTimeStamp,
     isHandle,
     minmax,
     safeExists,
     safeIsFile,
     simplified,
-    yesNo,
 )
-from umbraedit.constants import nwFiles, nwItemClass, nwItemLayout, nwStats, trConst
+from umbraedit.constants import nwFiles, nwItemClass, nwItemLayout, nwStats
 from umbraedit.core.project import NWProject
-from umbraedit.core.projectdata import ProjectData
-from umbraedit.core.projectxml import FILE_VERSION, FILE_REVISION, ProjectXMLWriter
+from umbraedit.core.projectxml import ProjectXMLWriter
 from umbraedit.core.storage import ProjectStorageCreate
-from umbraedit.formats.fromdocx import FromDocxDocument, ImportResult
-from umbraedit.enum import nwItemType
+from umbraedit.formats.fromdocx import FromDocxDocument
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -598,6 +592,7 @@ class DocxImporter:
 
         Returns:
             True if the import was successful, False otherwise.
+
         """
         try:
             in_path = Path(file_path).resolve()

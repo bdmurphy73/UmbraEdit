@@ -178,7 +178,7 @@ def test_server_R1_get_file_by_rev(client: TestClient, authHeaders: dict[str, st
     rev1 = resp1.json()["rev"]
 
     content2 = b"Version 2"
-    resp2 = client.put(
+    client.put(
         f"/v1/projects/{projectId}/files/content/revtest.md",
         content=content2,
         headers={**authHeaders, "If-Match": f'"{rev1}"', "X-Device": "dev-1"},
@@ -340,7 +340,7 @@ def test_server_R1_list_revisions(client: TestClient, authHeaders: dict[str, str
     rev1 = resp1.json()["rev"]
 
     content2 = b"Second"
-    resp2 = client.put(
+    client.put(
         f"/v1/projects/{projectId}/files/content/history.md",
         content=content2,
         headers={**authHeaders, "If-Match": f'"{rev1}"', "X-Device": "dev-1"},

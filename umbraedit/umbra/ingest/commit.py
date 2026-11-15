@@ -26,14 +26,16 @@ import logging
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.hooks import SIDECAR_WRITTEN, call
-from umbraedit.umbra.ingest.docx_output import ImportPlan
 from umbraedit.umbra.ingest.ingest_runs import record_ingest_run
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import cacheDir
 from umbraedit.umbra.sheet import EntityRow, SheetManager
+
+if TYPE_CHECKING:
+    from umbraedit.umbra.ingest.docx_output import ImportPlan
 
 logger = logging.getLogger(__name__)
 
@@ -189,10 +191,10 @@ class ImportCommitter:
         for doc in plan.documents:
             kind = doc.get("kind", "")
             parent_id = doc.get("parentPlanId")
-            title = doc.get("title", "")
+            doc.get("title", "")
             level = doc.get("level", 1)
-            text = doc.get("text", "")
-            source_paras = doc.get("sourceParagraphs", [])
+            doc.get("text", "")
+            doc.get("sourceParagraphs", [])
             page_type = doc.get("pageType")
 
             # Generate handle
@@ -249,8 +251,6 @@ class ImportCommitter:
 
     def _create_notes(self, plan: ImportPlan) -> list[str]:
         """Create notes for characters and other entities."""
-        handles = []
-
         # Create character notes from proposals
         sheet = SheetManager(self.storage_path / "umbra")
 

@@ -26,7 +26,6 @@ import logging
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from PyQt6.QtCore import QObject, QRunnable, pyqtBoundSignal, pyqtSignal, pyqtSlot
@@ -36,6 +35,7 @@ from umbraedit.umbra.ingest import DocxIngestPipeline, ImportPlan, IngestResult
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 

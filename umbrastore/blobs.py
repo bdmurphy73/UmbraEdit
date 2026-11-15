@@ -8,11 +8,15 @@ All writes are atomic (temp file in same directory, fsync, rename).
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import os
 import tempfile
 
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class BlobStore:
@@ -70,10 +74,8 @@ class BlobStore:
                 os.fsync(f.fileno())
             os.replace(tempPath, str(blobPath))
         except Exception:
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(tempPath)
-            except OSError:
-                pass
             raise
 
         return sha256

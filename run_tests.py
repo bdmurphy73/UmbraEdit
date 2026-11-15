@@ -41,15 +41,12 @@ if __name__ == "__main__":
         cmd = [sys.executable, "-m"]
 
     cmd += ["pytest"]
-    match args.v:
-        case 0:
-            cmd += ["-q"]
-        case 1:
-            pass
-        case 2:
-            cmd += ["-v"]
-        case 3:
-            cmd += ["-vv"]
+    if args.v == 0:
+        cmd += ["-q"]
+    elif args.v == 2:
+        cmd += ["-v"]
+    elif args.v == 3:
+        cmd += ["-vv"]
 
     if args.o:
         env["QT_QPA_PLATFORM"] = "offscreen"

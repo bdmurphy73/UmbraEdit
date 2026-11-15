@@ -10,11 +10,13 @@ from __future__ import annotations
 import json
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from docutils import nodes
 from docutils.parsers.rst import Directive, directives
-from sphinx.application import Sphinx
+
+if TYPE_CHECKING:
+    from sphinx.application import Sphinx
 
 _EXT_DIR = Path(__file__).parent
 _DOC_SRC = _EXT_DIR.parent

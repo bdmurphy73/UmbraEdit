@@ -1,4 +1,7 @@
-"""Tests for UmbraEdit Audio Package (P31)."""
+"""Tests for UmbraEdit Audio Package (P31).
+
+Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
+"""
 
 from __future__ import annotations
 
@@ -23,6 +26,7 @@ class TestAudioManifest:
     """Tests for AudioManifest dataclass."""
 
     def test_audio_manifest_creation(self):
+        """Test AudioManifest creation."""
         manifest = AudioManifest(
             book="Test Book",
             edition="ed-en",
@@ -30,7 +34,15 @@ class TestAudioManifest:
             tool="UmbraEdit",
             cover={"file": "cover.jpg", "sha256": "abc123"},
             chapters=[
-                {"handle": "ch1", "title": "Chapter 1", "order": 1, "file": "chapters/ch1.jsonl", "sha256": "abc", "utterances": 10, "status": "ready"}
+                {
+                    "handle": "ch1",
+                    "title": "Chapter 1",
+                    "order": 1,
+                    "file": "chapters/ch1.jsonl",
+                    "sha256": "abc",
+                    "utterances": 10,
+                    "status": "ready",
+                }
             ],
             matter={"opening": "matter/opening.jsonl", "closing": "matter/closing.jsonl"},
             voices=["vm-abc123"],
@@ -42,6 +54,7 @@ class TestAudioManifest:
         assert manifest.voices == ["vm-abc123"]
 
     def test_audio_manifest_to_dict(self):
+        """Test AudioManifest to_dict conversion."""
         manifest = AudioManifest(
             book="Test Book",
             edition="ed-en",
@@ -55,7 +68,10 @@ class TestAudioManifest:
 
 
 class TestUtcNowIso:
+    """Tests for utc_now_iso function."""
+
     def test_utc_now_iso_format(self):
+        """Test utc_now_iso returns correct format."""
         ts = _utc_now_iso()
         assert len(ts) == 20  # YYYY-MM-DDTHH:MM:SSZ
         assert ts.endswith("Z")
@@ -67,7 +83,10 @@ class TestUtcNowIso:
 
 
 class TestSha256File:
+    """Tests for sha256_file function."""
+
     def test_sha256_file(self, tmp_path: Path):
+        """Test sha256_file computes correct hash."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("hello world", encoding="utf-8")
         sha = _sha256_file(test_file)
@@ -76,7 +95,10 @@ class TestSha256File:
 
 
 class TestAtomicWrite:
+    """Tests for atomic write functions."""
+
     def test_atomic_write_json(self, tmp_path: Path):
+        """Test atomic write of JSON."""
         file_path = tmp_path / "test.json"
         data = {"key": "value", "number": 42}
         _atomic_write_json(file_path, data)
@@ -87,6 +109,7 @@ class TestAtomicWrite:
         assert loaded == data
 
     def test_atomic_write_text(self, tmp_path: Path):
+        """Test atomic write of text."""
         file_path = tmp_path / "test.txt"
         text = "Hello, world!"
         _atomic_write_text(file_path, text)
@@ -96,7 +119,10 @@ class TestAtomicWrite:
 
 
 class TestIsReady:
+    """Tests for _is_ready function."""
+
     def test_is_ready_all_ready(self):
+        """Test _is_ready returns bool."""
         # UtteranceRecord doesn't have a status field
         # _is_ready is a stub that always returns True for now
         # This test verifies the function exists and can be called
@@ -115,6 +141,7 @@ class TestAudioPackageBuilder:
     """Tests for AudioPackageBuilder."""
 
     def test_builder_creation(self, tmp_path: Path):
+        """Test builder creation."""
         """Test that AudioPackageBuilder can be created."""
         # This test is a placeholder - would need a full project mock
 
@@ -123,6 +150,7 @@ class TestAudioManifestSchema:
     """Tests for AudioManifest JSON schema compliance."""
 
     def test_manifest_json_structure(self, tmp_path: Path):
+        """Test manifest JSON structure."""
         manifest = AudioManifest(
             v=1,
             book="Test Book",

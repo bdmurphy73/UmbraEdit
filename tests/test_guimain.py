@@ -568,9 +568,9 @@ def testGuiMain_Editing(
     assert SHARED.project.data.spellCheck is False
 
     # Check the files
-    projFile = projPath / "nwProject.nwx"
-    testFile = tstPaths.outDir / "guiEditor_Main_Initial_nwProject.nwx"
-    compFile = tstPaths.refDir / "guiEditor_Main_Initial_nwProject.nwx"
+    projFile = projPath / "UEProject.UEx"
+    testFile = tstPaths.outDir / "guiEditor_Main_Initial_UEProject.UEx"
+    compFile = tstPaths.refDir / "guiEditor_Main_Initial_UEProject.UEx"
     copyfile(projFile, testFile)
     assert cmpFiles(testFile, compFile, ignStart=XML_IGNORE)
 
@@ -947,9 +947,9 @@ def testGuiMain_Editing(
     assert nwGUI.docPanes.splitView.isVisible() is False
 
     # Check the files
-    projFile = projPath / "nwProject.nwx"
-    testFile = tstPaths.outDir / "guiEditor_Main_Final_nwProject.nwx"
-    compFile = tstPaths.refDir / "guiEditor_Main_Final_nwProject.nwx"
+    projFile = projPath / "UEProject.UEx"
+    testFile = tstPaths.outDir / "guiEditor_Main_Final_UEProject.UEx"
+    compFile = tstPaths.refDir / "guiEditor_Main_Final_UEProject.UEx"
     copyfile(projFile, testFile)
     assert cmpFiles(testFile, compFile, ignStart=(*XML_IGNORE, "<spellCheck"))
 

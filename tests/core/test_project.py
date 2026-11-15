@@ -43,9 +43,9 @@ from tests.mocked import MockGuiMain, causeOSError
 @pytest.mark.core
 def testNWProject_NewRoot(fncPath: Path, tstPaths: TstPaths, mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Check that new root folders can be added to the project."""
-    projFile = fncPath / "nwProject.nwx"
-    testFile = tstPaths.outDir / "coreProject_NewRoot_nwProject.nwx"
-    compFile = tstPaths.refDir / "coreProject_NewRoot_nwProject.nwx"
+    projFile = fncPath / "UEProject.UEx"
+    testFile = tstPaths.outDir / "coreProject_NewRoot_UEProject.UEx"
+    compFile = tstPaths.refDir / "coreProject_NewRoot_UEProject.UEx"
 
     project = NWProject()
     mockRnd.reset()
@@ -97,9 +97,9 @@ def testNWProject_NewFileFolder(
     mockRnd: MockRnd,
 ):
     """Check that new files can be added to the project."""
-    projFile = fncPath / "nwProject.nwx"
-    testFile = tstPaths.outDir / "coreProject_NewFileFolder_nwProject.nwx"
-    compFile = tstPaths.refDir / "coreProject_NewFileFolder_nwProject.nwx"
+    projFile = fncPath / "UEProject.UEx"
+    testFile = tstPaths.outDir / "coreProject_NewFileFolder_UEProject.UEx"
+    compFile = tstPaths.refDir / "coreProject_NewFileFolder_UEProject.UEx"
 
     project = NWProject()
     mockRnd.reset()
@@ -667,7 +667,7 @@ def testNWProject_Backup(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, 
         inZip.extractall(tstPaths.tmpDir / "extract")
 
     # Check that the main project file was restored
-    assert cmpFiles(fncPath / "nwProject.nwx", tstPaths.tmpDir / "extract" / "nwProject.nwx")
+    assert cmpFiles(fncPath / "UEProject.UEx", tstPaths.tmpDir / "extract" / "UEProject.UEx")
 
     # Test intervals
     fixedTime = 1783722600.0

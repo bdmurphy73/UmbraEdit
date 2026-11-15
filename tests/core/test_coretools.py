@@ -499,9 +499,9 @@ def testCoreTools_DocDuplicator(
     # Save and Close
     project.saveProject()
 
-    projFile = fncPath / "nwProject.nwx"
-    testFile = tstPaths.outDir / "coreTools_DocDuplicator_nwProject.nwx"
-    compFile = tstPaths.refDir / "coreTools_DocDuplicator_nwProject.nwx"
+    projFile = fncPath / "UEProject.UEx"
+    testFile = tstPaths.outDir / "coreTools_DocDuplicator_UEProject.UEx"
+    compFile = tstPaths.refDir / "coreTools_DocDuplicator_UEProject.UEx"
 
     copyfile(projFile, testFile)
     assert cmpFiles(testFile, compFile, ignStart=XML_IGNORE)
@@ -586,9 +586,9 @@ def testCoreTools_ProjectBuilderA(
     builder = ProjectBuilder()
     assert builder.buildProject(data) is True
 
-    projFile = fncPath / "nwProject.nwx"
-    testFile = tstPaths.outDir / "coreTools_ProjectBuilderA_nwProject.nwx"
-    compFile = tstPaths.refDir / "coreTools_ProjectBuilderA_nwProject.nwx"
+    projFile = fncPath / "UEProject.UEx"
+    testFile = tstPaths.outDir / "coreTools_ProjectBuilderA_UEProject.UEx"
+    compFile = tstPaths.refDir / "coreTools_ProjectBuilderA_UEProject.UEx"
 
     copyfile(projFile, testFile)
     assert cmpFiles(testFile, compFile, ignStart=XML_IGNORE)
@@ -640,9 +640,9 @@ def testCoreTools_ProjectBuilderB(
     builder = ProjectBuilder()
     assert builder.buildProject(data) is True
 
-    projFile = fncPath / "nwProject.nwx"
-    testFile = tstPaths.outDir / "coreTools_ProjectBuilderB_nwProject.nwx"
-    compFile = tstPaths.refDir / "coreTools_ProjectBuilderB_nwProject.nwx"
+    projFile = fncPath / "UEProject.UEx"
+    testFile = tstPaths.outDir / "coreTools_ProjectBuilderB_UEProject.UEx"
+    compFile = tstPaths.refDir / "coreTools_ProjectBuilderB_UEProject.UEx"
 
     copyfile(projFile, testFile)
     assert cmpFiles(testFile, compFile, ignStart=XML_IGNORE)
@@ -909,7 +909,7 @@ def testCoreTools_ProjectBuilderSample(
     # to copying that instead.
     if srcSample.is_dir():
         with ZipFile(dstSample, "w") as zipObj:
-            zipObj.write(srcSample / "nwProject.nwx", "nwProject.nwx")
+            zipObj.write(srcSample / "UEProject.UEx", "UEProject.UEx")
             for docFile in (srcSample / "content").iterdir():
                 zipObj.write(docFile, f"content/{docFile.name}")
     else:

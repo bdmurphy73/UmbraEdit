@@ -74,7 +74,7 @@ def testProjectXMLReader_ReadCurrent(
     refFile = tstPaths.filesDir / "nwProject-1.6.nwx"
     tstFile = tstPaths.outDir / "ProjectXML_ReadCurrent.nwx"
     xmlFile = fncPath / "nwProject-1.6.nwx"
-    outFile = fncPath / "nwProject.nwx"
+    outFile = fncPath / "UEProject.UEx"
 
     xmlReader = ProjectXMLReader(xmlFile)
     assert xmlReader.state == XMLReadState.NO_ACTION
@@ -334,7 +334,7 @@ def testProjectXMLReader_ReadLegacy10(tstPaths: TstPaths, fncPath: Path, mockGUI
     """Test reading the version 1.0 XML file format."""
     refFile = tstPaths.filesDir / "nwProject-1.0.nwx"
     xmlFile = fncPath / "nwProject-1.0.nwx"
-    outFile = fncPath / "nwProject.nwx"
+    outFile = fncPath / "UEProject.UEx"
     copyfile(refFile, xmlFile)
 
     xmlReader = ProjectXMLReader(xmlFile)
@@ -500,7 +500,7 @@ def testProjectXMLReader_ReadLegacy11(tstPaths: TstPaths, fncPath: Path, mockGUI
     """Test reading the version 1.1 XML file format."""
     refFile = tstPaths.filesDir / "nwProject-1.1.nwx"
     xmlFile = fncPath / "nwProject-1.1.nwx"
-    outFile = fncPath / "nwProject.nwx"
+    outFile = fncPath / "UEProject.UEx"
     copyfile(refFile, xmlFile)
 
     xmlReader = ProjectXMLReader(xmlFile)
@@ -666,7 +666,7 @@ def testProjectXMLReader_ReadLegacy12(tstPaths: TstPaths, fncPath: Path, mockGUI
     """Test reading the version 1.2 XML file format."""
     refFile = tstPaths.filesDir / "nwProject-1.2.nwx"
     xmlFile = fncPath / "nwProject-1.2.nwx"
-    outFile = fncPath / "nwProject.nwx"
+    outFile = fncPath / "UEProject.UEx"
     copyfile(refFile, xmlFile)
 
     xmlReader = ProjectXMLReader(xmlFile)
@@ -835,7 +835,7 @@ def testProjectXMLReader_ReadLegacy13(tstPaths: TstPaths, fncPath: Path, mockGUI
     """Test reading the version 1.3 XML file format."""
     refFile = tstPaths.filesDir / "nwProject-1.3.nwx"
     xmlFile = fncPath / "nwProject-1.3.nwx"
-    outFile = fncPath / "nwProject.nwx"
+    outFile = fncPath / "UEProject.UEx"
     copyfile(refFile, xmlFile)
 
     xmlReader = ProjectXMLReader(xmlFile)
@@ -1004,7 +1004,7 @@ def testProjectXMLReader_ReadLegacy14(tstPaths: TstPaths, fncPath: Path, mockGUI
     """Test reading the version 1.4 XML file format."""
     refFile = tstPaths.filesDir / "nwProject-1.4.nwx"
     xmlFile = fncPath / "nwProject-1.4.nwx"
-    outFile = fncPath / "nwProject.nwx"
+    outFile = fncPath / "UEProject.UEx"
     copyfile(refFile, xmlFile)
 
     xmlReader = ProjectXMLReader(xmlFile)
@@ -1177,7 +1177,7 @@ def testProjectXMLReader_ReadLegacy15(tstPaths: TstPaths, fncPath: Path, mockGUI
     """
     refFile = tstPaths.filesDir / "nwProject-1.5.nwx"
     xmlFile = fncPath / "nwProject-1.5.nwx"
-    outFile = fncPath / "nwProject.nwx"
+    outFile = fncPath / "UEProject.UEx"
     copyfile(refFile, xmlFile)
 
     xmlReader = ProjectXMLReader(xmlFile)

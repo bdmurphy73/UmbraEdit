@@ -90,7 +90,7 @@ def test_outbox_R1_record_tree_put(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     """R1: record() creates a tree.put entry."""
     ob, projectPath = _makeOutbox(tmp_path, mockRnd, nwGUI)
 
-    nwxFile = projectPath / "nwProject.nwx"
+    nwxFile = projectPath / "UEProject.UEx"
     nwxFile.write_text("dummy", encoding="utf-8")
 
     ob.record(OP_TREE_PUT, path=nwxFile)

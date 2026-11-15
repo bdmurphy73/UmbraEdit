@@ -62,7 +62,7 @@ def test_umbra_gen_project_R5_small(tmp_path: Path) -> None:
     out = tmp_path / "fixture-small"
     generateProject(out, words=1200, scenes=12, characters=4, places=3, seed=7)
 
-    assert (out / "nwProject.nwx").is_file()
+    assert (out / "UEProject.UEx").is_file()
     contentFiles = list((out / "content").glob("*.md"))
     # 12 scenes + 4 chars + 3 places = 19 content files
     assert len(contentFiles) == 19

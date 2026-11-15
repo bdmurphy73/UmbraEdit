@@ -278,13 +278,13 @@ def test_sync_client_R4_tree_put_push(tmp_path: Path, mockRnd: Any, nwGUI: Any) 
     ob = Outbox(tmp_path, "dev-test", "usr-test")
     bindOutbox(tmp_path, "dev-test", "usr-test")
 
-    nwxFile = tmp_path / "nwProject.nwx"
+    nwxFile = tmp_path / "UEProject.UEx"
     nwxFile.write_text("<project/>", encoding="utf-8")
     ob.record(OP_TREE_PUT, path=nwxFile)
 
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == "PUT"
-        assert "nwProject.nwx" in request.url.path
+        assert "UEProject.UEx" in request.url.path
         return httpx.Response(200, json={"rev": "rev-tree", "sha256": "treesha"})
 
     client._client = httpx.Client(base_url="http://127.0.0.1:47400", transport=_makeMockTransport(handler))
@@ -353,7 +353,7 @@ def test_sync_conflicts_R6_file_conflict(tmp_path: Path, mockRnd: Any, nwGUI: An
 
     store = ConflictsStore(tmp_path)
     cid = store.add_file_conflict(
-        path="nwProject.nwx",
+        path="UEProject.UEx",
         base="rev-base",
         theirs="rev-theirs",
         op="tree.put",
@@ -362,7 +362,7 @@ def test_sync_conflicts_R6_file_conflict(tmp_path: Path, mockRnd: Any, nwGUI: An
     assert store.open_count() == 1
 
     openConflicts = store.open_conflicts()
-    assert openConflicts[0].handle == "nwProject.nwx"
+    assert openConflicts[0].handle == "UEProject.UEx"
     assert openConflicts[0].units[0]["kind"] == "tree.put"
 
 

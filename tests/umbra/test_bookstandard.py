@@ -1,4 +1,7 @@
-"""Tests for UmbraEdit Book Standard Gates (P30)."""
+"""Tests for UmbraEdit Book Standard Gates (P30).
+
+Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
+"""
 
 from __future__ import annotations
 

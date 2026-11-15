@@ -27,7 +27,7 @@ jobs:
       - name: Install System Packages
         run: |
           sudo apt update
-          sudo apt install qttools5-dev-tools
+          sudo apt install qttools6-dev-tools
 
       - name: Build Assets
         run: python pkgutils.py qtlrelease

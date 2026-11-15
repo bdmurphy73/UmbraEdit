@@ -33,7 +33,7 @@ jobs:
         timeout-minutes: 5
         run: |
           sudo apt update
-          sudo apt install qttools5-dev-tools
+          sudo apt install qttools6-dev-tools
 
       - name: Install UV and Python
         uses: astral-sh/setup-uv@v5

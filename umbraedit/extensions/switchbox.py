@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 from dataclasses import dataclass
 
@@ -38,8 +39,8 @@ from umbraedit.types import QtAlignLeft, QtAlignRight, QtSizeExpanding, QtSizeMi
 class _SwitchEntry:
     label: QLabel
     switch: NSwitch
-    pixmap: QLabel | None = None
-    icon: str | None = None
+    pixmap: Optional[QLabel] = None
+    icon: Optional[str] = None
 
 
 class NSwitchBox(QScrollArea):
@@ -115,7 +116,7 @@ class NSwitchBox(QScrollArea):
         text: str,
         identifier: str,
         *,
-        icon: str | None = None,
+        icon: Optional[str] = None,
         default: bool = False,
     ) -> None:
         """Add an item to the content box. If the identifier is already

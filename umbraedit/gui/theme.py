@@ -34,7 +34,7 @@ except ModuleNotFoundError:
 
 from dataclasses import dataclass
 from math import ceil
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, Optional, Union
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication, QSize, Qt
 from PyQt6.QtGui import (
@@ -343,7 +343,7 @@ class GuiTheme:
     #  Getters
     ##
 
-    def getTextWidth(self, text: str, font: QFont | None = None) -> int:
+    def getTextWidth(self, text: str, font: Optional[QFont] = None) -> int:
         """Return the width needed to contain a given piece of text in
         pixels.
         """
@@ -391,7 +391,7 @@ class GuiTheme:
         self.iconCache.initIcons()
         self.loadTheme()
 
-    def isDesktopDarkMode(self, schemeHint: Any | None = None) -> bool:
+    def isDesktopDarkMode(self, schemeHint: Optional[Any] = None) -> bool:
         """Check if the desktop is in dark mode."""
         if CONFIG.checkMinQtVersion(0x060500):
             # Qt.ColorScheme was added in Qt 6.5
@@ -405,7 +405,7 @@ class GuiTheme:
         window = palette.window().color()
         return text.lightnessF() > window.lightnessF()
 
-    def loadTheme(self, *, schemeHint: Any | None = None, force: bool = False) -> bool:
+    def loadTheme(self, *, schemeHint: Optional[Any] = None, force: bool = False) -> bool:
         """Load the currently specified GUI theme. The boolean return
         can be used to determine if the GUI needs refreshing.
         """
@@ -666,7 +666,7 @@ class GuiTheme:
             return QColor(*result)
         return default
 
-    def generateColorRange(self, start: str, end: str, mid: str | None = None, steps: int = 10) -> list[QColor]:
+    def generateColorRange(self, start: str, end: str, mid: Optional[str] = None, steps: int = 10) -> list[QColor]:
         """Generate a range of colours between start and end, optionally passing through mid."""
         result: list[QColor] = []
         scale = max(steps - 1, 1)
@@ -1052,7 +1052,7 @@ class GuiIcons:
         toolButton.setToolTip(QCoreApplication.translate("Button", toolTip))
         return toolButton
 
-    def getDecoration(self, name: str, w: int | None = None, h: int | None = None) -> QPixmap:
+    def getDecoration(self, name: str, w: Optional[int] = None, h: Optional[int] = None) -> QPixmap:
         """Load graphical decoration element based on the decoration
         map or the icon map. This function always returns a QPixmap.
         """
@@ -1109,7 +1109,7 @@ class GuiIcons:
     #  Internal Functions
     ##
 
-    def _loadIcon(self, name: str, color: str | None = None) -> QIcon:
+    def _loadIcon(self, name: str, color: Optional[str] = None) -> QIcon:
         """Load an icon from the assets themes folder. This function is
         guaranteed to return a QIcon.
         """

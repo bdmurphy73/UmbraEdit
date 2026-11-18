@@ -26,7 +26,7 @@ import csv
 import logging
 
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QComboBox, QCompleter, QFileDialog, QHBoxLayout, QVBoxLayout, QWidget
@@ -65,7 +65,7 @@ class GuiStoryView(QWidget):
 
         logger.debug("Create: GuiStoryView")
 
-        self._views: StoryViewCollection | None = None
+        self._views: Optional[StoryViewCollection] = None
         self._stale: set[str] = set()
         self._highlight: set[str] = set()
         self._tagsRevision = -1
@@ -443,7 +443,7 @@ class GuiStoryView(QWidget):
         if not enabled:
             self.novelValue.setEnabled(False)
 
-    def _closeSettingsDialogs(self, viewID: str | None = None) -> None:
+    def _closeSettingsDialogs(self, viewID: Optional[str] = None) -> None:
         """Close all settings dialogs, or discard the one for a view."""
         for dialog in self._iterSettingsDialogs():
             if viewID is None:
@@ -493,7 +493,7 @@ class GuiStoryView(QWidget):
             if combo.currentData() != current:
                 self._highlightChanged(combo.currentIndex())
 
-    def _dumpNovelData(self, rootHandle: str | None) -> list[list[str | int]]:
+    def _dumpNovelData(self, rootHandle: Optional[str]) -> list[list[str | int]]:
         """Dump all novel data into a table."""
         project = SHARED.project
         index = project.index

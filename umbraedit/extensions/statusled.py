@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import logging
 
@@ -37,7 +38,7 @@ class StatusLED(QAbstractButton):
 
     __slots__ = ("_color", "_label", "_negative", "_neutral", "_postitve", "_state", "_texts")
 
-    def __init__(self, sW: int, sH: int, parent: QWidget | None = None) -> None:
+    def __init__(self, sW: int, sH: int, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent=parent)
         self._neutral = QtBlack
         self._postitve = QtBlack
@@ -50,7 +51,7 @@ class StatusLED(QAbstractButton):
         self.setFixedHeight(sH)
 
     @property
-    def state(self) -> bool | None:
+    def state(self) -> Optional[bool]:
         """The current state of the LED."""
         return self._state
 
@@ -69,7 +70,7 @@ class StatusLED(QAbstractButton):
         self._texts = (positive, negative)
         self.setState(self._state)
 
-    def setState(self, state: bool | None) -> None:
+    def setState(self, state: Optional[bool]) -> None:
         """Set the colour state."""
         if state is True:
             self._color = self._postitve

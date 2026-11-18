@@ -28,7 +28,7 @@ import uuid
 
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, Optional
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
@@ -376,7 +376,7 @@ class BuildSettings:
         if isinstance(value, int):
             self._order = value
 
-    def setLastBuildPath(self, path: Path | str | None) -> None:
+    def setLastBuildPath(self, path: Union[Path, Optional[str]]) -> None:
         """Set the last used build path."""
         if isinstance(path, str):
             path = Path(path)
@@ -452,7 +452,7 @@ class BuildSettings:
 
         postponed = []
 
-        def allowRoot(rHandle: str | None) -> None:
+        def allowRoot(rHandle: Optional[str]) -> None:
             if rHandle in postponed and rHandle in result and rHandle is not None:
                 result[rHandle] = (True, FilterMode.ROOT)
                 postponed.remove(rHandle)
@@ -596,7 +596,7 @@ class BuildCollection:
     #  Getters
     ##
 
-    def getBuild(self, buildID: str) -> BuildSettings | None:
+    def getBuild(self, buildID: str) -> Optional[BuildSettings]:
         """Get a specific build settings object."""
         return self._builds.get(buildID, None)
 

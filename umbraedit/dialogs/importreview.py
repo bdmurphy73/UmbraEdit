@@ -26,7 +26,7 @@ import json
 import logging
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional, Union
 
 from PyQt6.QtCore import (
     QSortFilterProxyModel,
@@ -79,8 +79,8 @@ class CharacterProposal:
     count: int
     examples: list[str]
     accepted: bool = False
-    merged_with: str | None = None
-    existing_tag: str | None = None
+    merged_with: Optional[str] = None
+    existing_tag: Optional[str] = None
 
 
 @dataclass
@@ -166,7 +166,7 @@ class ImportTreeModel:
     def add_document(self, index: int, document: dict[str, Any]) -> None:
         self.documents.insert(index, document)
 
-    def remove_document(self, index: int) -> dict[str, Any] | None:
+    def remove_document(self, index: int) -> Optional[dict[str, Any]]:
         if 0 <= index < len(self.documents):
             return self.documents.pop(index)
         return None

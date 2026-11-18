@@ -23,7 +23,7 @@ All notable changes to UmbraEdit are documented here.
 
 - P00: All novelWriter icons and graphics renamed/replaced with UmbraEdit assets
 - P00: Website URLs updated to umbratools.com/umbraedit
-- P00: Version format changed to YYYY/MM.#### (e.g., 2026.11.0005)
+- P00: Version format changed to YYYY/MM.#### (e.g., 2026.11.0006)
 
 ### Upstream Files Touched
 

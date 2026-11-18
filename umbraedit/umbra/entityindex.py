@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional, Union
 
 from umbraedit.constants import nwItemClass
 from umbraedit.umbra.sheet import ENTITY_KINDS, EntityRow
@@ -97,7 +97,7 @@ class EntityIndex:
         Values are pre-split by the index scanner, one value per list
         entry. An `@alias` value may contain a pronunciation after a
         pipe; an `@attr` value is `key | value`; an `@pron` value is
-        `lang | respelling [| ipa]` with the IPA written between
+        `Union[lang, respelling [| ipa]]` with the IPA written between
         slashes. Note: the index scanner splits values on commas, so
         `@pron` fields must not contain commas.
         """
@@ -154,7 +154,7 @@ class EntityIndex:
             return record.attrs["kind"]
         return ""
 
-    def getEntity(self, project: Any, tag: str) -> EntityRow | None:
+    def getEntity(self, project: Any, tag: str) -> Optional[EntityRow]:
         """Return the entity for a tag, or None.
 
         Tag matching is exact first, then case-insensitive, mirroring
@@ -188,7 +188,7 @@ class EntityIndex:
             origin=record.origin,
         )
 
-    def iterEntities(self, project: Any, kind: str | None = None) -> list[EntityRow]:
+    def iterEntities(self, project: Any, kind: Optional[str] = None) -> list[EntityRow]:
         """Return all tagged entities, optionally filtered by kind."""
         rows: list[EntityRow] = []
         for tHandle, record in self._records.items():
@@ -215,7 +215,7 @@ class EntityIndex:
         rows.sort(key=lambda r: r.tag.casefold())
         return rows
 
-    def entityHandle(self, tag: str) -> str | None:
+    def entityHandle(self, tag: str) -> Optional[str]:
         """Return the handle of the document holding a tag, or None."""
         for tHandle, record in self._records.items():
             if record.tag and record.tag.casefold() == tag.casefold():

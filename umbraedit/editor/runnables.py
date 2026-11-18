@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QObject, QRunnable, pyqtBoundSignal, pyqtSignal, pyqtSlot
 
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-T_TextCheckPayload = list[tuple[int, str, str, int, list[int] | None]]
+T_TextCheckPayload = Optional[list[tuple[int, str, str, int, Optional[list[int]]]]]
 
 
 class WordCounterDispatcher(QObject):

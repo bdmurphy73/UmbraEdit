@@ -26,7 +26,7 @@ import logging
 import zipfile
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from lxml import etree  # type: ignore[import]
 
@@ -58,11 +58,11 @@ class ParagraphRecord:
     text: str
     style_id: str
     style_name: str
-    alignment: str | None = None
-    outline_level: int | None = None
+    alignment: Optional[str] = None
+    outline_level: Optional[int] = None
     page_break_before: bool = False
-    section_break: str | None = None
-    list_membership: str | None = None
+    section_break: Optional[str] = None
+    list_membership: Optional[str] = None
     image_refs: list[str] = field(default_factory=list)
     run_formatting: list[dict[str, Any]] = field(default_factory=list)
     footnote_refs: list[str] = field(default_factory=list)
@@ -296,7 +296,7 @@ class DocxPrepass:
                 props["vert_align"] = child.get(f"{{{W_NS}}}val")
         return props
 
-    def _parse_section_properties(self, elem: etree._Element) -> str | None:
+    def _parse_section_properties(self, elem: etree._Element) -> Optional[str]:
         """Extract section break type from sectPr."""
         for child in elem:
             if child.tag.endswith("type"):
@@ -488,7 +488,7 @@ class DocxPrepass:
         styles: dict[str, dict[str, Any]],
         numbering: dict[str, Any],
         relationships: dict[str, str],
-    ) -> ParagraphRecord | None:
+    ) -> Optional[ParagraphRecord]:
         """Parse a single paragraph element."""
         # Get paragraph properties
         ppr = para.find(f".//{{{W_NS}}}pPr")

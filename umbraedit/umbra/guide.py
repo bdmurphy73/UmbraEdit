@@ -26,7 +26,7 @@ import logging
 import re
 
 from dataclasses import dataclass, field
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Optional, Union
 
 from umbraedit.constants import nwKeyWords
 
@@ -41,13 +41,13 @@ LANG_RE = re.compile(r"@lang:\s*(\S+)")
 
 # Para note pattern
 PARA_NOTE_RE = re.compile(
-    r"%Para:\s*(\d+)\s+h=([a-f0-9]{8})(?:\s+src=(machine|human))?(?:\n|$)",
+    r"%Para:\s*(\d+)\s+h=([a-f0-9]{8})(?:\s+src=(machine | human))?(?:\n|$)",
     re.MULTILINE,
 )
 
 # Para note field pattern
 PARA_FIELD_RE = re.compile(
-    r"^(Intent|Subtext|Register|Do not translate literally|Cultural):\s*(.+)$",
+    r"^(Intent | Subtext|Register | Do not translate literally | Cultural):\s*(.+)$",
     re.MULTILINE,
 )
 
@@ -58,7 +58,7 @@ class ParaNote:
 
     index: int
     hash8: str
-    source: str | None = None
+    source: Optional[str] = None
     intent: str = ""
     subtext: str = ""
     register: str = ""
@@ -71,10 +71,10 @@ class GuideDoc:
     """A parsed guide document."""
 
     kind: str  # analysis, style, glossary, language, note
-    chapter: str | None = None
-    srchash: str | None = None
+    chapter: Optional[str] = None
+    srchash: Optional[str] = None
     status: str = "draft"  # draft, approved
-    lang: str | None = None
+    lang: Optional[str] = None
     body: str = ""
     para_notes: list[ParaNote] = field(default_factory=list)
 
@@ -103,10 +103,10 @@ class GuideParser:
         """Parse a guide document text into a GuideDoc object."""
         lines = text.splitlines()
         kind = "note"
-        chapter: str | None = None
-        srchash: str | None = None
+        chapter: Optional[str] = None
+        srchash: Optional[str] = None
         status = "draft"
-        lang: str | None = None
+        lang: Optional[str] = None
         body_lines: list[str] = []
         in_body = False
 
@@ -248,7 +248,7 @@ class ChapterRef:
     canonicalTextHash: str
 
 
-def chapterOf(handle: str, project: Any) -> ChapterRef | None:
+def chapterOf(handle: str, project: Any) -> Optional[ChapterRef]:
     """Get chapter reference for a document handle."""
     # This is a stub
     return None

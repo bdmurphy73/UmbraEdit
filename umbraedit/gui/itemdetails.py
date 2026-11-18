@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import logging
 
@@ -215,7 +216,7 @@ class GuiItemDetails(NExpandablePanel):
         logger.debug("Theme Update: GuiItemDetails")
         self.updateViewBox(self._handle)
 
-    def updateViewBox(self, tHandle: str | None) -> None:
+    def updateViewBox(self, tHandle: Optional[str]) -> None:
         """Populate the details box from a given handle."""
         if not self.isExpanded():
             self._refresh = {"handle": tHandle}

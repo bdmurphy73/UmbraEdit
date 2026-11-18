@@ -26,7 +26,7 @@ import logging
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import jsonschema
 
@@ -77,7 +77,7 @@ PAGE_TYPE_SCHEMA: dict[str, Any] = {
         "variants": {
             "type": "object",
             "patternProperties": {
-                "^(print|epub|audio)$": {
+                "^(print | epub|audio)$": {
                     "type": "object",
                     "properties": {
                         "enabled": {"type": "boolean"},
@@ -144,7 +144,7 @@ class PageType:
     requiredFor: list[str] = field(default_factory=list)
     variants: dict[str, PageTypeVariant] = field(default_factory=dict)
 
-    def getVariant(self, format_: str) -> PageTypeVariant | None:
+    def getVariant(self, format_: str) -> Optional[PageTypeVariant]:
         """Get the variant for a specific format."""
         return self.variants.get(format_)
 
@@ -312,7 +312,7 @@ class PageManager:
         """Get all available page types."""
         return dict(self._pageTypes)
 
-    def getPageType(self, pageTypeId: str) -> PageType | None:
+    def getPageType(self, pageTypeId: str) -> Optional[PageType]:
         """Get a page type by ID."""
         return self._pageTypes.get(pageTypeId)
 
@@ -349,7 +349,7 @@ class PageManager:
         self._savePages()
         return pageData
 
-    def updatePage(self, handle: str, fields: dict[str, str] | None = None, content: str | None = None) -> bool:
+    def updatePage(self, handle: str, fields: Optional[dict[str, str]] = None, content: Optional[str] = None) -> bool:
         """Update a page's fields and/or content."""
         if handle not in self._pages:
             return False
@@ -369,11 +369,11 @@ class PageManager:
             return True
         return False
 
-    def getPage(self, handle: str) -> dict[str, Any] | None:
+    def getPage(self, handle: str) -> Optional[dict[str, Any]]:
         """Get a page by handle."""
         return self._pages.get(handle)
 
-    def renderPage(self, handle: str, format_: str, metadata: Metadata | dict[str, Any], edition: str | None = None) -> str:
+    def renderPage(self, handle: str, format_: str, metadata: Union[Metadata, dict[str, Any]], edition: Optional[str] = None) -> str:
         """Render a page for a specific format."""
         page = self._pages.get(handle)
         if not page:
@@ -398,7 +398,7 @@ class PageManager:
         return self._renderTemplate(template, context)
 
     def _buildTemplateContext(
-        self, page: dict[str, Any], pageType: PageType, format_: str, metadata: Metadata | dict[str, Any]
+        self, page: dict[str, Any], pageType: PageType, format_: str, metadata: Union[Metadata, dict[str, Any]]
     ) -> dict[str, Any]:
         """Build context for template rendering."""
         from umbraedit.umbra.metadata import Metadata, formatValuesForBuild

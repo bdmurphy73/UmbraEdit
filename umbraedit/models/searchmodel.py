@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from time import time
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, Optional
 
 from PyQt6.QtCore import QAbstractItemModel, QModelIndex, Qt
 from PyQt6.QtGui import QBrush, QIcon
@@ -74,11 +74,11 @@ class SearchNode:
 
     __slots__ = ("_cache", "_children", "_handle", "_item", "_parent", "_result", "_row")
 
-    def __init__(self, handle: str, result: tuple[int, int] | None = None) -> None:
+    def __init__(self, handle: str, result: Optional[tuple[int, int]] = None) -> None:
         self._handle = handle
         self._result = result
-        self._item: ProjectItem | None = None
-        self._parent: SearchNode | None = None
+        self._item: Optional[ProjectItem] = None
+        self._parent: Optional[SearchNode] = None
         self._children: list[SearchNode] = []
         self._row = 0
         self._cache: dict[int, T_SearchData] = {}
@@ -93,7 +93,7 @@ class SearchNode:
         return self._handle
 
     @property
-    def result(self) -> tuple[int, int] | None:
+    def result(self) -> Optional[tuple[int, int]]:
         """The (start, length) position of a match, or None for a
         document-level node.
         """
@@ -107,11 +107,11 @@ class SearchNode:
         """Return the node's row number."""
         return self._row
 
-    def parent(self) -> SearchNode | None:
+    def parent(self) -> Optional[SearchNode]:
         """Return the parent of the node, or None for a top-level node."""
         return self._parent
 
-    def child(self, row: int) -> SearchNode | None:
+    def child(self, row: int) -> Optional[SearchNode]:
         """Return a child of the node."""
         if 0 <= row < len(self._children):
             return self._children[row]
@@ -195,7 +195,7 @@ class SearchResultModel(QAbstractItemModel):
         """Return the number of columns for an entry."""
         return 2
 
-    def index(self, row: int, column: int, parent: QModelIndex | None = None) -> QModelIndex:
+    def index(self, row: int, column: int, parent: Optional[QModelIndex] = None) -> QModelIndex:
         """Get the index of a child item of a parent."""
         parent = parent or QModelIndex()
         if self.hasIndex(row, column, parent):
@@ -222,13 +222,13 @@ class SearchResultModel(QAbstractItemModel):
     #  Data Access
     ##
 
-    def handle(self, index: QModelIndex) -> str | None:
+    def handle(self, index: QModelIndex) -> Optional[str]:
         """Return the document handle of a node."""
         if index.isValid():
             return index.internalPointer().handle
         return None
 
-    def result(self, index: QModelIndex) -> tuple[str, int, int] | None:
+    def result(self, index: QModelIndex) -> Optional[tuple[str, int, int]]:
         """Return the (handle, start, length) of a match node, or None
         if the index refers to a document-level node.
         """
@@ -238,7 +238,7 @@ class SearchResultModel(QAbstractItemModel):
                 return node.handle, node.result[0], node.result[1]
         return None
 
-    def entry(self, handle: str) -> tuple[int, float] | None:
+    def entry(self, handle: str) -> Optional[tuple[int, float]]:
         """Return the (row, timestamp) of a document's last update."""
         return self._map.get(handle)
 

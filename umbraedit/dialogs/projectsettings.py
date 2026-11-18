@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import csv
 import logging
@@ -549,7 +550,7 @@ class _StatusPage(NFixedPage):
         self.colorButton.setEnabled(False)
         self.colorButton.clicked.connect(self._onColorSelect)
 
-        def buildMenu(menu: QMenu | None, items: dict[nwStatusShape, str]) -> None:
+        def buildMenu(menu: Optional[QMenu], items: dict[nwStatusShape, str]) -> None:
             if menu is not None:  # pragma: no branch
                 for shape, label in items.items():
                     icon = ItemStatus.createIcon(self._iPx, iColor, shape)
@@ -615,7 +616,7 @@ class _StatusPage(NFixedPage):
     #  Methods
     ##
 
-    def getNewList(self) -> list[tuple[str | None, StatusEntry]]:
+    def getNewList(self) -> list[tuple[Optional[str], StatusEntry]]:
         """Return list of entries."""
         if self._changed:
             update = []
@@ -779,7 +780,7 @@ class _StatusPage(NFixedPage):
             item.setIcon(self.C_LABEL, icon)
             self._changed = True
 
-    def _addItem(self, key: str | None, entry: StatusEntry) -> None:
+    def _addItem(self, key: Optional[str], entry: StatusEntry) -> None:
         """Add a status item to the list."""
         item = QTreeWidgetItem()
         item.setText(self.C_LABEL, entry.name)
@@ -801,7 +802,7 @@ class _StatusPage(NFixedPage):
                 cItem.setSelected(True)
                 self._changed = True
 
-    def _getSelectedItem(self) -> QTreeWidgetItem | None:
+    def _getSelectedItem(self) -> Optional[QTreeWidgetItem]:
         """Get the currently selected item."""
         if items := self.listBox.selectedItems():
             return items[0]
@@ -1006,7 +1007,7 @@ class _ReplacePage(NFixedPage):
     #  Internal Functions
     ##
 
-    def _getSelectedItem(self) -> QTreeWidgetItem | None:
+    def _getSelectedItem(self) -> Optional[QTreeWidgetItem]:
         """Extract the currently selected item."""
         if items := self.listBox.selectedItems():
             return items[0]

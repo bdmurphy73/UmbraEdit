@@ -20,7 +20,7 @@ import logging
 import re
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.covers import DEFAULT_REQUIREMENTS, loadCovers
 from umbraedit.umbra.edition import EditionInfo, loadEdition
@@ -77,14 +77,14 @@ def _load_retailers() -> list[dict[str, Any]]:
     return []
 
 
-def _get_selected_retailer(scope: Any) -> str | None:
+def _get_selected_retailer(scope: Any) -> Optional[str]:
     """Get the selected retailer ID from scope options."""
     if scope.options and "retailer" in scope.options:
         return scope.options["retailer"]
     return None
 
 
-def _get_edition_metadata(scope: Any) -> EditionInfo | None:
+def _get_edition_metadata(scope: Any) -> Optional[EditionInfo]:
     """Load edition metadata from project."""
     project = scope.project
     if not project:
@@ -103,7 +103,7 @@ def _get_edition_metadata(scope: Any) -> EditionInfo | None:
         return None
 
 
-def _get_source_metadata(scope: Any) -> Any | None:
+def _get_source_metadata(scope: Any) -> Optional[Any]:
     """Load source project metadata."""
     project = scope.project
     if not project:
@@ -114,7 +114,7 @@ def _get_source_metadata(scope: Any) -> Any | None:
         return None
 
 
-def _get_edition_path(scope: Any) -> Path | None:
+def _get_edition_path(scope: Any) -> Optional[Path]:
     """Get edition project path."""
     project = scope.project
     if not project:

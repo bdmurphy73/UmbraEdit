@@ -36,7 +36,7 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.hooks import (
     DOCUMENT_SAVED,
@@ -122,7 +122,7 @@ def _serialiseEntry(entry: dict[str, Any]) -> str:
     return lineNoC[:-1] + f',"c":"{c}"}}'
 
 
-def _parseEntry(line: str) -> dict[str, Any] | None:
+def _parseEntry(line: str) -> Optional[dict[str, Any]]:
     """Parse an outbox line, validating its CRC-32.
 
     Returns None if the line is malformed or has a bad CRC.
@@ -273,7 +273,7 @@ class Outbox:
             return f"sidecar.put:{path}"
         return f"{op}:{handle}"
 
-    def record(self, op: str, handle: str | None = None, path: Path | None = None) -> None:
+    def record(self, op: str, handle: Optional[str] = None, path: Optional[Path] = None) -> None:
         """Record a change in the outbox.
 
         Args:
@@ -402,7 +402,7 @@ class Outbox:
 
 
 # Module-level singleton (bound to the current project)
-_outbox: Outbox | None = None
+_outbox: Optional[Outbox] = None
 
 
 def bindOutbox(projectPath: Path, deviceId: str, actorId: str) -> None:
@@ -421,7 +421,7 @@ def unbindOutbox() -> None:
     _outbox = None
 
 
-def outbox() -> Outbox | None:
+def outbox() -> Optional[Outbox]:
     """Return the bound outbox instance, or None."""
     return _outbox
 

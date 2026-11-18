@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QPalette
@@ -40,7 +41,7 @@ class NExpandablePanel(QWidget):
 
     expandedStateChanged = pyqtSignal(bool)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._ep_expanded = True
         self._ep_widget = QWidget(self)
@@ -131,7 +132,7 @@ class NExpandablePanelGroup(QSplitter):
     collapsed is tracked internally, and restored when expanded again.
     """
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(Qt.Orientation.Vertical, parent)
         self.setChildrenCollapsible(False)
         self.setHandleWidth(4)

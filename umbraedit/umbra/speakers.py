@@ -21,7 +21,7 @@ import re
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.sheet import EntityRow, aliasNorm
 from umbraedit.umbra.voiceline import (
@@ -62,7 +62,7 @@ class SpeakerChip:
     """
 
     kind: str
-    tag: str | None = None
+    tag: Optional[str] = None
     label: str = ""
     color: str = ""
     dashed: bool = False
@@ -89,7 +89,7 @@ class MergeResult:
     """Result of merging two paragraphs (R5)."""
 
     merged: str
-    dropped: str | None  # Human-readable notice of what was dropped.
+    dropped: Optional[str]  # Human-readable notice of what was dropped.
 
 
 def tagColor(tag: str) -> str:
@@ -114,7 +114,7 @@ def tagInitials(tag: str, entities: Iterable[EntityRow]) -> str:
     return (parts[0][0] + parts[-1][0]).upper()
 
 
-def _voiceOfParagraph(paragraphText: str) -> VoiceData | None:
+def _voiceOfParagraph(paragraphText: str) -> Optional[VoiceData]:
     """Return the VoiceData attached to a paragraph, if any.
 
     The paragraph text may include a leading ``%Voice:`` line.
@@ -177,9 +177,9 @@ def chipForParagraph(
 
 
 def enterProposal(
-    previousVoices: list[VoiceData | None],
+    previousVoices: list[Optional[VoiceData]],
     lastParagraphEndsWithUnclosedQuote: bool,
-) -> SpeakerProposal | None:
+) -> Optional[SpeakerProposal]:
     """Proposal for a new paragraph after Enter (R4).
 
     Alternation: the previous two paragraphs alternate speakers A, B ->
@@ -197,7 +197,7 @@ def enterProposal(
     return None
 
 
-def applySpeaker(paragraphText: str, tag: str | None, entities: list[EntityRow]) -> str:
+def applySpeaker(paragraphText: str, tag: Optional[str], entities: list[EntityRow]) -> str:
     """Write or update the ``%Voice:`` line for a paragraph (R2).
 
     ``tag=None`` removes the voice line entirely. When the paragraph
@@ -211,7 +211,7 @@ def applySpeaker(paragraphText: str, tag: str | None, entities: list[EntityRow])
             voiceLineIndex = i
             break
 
-    data: VoiceData | None = None
+    data: Optional[VoiceData] = None
     if voiceLineIndex >= 0:
         data = parseVoiceLine(lines[voiceLineIndex])
 
@@ -282,7 +282,7 @@ def mergeParagraphs(firstText: str, secondText: str) -> MergeResult:
     """
     firstVoice = _voiceOfParagraph(firstText)
     secondVoice = _voiceOfParagraph(secondText)
-    dropped: str | None = None
+    dropped: Optional[str] = None
 
     firstLines = firstText.split("\n")
     # Strip any leading voice line from the first text body; it will be
@@ -415,7 +415,7 @@ def _attributionName(inner: str) -> str:
 
     ``said Uncle Bob.`` -> ``Uncle Bob``; ``asked Ana.`` -> ``Ana``.
     """
-    m = re.match(r"\s*(?:said|asked|replied|whispered|shouted)\s+(.+?)\s*[.,!?]\s*$", inner, re.IGNORECASE)
+    m = re.match(r"\s*(?:said | asked|replied | whispered|shouted)\s+(.+?)\s*[.,!?]\s*$", inner, re.IGNORECASE)
     if m:
         return m.group(1).strip()
     return inner.strip()

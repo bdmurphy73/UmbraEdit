@@ -26,7 +26,7 @@ import logging
 
 from configparser import ConfigParser
 from enum import Enum
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, TypeVar, Optional, Union
 
 from umbraedit.common import checkInt, checkPath
 
@@ -50,9 +50,9 @@ class NConfigParser(ConfigParser):
     It is kept for backwards compatibility with old config files.
     """
 
-    def __init__(self, confMap: T_ConfigMap | None = None) -> None:
+    def __init__(self, confMap: Optional[T_ConfigMap] = None) -> None:
         super().__init__(interpolation=None)
-        self._confMap: T_ConfigMap | None = confMap
+        self._confMap: Optional[T_ConfigMap] = confMap
 
     def read(self, path: Path) -> None:
         """Read and parse config data from a file, mirroring write()."""

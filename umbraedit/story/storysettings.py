@@ -28,7 +28,7 @@ import random
 import uuid
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple, Union
+from typing import TYPE_CHECKING, Any, NamedTuple, Union, Optional
 
 try:
     from typing import Self
@@ -160,7 +160,7 @@ class StoryViewSettings:
         self._state: dict[str, Any] = {}
 
     @classmethod
-    def fromDict(cls, data: dict) -> StoryViewSettings | None:
+    def fromDict(cls, data: dict) -> Optional[StoryViewSettings]:
         """Create a story view settings object from a dict."""
         _kind = data.get("kind")
         if _kind == "outline":
@@ -474,7 +474,7 @@ class StoryViewCollection:
     #  Getters
     ##
 
-    def getStoryView(self, viewID: str) -> StoryViewSettings | None:
+    def getStoryView(self, viewID: str) -> Optional[StoryViewSettings]:
         """Get a specific story views settings object."""
         return self._views.get(viewID, None)
 

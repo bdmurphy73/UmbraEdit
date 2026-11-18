@@ -14,6 +14,7 @@ Qt-free.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import difflib
 
@@ -52,10 +53,10 @@ class UnitChange:
     """
 
     kind: str
-    unit: Unit | None
-    old_text: str | None = None
-    new_text: str | None = None
-    field: str | None = None
+    unit: Optional[Unit]
+    old_text: Optional[str] = None
+    new_text: Optional[str] = None
+    field: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -83,10 +84,10 @@ class Change:
     """
 
     kind: str
-    base: Unit | None
-    ours: Unit | None
-    theirs: Unit | None
-    field: str | None = None
+    base: Optional[Unit]
+    ours: Optional[Unit]
+    theirs: Optional[Unit]
+    field: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -105,14 +106,14 @@ class MergeResult:
     merged: list[Change]
 
 
-def _unit_text(unit: Unit | None) -> str:
+def _unit_text(unit: Optional[Unit]) -> str:
     """Return the full text of a unit."""
     if unit is None:
         return ""
     return "\n".join(unit.lines)
 
 
-def _unit_key(unit: Unit | None) -> str:
+def _unit_key(unit: Optional[Unit]) -> str:
     """Return a canonical comparison key for a unit."""
     if unit is None:
         return ""
@@ -128,7 +129,7 @@ def _text_similarity(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, a, b).ratio()
 
 
-def align_units(a_units: list[Unit], b_units: list[Unit]) -> list[tuple[Unit | None, Unit | None]]:
+def align_units(a_units: list[Unit], b_units: list[Unit]) -> list[tuple[Optional[Unit], Optional[Unit]]]:
     """Align two lists of units into matched pairs.
 
     Uses exact text matching first (longest common subsequence on exact
@@ -168,7 +169,7 @@ def align_units(a_units: list[Unit], b_units: list[Unit]) -> list[tuple[Unit | N
             j += 1
 
     # Build result by walking through both lists
-    results: list[tuple[Unit | None, Unit | None]] = []
+    results: list[tuple[Optional[Unit], Optional[Unit]]] = []
     i, j = 0, 0
     while i < n or j < m:
         if i < n and j < m and i in a_to_b and a_to_b[i] == j:
@@ -232,14 +233,14 @@ def _diff_units(base_units: list[Unit], ours_units: list[Unit]) -> list[Change]:
     return changes
 
 
-def _align_texts(a_units: list[Unit], b_units: list[Unit]) -> list[tuple[Unit | None, Unit | None]]:
+def _align_texts(a_units: list[Unit], b_units: list[Unit]) -> list[tuple[Optional[Unit], Optional[Unit]]]:
     """Align text units using difflib on their text keys."""
     a_keys = [_unit_key(u) for u in a_units]
     b_keys = [_unit_key(u) for u in b_units]
 
     matcher = difflib.SequenceMatcher(None, a_keys, b_keys, autojunk=False)
 
-    result: list[tuple[Unit | None, Unit | None]] = []
+    result: list[tuple[Optional[Unit], Optional[Unit]]] = []
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
             for i, j in zip(range(i1, i2), range(j1, j2), strict=False):

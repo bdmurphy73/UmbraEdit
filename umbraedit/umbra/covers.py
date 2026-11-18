@@ -28,7 +28,7 @@ import re
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 from umbraedit.umbra.assets import AssetStore, _detectMime
 from umbraedit.umbra.jsonio import readJson, writeJson
@@ -87,7 +87,7 @@ BOARD_THICKNESS = 2.5
 BLEED_MM = 3.175
 
 # Trim size parsing regex (e.g., "5.5x8.5", "6x9", "139.7x215.9mm")
-TRIM_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(?:mm|in)?\s*$", re.IGNORECASE)  # noqa: RUF001
+TRIM_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(?:mm | in)?\s*$", re.IGNORECASE)  # noqa: RUF001
 
 # Note: The regex uses the multiplication sign (×) which is common in trim size notation.  # noqa: RUF003
 # The '×' character is intentional and not the letter 'x'.  # noqa: RUF003
@@ -100,7 +100,7 @@ FORMAT_ORDER = ["paperback", "hardback", "epub", "audiobook"]
 class CoverSlot:
     """A cover slot for a format."""
 
-    assetId: str | None
+    assetId: Optional[str]
     requirements: dict[str, Any]
 
 
@@ -112,7 +112,7 @@ class Finding:
     severity: str  # "block" | "advisory"
     message: str
     fix: str
-    detail: dict[str, Any] | None = None
+    detail: Optional[dict[str, Any]] = None
 
 
 def coversFilePath(projectPath: Path) -> Path:
@@ -147,7 +147,7 @@ def saveCovers(projectPath: Path, covers: dict[str, Any]) -> None:
     writeJson(path, covers)
 
 
-def _parseTrimSize(trim: str) -> tuple[float, float] | None:
+def _parseTrimSize(trim: str) -> Optional[tuple[float, float]]:
     """Parse trim size string like '5.5x8.5' or '139.7x215.9mm'.
 
     Returns (width_mm, height_mm) or None if invalid.
@@ -164,14 +164,14 @@ def _parseTrimSize(trim: str) -> tuple[float, float] | None:
     return (w, h)
 
 
-def _getPaperThickness(paper: str | None) -> float:
+def _getPaperThickness(paper: Optional[str]) -> float:
     """Get paper thickness in mm per page."""
     if not paper:
         return PAPER_THICKNESS.get("cream60", 0.0635)
     return PAPER_THICKNESS.get(paper, 0.0635)
 
 
-def _calculateWraparoundSize(metadata: Metadata, fmt: str) -> tuple[float, float] | None:
+def _calculateWraparoundSize(metadata: Metadata, fmt: str) -> Optional[tuple[float, float]]:
     """Calculate expected wraparound cover size in mm.
 
     Returns (width_mm, height_mm) or None if insufficient data.
@@ -241,7 +241,7 @@ class CoverStore:
         metadata = loadMetadata(self._projectPath)
         return [fmt for fmt in FORMAT_ORDER if metadata.formats.get(fmt, {}).get("enabled", False)]
 
-    def getCover(self, fmt: str) -> dict[str, Any] | None:
+    def getCover(self, fmt: str) -> Optional[dict[str, Any]]:
         """Get cover info for a format.
 
         Returns dict with assetId and asset details, or None if no cover set.
@@ -584,7 +584,7 @@ class CoverStore:
         return all_findings
 
 
-def coversForBuild(metadata: Metadata, fmt: str, edition: str | None = None) -> dict[str, Any]:
+def coversForBuild(metadata: Metadata, fmt: str, edition: Optional[str] = None) -> dict[str, Any]:
     """Get cover asset IDs for a build.
 
     Returns dict with assetId for the format's cover.

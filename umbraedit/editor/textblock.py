@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import re
 
@@ -68,7 +69,7 @@ class TextBlockData(QTextBlockUserData):
         self._rawText = ""
         self._offset = 0
         self._revision = 0
-        self._utf16Map: list[int] | None = None
+        self._utf16Map: Optional[list[int]] = None
         self._metaData: T_TextMetaList = []
         self._spellErrors: T_TextCheckList = []
         self._formatErrors: T_TextCheckList = []
@@ -112,7 +113,7 @@ class TextBlockData(QTextBlockUserData):
         self._spellErrors = []
         self._formatErrors = []
 
-    def checkData(self) -> tuple[str, str, int, list[int] | None]:
+    def checkData(self) -> Optional[tuple[str, str, int, list[int]]]:
         """Return a snapshot of the text for external spell and format
         checking. The spell text has shortcodes, URLs and Markdown link
         syntax stripped, while the format text is the raw, unmodified
@@ -132,7 +133,7 @@ class TextBlockData(QTextBlockUserData):
         """Store format error data computed from a text snapshot."""
         self._formatErrors = errors
 
-    def processText(self, text: str, offset: int, utf16Map: list[int] | None) -> None:
+    def processText(self, text: str, offset: int, utf16Map: Optional[list[int]]) -> None:
         """Extract meta data from the text. The map, when set, converts
         cached positions to UTF-16 units. Cached spell and format errors
         are cleared and left for the debounced background check to
@@ -192,7 +193,7 @@ class TextBlockData(QTextBlockUserData):
         return self._formatErrors
 
 
-def spellCheckText(text: str, offset: int, utf16Map: list[int] | None) -> T_TextCheckList:
+def spellCheckText(text: str, offset: int, utf16Map: Optional[list[int]]) -> T_TextCheckList:
     """Spell check a piece of text and return the list of errors. This
     function does not touch any Qt document classes, so it is safe to
     call from a worker thread.
@@ -211,7 +212,7 @@ def spellCheckText(text: str, offset: int, utf16Map: list[int] | None) -> T_Text
     ]
 
 
-def formatCheckText(text: str, offset: int, utf16Map: list[int] | None) -> T_TextCheckList:
+def formatCheckText(text: str, offset: int, utf16Map: Optional[list[int]]) -> T_TextCheckList:
     """Check a piece of text for runs of multiple spaces and trailing
     whitespace, and return the list of matches. This function does not
     touch any Qt document classes, so it is safe to call from a worker

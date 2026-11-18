@@ -27,7 +27,7 @@ import re
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, Optional, Union
 
 from PyQt6.QtCore import QLocale
 from PyQt6.QtGui import QColor, QFont
@@ -387,7 +387,7 @@ class Tokenizer(ABC):
     #  Setters
     ##
 
-    def setLanguage(self, language: str | None, rtl: bool) -> None:
+    def setLanguage(self, language: Optional[str], rtl: bool) -> None:
         """Set language and text direction for the document."""
         if language:
             self._dLocale = QLocale(language)
@@ -641,7 +641,7 @@ class Tokenizer(ABC):
             if self._keepRaw:
                 self._raw.append(f"#! {title}\n\n")
 
-    def setText(self, tHandle: str, text: str | None = None) -> None:
+    def setText(self, tHandle: str, text: Optional[str] = None) -> None:
         """Set the text for the tokenizer from a handle. If text is not
         set, it's is loaded from the file.
         """
@@ -1343,7 +1343,7 @@ class Tokenizer(ABC):
         style: ComStyle,
         key: str,
         text: str,
-        marks: T_Marks | None = None,
+        marks: Optional[T_Marks] = None,
     ) -> tuple[str, T_Formats]:
         """Apply formatting to comments and notes."""
         rFmt = []
@@ -1421,7 +1421,7 @@ class Tokenizer(ABC):
         text: str,
         skip: TextFmt = TextFmt.NONE,
         hDialog: bool = False,
-        marks: T_Marks | None = None,
+        marks: Optional[T_Marks] = None,
     ) -> tuple[str, T_Formats]:
         """Extract format markers from a text paragraph. In order to
         also process dialogue highlighting, the hDialog flag must be set
@@ -1513,7 +1513,7 @@ class HeadingFormatter:
         self._absolute = absolute
         self._upper = False
 
-    def setHandle(self, tHandle: str | None) -> None:
+    def setHandle(self, tHandle: Optional[str]) -> None:
         """Set the handle currently being processed."""
         self._handle = tHandle
 

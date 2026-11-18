@@ -27,7 +27,7 @@ import xml.etree.ElementTree as ET
 
 from datetime import datetime
 from hashlib import sha256
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple, Optional, Union
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from PyQt6.QtGui import QColor, QFont
@@ -593,9 +593,9 @@ class ToOdt(Tokenizer):
         styleName: str,
         oStyle: ODTParagraphStyle,
         tText: str,
-        tFmt: Sequence[tuple[int, int, str]] | None = None,
+        tFmt: Optional[Sequence[tuple[int, int, str]]] = None,
         isHead: bool = False,
-        oLevel: str | None = None,
+        oLevel: Optional[str] = None,
     ) -> None:
         """Add a text paragraph to the text XML element."""
         tAttr = {_mkTag("text", "style-name"): self._paraStyle(styleName, oStyle)}
@@ -762,7 +762,7 @@ class ToOdt(Tokenizer):
 
         return style.name
 
-    def _generateFootnote(self, key: str) -> ET.Element | None:
+    def _generateFootnote(self, key: str) -> ET.Optional[Element]:
         """Generate a footnote XML object."""
         if content := self._footnotes.get(key):
             self._nNote += 1
@@ -782,7 +782,7 @@ class ToOdt(Tokenizer):
             return xNote
         return None
 
-    def _generateField(self, key: str, fmt: int) -> ET.Element | None:
+    def _generateField(self, key: str, fmt: int) -> ET.Optional[Element]:
         """Generate a data field XML object."""
         if key and (field := key.partition(":")[2]):
             xField = xmlElement(
@@ -1384,33 +1384,33 @@ class ODTParagraphStyle:
     #  Attribute Setters
     ##
 
-    def setDisplayName(self, value: str | None) -> None:
+    def setDisplayName(self, value: Optional[str]) -> None:
         """Set style display name."""
         self._mAttr["display-name"][1] = value
 
-    def setParentStyleName(self, value: str | None) -> None:
+    def setParentStyleName(self, value: Optional[str]) -> None:
         """Set parent style name."""
         self._mAttr["parent-style-name"][1] = value
 
-    def setNextStyleName(self, value: str | None) -> None:
+    def setNextStyleName(self, value: Optional[str]) -> None:
         """Set next style name."""
         self._mAttr["next-style-name"][1] = value
 
-    def setOutlineLevel(self, value: str | None) -> None:
+    def setOutlineLevel(self, value: Optional[str]) -> None:
         """Set paragraph outline level."""
         if value in self.VALID_LEVEL:
             self._mAttr["default-outline-level"][1] = value
         else:
             self._mAttr["default-outline-level"][1] = None
 
-    def setClass(self, value: str | None) -> None:
+    def setClass(self, value: Optional[str]) -> None:
         """Set paragraph class."""
         if value in self.VALID_CLASS:
             self._mAttr["class"][1] = value
         else:
             self._mAttr["class"][1] = None
 
-    def setMasterPageName(self, value: str | None) -> None:
+    def setMasterPageName(self, value: Optional[str]) -> None:
         """Set master page name."""
         self._mAttr["master-page-name"][1] = value
 
@@ -1418,68 +1418,68 @@ class ODTParagraphStyle:
     #  Paragraph Setters
     ##
 
-    def setMarginTop(self, value: str | None) -> None:
+    def setMarginTop(self, value: Optional[str]) -> None:
         """Set paragraph top margin."""
         self._pAttr["margin-top"][1] = value
 
-    def setMarginBottom(self, value: str | None) -> None:
+    def setMarginBottom(self, value: Optional[str]) -> None:
         """Set paragraph bottom margin."""
         self._pAttr["margin-bottom"][1] = value
 
-    def setMarginLeft(self, value: str | None) -> None:
+    def setMarginLeft(self, value: Optional[str]) -> None:
         """Set paragraph left margin."""
         self._pAttr["margin-left"][1] = value
 
-    def setMarginRight(self, value: str | None) -> None:
+    def setMarginRight(self, value: Optional[str]) -> None:
         """Set paragraph right margin."""
         self._pAttr["margin-right"][1] = value
 
-    def setBorderLeft(self, value: ODTBorderStyle | None) -> None:
+    def setBorderLeft(self, value: Optional[ODTBorderStyle]) -> None:
         """Set paragraph left border."""
         self._pAttr["border-left"][1] = None if value is None else str(value)
 
-    def setBorderRight(self, value: ODTBorderStyle | None) -> None:
+    def setBorderRight(self, value: Optional[ODTBorderStyle]) -> None:
         """Set paragraph right border."""
         self._pAttr["border-right"][1] = None if value is None else str(value)
 
-    def setBorderTop(self, value: ODTBorderStyle | None) -> None:
+    def setBorderTop(self, value: Optional[ODTBorderStyle]) -> None:
         """Set paragraph top border."""
         self._pAttr["border-top"][1] = None if value is None else str(value)
 
-    def setBorderBottom(self, value: ODTBorderStyle | None) -> None:
+    def setBorderBottom(self, value: Optional[ODTBorderStyle]) -> None:
         """Set paragraph bottom border."""
         self._pAttr["border-bottom"][1] = None if value is None else str(value)
 
-    def setTextIndent(self, value: str | None) -> None:
+    def setTextIndent(self, value: Optional[str]) -> None:
         """Set text indentation."""
         self._pAttr["text-indent"][1] = value
 
-    def setLineHeight(self, value: str | None) -> None:
+    def setLineHeight(self, value: Optional[str]) -> None:
         """Set line height."""
         self._pAttr["line-height"][1] = value
 
-    def setTextAlign(self, value: str | None) -> None:
+    def setTextAlign(self, value: Optional[str]) -> None:
         """Set paragraph text alignment."""
         if value in self.VALID_ALIGN:
             self._pAttr["text-align"][1] = value
         else:
             self._pAttr["text-align"][1] = None
 
-    def setWritingMode(self, value: str | None) -> None:
+    def setWritingMode(self, value: Optional[str]) -> None:
         """Set paragraph writing mode."""
         if value in self.VALID_WRITE:
             self._pAttr["writing-mode"][1] = value
         else:
             self._pAttr["writing-mode"][1] = None
 
-    def setBreakBefore(self, value: str | None) -> None:
+    def setBreakBefore(self, value: Optional[str]) -> None:
         """Set page break before policy."""
         if value in self.VALID_BREAK:
             self._pAttr["break-before"][1] = value
         else:
             self._pAttr["break-before"][1] = None
 
-    def setBreakAfter(self, value: str | None) -> None:
+    def setBreakAfter(self, value: Optional[str]) -> None:
         """Set page break after policy."""
         if value in self.VALID_BREAK:
             self._pAttr["break-after"][1] = value
@@ -1490,26 +1490,26 @@ class ODTParagraphStyle:
     #  Text Setters
     ##
 
-    def setFontName(self, value: str | None) -> None:
+    def setFontName(self, value: Optional[str]) -> None:
         """Set font name."""
         self._tAttr["font-name"][1] = value
 
-    def setFontFamily(self, value: str | None) -> None:
+    def setFontFamily(self, value: Optional[str]) -> None:
         """Set font family."""
         self._tAttr["font-family"][1] = value
 
-    def setFontSize(self, value: str | None) -> None:
+    def setFontSize(self, value: Optional[str]) -> None:
         """Set font size."""
         self._tAttr["font-size"][1] = value
 
-    def setFontWeight(self, value: str | None) -> None:
+    def setFontWeight(self, value: Optional[str]) -> None:
         """Set font weight."""
         if value in self.VALID_WEIGHT:
             self._tAttr["font-weight"][1] = value
         else:
             self._tAttr["font-weight"][1] = None
 
-    def setColor(self, value: QColor | None) -> None:
+    def setColor(self, value: Optional[QColor]) -> None:
         """Set text colour."""
         if isinstance(value, QColor):
             self._tAttr["color"][1] = value.name(QtHexRgb)
@@ -1559,8 +1559,8 @@ class ODTBorderStyle(NamedTuple):
     """Named tuple for border styles."""
 
     style: Literal["none", "solid", "dashed", "dotted", "double"] = "none"
-    width: float | None = None
-    color: QColor | None = None
+    width: Optional[float] = None
+    color: Optional[QColor] = None
 
     def __str__(self) -> str:
         """Convert the border style to a string that can be used in ODT XML."""
@@ -1611,70 +1611,70 @@ class ODTTextStyle:
     #  Setters
     ##
 
-    def setFontWeight(self, value: str | None) -> None:
+    def setFontWeight(self, value: Optional[str]) -> None:
         """Set text font weight."""
         if value in self.VALID_WEIGHT:
             self._tAttr["font-weight"][1] = value
         else:
             self._tAttr["font-weight"][1] = None
 
-    def setFontStyle(self, value: str | None) -> None:
+    def setFontStyle(self, value: Optional[str]) -> None:
         """Set text font style."""
         if value in self.VALID_STYLE:
             self._tAttr["font-style"][1] = value
         else:
             self._tAttr["font-style"][1] = None
 
-    def setColor(self, value: QColor | None) -> None:
+    def setColor(self, value: Optional[QColor]) -> None:
         """Set text colour."""
         if isinstance(value, QColor):
             self._tAttr["color"][1] = value.name(QtHexRgb)
         else:
             self._tAttr["color"][1] = None
 
-    def setBackgroundColor(self, value: QColor | None) -> None:
+    def setBackgroundColor(self, value: Optional[QColor]) -> None:
         """Set text background colour."""
         if isinstance(value, QColor):
             self._tAttr["background-color"][1] = value.name(QtHexRgb)
         else:
             self._tAttr["background-color"][1] = None
 
-    def setTextPosition(self, value: str | None) -> None:
+    def setTextPosition(self, value: Optional[str]) -> None:
         """Set text vertical position."""
         if value in self.VALID_POS:
             self._tAttr["text-position"][1] = f"{value} 58%"
         else:
             self._tAttr["text-position"][1] = None
 
-    def setStrikeStyle(self, value: str | None) -> None:
+    def setStrikeStyle(self, value: Optional[str]) -> None:
         """Set text line-trough style."""
         if value in self.VALID_LSTYLE:
             self._tAttr["text-line-through-style"][1] = value
         else:
             self._tAttr["text-line-through-style"][1] = None
 
-    def setStrikeType(self, value: str | None) -> None:
+    def setStrikeType(self, value: Optional[str]) -> None:
         """Set text line-through type."""
         if value in self.VALID_LTYPE:
             self._tAttr["text-line-through-type"][1] = value
         else:
             self._tAttr["text-line-through-type"][1] = None
 
-    def setUnderlineStyle(self, value: str | None) -> None:
+    def setUnderlineStyle(self, value: Optional[str]) -> None:
         """Set text underline style."""
         if value in self.VALID_LSTYLE:
             self._tAttr["text-underline-style"][1] = value
         else:
             self._tAttr["text-underline-style"][1] = None
 
-    def setUnderlineWidth(self, value: str | None) -> None:
+    def setUnderlineWidth(self, value: Optional[str]) -> None:
         """Set text underline width."""
         if value in self.VALID_LWIDTH:
             self._tAttr["text-underline-width"][1] = value
         else:
             self._tAttr["text-underline-width"][1] = None
 
-    def setUnderlineColor(self, value: str | None) -> None:
+    def setUnderlineColor(self, value: Optional[str]) -> None:
         """Set text underline colour."""
         if value in self.VALID_LCOL:
             self._tAttr["text-underline-color"][1] = value
@@ -1831,7 +1831,7 @@ class XMLParagraph:
         self.appendText(text)
         self._nState = X_ROOT_TAIL
 
-    def appendNode(self, xNode: ET.Element | None) -> None:
+    def appendNode(self, xNode: ET.Optional[Element]) -> None:
         """Append an XML node to the paragraph. We only check for the
         X_ROOT_TEXT and X_ROOT_TAIL states. X_SPAN_TEXT is not possible
         at all, and X_SPAN_SING only happens internally in an appendSpan

@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit import CONFIG, SHARED
 from umbraedit.common import checkInt, isHandle, isItemClass, isItemLayout, isItemType, simplified, yesNo
@@ -125,11 +125,11 @@ class ProjectItem:
         return self._handle
 
     @property
-    def itemParent(self) -> str | None:
+    def itemParent(self) -> Optional[str]:
         return self._parent
 
     @property
-    def itemRoot(self) -> str | None:
+    def itemRoot(self) -> Optional[str]:
         return self._root
 
     @property
@@ -149,11 +149,11 @@ class ProjectItem:
         return self._layout
 
     @property
-    def itemStatus(self) -> str | None:
+    def itemStatus(self) -> Optional[str]:
         return self._status
 
     @property
-    def itemImport(self) -> str | None:
+    def itemImport(self) -> Optional[str]:
         return self._import
 
     @property

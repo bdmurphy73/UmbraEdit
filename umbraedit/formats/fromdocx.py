@@ -23,6 +23,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import logging
 import re
@@ -86,8 +87,8 @@ class ImportNote:
     note_type: str       # "image", "header", "footer", "comment", "footnote"
     source: str          # Where it came from (e.g., "header1.xml", "paragraph 42")
     text: str            # Captured text description
-    data: bytes | None = None  # Raw image data, if applicable
-    mime: str | None = None    # MIME type, if applicable
+    data: Optional[bytes] = None  # Raw image data, if applicable
+    mime: Optional[str] = None    # MIME type, if applicable
 
 
 @dataclass
@@ -128,7 +129,7 @@ class FromDocxDocument:
 
     def __init__(self, file_path: str | Path) -> None:
         self._file_path = Path(file_path)
-        self._zip: ZipFile | None = None
+        self._zip: Optional[ZipFile] = None
         self._result = ImportResult()
         self._rels: dict[str, str] = {}
         self._images: dict[str, bytes] = {}
@@ -232,9 +233,9 @@ class FromDocxDocument:
             return
 
         # Track current chapter/scene
-        current_chapter: str | None = None
+        current_chapter: Optional[str] = None
         current_text: list[str] = []
-        current_style: str | None = None
+        current_style: Optional[str] = None
         current_level: int = 0
 
         def save_current_chapter() -> None:
@@ -298,7 +299,7 @@ class FromDocxDocument:
                 save_current_chapter()
 
                 # Clean up chapter heading - remove comment/footnote markers
-                clean_heading = re.sub(r"\[(?:COMMENT|FOOTNOTE):\w+\]", "", text.strip())
+                clean_heading = re.sub(r"\[(?:COMMENT | FOOTNOTE):\w+\]", "", text.strip())
                 current_chapter = clean_heading or f"Chapter {len(self._result.scenes) + 1}"
                 current_text = []
                 current_style = style
@@ -372,7 +373,7 @@ class FromDocxDocument:
             )
             self._result.notes.append(note)
 
-    def _parse_paragraph(self, para: ET.Element) -> dict | None:
+    def _parse_paragraph(self, para: ET.Element) -> Optional[dict]:
         """Parse a single paragraph element and return its content."""
         # Get paragraph style
         style = "Normal"

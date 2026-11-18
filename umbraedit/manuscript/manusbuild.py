@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSlot
 from PyQt6.QtGui import QCursor
@@ -350,7 +350,7 @@ class GuiManuscriptBuild(NDialog):
 
         return True
 
-    def _getSelectedFormat(self) -> nwBuildFmt | None:
+    def _getSelectedFormat(self) -> Optional[nwBuildFmt]:
         """Get the currently selected format."""
         items = self.listFormats.selectedItems()
         if items and isinstance(items[0], QListWidgetItem):

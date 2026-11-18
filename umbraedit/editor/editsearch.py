@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QEvent, QObject, QRegularExpression, pyqtSlot
 from PyQt6.QtGui import QKeyEvent, QPalette
@@ -224,7 +224,7 @@ class GuiDocEditSearch(QFrame):
     #  Setters
     ##
 
-    def setSearchText(self, text: str | None) -> None:
+    def setSearchText(self, text: Optional[str]) -> None:
         """Open the search bar and set the search text to the text
         provided, if any.
         """
@@ -243,7 +243,7 @@ class GuiDocEditSearch(QFrame):
         self.replaceBox.setFocus()
         self.replaceBox.setText(text)
 
-    def setResultCount(self, currRes: int | None, resCount: int | None) -> None:
+    def setResultCount(self, currRes: Optional[int], resCount: Optional[int]) -> None:
         """Set the count values for the current search."""
         lim = nwConst.MAX_SEARCH_RESULT
         numCount = f"{lim:n}+" if (resCount or 0) > lim else f"{resCount:n}"
@@ -316,7 +316,7 @@ class GuiDocEditSearch(QFrame):
     #  Events and Overloads
     ##
 
-    def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
+    def eventFilter(self, obj: Optional[QObject], event: Optional[QEvent]) -> bool:
         """Close the search box on Escape while either input box has
         focus. GuiDocEditor.keyPressEvent handles Escape for the
         editor itself, but doesn't see key events sent directly to

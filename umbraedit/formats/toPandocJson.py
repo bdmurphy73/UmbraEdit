@@ -28,7 +28,7 @@ import re
 import subprocess
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.formats.shared import BlockTyp
 from umbraedit.formats.tokenizer import Tokenizer
@@ -273,7 +273,7 @@ class ToPandocJson(Tokenizer):
         return {"t": "Table", "c": [[], [], [], []]}
 
 
-def toPandocJson(project: NWProject, output_path: Path | None = None) -> str:
+def toPandocJson(project: NWProject, output_path: Optional[Path] = None) -> str:
     """Convert a project to Pandoc JSON AST.
 
     Args:

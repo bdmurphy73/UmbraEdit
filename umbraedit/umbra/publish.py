@@ -36,7 +36,7 @@ try:
 except ImportError:
     from datetime import timezone as UTC
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.covers import loadCovers
 from umbraedit.umbra.edition import EditionInfo, loadEdition
@@ -63,8 +63,8 @@ class PublishPackageBuilder:
         self,
         project: NWProject,
         edition_id: str,
-        retailer_id: str | None = None,
-        output_base: Path | None = None,
+        retailer_id: Optional[str] = None,
+        output_base: Optional[Path] = None,
     ) -> None:
         self.project = project
         self.edition_id = edition_id
@@ -74,7 +74,7 @@ class PublishPackageBuilder:
         self.output_base = output_base or (self.edition_path / "publish")
         self.package_dir = self.output_base / edition_id
 
-    def _get_edition(self) -> EditionInfo | None:
+    def _get_edition(self) -> Optional[EditionInfo]:
         """Load edition metadata."""
         try:
             return loadEdition(self.edition_path)
@@ -85,7 +85,7 @@ class PublishPackageBuilder:
         """Load source project metadata."""
         return loadMetadata(self.project_path)
 
-    def _run_gates(self, options: dict | None = None) -> bool:
+    def _run_gates(self, options: Optional[dict] = None) -> bool:
         """Run publish.package gates."""
         scope = GateScope(
             project=self.project,
@@ -232,7 +232,7 @@ class PublishPackageBuilder:
                     result[fmt] = dst_name
         return result
 
-    def _copy_audio(self) -> dict[str, Any] | None:
+    def _copy_audio(self) -> Optional[dict[str, Any]]:
         """Copy audio package if ready. Returns audio manifest data."""
         edition = self._get_edition()
         if not edition:
@@ -265,7 +265,7 @@ class PublishPackageBuilder:
 
         return manifest
 
-    def _copy_epub(self) -> dict[str, str] | None:
+    def _copy_epub(self) -> Optional[dict[str, str]]:
         """Copy EPUB output if built."""
         edition = self._get_edition()
         if not edition:
@@ -286,7 +286,7 @@ class PublishPackageBuilder:
             result[epub.name] = f"epub/{epub.name}"
         return result
 
-    def _copy_print(self) -> dict[str, str] | None:
+    def _copy_print(self) -> Optional[dict[str, str]]:
         """Copy print PDF output if built."""
         edition = self._get_edition()
         if not edition:
@@ -498,8 +498,8 @@ class PublishPackageBuilder:
 def build_publish_package(
     project: NWProject,
     edition_id: str,
-    retailer_id: str | None = None,
-    output_base: Path | None = None,
+    retailer_id: Optional[str] = None,
+    output_base: Optional[Path] = None,
 ) -> dict[str, Any]:
     """Build publish package for an edition."""
     builder = PublishPackageBuilder(project, edition_id, retailer_id, output_base)

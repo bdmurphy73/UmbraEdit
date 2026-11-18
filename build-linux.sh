@@ -17,7 +17,7 @@ set -euo pipefail
 #-----------------------------------------------------------------------------
 # Configuration
 #-----------------------------------------------------------------------------
-VERSION="2026.11.5"
+VERSION="2026.11.0006"
 RELEASE_VERSION="2026.11.0007"
 GITEA_URL="http://192.168.123.18:2222/umbragit/UmbraEdit"
 TARBALL_URL="${GITEA_URL}/-/archive/v${RELEASE_VERSION}/umbraedit-${RELEASE_VERSION}.tar.gz"

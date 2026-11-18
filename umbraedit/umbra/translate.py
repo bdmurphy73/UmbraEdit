@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 with contextlib.suppress(ImportError):
     pass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 from umbraedit.umbra.edition import loadEdition, saveEdition
 from umbraedit.umbra.guide import parseGuideDoc
@@ -108,8 +108,8 @@ class TranslationJob:
     analysis_hash: str = ""
     source_hash: str = ""
     created_at: str = ""
-    result: dict[str, Any] | None = None
-    error: str | None = None
+    result: Optional[dict[str, Any]] = None
+    error: Optional[str] = None
     options: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -557,7 +557,7 @@ def _count_source_paragraphs(source_project: Any, chapter_handle: str) -> int:
     return count
 
 
-def importTranslationResult(edition_project: Any, job_id: str) -> tuple[bool, str | None]:
+def importTranslationResult(edition_project: Any, job_id: str) -> tuple[bool, Optional[str]]:
     """Import a translation result from a job file.
 
     Args:
@@ -699,7 +699,7 @@ def _apply_metadata_draft(edition_project: Any, job: TranslationJob) -> bool:
     return True
 
 
-def runTranslationJobLocal(edition_project: Any, job_id: str) -> tuple[bool, str | None]:
+def runTranslationJobLocal(edition_project: Any, job_id: str) -> tuple[bool, Optional[str]]:
     """Run a translation job using the local model endpoint.
 
     Args:

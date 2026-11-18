@@ -26,7 +26,7 @@ import dataclasses
 import logging
 import random
 
-from typing import TYPE_CHECKING, Final, Literal, Union
+from typing import TYPE_CHECKING, Final, Literal, Union, Optional
 
 try:
     from typing import TypeGuard
@@ -98,7 +98,7 @@ class ItemStatus:
         """Return the number of entries in the status list."""
         return len(self._store)
 
-    def __getitem__(self, key: str | None) -> StatusEntry:
+    def __getitem__(self, key: Optional[str]) -> StatusEntry:
         """Return the entry associated with a given key."""
         if key and key in self._store:
             return self._store[key]
@@ -110,7 +110,7 @@ class ItemStatus:
     #  Methods
     ##
 
-    def add(self, key: str | None, name: str, color: str, shape: str, count: int) -> str:
+    def add(self, key: Optional[str], name: str, color: str, shape: str, count: int) -> str:
         """Add or update a status entry. If the key is invalid, a new
         key is generated.
         """
@@ -155,7 +155,7 @@ class ItemStatus:
         for entry in self._store.values():
             entry.count = 0
 
-    def increment(self, key: str | None) -> None:
+    def increment(self, key: Optional[str]) -> None:
         """Increment the counter for a given entry."""
         if key and key in self._store:
             self._store[key].count += 1
@@ -182,7 +182,7 @@ class ItemStatus:
         """Yield entries from the status icons."""
         yield from self._store.items()
 
-    def fromRaw(self, data: list[str]) -> StatusEntry | None:
+    def fromRaw(self, data: list[str]) -> Optional[StatusEntry]:
         """Create a StatusEntry from a list of three strings consisting
         of shape, colour, and name. This entry is not automatically
         added to the list of entries.
@@ -240,7 +240,7 @@ class ItemStatus:
             key = self._newKey()
         return key
 
-    def _isKey(self, value: str | None) -> TypeGuard[str]:
+    def _isKey(self, value: Optional[str]) -> TypeGuard[str]:
         """Check if a value is a key or not."""
         if not isinstance(value, str):
             return False
@@ -250,7 +250,7 @@ class ItemStatus:
             return False
         return all(c in "0123456789abcdef" for c in value[1:])
 
-    def _checkKey(self, key: str | None) -> str:
+    def _checkKey(self, key: Optional[str]) -> str:
         """Check key is valid, and if not, generate one."""
         return key if self._isKey(key) else self._newKey()
 

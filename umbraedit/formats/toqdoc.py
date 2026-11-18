@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QMarginsF, QSizeF
 from PyQt6.QtGui import (
@@ -475,7 +475,7 @@ class ToQTextDocument(Tokenizer):
         start = 0
         marked = False
         error = False
-        primary: QColor | None = None
+        primary: Optional[QColor] = None
         for pos, fmt, data in tFmt:
             # Insert buffer with previous format
             cursor.insertText(stripEscape(temp[start:pos]), cFmt)

@@ -31,7 +31,7 @@ This project is a fork of novelWrite. Taking the great start and extending it. I
 UmbraEdit is written in Python and uses Qt6 with PyQt6 Python binding as the UI framework. It runs on Linux, Windows and MacOS. It can in principle run on any Operating System that also supports Qt, PyQt and Python.
 
 <p align="center">
-  <img width="80%" src="https://raw.githubusercontent.com/saga-soft/UmbraEdit/main/setup/screenshot.png">
+  <img width="80%" src="https://raw.githubusercontent.com/bdmurphy73/UmbraEdit/main/UmbraEdit_MainScreen.png">
 </p>
 
 

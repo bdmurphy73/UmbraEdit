@@ -19,7 +19,7 @@ import hashlib
 import re
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional, Union
 
 from umbraedit.umbra.dialogue import DialogueConfig, Span, findDialogueSpans
 from umbraedit.umbra.sheet import aliasNorm
@@ -63,7 +63,7 @@ class Utterance:
         attribution: True when this utterance is an attribution span.
         voice: The speaker's voice matrix code, or None.
         pron: Pronunciation spans from P07, offsets inside ``text``.
-        hash: SHA-256 of ``kind|speaker|text|tone|toneI|lang|voice|pron``.
+        hash: SHA-256 of ``kind | speaker|text | tone|toneI | lang|voice | pron``.
 
     """
 
@@ -78,9 +78,9 @@ class Utterance:
     toneI: int
     lang: str
     src: str
-    skip: str | None
+    skip: Optional[str]
     attribution: bool
-    voice: str | None
+    voice: Optional[str]
     pron: list[dict[str, str]] = field(default_factory=list)
     hash: str = ""
 
@@ -113,18 +113,18 @@ def _utteranceHash(
     tone: str,
     toneI: int,
     lang: str,
-    voice: str | None,
+    voice: Optional[str],
     pron: list[dict[str, str]],
 ) -> str:
     payload = "|".join([kind, speaker, text, tone, str(toneI), lang, voice or "", repr(pron)])
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _toneString(tr: ToneRef | None) -> str:
+def _toneString(tr: Optional[ToneRef]) -> str:
     return str(tr) if tr is not None else ""
 
 
-def _voiceForSpeaker(speaker: str | None, index: Any, store: Any) -> str | None:
+def _voiceForSpeaker(speaker: Optional[str], index: Any, store: Any) -> Optional[str]:
     """Return the voice matrix code for a speaker, or None."""
     if not speaker or speaker in (NARRATOR_SPEAKER, UNKNOWN_SPEAKER):
         return None
@@ -221,9 +221,9 @@ def deriveUtterances(
     handle: str,
     text: str,
     project: Any,
-    index: Any | None = None,
-    settings: Any | None = None,
-    store: Any | None = None,
+    index: Optional[Any] = None,
+    settings: Optional[Any] = None,
+    store: Optional[Any] = None,
 ) -> list[Utterance]:
     """R1: Derive utterances for one document.
 
@@ -246,7 +246,7 @@ def deriveUtterances(
         if not block.strip():
             continue
 
-        voice: VoiceData | None = None
+        voice: Optional[VoiceData] = None
         lines = block.split("\n")
         bodyStart = 0
         for i, line in enumerate(lines):
@@ -268,7 +268,7 @@ def deriveUtterances(
         segments = _splitParagraphIntoSegments(cleanBody, dialogueSpans)
 
         k = 0
-        lastDialogueSpeaker: str | None = None
+        lastDialogueSpeaker: Optional[str] = None
         for i, (start, end, kind) in enumerate(segments):
             seg = cleanBody[start:end]
             if not seg.strip():
@@ -311,7 +311,7 @@ def deriveUtterances(
                 skip = None
                 attribution = bool(
                     re.match(
-                        r"\s*(?:said|asked|replied|whispered|shouted)\s+.+?[.,!?]\s*$",
+                        r"\s*(?:said | asked|replied | whispered|shouted)\s+.+?[.,!?]\s*$",
                         seg,
                         re.IGNORECASE,
                     )
@@ -348,12 +348,12 @@ def deriveUtterances(
     return utterances
 
 
-def paraTone(tr: ToneRef | None) -> ToneRef:
+def paraTone(tr: Optional[ToneRef]) -> ToneRef:
     """Return the tone or neutral default."""
     return tr if tr is not None else toneNeutral()
 
 
-def _speakerFromFollowingText(cleanBody: str, dialEnd: int, index: Any) -> str | None:
+def _speakerFromFollowingText(cleanBody: str, dialEnd: int, index: Any) -> Optional[str]:
     """Try to resolve a dialogue speaker from text immediately following
     the dialogue span, looking for patterns like "said Uncle Bob.".
     """
@@ -362,7 +362,7 @@ def _speakerFromFollowingText(cleanBody: str, dialEnd: int, index: Any) -> str |
 
     following = cleanBody[dialEnd:]
     m = re.match(
-        r"\s*(?:said|asked|replied|whispered|shouted)\s+(.+?)\s*[.,!?]\s*",
+        r"\s*(?:said | asked|replied | whispered|shouted)\s+(.+?)\s*[.,!?]\s*",
         following,
         re.IGNORECASE,
     )

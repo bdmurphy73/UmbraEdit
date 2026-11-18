@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -245,7 +245,7 @@ class AudioDockManager:
 
     def __init__(self, main_window: GuiMain) -> None:
         self.main_window = main_window
-        self.dock: AudioDock | None = None
+        self.dock: Optional[AudioDock] = None
 
     def create_dock(self) -> AudioDock:
         """Create the Audio dock."""

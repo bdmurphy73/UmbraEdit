@@ -22,7 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QPainter, QPaintEvent
@@ -130,7 +130,7 @@ class NTabBar(QTabBar):
         self._endDrag()
         super().mouseReleaseEvent(event)
 
-    def paintEvent(self, event: QPaintEvent | None) -> None:
+    def paintEvent(self, event: Optional[QPaintEvent]) -> None:
         """Highlight the currently selected tab with the theme highlight colour."""
         painter = QPainter(self)
         palette = self.palette()

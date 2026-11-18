@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import logging
 
@@ -156,7 +157,7 @@ class GuiDocViewer(QTextBrowser):
     ##
 
     @property
-    def docHandle(self) -> str | None:
+    def docHandle(self) -> Optional[str]:
         """Return the handle of the currently open document."""
         return self._docHandle
 

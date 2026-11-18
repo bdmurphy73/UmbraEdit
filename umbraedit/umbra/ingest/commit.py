@@ -26,7 +26,7 @@ import logging
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.hooks import SIDECAR_WRITTEN, call
 from umbraedit.umbra.ingest.ingest_runs import record_ingest_run
@@ -52,7 +52,7 @@ class CommitResult:
     created_files: list[str] = field(default_factory=list)
     updated_metadata_keys: list[str] = field(default_factory=list)
     created_notes: list[str] = field(default_factory=list)
-    error: str | None = None
+    error: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -233,7 +233,7 @@ class ImportCommitter:
             i += 1
         return f"{base}_{i}"
 
-    def _format_document(self, doc: dict[str, Any], handle: str, page_type: str | None) -> str:
+    def _format_document(self, doc: dict[str, Any], handle: str, page_type: Optional[str]) -> str:
         """Format a document with front matter."""
         lines = ["+++", f"title: {doc.get('title', '')}", "+++", ""]
 
@@ -244,7 +244,7 @@ class ImportCommitter:
         lines.append(doc.get("text", ""))
         return "\n".join(lines)
 
-    def _add_to_tree(self, handle: str, title: str, kind: str, parent_id: str | None, level: int) -> None:
+    def _add_to_tree(self, handle: str, title: str, kind: str, parent_id: Optional[str], level: int) -> None:
         """Add document to project tree."""
         # This would interact with the project's tree
         # Implementation depends on the project tree API

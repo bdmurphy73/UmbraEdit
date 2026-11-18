@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtGui import QFont
 
@@ -85,12 +85,12 @@ class DocumentBuilder:
     ##
 
     @property
-    def error(self) -> str | None:
+    def error(self) -> Optional[str]:
         """Return the last error, if any."""
         return self._error
 
     @property
-    def lastBuild(self) -> Tokenizer | None:
+    def lastBuild(self) -> Optional[Tokenizer]:
         """Return the build object of the last build process, if any.
         This is useful for accessing build details and data after the
         build job is completed.

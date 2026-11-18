@@ -32,7 +32,7 @@ try:
 except ImportError:
     from datetime import timezone as UTC
 from enum import Enum
-from typing import TYPE_CHECKING, Final, NamedTuple
+from typing import TYPE_CHECKING, Final, NamedTuple, Optional, Union
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from umbraedit.common import xmlElement, xmlIndent, xmlSubElem
@@ -84,7 +84,7 @@ class ManifestEntry(NamedTuple):
     id: str
     href: str
     mediaType: str
-    properties: str | None = None
+    properties: Optional[str] = None
 
 
 class ToEPub(ToHtml):

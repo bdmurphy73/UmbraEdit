@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import Qt, QTimer, QUrl, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import (
@@ -461,7 +461,7 @@ class GuiManuscript(NToolDialog):
     #  Internal Functions
     ##
 
-    def _getSelectedBuild(self) -> BuildSettings | None:
+    def _getSelectedBuild(self) -> Optional[BuildSettings]:
         """Get the currently selected build. If none are selected,
         automatically select the first one.
         """
@@ -535,7 +535,7 @@ class GuiManuscript(NToolDialog):
         else:  # Probably a new item
             self._updateBuildsList()
 
-    def _findSettingsDialog(self, buildID: str) -> GuiBuildSettings | None:
+    def _findSettingsDialog(self, buildID: str) -> Optional[GuiBuildSettings]:
         """Return an open build settings dialog for a given build, if
         one exists.
         """

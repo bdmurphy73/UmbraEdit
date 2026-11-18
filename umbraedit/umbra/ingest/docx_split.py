@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional, Union
 
 from umbraedit.umbra.ingest.docx_classify import BlockKind, ClassifyResult
 
@@ -54,7 +54,7 @@ class DocxSplit:
         scene_count = 0
         warnings: list[str] = []
 
-        current_chapter_id: str | None = None
+        current_chapter_id: Optional[str] = None
         chapter_number = 0
 
         for block in classify.blocks:

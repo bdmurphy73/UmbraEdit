@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QEvent, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QFont, QIcon, QSyntaxHighlighter, QTextCharFormat, QTextDocument
@@ -596,7 +596,7 @@ class _FilterTab(NFixedPage):
             else:
                 item.setIcon(self.C_STATUS, self._statusFlags[self.F_NONE])
 
-    def _scanChildren(self, item: QTreeWidgetItem | None, items: list) -> list[QTreeWidgetItem]:
+    def _scanChildren(self, item: Optional[QTreeWidgetItem], items: list) -> list[QTreeWidgetItem]:
         """Recursively return all items in a tree starting at a given
         QTreeWidgetItem.
         """
@@ -1013,7 +1013,7 @@ class _HeadingsTab(NScrollablePage):
 
 
 class _HeadingSyntaxHighlighter(QSyntaxHighlighter):
-    def __init__(self, document: QTextDocument | None) -> None:
+    def __init__(self, document: Optional[QTextDocument]) -> None:
         super().__init__(document)
         self._fmtSymbol = QTextCharFormat()
         self._fmtFormat = QTextCharFormat()
@@ -2020,7 +2020,7 @@ class _FormattingTab(NScrollableForm):
     #  Internal Functions
     ##
 
-    def _updateIgnoredKeywords(self, keyword: str | None = None) -> None:
+    def _updateIgnoredKeywords(self, keyword: Optional[str] = None) -> None:
         """Update the ignored keywords list."""
         current = [x.lower().strip() for x in self.ignoredKeywords.text().split(",")]
         if keyword:

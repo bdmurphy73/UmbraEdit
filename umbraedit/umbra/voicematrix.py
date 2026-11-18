@@ -18,7 +18,7 @@ import hashlib
 import struct
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional, Union
 
 MAGIC = b"UVMX"
 VERSION = 1
@@ -68,10 +68,10 @@ class VoiceMatrix:
     modelRef: str = ""
     languages: str = ""
     label: str = ""
-    params: str | None = None
-    embedding: bytes | None = None
-    refSample: bytes | None = None
-    created: str | None = ""
+    params: Optional[str] = None
+    embedding: Optional[bytes] = None
+    refSample: Optional[bytes] = None
+    created: Optional[str] = ""
     code: str = ""
 
     def toDict(self) -> dict[str, Any]:
@@ -98,10 +98,10 @@ def buildVoiceMatrix(
     modelRef: str,
     languages: str,
     label: str,
-    params: str | None = None,
-    embedding: bytes | None = None,
-    refSample: bytes | None = None,
-    created: str | None = None,
+    params: Optional[str] = None,
+    embedding: Optional[bytes] = None,
+    refSample: Optional[bytes] = None,
+    created: Optional[str] = None,
 ) -> bytes:
     """Build a deterministic UVMX version 1 voice matrix byte string.
 

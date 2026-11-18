@@ -20,7 +20,7 @@ import subprocess
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.sheetedit import SheetEdit, applySheetEdit, parseSheetNote
@@ -223,7 +223,7 @@ class Pronunciations:
     #  Reads
     ##
 
-    def getPronunciation(self, tag: str, lang: str) -> Pron | None:
+    def getPronunciation(self, tag: str, lang: str) -> Optional[Pron]:
         """Return the pronunciation for a tag and language, or None.
 
         Resolution order: an `@pron` entry for the language (source
@@ -297,11 +297,11 @@ class Pronunciations:
     #  Note access
     ##
 
-    def _noteHandle(self, tag: str) -> str | None:
+    def _noteHandle(self, tag: str) -> Optional[str]:
         """Return the note handle for a tag, or None."""
         return self._project.index.entityHandle(tag)
 
-    def _readNote(self, tHandle: str) -> str | None:
+    def _readNote(self, tHandle: str) -> Optional[str]:
         """Read the raw note text for a handle."""
         storage = self._project.storage
         contentPath = storage.contentPath
@@ -382,7 +382,7 @@ class Pronunciations:
                 stale.append(row.tag)
         return stale
 
-    def _seenPath(self) -> Path | None:
+    def _seenPath(self) -> Optional[Path]:
         """Return the pron-seen cache path, or None."""
         storagePath = self._project.storage.storagePath
         if not storagePath:
@@ -424,7 +424,7 @@ def runPronPreview(command: list[str], text: str, ipa: str) -> tuple[bool, str]:
 ##
 
 
-def getPronunciation(project: Any, tag: str, lang: str) -> Pron | None:
+def getPronunciation(project: Any, tag: str, lang: str) -> Optional[Pron]:
     """Return the pronunciation for a tag and language (see the class)."""
     return Pronunciations(project).getPronunciation(tag, lang)
 

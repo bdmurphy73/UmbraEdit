@@ -26,7 +26,7 @@ import logging
 
 from datetime import datetime
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QTimer, pyqtSlot
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QLabel, QStatusBar, QWidget
@@ -208,11 +208,11 @@ class GuiMainStatus(QStatusBar):
         """Set the reference time for the status bar clock."""
         self._refTime = refTime
 
-    def setProjectStatus(self, state: bool | None) -> None:
+    def setProjectStatus(self, state: Optional[bool]) -> None:
         """Set the project status colour icon."""
         self.projIcon.setState(state)
 
-    def setDocumentStatus(self, state: bool | None) -> None:
+    def setDocumentStatus(self, state: Optional[bool]) -> None:
         """Set the document status colour icon."""
         self.docIcon.setState(state)
 

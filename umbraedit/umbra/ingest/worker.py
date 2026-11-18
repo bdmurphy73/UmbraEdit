@@ -26,7 +26,7 @@ import logging
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from PyQt6.QtCore import QObject, QRunnable, pyqtBoundSignal, pyqtSignal, pyqtSlot
 
@@ -45,8 +45,8 @@ class IngestJobResult:
     """Result of an ingest job."""
 
     success: bool
-    plan: ImportPlan | None = None
-    error: str | None = None
+    plan: Optional[ImportPlan] = None
+    error: Optional[str] = None
 
 
 class IngestWorker(QRunnable):
@@ -56,7 +56,7 @@ class IngestWorker(QRunnable):
         self,
         file_path: Path,
         project: Any,
-        output_dir: Path | None,
+        output_dir: Optional[Path],
         signal: pyqtBoundSignal,
     ) -> None:
         super().__init__()
@@ -101,7 +101,7 @@ class IngestDispatcher(QObject):
         self,
         file_path: Path,
         project: Any,
-        output_dir: Path | None = None,
+        output_dir: Optional[Path] = None,
     ) -> None:
         """Dispatch an ingest job to the thread pool."""
         SHARED.runInThreadPool(
@@ -112,7 +112,7 @@ class IngestDispatcher(QObject):
 def run_ingest_pipeline(
     file_path: Path,
     project: Any,
-    output_dir: Path | None = None,
+    output_dir: Optional[Path] = None,
 ) -> IngestResult:
     """Run the ingest pipeline synchronously (for testing or CLI)."""
     pipeline = DocxIngestPipeline(file_path.parent)

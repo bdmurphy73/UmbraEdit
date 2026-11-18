@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QEvent, QModelIndex, QRect, QRectF, QSize, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QKeySequence, QPainter, QPaintEvent, QPalette
@@ -126,7 +126,7 @@ class NToolDialog(NDialog):
 class NNonBlockingDialog(NDialog):
     """Custom: Modified Non-Blocking QDialog."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent=parent)
         self.setModal(True)
 
@@ -209,7 +209,7 @@ class NTreeView(QTreeView):
 
     middleClicked = pyqtSignal(QModelIndex)
 
-    def mousePressEvent(self, event: QMouseEvent | None) -> None:
+    def mousePressEvent(self, event: Optional[QMouseEvent]) -> None:
         """Emit a signal on mouse middle click."""
         if event and event.button() == QtMouseMiddle and (index := self.indexAt(event.pos())).isValid():
             self.middleClicked.emit(index)
@@ -224,7 +224,7 @@ class NComboBox(QComboBox):
     window of many widgets.
     """
 
-    def __init__(self, parent: QWidget | None = None, maxItems: int = 15) -> None:
+    def __init__(self, parent: Optional[QWidget] = None, maxItems: int = 15) -> None:
         super().__init__(parent=parent)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMaxVisibleItems(maxItems)
@@ -263,7 +263,7 @@ class NSpinBox(QSpinBox):
 
     def __init__(
         self,
-        parent: QWidget | None = None,
+        parent: Optional[QWidget] = None,
         *,
         minVal: int = 0,
         maxVal: int = 15,
@@ -297,7 +297,7 @@ class NDoubleSpinBox(QDoubleSpinBox):
 
     def __init__(
         self,
-        parent: QWidget | None = None,
+        parent: Optional[QWidget] = None,
         *,
         minVal: float = 0.0,
         maxVal: float = 15.0,
@@ -334,7 +334,7 @@ class NPushButton(QPushButton):
         parent: QWidget,
         text: str,
         iconSize: QSize,
-        icon: str | None = None,
+        icon: Optional[str] = None,
     ) -> None:
         super().__init__(parent=parent)
         self._icon = icon
@@ -418,7 +418,7 @@ class NIconButton(QToolButton):
 
     __slots__ = ("_icon",)
 
-    def __init__(self, parent: QWidget, iconSize: QSize, icon: str | None = None) -> None:
+    def __init__(self, parent: QWidget, iconSize: QSize, icon: Optional[str] = None) -> None:
         super().__init__(parent=parent)
         self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.setIconSize(iconSize)
@@ -437,7 +437,7 @@ class NIconButton(QToolButton):
         if self._icon:  # pragma: no branch
             self.setIcon(SHARED.theme.getIcon(self._icon))
 
-    def setToolTip(self, text: str | None, shortcut: str = "") -> None:
+    def setToolTip(self, text: Optional[str], shortcut: str = "") -> None:
         """Set the tooltip with an optional shortcut, and use the text as
         the accessible name.
         """
@@ -484,7 +484,7 @@ class NFlatIconButton(QToolButton):
         if self._icon:  # pragma: no branch
             self.setThemeIcon(self._icon)
 
-    def setToolTip(self, text: str | None, shortcut: str = "") -> None:
+    def setToolTip(self, text: Optional[str], shortcut: str = "") -> None:
         """Set the tooltip with an optional shortcut, and use the text as
         the accessible name.
         """
@@ -492,7 +492,7 @@ class NFlatIconButton(QToolButton):
         super().setToolTip(f"{text} [{shortcut}]" if shortcut else text)
         self.setAccessibleName(text)
 
-    def paintEvent(self, event: QPaintEvent | None) -> None:
+    def paintEvent(self, event: Optional[QPaintEvent]) -> None:
         """Paint the icon with a background colour when hovered or checked."""
         opt = QStyleOptionToolButton()
         opt.initFrom(self)
@@ -550,7 +550,7 @@ class NFlatIconTextButton(QToolButton):
         if self._icon:  # pragma: no branch
             self.setThemeIcon(self._icon)
 
-    def paintEvent(self, event: QPaintEvent | None) -> None:
+    def paintEvent(self, event: Optional[QPaintEvent]) -> None:
         """Paint the icon with a background colour when hovered or checked."""
         opt = QStyleOptionToolButton()
         opt.initFrom(self)
@@ -582,7 +582,7 @@ class NClickableLabel(QLabel):
 
     mouseClicked = pyqtSignal()
 
-    def setToolTip(self, text: str | None, shortcut: str = "") -> None:
+    def setToolTip(self, text: Optional[str], shortcut: str = "") -> None:
         """Set the tooltip with an optional shortcut, and use the text as
         the accessible name.
         """
@@ -636,27 +636,27 @@ class NSplitterHandle(QSplitterHandle):
             self.setCursor(Qt.CursorShape.ArrowCursor)
         self.update()
 
-    def event(self, event: QEvent | None) -> bool:
+    def event(self, event: Optional[QEvent]) -> bool:
         """Track hover state to trigger a repaint."""
         if event is not None and event.type() in (QEvent.Type.HoverEnter, QEvent.Type.HoverLeave):
             self._active = self._resizable and event.type() == QEvent.Type.HoverEnter
             self.update()
         return super().event(event)
 
-    def mousePressEvent(self, event: QMouseEvent | None) -> None:
+    def mousePressEvent(self, event: Optional[QMouseEvent]) -> None:
         """Keep the handle highlighted while being dragged."""
         if self._resizable:
             self._active = True
             self.update()
         super().mousePressEvent(event)
 
-    def mouseReleaseEvent(self, event: QMouseEvent | None) -> None:
+    def mouseReleaseEvent(self, event: Optional[QMouseEvent]) -> None:
         """Drop the highlight if the cursor has left the handle."""
         super().mouseReleaseEvent(event)
         self._active = self._resizable and self.underMouse()
         self.update()
 
-    def paintEvent(self, event: QPaintEvent | None) -> None:
+    def paintEvent(self, event: Optional[QPaintEvent]) -> None:
         """Paint the handle in the highlight colour when active."""
         if self._active:
             painter = QPainter(self)

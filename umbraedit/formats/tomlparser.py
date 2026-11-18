@@ -31,7 +31,7 @@ except ModuleNotFoundError:
 
 from enum import Enum
 from pathlib import Path
-from typing import TypeVar, Union, cast
+from typing import TypeVar, Union, cast, Optional
 
 from PyQt6.QtGui import QFont
 
@@ -60,11 +60,11 @@ class NTomlParser:
 
     __slots__ = ("_data", "_flat", "_map", "_root")
 
-    def __init__(self, flat: bool = False, confMap: T_ConfigMap | None = None) -> None:
+    def __init__(self, flat: bool = False, confMap: Optional[T_ConfigMap] = None) -> None:
         self._flat = flat
         self._data: T_TomlConfig = {}
         self._root: T_TomlObject = {}
-        self._map: T_ConfigMap | None = confMap
+        self._map: Optional[T_ConfigMap] = confMap
 
     def read(self, path: Path) -> None:
         """Read and parse TOML data from a file."""
@@ -107,27 +107,27 @@ class NTomlParser:
 
         return "\n".join(lines) + "\n" if lines else ""
 
-    def getStr(self, section: str | None, option: str, default: str) -> str:
+    def getStr(self, section: Optional[str], option: str, default: str) -> str:
         """Read string value."""
         return checkString(self._value(section, option), default)
 
-    def getInt(self, section: str | None, option: str, default: int) -> int:
+    def getInt(self, section: Optional[str], option: str, default: int) -> int:
         """Read integer value."""
         return checkInt(self._value(section, option), default)
 
-    def getFloat(self, section: str | None, option: str, default: float) -> float:
+    def getFloat(self, section: Optional[str], option: str, default: float) -> float:
         """Read float value."""
         return checkFloat(self._value(section, option), default)
 
-    def getBool(self, section: str | None, option: str, default: bool) -> bool:
+    def getBool(self, section: Optional[str], option: str, default: bool) -> bool:
         """Read boolean value."""
         return checkBool(self._value(section, option), default)
 
-    def getPath(self, section: str | None, option: str, default: Path) -> Path:
+    def getPath(self, section: Optional[str], option: str, default: Path) -> Path:
         """Read a Path value."""
         return checkPath(self._value(section, option), default)
 
-    def getStrList(self, section: str | None, option: str, default: list[str]) -> list[str]:
+    def getStrList(self, section: Optional[str], option: str, default: list[str]) -> list[str]:
         """Read string list, keeping the length of the default."""
         result = default.copy() if isinstance(default, list) else []
         data = self._value(section, option)
@@ -136,7 +136,7 @@ class NTomlParser:
                 result[i] = str(data[i])
         return result
 
-    def getIntList(self, section: str | None, option: str, default: list[int]) -> list[int]:
+    def getIntList(self, section: Optional[str], option: str, default: list[int]) -> list[int]:
         """Read integer list, keeping the length of the default."""
         result = default.copy() if isinstance(default, list) else []
         data = self._value(section, option)
@@ -145,7 +145,7 @@ class NTomlParser:
                 result[i] = checkInt(data[i], result[i])
         return result
 
-    def getEnum(self, section: str | None, option: str, default: _T_Enum) -> _T_Enum:
+    def getEnum(self, section: Optional[str], option: str, default: _T_Enum) -> _T_Enum:
         """Read enum value."""
         data = self._value(section, option)
         if isinstance(data, str):
@@ -156,7 +156,7 @@ class NTomlParser:
     # Internal Functions
     ##
 
-    def _value(self, section: str | None, option: str) -> T_TomlValue | None:
+    def _value(self, section: Optional[str], option: str) -> Optional[T_TomlValue]:
         """Look up a raw value, or None if the section or option is unset."""
         value = (self._data.get(section, {}) if section else self._root).get(option)
         if value is None and self._map and (moved := self._map.get((section, option))):

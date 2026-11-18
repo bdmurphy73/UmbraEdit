@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import re
 
@@ -110,7 +111,7 @@ class RegExPatterns:
         return self._rxAutoRep
 
     @property
-    def dialogStyle(self) -> re.Pattern | None:
+    def dialogStyle(self) -> re.Optional[Pattern]:
         """Dialogue detection rule based on user settings."""
         if CONFIG.dialogStyle > 0:
             rx = []
@@ -140,7 +141,7 @@ class RegExPatterns:
         return None
 
     @property
-    def altDialogStyle(self) -> re.Pattern | None:
+    def altDialogStyle(self) -> re.Optional[Pattern]:
         """Dialogue alternative rule based on user settings."""
         if CONFIG.altDialogOpen and CONFIG.altDialogClose:
             qO = re.escape(compact(CONFIG.altDialogOpen))

@@ -118,7 +118,7 @@ def generateProject(
     projXml = output / "UEProject.UEx"
     projXml.write_text(
         "<?xml version='1.0' encoding='utf-8'?>\n"
-        '<UmbraEditXML appVersion="2026.11.0005" hexVersion="0x01000000" '
+        '<UmbraEditXML appVersion="2026.11.0006" hexVersion="0x0106" '
         'fileVersion="1.6" fileRevision="1" timeStamp="2026-01-01T00:00:00Z">\n'
         '  <project id="bench-project-0000" saveCount="0" autoCount="0" '
         'editTime="0" indexRevision="0">\n'

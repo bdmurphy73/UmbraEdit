@@ -35,7 +35,7 @@ try:
 except ImportError:
     from datetime import timezone as UTC
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.lexicon import collectLexemes, exportLexicon
 from umbraedit.umbra.metadata import loadMetadata
@@ -69,11 +69,11 @@ class UtteranceRecord:
     voice: str  # voice matrix code
     pause_after_ms: int
     attribution: list[str] = field(default_factory=list)
-    skip: str | None = None
+    skip: Optional[str] = None
     pron: list[dict[str, Any]] = field(default_factory=list)
-    speaker: str | None = None
-    tone: str | None = None
-    lang: str | None = None
+    speaker: Optional[str] = None
+    tone: Optional[str] = None
+    lang: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -115,7 +115,7 @@ class CharacterInfo:
     tag: str
     name: str
     kind: str
-    voice_code: str | None
+    voice_code: Optional[str]
     languages: list[str]
 
 
@@ -258,7 +258,7 @@ class AudioPackageBuilder:
             "formats": dict(meta.formats) if meta.formats else {},
         }
 
-    def _get_cover_path(self) -> Path | None:
+    def _get_cover_path(self) -> Optional[Path]:
         """Get the audiobook cover path."""
         meta = self._get_edition_metadata()
         cover_file = meta["formats"].get("audiobook", {}).get("cover")
@@ -268,7 +268,7 @@ class AudioPackageBuilder:
                 return cover_path
         return None
 
-    def _copy_cover(self, output_dir: Path) -> dict[str, str] | None:
+    def _copy_cover(self, output_dir: Path) -> Optional[dict[str, str]]:
         """Copy cover image to output directory."""
         cover_path = self._get_cover_path()
         if not cover_path:
@@ -517,7 +517,7 @@ class AudioPackageBuilder:
             status="test",
         )
 
-    def _build_matter_audio(self) -> tuple[MatterAudio | None, MatterAudio | None]:
+    def _build_matter_audio(self) -> tuple[Optional[MatterAudio], Optional[MatterAudio]]:
         """Build spoken front and end matter."""
         # Get spoken matter pages from P21
         # This would query the pages system for pages with audio variant = spoken

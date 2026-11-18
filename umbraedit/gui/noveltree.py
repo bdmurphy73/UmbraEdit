@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import logging
 
@@ -157,7 +158,7 @@ class GuiNovelView(QWidget):
     ##
 
     @pyqtSlot(str)
-    def setCurrentNovel(self, rootHandle: str | None) -> None:
+    def setCurrentNovel(self, rootHandle: Optional[str]) -> None:
         """Set the current novel to display."""
         self.novelTree.setNovelModel(rootHandle)
 
@@ -282,7 +283,7 @@ class GuiNovelToolBar(QWidget):
         self.novelView.setCurrentNovel(self.novelValue.handle)
         self.tbNovel.setVisible(self.novelValue.count() > 1)
 
-    def setCurrentRoot(self, rootHandle: str | None) -> None:
+    def setCurrentRoot(self, rootHandle: Optional[str]) -> None:
         """Set the current active root handle."""
         if rootHandle is None or rootHandle not in SHARED.project.tree:
             rootHandle = self.novelValue.firstHandle
@@ -429,7 +430,7 @@ class GuiNovelTree(NTreeView):
     #  Getters
     ##
 
-    def getSelectedHandle(self) -> tuple[str | None, str | None]:
+    def getSelectedHandle(self) -> tuple[Optional[str], Optional[str]]:
         """Get the currently selected or active handle. If multiple
         items are selected, return the first.
         """
@@ -441,7 +442,7 @@ class GuiNovelTree(NTreeView):
     #  Setters
     ##
 
-    def setNovelModel(self, tHandle: str | None) -> None:
+    def setNovelModel(self, tHandle: Optional[str]) -> None:
         """Set the current novel model."""
         if tHandle and (model := SHARED.project.index.getNovelModel(tHandle)):
             if model is not self.model():
@@ -453,7 +454,7 @@ class GuiNovelTree(NTreeView):
         else:
             self.clearContent()
 
-    def setActiveHandle(self, tHandle: str | None) -> None:
+    def setActiveHandle(self, tHandle: Optional[str]) -> None:
         """Set the handle to be highlighted."""
         self._actHandle = tHandle
         if viewport := self.viewport():  # pragma: no branch
@@ -553,7 +554,7 @@ class GuiNovelTree(NTreeView):
     #  Internal Functions
     ##
 
-    def _getModel(self) -> NovelModel | None:
+    def _getModel(self) -> Optional[NovelModel]:
         """Return the model, if it exists."""
         if isinstance(model := self.model(), NovelModel):
             return model

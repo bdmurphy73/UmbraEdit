@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -68,7 +68,7 @@ def callGating(name: str, *args: Any, **kwargs: Any) -> list[Any]:
     return results
 
 
-def clear(name: str | None = None) -> None:
+def clear(name: Optional[str] = None) -> None:
     """Clear all handlers for a hook, or all hooks if name is None."""
     if name is None:
         _hooks.clear()

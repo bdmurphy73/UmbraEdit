@@ -29,5 +29,13 @@ fi
 
 cd "$RESOURCES_DIR"
 
-# Use exec -a "UmbraEdit" so macOS menu bar shows "UmbraEdit" not "Python"
-exec -a "UmbraEdit" "$PYTHON_CMD" UmbraEdit.py "$@"
+# Run UmbraEdit with error capture
+ERROR_LOG="$HOME/Library/Logs/UmbraEdit/error.log"
+mkdir -p "$(dirname "$ERROR_LOG")"
+
+exec -a "UmbraEdit" "$PYTHON_CMD" UmbraEdit.py "$@" 2>"$ERROR_LOG"
+
+# If we get here, the app crashed - show the error
+ERROR_CONTENT=$(cat "$ERROR_LOG" 2>/dev/null || echo "Unknown error")
+osascript -e "tell app \"System Events\" to display dialog \"UmbraEdit crashed:\\n\\n$ERROR_CONTENT\" buttons {\"OK\"} default button \"OK\" with icon caution"
+exit 1

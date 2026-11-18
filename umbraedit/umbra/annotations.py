@@ -35,7 +35,7 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.paths import cacheDir
 
@@ -185,7 +185,7 @@ def save_annotations(project_path: Path, annotations: list[Annotation]) -> None:
             temp_path.unlink()
 
 
-def get_annotation(project_path: Path, annotation_id: str) -> Annotation | None:
+def get_annotation(project_path: Path, annotation_id: str) -> Optional[Annotation]:
     """Get a single annotation by ID."""
     for ann in load_annotations(project_path):
         if ann.id == annotation_id:

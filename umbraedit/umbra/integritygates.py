@@ -25,7 +25,7 @@ from __future__ import annotations
 import json
 import logging
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.gates import (
     OP_BACKUP_ROTATE,
@@ -50,7 +50,7 @@ RULE_FILE_CORRUPTED = "fileCorrupted"
 RULE_FILE_UNREPAIRED = "fileUnrepaired"
 
 
-def _getProjectPath(scope: Any) -> str | None:
+def _getProjectPath(scope: Any) -> Optional[str]:
     """Safely get the project path from a gate scope."""
     try:
         if not scope.project:

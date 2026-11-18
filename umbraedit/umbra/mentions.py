@@ -19,7 +19,7 @@ import re
 import unicodedata
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from umbraedit.umbra.sheet import EntityRow, full_name
 
@@ -125,7 +125,7 @@ def _hasCjk(text: str) -> bool:
     )
 
 
-def buildMatcher(entities: Iterable[EntityRow]) -> MentionMatcher | None:
+def buildMatcher(entities: Iterable[EntityRow]) -> Optional[MentionMatcher]:
     r"""Build a compiled mention matcher for the given entities.
 
     Returns None when no entity has a matchable form. A single
@@ -167,7 +167,7 @@ def buildMatcher(entities: Iterable[EntityRow]) -> MentionMatcher | None:
 def findMentions(
     text: str,
     entities: Iterable[EntityRow],
-    matcher: MentionMatcher | None = None,
+    matcher: Optional[MentionMatcher] = None,
 ) -> list[Mention]:
     """Find all entity mentions in a text.
 
@@ -214,10 +214,10 @@ class MentionCache:
 
     def __init__(self) -> None:
         self._entries: dict[tuple[str, str], list[Mention]] = {}
-        self._matcher: MentionMatcher | None = None
+        self._matcher: Optional[MentionMatcher] = None
         self._matcherKey: str = ""
 
-    def matcherFor(self, entities: Iterable[EntityRow]) -> MentionMatcher | None:
+    def matcherFor(self, entities: Iterable[EntityRow]) -> Optional[MentionMatcher]:
         """Return the compiled matcher, rebuilding only when needed."""
         entityList = list(entities)
         formsKey = hashlib.sha256(
@@ -255,7 +255,7 @@ class MentionCache:
 def findMentionsProject(
     texts: list[tuple[str, str]],
     entities: Iterable[EntityRow],
-    cache: MentionCache | None = None,
+    cache: Optional[MentionCache] = None,
 ) -> dict[str, list[Mention]]:
     """Find mentions across a project's documents.
 
@@ -283,7 +283,7 @@ def _sentenceStarts(text: str) -> set[int]:
 
 
 def findUntrackedNames(
-    texts: str | Iterable[str],
+    texts: Union[str, Iterable[str]],
     entities: Iterable[EntityRow],
     stoplist: Iterable[str] = (),
     minCount: int = 3,

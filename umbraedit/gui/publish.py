@@ -26,7 +26,7 @@ import json
 import logging
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -287,7 +287,7 @@ class PublishDockManager:
 
     def __init__(self, main_window: GuiMain) -> None:
         self.main_window = main_window
-        self.dock: PublishDock | None = None
+        self.dock: Optional[PublishDock] = None
 
     def create_dock(self) -> PublishDock:
         """Create the Publish dock."""

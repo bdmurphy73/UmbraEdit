@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import logging
 
@@ -54,7 +55,7 @@ class GuiDocHeaderBase(QWidget):
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent=parent)
 
-        self._docHandle: str | None = None
+        self._docHandle: Optional[str] = None
         self._state = nwState.NORMAL
 
         iSz = SHARED.theme.baseIconSize

@@ -15,7 +15,7 @@ bytes returns the existing code.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 if TYPE_CHECKING:  # pragma: no cover
     from pathlib import Path
@@ -43,7 +43,7 @@ class VoiceEntry:
 class VoiceStore:
     """Manages voice matrix assets and the voice registry for a project."""
 
-    def __init__(self, projectPath: Path, bibleVoiceStore: VoiceStore | None = None) -> None:
+    def __init__(self, projectPath: Path, bibleVoiceStore: Optional[VoiceStore] = None) -> None:
         self._projectPath = projectPath
         self._assets = AssetStore(projectPath)
         self._registryPath = voicesFile(projectPath)
@@ -99,7 +99,7 @@ class VoiceStore:
             voices = [v for v in voices if not v.retired]
         return sorted(voices, key=lambda v: v.label.lower())
 
-    def getVoiceEntry(self, code: str) -> VoiceEntry | None:
+    def getVoiceEntry(self, code: str) -> Optional[VoiceEntry]:
         """Return the registry entry for a code, or None."""
         return self._voices.get(code)
 
@@ -110,7 +110,7 @@ class VoiceStore:
     def importVoiceMatrix(
         self,
         data: bytes,
-        label: str | None = None,
+        label: Optional[str] = None,
         kind: str = "character",
     ) -> str:
         """Import a voice matrix byte string.
@@ -167,7 +167,7 @@ class VoiceStore:
         self._saveRegistry()
         return code
 
-    def getVoiceMatrix(self, code: str) -> bytes | None:
+    def getVoiceMatrix(self, code: str) -> Optional[bytes]:
         """Return the raw UVMX bytes for a registered code, or None."""
         entry = self._voices.get(code)
         if entry is None:
@@ -187,7 +187,7 @@ class VoiceStore:
     #  Resolution (R3)
     ##
 
-    def getVoice(self, tag: str, editionLang: str | None = None, index: Any = None) -> VoiceMatrix | None:
+    def getVoice(self, tag: str, editionLang: Optional[str] = None, index: Any = None) -> Optional[VoiceMatrix]:
         """Return the voice matrix for a tag in an edition language.
 
         Reads the ``voice_matrix`` attribute from the entity sheet and

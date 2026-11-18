@@ -29,7 +29,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, TextIO
+from typing import TYPE_CHECKING, TextIO, Optional, Union
 
 from umbraedit import CONFIG
 from umbraedit.common import formatTimeStamp, isHandle, safeExists, safeIsFile, stripUnsafe
@@ -52,8 +52,8 @@ class DocumentMeta:
     """A dataclass representing the meta data of a document."""
 
     name: str = ""
-    parent: str | None = None
-    handle: str | None = None
+    parent: Optional[str] = None
+    handle: Optional[str] = None
     itemClass: nwItemClass = nwItemClass.NOVEL
     itemLayout: nwItemLayout = nwItemLayout.NOTE
     textHash: str = ""
@@ -70,7 +70,7 @@ class ProjectDocument:
     it returns a None rather than an empty or non-empty string.
     """
 
-    def __init__(self, project: NWProject, tHandle: str | None) -> None:
+    def __init__(self, project: NWProject, tHandle: Optional[str]) -> None:
 
         self._project = project
 
@@ -133,7 +133,7 @@ class ProjectDocument:
         return self._meta.updatedDate
 
     @property
-    def nwItem(self) -> ProjectItem | None:
+    def nwItem(self) -> Optional[ProjectItem]:
         """Return a pointer to the currently open ProjectItem."""
         return self._item
 
@@ -170,7 +170,7 @@ class ProjectDocument:
 
         return safeIsFile(contentPath / f"{self._handle}.md")
 
-    def readDocument(self, isOrphan: bool = False) -> str | None:
+    def readDocument(self, isOrphan: bool = False) -> Optional[str]:
         """Read the document specified by the handle set in the
         constructor, capturing potential file system errors and parse
         meta data. If the document doesn't exist on disk, return an

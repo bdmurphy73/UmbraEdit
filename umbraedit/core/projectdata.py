@@ -26,7 +26,7 @@ import logging
 import uuid
 
 from datetime import date
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from umbraedit import CONFIG
 from umbraedit.common import (
@@ -130,7 +130,7 @@ class ProjectData:
         # Project Dictionaries
         self._initCounts = [0, 0, 0, 0]
         self._currCounts = [0, 0, 0, 0]
-        self._lastHandle: dict[str, str | None] = {
+        self._lastHandle: dict[str, Optional[str]] = {
             "editor": None,
             "viewer": None,
             "novel": None,
@@ -213,7 +213,7 @@ class ProjectData:
         return self._targetLastCount
 
     @property
-    def targetDeadline(self) -> date | None:
+    def targetDeadline(self) -> Optional[date]:
         """Return the project deadline."""
         return self._targetDeadline
 
@@ -243,7 +243,7 @@ class ProjectData:
         return self._dailyProgress
 
     @property
-    def language(self) -> str | None:
+    def language(self) -> Optional[str]:
         """Return the project language setting."""
         return self._language
 
@@ -258,7 +258,7 @@ class ProjectData:
         return self._spellCheck
 
     @property
-    def spellLang(self) -> str | None:
+    def spellLang(self) -> Optional[str]:
         """Return the spell check language."""
         return self._spellLang
 
@@ -277,7 +277,7 @@ class ProjectData:
         return self._currCounts[0], self._currCounts[1], self._currCounts[2], self._currCounts[3]
 
     @property
-    def lastHandle(self) -> dict[str, str | None]:
+    def lastHandle(self) -> dict[str, Optional[str]]:
         """Return the dictionary of last used handles for various
         components of the GUI.
         """
@@ -321,7 +321,7 @@ class ProjectData:
     #  Getters
     ##
 
-    def getLastHandle(self, component: str) -> str | None:
+    def getLastHandle(self, component: str) -> Optional[str]:
         """Retrieve the last used handle for a given component."""
         return self._lastHandle.get(component, None)
 
@@ -352,13 +352,13 @@ class ProjectData:
             self._uuid = value
             self._project.setProjectChanged(True)
 
-    def setName(self, value: str | None) -> None:
+    def setName(self, value: Optional[str]) -> None:
         """Set a new project name."""
         if value != self._name:
             self._name = simplified(str(value or ""))
             self._project.setProjectChanged(True)
 
-    def setAuthor(self, value: str | None) -> None:
+    def setAuthor(self, value: Optional[str]) -> None:
         """Set the author value."""
         if value != self._author:
             self._author = simplified(str(value or ""))
@@ -389,7 +389,7 @@ class ProjectData:
             self._doBackup = checkBool(value, False)
             self._project.setProjectChanged(True)
 
-    def setProjectTarget(self, count: str | int | None, deadline: str | date | None, countChars: bool) -> None:
+    def setProjectTarget(self, count: Union[str, Optional[int]], deadline: Union[str, Optional[date]], countChars: bool) -> None:
         """Set the project goal."""
         if (
             (updateCounts := countChars != self._targetCountChars)
@@ -430,7 +430,7 @@ class ProjectData:
         self._remainingCount = self._targetCount - (target - self._dailyProgress)
         self._targetLastCount = target
 
-    def setLanguage(self, value: str | None, rtl: bool | str | None) -> None:
+    def setLanguage(self, value: Optional[str], rtl: Union[bool, Optional[str]]) -> None:
         """Set the project language."""
         language = checkStringNone(value, None)
         isRTL = checkBool(rtl, False)
@@ -445,13 +445,13 @@ class ProjectData:
             self._spellCheck = checkBool(value, False)
             self._project.setProjectChanged(True)
 
-    def setSpellLang(self, value: str | None) -> None:
+    def setSpellLang(self, value: Optional[str]) -> None:
         """Set the spell check language."""
         if value != self._spellLang:
             self._spellLang = checkStringNone(value, None)
             self._project.setProjectChanged(True)
 
-    def setLastHandle(self, value: str | None, component: T_LastHandle) -> None:
+    def setLastHandle(self, value: Optional[str], component: T_LastHandle) -> None:
         """Set a last used handle into the handle registry for a given
         component.
         """

@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import datetime
 import hashlib
@@ -122,9 +123,9 @@ class Problem:
     severity: str
     message: str
     fix: str
-    handle: str | None = None
-    line: int | None = None
-    detail: dict | None = None
+    handle: Optional[str] = None
+    line: Optional[int] = None
+    detail: Optional[dict] = None
 
 
 @dataclass(frozen=True)
@@ -162,7 +163,7 @@ def _sha256Text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _readDocumentText(path: Path) -> str | None:
+def _readDocumentText(path: Path) -> Optional[str]:
     """Read a document file as UTF-8 text. Returns None if unreadable."""
     try:
         return path.read_text(encoding="utf-8")
@@ -172,7 +173,7 @@ def _readDocumentText(path: Path) -> str | None:
         return None
 
 
-def _parseHeader(text: str) -> tuple[dict[str, str], str] | None:
+def _parseHeader(text: str) -> Optional[tuple[dict[str, str], str]]:
     """Parse the document header (+++ block).
 
     Returns (metadata_dict, body_text) or None if no valid header.

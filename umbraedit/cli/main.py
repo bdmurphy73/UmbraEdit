@@ -28,7 +28,7 @@ import logging
 import sys
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 from umbraedit.cli.api import DEFAULT_PORT, cmd_serve
 
@@ -843,7 +843,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     """Run the CLI entry point."""
     parser = build_parser()
     args = parser.parse_args(argv)

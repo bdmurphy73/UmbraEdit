@@ -43,7 +43,7 @@ except ImportError:
     from datetime import timezone as UTC
 import contextlib
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.hooks import DOCUMENT_SAVED, PROJECT_CLOSING, PROJECT_OPENED, register
 from umbraedit.umbra.jsonio import readJson, writeJson
@@ -232,7 +232,7 @@ class RevisionStore:
         revs.sort(key=lambda r: r.at, reverse=True)
         return revs
 
-    def readRevision(self, revId: str) -> str | None:
+    def readRevision(self, revId: str) -> Optional[str]:
         self._ensureLoaded()
         print(f"DEBUG readRevision: looking for revId={revId}")
         print(f"DEBUG readRevision: index has {len(self._index.get('revisions', []))} revisions")
@@ -255,7 +255,7 @@ class RevisionStore:
         print(f"DEBUG readRevision: NO match found for revId={revId}")
         return None
 
-    def _findRevision(self, revId: str) -> dict[str, Any] | None:
+    def _findRevision(self, revId: str) -> Optional[dict[str, Any]]:
         self._ensureLoaded()
         for r in self._index.get("revisions", []):
             if r.get("id") == revId:
@@ -297,7 +297,7 @@ class RevisionStore:
                 return True
         return False
 
-    def latestRevision(self) -> Revision | None:
+    def latestRevision(self) -> Optional[Revision]:
         revs = self.listRevisions()
         return revs[0] if revs else None
 
@@ -309,7 +309,7 @@ class HistoryManager:
         self._deviceId, self._actorId = _deviceInfo(projectPath)
         self._stores: dict[str, RevisionStore] = {}
         self._lastAutoSnapshot: dict[str, datetime] = {}
-        self._lastWriteError: datetime | None = None
+        self._lastWriteError: Optional[datetime] = None
 
     def _storeForHandle(self, handle: str) -> RevisionStore:
         store = self._stores.get(handle)
@@ -318,7 +318,7 @@ class HistoryManager:
             self._stores[handle] = store
         return store
 
-    def snapshot(self, handle: str, kind: str, label: str = "", force: bool = False) -> Revision | None:
+    def snapshot(self, handle: str, kind: str, label: str = "", force: bool = False) -> Optional[Revision]:
         if kind not in REVISION_KINDS:
             logger.warning("Invalid revision kind: %s", kind)
             return None
@@ -400,7 +400,7 @@ class HistoryManager:
         store = self._storeForHandle(handle)
         return store.listRevisions()
 
-    def readRevision(self, handle: str, revId: str) -> str | None:
+    def readRevision(self, handle: str, revId: str) -> Optional[str]:
         store = self._storeForHandle(handle)
         return store.readRevision(revId)
 
@@ -430,7 +430,7 @@ class HistoryManager:
         logger.info("Restored revision %s for %s", revId, handle)
         return True
 
-    def createDraft(self, label: str, rootHandle: str) -> Draft | None:
+    def createDraft(self, label: str, rootHandle: str) -> Optional[Draft]:
         contentPath = self._project.storage.contentPath
         if contentPath is None:
             logger.error("Content path not available for draft")
@@ -497,7 +497,7 @@ class HistoryManager:
             return False, []
 
         drafts = data.get("drafts", [])
-        draft: dict[str, Any] | None = None
+        draft: Optional[dict[str, Any]] = None
         for d in drafts:
             if d.get("id") == draftId:
                 draft = d
@@ -548,14 +548,14 @@ class HistoryManager:
         return pruned
 
     @property
-    def lastWriteError(self) -> datetime | None:
+    def lastWriteError(self) -> Optional[datetime]:
         return self._lastWriteError
 
 
-_historyManager: HistoryManager | None = None
+_historyManager: Optional[HistoryManager] = None
 
 
-def historyManager() -> HistoryManager | None:
+def historyManager() -> Optional[HistoryManager]:
     """Return the shared history manager instance."""
     return _historyManager
 

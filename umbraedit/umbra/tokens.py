@@ -26,7 +26,7 @@ import logging
 import re
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class Unresolved:
 
     token: Token
     reason: str
-    line: int | None = None
+    line: Optional[int] = None
 
 
 def findTokens(text: str) -> list[Token]:
@@ -111,7 +111,7 @@ def findTokens(text: str) -> list[Token]:
     return tokens
 
 
-def resolveTokens(text: str, project: Any, edition: str | None = None) -> tuple[str, list[Unresolved]]:
+def resolveTokens(text: str, project: Any, edition: Optional[str] = None) -> tuple[str, list[Unresolved]]:
     """Resolve all character slot tokens in text.
 
     Replaces each ``{charN attr}`` token with the corresponding
@@ -219,7 +219,7 @@ def findVariables(text: str) -> list[str]:
 
 
 def resolveVariables(
-    text: str, project: Any, edition: str | None = None, fmt: str = "paperback"
+    text: str, project: Any, edition: Optional[str] = None, fmt: str = "paperback"
 ) -> tuple[str, list[str]]:
     """Resolve all {{variable}} template variables in text.
 
@@ -277,7 +277,7 @@ def resolveVariables(
 
 
 def preprocessText(
-    text: str, project: Any, edition: str | None = None, fmt: str = "paperback"
+    text: str, project: Any, edition: Optional[str] = None, fmt: str = "paperback"
 ) -> tuple[str, list[Unresolved], list[str]]:
     """Preprocess text for export: resolve both {charN} tokens and {{variables}}.
 

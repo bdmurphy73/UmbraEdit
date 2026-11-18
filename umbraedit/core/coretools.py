@@ -29,7 +29,7 @@ import time as time_module
 
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 from zipfile import ZipFile, is_zipfile
 
 from PyQt6.QtCore import QCoreApplication
@@ -70,7 +70,7 @@ class DocMerger:
         self._text = []
 
     @property
-    def targetHandle(self) -> str | None:
+    def targetHandle(self) -> Optional[str]:
         """Get the handle of the target document."""
         if self._target:
             return self._target.itemHandle
@@ -265,7 +265,7 @@ class DocDuplicator:
         result = []
         after = True
         if items:
-            hMap: dict[str, str | None] = dict.fromkeys(items)
+            hMap: dict[str, Optional[str]] = dict.fromkeys(items)
             SHARED.initMainProgress(len(items))
             for tHandle in items:
                 SHARED.incMainProgress()
@@ -294,7 +294,7 @@ class ProjectBuilder:
         self.tr = partial(QCoreApplication.translate, "ProjectBuilder")
 
     @property
-    def projPath(self) -> Path | None:
+    def projPath(self) -> Optional[Path]:
         """The path of the newly created project."""
         return self._path
 
@@ -564,11 +564,11 @@ class DocxImporter:
     """
 
     def __init__(self) -> None:
-        self._project: NWProject | None = None
+        self._project: Optional[NWProject] = None
         self._error = ""
-        self._novel_root: str | None = None
-        self._notes_root: str | None = None
-        self._current_chapter: str | None = None
+        self._novel_root: Optional[str] = None
+        self._notes_root: Optional[str] = None
+        self._current_chapter: Optional[str] = None
 
     ##
     #  Properties

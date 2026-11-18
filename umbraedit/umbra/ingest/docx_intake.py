@@ -28,7 +28,7 @@ import subprocess
 import zipfile
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -45,7 +45,7 @@ class IntakeResult:
     file_size: int
     pandoc_version: str
     valid: bool
-    error: str | None = None
+    error: Optional[str] = None
 
 
 def _compute_sha256(file_path: Path) -> str:
@@ -76,7 +76,7 @@ def _get_pandoc_version() -> str:
     return "unknown"
 
 
-def _validate_docx(file_path: Path) -> str | None:
+def _validate_docx(file_path: Path) -> Optional[str]:
     """Validate DOCX file structure. Returns error message if invalid."""
     if not file_path.is_file():
         return f"File not found: {file_path}"
@@ -111,7 +111,7 @@ class DocxIntake:
     """Intake stage: validate file, compute hash, detect Pandoc version."""
 
     def __init__(self) -> None:
-        self._pandoc_version: str | None = None
+        self._pandoc_version: Optional[str] = None
 
     def process(self, file_path: Path) -> IntakeResult:
         """Process a DOCX file through the intake stage."""

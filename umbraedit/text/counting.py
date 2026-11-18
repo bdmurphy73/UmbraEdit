@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import re
 
@@ -28,7 +29,7 @@ from umbraedit.constants import nwRegEx, nwUnicode
 
 RX_SC = re.compile(nwRegEx.FMT_SC)
 RX_SV = re.compile(nwRegEx.FMT_SV)
-RX_LO = re.compile(r"(?i)(?<!\\)(\[(?:vspace|newpage|new page)(:\d+)?)(?<!\\)(\])")
+RX_LO = re.compile(r"(?i)(?<!\\)(\[(?:vspace | newpage|new page)(:\d+)?)(?<!\\)(\])")
 
 
 def preProcessText(text: str, keepHeaders: bool = True) -> list[str]:

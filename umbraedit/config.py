@@ -33,7 +33,7 @@ except ModuleNotFoundError:
 
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, Optional, Union
 
 from PyQt6.QtCore import (
     PYQT_VERSION,
@@ -498,7 +498,7 @@ class Config:
         return self._hasError
 
     @property
-    def pdfDocs(self) -> Path | None:
+    def pdfDocs(self) -> Optional[Path]:
         """Return the local manual PDF file, if any exist."""
         return self._manuals.get(f"manual_{self.locale.bcp47Name()}", self._manuals.get("manual"))
 
@@ -523,7 +523,7 @@ class Config:
         return self._lastAuthor
 
     @property
-    def lineEnding(self) -> str | None:
+    def lineEnding(self) -> Optional[str]:
         """Return the project file line ending."""
         return "\n" if self.forceUnixLineEndings else None
 
@@ -586,7 +586,7 @@ class Config:
         """Set the current backup path."""
         self._backupPath = checkPath(path, self._backPath)
 
-    def setGuiFont(self, value: QFont | str | None) -> None:
+    def setGuiFont(self, value: Union[QFont, Optional[str]]) -> None:
         """Update the GUI's font style from settings."""
         if isinstance(value, QFont):
             self.guiFont = fontMatcher(value)
@@ -609,7 +609,7 @@ class Config:
             logger.debug("Main font set to: %s", describeFont(font))
         QApplication.setFont(self.guiFont)
 
-    def setTextFont(self, value: QFont | str | None) -> None:
+    def setTextFont(self, value: Union[QFont, Optional[str]]) -> None:
         """Set the text font if it exists. If it doesn't, or is None,
         set to default font.
         """
@@ -655,13 +655,13 @@ class Config:
         """Return the user's home folder."""
         return self._homePath
 
-    def dataPath(self, target: str | None = None) -> Path:
+    def dataPath(self, target: Optional[str] = None) -> Path:
         """Return a path in the data folder."""
         if isinstance(target, str):
             return self._dataPath / target
         return self._dataPath
 
-    def assetPath(self, target: str | None = None) -> Path:
+    def assetPath(self, target: Optional[str] = None) -> Path:
         """Return a path in the assets folder."""
         if isinstance(target, str):
             return self._appPath / "assets" / target
@@ -744,7 +744,7 @@ class Config:
     #  Config Actions
     ##
 
-    def initConfig(self, confPath: str | Path | None = None, dataPath: str | Path | None = None) -> None:
+    def initConfig(self, confPath: Union[str, Optional[Path]] = None, dataPath: Union[str, Optional[Path]] = None) -> None:
         """Initialise the config class. The manual setting of confPath
         and dataPath is mainly intended for the test suite.
         """
@@ -813,7 +813,7 @@ class Config:
             nwApp.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.rtlMode = nwApp.layoutDirection() == Qt.LayoutDirection.RightToLeft
 
-    def loadConfig(self, splash: NSplashScreen | None = None) -> bool:
+    def loadConfig(self, splash: Optional[NSplashScreen] = None) -> bool:
         """Load preferences from file and replace default settings."""
         self._splash = splash
         self.splashMessage("Loading user configuration ...")
@@ -1230,7 +1230,7 @@ class RecentProjects:
             (str(k), str(e["title"]), checkInt(e["words"], 0), checkInt(e["time"], 0)) for k, e in self._data.items()
         ]
 
-    def findCopy(self, path: str | Path, puuid: str) -> str | None:
+    def findCopy(self, path: str | Path, puuid: str) -> Optional[str]:
         """Return the path of another existing project with the same UUID."""
         if (other := self._otherPath(str(path), puuid)) and safeIsFile(Path(other) / nwFiles.PROJ_FILE):
             return other
@@ -1266,7 +1266,7 @@ class RecentProjects:
     #  Internal Functions
     ##
 
-    def _otherPath(self, path: str, puuid: str) -> str | None:
+    def _otherPath(self, path: str, puuid: str) -> Optional[str]:
         """Return another recorded path for the same project UUID."""
         if (other := self._map.get(puuid)) and other != path and self._data.get(other, {}).get("uuid") == puuid:
             return other
@@ -1300,7 +1300,7 @@ class RecentPaths:
             self._data[key] = str(path)
         self.saveCache()
 
-    def getPath(self, key: str) -> str | None:
+    def getPath(self, key: str) -> Optional[str]:
         """Get a path for a given key, or return None."""
         return self._data.get(key)
 

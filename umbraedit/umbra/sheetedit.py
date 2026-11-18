@@ -13,6 +13,7 @@ document when the note is open so undo works.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 from dataclasses import dataclass, field
 
@@ -58,7 +59,7 @@ def _keywordLine(key: str, value: str) -> str:
     return f"{key}: {value}" if value else f"{key}:"
 
 
-def _splitKeywordLine(line: str) -> tuple[str, str] | None:
+def _splitKeywordLine(line: str) -> Optional[tuple[str, str]]:
     """Split a keyword line into (key, raw value), or None."""
     stripped = line.strip()
     if not stripped.startswith("@"):
@@ -67,7 +68,7 @@ def _splitKeywordLine(line: str) -> tuple[str, str] | None:
     return key.strip(), value.strip()
 
 
-def keywordBlockRange(lines: list[str]) -> tuple[int, int] | None:
+def keywordBlockRange(lines: list[str]) -> Optional[tuple[int, int]]:
     """Return the (start, end) slice of the keyword block.
 
     The keyword block is the first contiguous run of lines starting

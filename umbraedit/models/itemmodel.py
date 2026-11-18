@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, Optional
 
 from PyQt6.QtCore import QAbstractItemModel, QMimeData, QModelIndex, Qt
 from PyQt6.QtGui import QFont, QIcon
@@ -105,7 +105,7 @@ class ProjectNode:
     def __init__(self, item: ProjectItem) -> None:
         self._item = item
         self._children: list[ProjectNode] = []
-        self._parent: ProjectNode | None = None
+        self._parent: Optional[ProjectNode] = None
         self._row = 0
         self._cache: dict[int, T_NodeData] = {}
         self._flags = NODE_FLAGS
@@ -202,17 +202,17 @@ class ProjectNode:
 
     def data(self, column: int, role: Qt.ItemDataRole) -> T_NodeData:
         """Return cached node data."""
-        return self._cache.get(C_FACTOR * column | role)
+        return self._cache.get(C_FACTOR * (column | role))
 
     def flags(self) -> Qt.ItemFlag:
         """Return cached node flags."""
         return self._flags
 
-    def parent(self) -> ProjectNode | None:
+    def parent(self) -> Optional[ProjectNode]:
         """Return the parent of the node."""
         return self._parent
 
-    def child(self, row: int) -> ProjectNode | None:
+    def child(self, row: int) -> Optional[ProjectNode]:
         """Return a child of the node."""
         if 0 <= row < len(self._children):
             return self._children[row]
@@ -240,7 +240,7 @@ class ProjectNode:
         self._refreshChildrenPos()
         self._item.notifyNovelStructureChange()
 
-    def takeChild(self, pos: int) -> ProjectNode | None:
+    def takeChild(self, pos: int) -> Optional[ProjectNode]:
         """Remove a child item and return it."""
         if 0 <= pos < len(self._children):
             node = self._children.pop(pos)
@@ -347,7 +347,7 @@ class ProjectModel(QAbstractItemModel):
             return QModelIndex() if parent is self._root else self.createIndex(parent.row(), 0, parent)
         return QModelIndex()
 
-    def index(self, row: int, column: int, parent: QModelIndex | None = None) -> QModelIndex:
+    def index(self, row: int, column: int, parent: Optional[QModelIndex] = None) -> QModelIndex:
         """Get the index of a child item of a parent."""
         parent = parent or QModelIndex()
         if self.hasIndex(row, column, parent):
@@ -411,7 +411,7 @@ class ProjectModel(QAbstractItemModel):
         if not handles:
             return False
 
-        target: ProjectNode | None = targetNode
+        target: Optional[ProjectNode] = targetNode
         while target:
             if target.item.itemHandle in handles:
                 return False
@@ -437,7 +437,7 @@ class ProjectModel(QAbstractItemModel):
             return index.internalPointer().row()
         return -1
 
-    def node(self, index: QModelIndex) -> ProjectNode | None:
+    def node(self, index: QModelIndex) -> Optional[ProjectNode]:
         """Return the node for a given model index."""
         if index.isValid():
             return index.internalPointer()
@@ -447,7 +447,7 @@ class ProjectModel(QAbstractItemModel):
         """Return the nodes for a list of model indices."""
         return [i.internalPointer() for i in indices if i.isValid() and i.column() == 0]
 
-    def indexFromHandle(self, handle: str | None) -> QModelIndex:
+    def indexFromHandle(self, handle: Optional[str]) -> QModelIndex:
         """Get the index representing a node in the model."""
         if handle and (node := self._tree.nodes.get(handle)):
             return self.createIndex(node.row(), 0, node)
@@ -470,7 +470,7 @@ class ProjectModel(QAbstractItemModel):
         node.addChild(child, row)
         self.endInsertRows()
 
-    def removeChild(self, parent: QModelIndex, pos: int) -> ProjectNode | None:
+    def removeChild(self, parent: QModelIndex, pos: int) -> Optional[ProjectNode]:
         """Remove a node from the model and return it."""
         node: ProjectNode = parent.internalPointer() if parent.isValid() else self._root
         if 0 <= pos < node.childCount():

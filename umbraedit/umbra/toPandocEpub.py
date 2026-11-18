@@ -29,7 +29,7 @@ import tempfile
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from umbraedit.formats.toPandocJson import toPandocJson
 
@@ -46,10 +46,10 @@ class EpubValidationResult:
     valid: bool
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
-    epub_path: str | None = None
+    epub_path: Optional[str] = None
 
 
-def _find_epubcheck() -> str | None:
+def _find_epubcheck() -> Optional[str]:
     """Find EPUBCheck JAR file."""
     # Check common locations
     locations = [
@@ -73,7 +73,7 @@ def _check_java_available() -> bool:
         return False
 
 
-def validate_epub(epub_path: Path, epubcheck_jar: str | None = None) -> tuple[bool, list[str], list[str]]:
+def validate_epub(epub_path: Path, epubcheck_jar: Optional[str] = None) -> tuple[bool, list[str], list[str]]:
     """Validate an EPUB file using EPUBCheck.
 
     Args:
@@ -121,7 +121,7 @@ def validate_epub(epub_path: Path, epubcheck_jar: str | None = None) -> tuple[bo
         return False, [f"EPUBCheck failed: {e}"], []
 
 
-def _find_epubcheck() -> str | None:
+def _find_epubcheck() -> Optional[str]:
     """Find EPUBCheck JAR file."""
     # Check common locations
     locations = [
@@ -153,7 +153,7 @@ def _check_epubcheck_available() -> bool:
 def build_epub_with_pandoc(
     project: NWProject,
     output_path: Path,
-    pandoc_args: list[str] | None = None,
+    pandoc_args: Optional[list[str]] = None,
 ) -> tuple[bool, str]:
     """Build EPUB from project using Pandoc.
 
@@ -227,7 +227,7 @@ def build_epub_with_pandoc(
 def build_epub_validated(
     project: NWProject,
     output_path: Path,
-    epubcheck_jar: str | None = None,
+    epubcheck_jar: Optional[str] = None,
 ) -> tuple[bool, str]:
     """Build EPUB with Pandoc and validate with EPUBCheck.
 

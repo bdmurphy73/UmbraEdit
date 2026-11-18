@@ -27,7 +27,7 @@ import re
 import xml.etree.ElementTree as ET
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Literal, NamedTuple
+from typing import TYPE_CHECKING, Literal, NamedTuple, Optional, Union
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from PyQt6.QtCore import QMargins, QSize
@@ -146,7 +146,7 @@ class DocXXmlRel(NamedTuple):
 
     rId: str
     relType: str
-    targetMode: str | None = None
+    targetMode: Optional[str] = None
 
 
 class DocXXmlFile(NamedTuple):
@@ -163,17 +163,17 @@ class DocXParStyle(NamedTuple):
     name: str
     styleId: str
     size: float
-    basedOn: str | None = None
-    nextStyle: str | None = None
-    before: float | None = None
-    after: float | None = None
-    left: float | None = None
-    line: float | None = None
-    indentFirst: float | None = None
-    align: str | None = None
+    basedOn: Optional[str] = None
+    nextStyle: Optional[str] = None
+    before: Optional[float] = None
+    after: Optional[float] = None
+    left: Optional[float] = None
+    line: Optional[float] = None
+    indentFirst: Optional[float] = None
+    align: Optional[str] = None
     default: bool = False
-    level: int | None = None
-    color: str | None = None
+    level: Optional[int] = None
+    color: Optional[str] = None
     bold: bool = False
 
 
@@ -439,7 +439,7 @@ class ToDocX(Tokenizer):
     #  Internal Functions
     ##
 
-    def _processFragments(self, par: DocXParagraph, pStyle: str, text: str, tFmt: T_Formats | None = None) -> None:
+    def _processFragments(self, par: DocXParagraph, pStyle: str, text: str, tFmt: Optional[T_Formats] = None) -> None:
         """Apply formatting tags to text."""
         par.setStyle(self._styles.get(pStyle))
         xFmt = 0x00
@@ -511,7 +511,7 @@ class ToDocX(Tokenizer):
         if temp := text[fStart:]:
             par.addContent(self._textRunToXml(temp, xFmt, fClass, fLink))
 
-    def _textRunToXml(self, text: str | None, fmt: int, fClass: str, fLink: str) -> ET.Element:
+    def _textRunToXml(self, text: Optional[str], fmt: int, fClass: str, fLink: str) -> ET.Element:
         """Encode the text run into XML."""
         xR = xmlElement(_wTag("r"))
         rPr = xmlSubElem(xR, _wTag("rPr"))
@@ -569,7 +569,7 @@ class ToDocX(Tokenizer):
     #  DocX Content
     ##
 
-    def _generateFootnote(self, key: str) -> ET.Element | None:
+    def _generateFootnote(self, key: str) -> ET.Optional[Element]:
         """Generate a footnote XML object."""
         if key in self._footnotes:
             idx = len(self._usedNotes) + 1
@@ -581,7 +581,7 @@ class ToDocX(Tokenizer):
             return xR
         return None
 
-    def _generateField(self, key: str, fmt: int) -> ET.Element | None:
+    def _generateField(self, key: str, fmt: int) -> ET.Optional[Element]:
         """Generate a data field XML object."""
         if key and (field := key.partition(":")[2]):
             xR = self._textRunToXml(None, fmt, "", "")
@@ -1008,7 +1008,7 @@ class ToDocX(Tokenizer):
 
         return rId
 
-    def _documentXml(self, hFirst: str | None, hDefault: str | None, hEven: str | None) -> str:
+    def _documentXml(self, hFirst: Optional[str], hDefault: Optional[str], hEven: Optional[str]) -> str:
         """Populate document.xml."""
         rId = self._nextRelId()
         xRoot = xmlElement(_wTag("document"))
@@ -1045,7 +1045,7 @@ class ToDocX(Tokenizer):
 
         return rId
 
-    def _sectionXml(self, first: bool, hFirst: str | None, hDefault: str | None, hEven: str | None) -> ET.Element:
+    def _sectionXml(self, first: bool, hFirst: Optional[str], hDefault: Optional[str], hEven: Optional[str]) -> ET.Element:
         """Generate section properties. Sections after the first start on odd pages."""
         xSect = xmlElement(_wTag("sectPr"))
         if hFirst and hDefault:
@@ -1279,21 +1279,21 @@ class DocXParagraph:
 
     def __init__(self) -> None:
         self._content: list[ET.Element] = []
-        self._style: DocXParStyle | None = None
-        self._textAlign: str | None = None
-        self._topMargin: float | None = None
-        self._bottomMargin: float | None = None
-        self._leftMargin: float | None = None
-        self._rightMargin: float | None = None
+        self._style: Optional[DocXParStyle] = None
+        self._textAlign: Optional[str] = None
+        self._topMargin: Optional[float] = None
+        self._bottomMargin: Optional[float] = None
+        self._leftMargin: Optional[float] = None
+        self._rightMargin: Optional[float] = None
         self._indentFirst = False
         self._breakBefore = False
         self._breakAfter = False
         self._oddPage = False
-        self._sectPr: ET.Element | None = None
+        self._sectPr: ET.Optional[Element] = None
         self._footnoteRef = False
-        self._numbering: tuple[int, int] | None = None
+        self._numbering: Optional[tuple[int, int]] = None
         self._borders: dict[str, DocXBorder] = {}
-        self._bidi: bool | None = None
+        self._bidi: Optional[bool] = None
 
     ##
     #  Properties
@@ -1308,7 +1308,7 @@ class DocXParagraph:
     #  Setters
     ##
 
-    def setStyle(self, style: DocXParStyle | None) -> None:
+    def setStyle(self, style: Optional[DocXParStyle]) -> None:
         """Set the paragraph style."""
         self._style = style
 

@@ -35,7 +35,7 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.jsonio import readJson
 from umbraedit.umbra.paths import conflictsFile
@@ -87,8 +87,8 @@ class ConflictRecord:
         theirs: str,
         created_at: str,
         units: list[dict[str, Any]],
-        resolved_at: str | None = None,
-        resolution: str | None = None,
+        resolved_at: Optional[str] = None,
+        resolution: Optional[str] = None,
     ) -> None:
         self.id = conflict_id
         self.handle = handle

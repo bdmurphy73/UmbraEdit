@@ -28,7 +28,7 @@ import logging
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 EXIT_OK = 0
 EXIT_BLOCKED = 2
@@ -53,7 +53,7 @@ def _utc_now_iso() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _load_token() -> str | None:
+def _load_token() -> Optional[str]:
     """Load the bearer token from the token file."""
     if not TOKEN_FILE.is_file():
         return None
@@ -64,7 +64,7 @@ def _load_token() -> str | None:
         return None
 
 
-def _check_token(headers: dict[str, str]) -> tuple[bool, dict[str, Any] | None]:
+def _check_token(headers: dict[str, str]) -> Optional[tuple[bool, dict[str, Any]]]:
     """Check the bearer token from request headers.
 
     Returns (authorized, error_response).
@@ -113,7 +113,7 @@ def _error_response(
     code: int,
     error_code: str,
     message: str,
-    details: dict | None = None,
+    details: Optional[dict] = None,
 ) -> None:
     """Send an error response."""
     _json_response(
@@ -170,7 +170,7 @@ class APIHandler(BaseHTTPRequestHandler):
         path = self.path.split("?")[0]
         return [p for p in path.split("/") if p]
 
-    def _query_param(self, name: str) -> str | None:
+    def _query_param(self, name: str) -> Optional[str]:
         """Get a query parameter."""
         if "?" not in self.path:
             return None

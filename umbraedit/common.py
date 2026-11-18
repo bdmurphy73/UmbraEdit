@@ -36,7 +36,7 @@ with suppress(ModuleNotFoundError):
 
 from datetime import date, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, Optional, Union
 
 try:
     from typing import TypeGuard
@@ -75,7 +75,7 @@ for _c in "\t\n\v\f\r\x1c\x1d\x1e\x1f\x85":
 ##
 
 
-def checkStringNone(value: Any, default: str | None) -> str | None:
+def checkStringNone(value: Any, default: Optional[str]) -> Optional[str]:
     """Check if a variable is a string or a None."""
     if value is None or value == "None":
         return None
@@ -146,7 +146,7 @@ def checkPath(value: Any, default: Path) -> Path:
     return default
 
 
-def checkDateNone(value: Any, default: date | None) -> date | None:
+def checkDateNone(value: Any, default: Optional[date]) -> Optional[date]:
     """Check if a value is a valid date."""
     if isinstance(value, date):
         return value
@@ -166,12 +166,18 @@ def checkDateNone(value: Any, default: date | None) -> date | None:
 def isHandle(value: Any) -> TypeGuard[str]:
     """Check if a string is a valid UmbraEdit handle.
     Note: This is case sensitive. Must be lower case.
+    
+    Handles can be either 13-char hex (legacy) or 36-char UUID (current format).
     """
     if not isinstance(value, str):
         return False
-    if len(value) != 13:
-        return False
-    return all(c in "0123456789abcdef" for c in value)
+    # 13-char legacy handle: all lowercase hex
+    if len(value) == 13:
+        return all(c in "0123456789abcdef" for c in value)
+    # 36-char UUID: lowercase hex with 4 dashes at positions 8, 13, 18, 23
+    if len(value) == 36 and value[8] == '-' and value[13] == '-' and value[18] == '-' and value[23] == '-':
+        return all(c in "0123456789abcdef-" for c in value)
+    return False
 
 
 def isTitleTag(value: Any) -> TypeGuard[str]:
@@ -262,7 +268,7 @@ def formatInt(value: int) -> str:
     return str(value)
 
 
-def formatPercent(value: float | int, *, divisor: float | int | None = None, prec: int = 1) -> str:
+def formatPercent(value: float | int, *, divisor: Union[float, Optional[int]] = None, prec: int = 1) -> str:
     """Format a number and optionally a divisor as a percentage."""
     if not isinstance(value, (float, int)):
         return "ERR"
@@ -272,7 +278,7 @@ def formatPercent(value: float | int, *, divisor: float | int | None = None, pre
     return fmt.format(value * 100.0)
 
 
-def formatTimeStamp(value: float, fileSafe: bool = False, fmt: str | None = None) -> str:
+def formatTimeStamp(value: float, fileSafe: bool = False, fmt: Optional[str] = None) -> str:
     """Take a number (on the format returned by time.time()) and convert
     it to a timestamp string.
     """
@@ -310,7 +316,7 @@ def formatVersion(value: str) -> str:
     return f"{prefix}{major}.{version}" if major and version else ""
 
 
-def formatFileFilter(extensions: list[str | tuple[str, str]]) -> str:
+def formatFileFilter(extensions: list[Union[str, tuple[str, str]]]) -> str:
     """Format a list of extensions, or extension + label pairs into a
     QFileDialog extensions filter.
     """
@@ -358,7 +364,7 @@ def uniqueCompact(text: str) -> str:
     return "".join(sorted(set(compact(text))))
 
 
-def joinLines(value: str | list[str], sep: str = "") -> str:
+def joinLines(value: Union[str, list[str]], sep: str = "") -> str:
     """Join a list of strings with a separator."""
     if isinstance(value, list):
         return sep.join(str(x) for x in value)
@@ -410,7 +416,7 @@ def textDirection(text: str) -> Literal["ltr", "rtl", ""]:
     return ""
 
 
-def yesNo(value: int | bool | None) -> Literal["yes", "no"]:
+def yesNo(value: Union[int, Optional[bool]]) -> Literal["yes", "no"]:
     """Convert a boolean evaluated variable to a yes or no."""
     return "yes" if value else "no"
 
@@ -625,7 +631,7 @@ def qtWeakLambda(method: MethodType, *args: Any, **kwargs: Any) -> Callable:
     return wrapper
 
 
-def qtAddAction(parent: QWidget, label: str, *, icon: QIcon | None = None, data: Any | None = None) -> QAction:
+def qtAddAction(parent: QWidget, label: str, *, icon: Optional[QIcon] = None, data: Optional[Any] = None) -> QAction:
     """Add action to a widget and always return the action."""
     action = QAction(label, parent)
     if icon is not None:
@@ -780,10 +786,10 @@ def xmlIndent(xml: ET.Element | ET.ElementTree) -> None:
 
 def xmlElement(
     tag: str,
-    text: str | int | float | bool | None = None,
+    text: str | int | Union[float, Optional[bool]] = None,
     *,
-    attrib: dict | None = None,
-    tail: str | None = None,
+    attrib: Optional[dict] = None,
+    tail: Optional[str] = None,
 ) -> ET.Element:
     """A custom implementation of Element with more arguments."""  # noqa: D401
     xSub = ET.Element(tag, attrib=attrib or {})
@@ -800,10 +806,10 @@ def xmlElement(
 def xmlSubElem(
     parent: ET.Element,
     tag: str,
-    text: str | int | float | bool | None = None,
+    text: str | int | Union[float, Optional[bool]] = None,
     *,
-    attrib: dict | None = None,
-    tail: str | None = None,
+    attrib: Optional[dict] = None,
+    tail: Optional[str] = None,
 ) -> ET.Element:
     """A custom implementation of SubElement with more arguments."""  # noqa: D401
     xSub = ET.SubElement(parent, tag, attrib=attrib or {})

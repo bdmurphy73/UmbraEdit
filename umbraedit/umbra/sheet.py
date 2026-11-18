@@ -18,7 +18,7 @@ import re
 import unicodedata
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import sheetFile, tonesFile
@@ -245,7 +245,7 @@ class SheetManager:
         # All bible slots used, use book-only slot above 1000
         return max(1001, max(slots, default=1000) + 1)
 
-    def promoteOneOff(self, label: str) -> str | None:
+    def promoteOneOff(self, label: str) -> Optional[str]:
         """Promote a one-off speaker (`~the_guard`) to a full entity.
 
         Creates the tag, assigns the next free slot, and records the
@@ -305,7 +305,7 @@ class SheetManager:
     #  Voice Reference
     ##
 
-    def getVoiceCode(self, tag: str, editionLang: str | None = None) -> str | None:
+    def getVoiceCode(self, tag: str, editionLang: Optional[str] = None) -> Optional[str]:
         """Return the voice_matrix code for a tag, or None.
 
         The voice matrix itself is a P08 concept; here only the code is
@@ -362,13 +362,13 @@ class SheetManager:
     #  Queries
     ##
 
-    def iterEntities(self, kind: str | None = None) -> list[EntityRow]:
+    def iterEntities(self, kind: Optional[str] = None) -> list[EntityRow]:
         """Return all entities sorted by tag, optionally by kind."""
         return [
             row for row in sorted(self._entityMap.values(), key=lambda r: r.tag) if kind is None or row.kind == kind
         ]
 
-    def getEntity(self, tag: str) -> EntityRow | None:
+    def getEntity(self, tag: str) -> Optional[EntityRow]:
         """Return an entity by tag, or None."""
         return self._entityMap.get(tag)
 

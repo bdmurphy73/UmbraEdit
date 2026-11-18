@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QEvent, QPoint, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QPalette, QPixmap
@@ -54,8 +54,8 @@ class GuiDocFooterBase(QWidget):
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent=parent)
 
-        self._tItem: ProjectItem | None = None
-        self._docHandle: str | None = None
+        self._tItem: Optional[ProjectItem] = None
+        self._docHandle: Optional[str] = None
 
         iSz = SHARED.theme.baseIconSize
         fPx = int(0.9 * SHARED.theme.fontPixelSize)
@@ -105,7 +105,7 @@ class GuiDocFooterBase(QWidget):
         self.vimStatus.setAlignment(QtAlignLeftTop)
         self.vimStatus.setVisible(False)
 
-        self._vimMode: nwVimMode | None = None
+        self._vimMode: Optional[nwVimMode] = None
         self._vimColor = SHARED.theme.getBaseColor("base")
         self._vimModes = {}
 
@@ -159,7 +159,7 @@ class GuiDocFooterBase(QWidget):
         """Apply user settings."""
         self._trMainCount = trStats(nwLabels.STATS_DISPLAY[nwStats.CHARS if CONFIG.useCharCount else nwStats.WORDS])
 
-    def setHandle(self, tHandle: str | None) -> None:
+    def setHandle(self, tHandle: Optional[str]) -> None:
         """Set the handle that will populate the footer's data."""
         self._docHandle = tHandle
         self._tItem = SHARED.project.tree[tHandle] if tHandle else None
@@ -192,7 +192,7 @@ class GuiDocFooterBase(QWidget):
             text = self._trMainCount.format("0", "+0")
         self.wordsText.setText(text)
 
-    def updateVimModeStatusBar(self, mode: nwVimMode | None) -> None:
+    def updateVimModeStatusBar(self, mode: Optional[nwVimMode]) -> None:
         """Update the vim Mode status information."""
         if mode is None:
             self.vimStatus.setText("")

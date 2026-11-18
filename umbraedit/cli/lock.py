@@ -35,7 +35,7 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -73,7 +73,7 @@ class ProjectLock:
     def __init__(self, project_path: Path) -> None:
         self._project_path = project_path
         self._lock_path = project_path / LOCK_FILE_NAME
-        self._fd: int | None = None
+        self._fd: Optional[int] = None
         self._held = False
         self._kind = ""
 
@@ -97,7 +97,7 @@ class ProjectLock:
         except Exception:
             return True  # Can't read lock, assume locked
 
-    def lock_info(self) -> dict[str, Any] | None:
+    def lock_info(self) -> Optional[dict[str, Any]]:
         """Return the lock information if locked, None otherwise."""
         if not self._lock_path.is_file():
             return None
@@ -106,7 +106,7 @@ class ProjectLock:
         except Exception:
             return None
 
-    def acquire(self, kind: str = "cli", process: str | None = None) -> bool:
+    def acquire(self, kind: str = "cli", process: Optional[str] = None) -> bool:
         """Try to acquire an exclusive lock for write access.
 
         Args:
@@ -204,7 +204,7 @@ class ProjectLock:
         self.release()
 
 
-def check_write_access(project_path: Path) -> tuple[bool, dict[str, Any] | None]:
+def check_write_access(project_path: Path) -> Optional[tuple[bool, dict[str, Any]]]:
     """Check if write access is available for a project.
 
     Returns:

@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 import math
 
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, Optional, Union
 
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PyQt6.QtGui import QColor, QIcon
@@ -98,15 +98,15 @@ class OutlineNode:
         self,
         handle: str,
         key: str,
-        heading: IndexHeading | None,
+        heading: Optional[IndexHeading],
         tr: _TrCache,
         style: NodeStyle,
-        columns: list[tuple[str, ...]] | None = None,
+        columns: Optional[list[tuple[str, ...]]] = None,
         join: bool = False,
     ) -> None:
         self._handle = handle
         self._key = key
-        self._heading: IndexHeading | None = heading
+        self._heading: Optional[IndexHeading] = heading
         self._tr: _TrCache = tr
         self._columns = columns or []
         self._join = join
@@ -119,7 +119,7 @@ class OutlineNode:
         self._words = ""
         self._chars = ""
         self._progress = ""
-        self._status: tuple[str, QIcon] | None = None
+        self._status: Optional[tuple[str, QIcon]] = None
         self._lists: dict[str, list[str]] = {}
         self._entries: list[list[tuple[str, str, str, str]]] = []
         self._style = style
@@ -161,7 +161,7 @@ class OutlineNode:
         return self._progress
 
     @property
-    def status(self) -> tuple[str, QIcon] | None:
+    def status(self) -> Optional[tuple[str, QIcon]]:
         """The status label and icon of the heading's document, if set."""
         return self._status
 
@@ -309,7 +309,7 @@ class OutlineModel(QAbstractTableModel):
         """Return the number of columns."""
         return 0 if parent.isValid() else len(self._headers)
 
-    def data(self, index: QModelIndex, role: Qt.ItemDataRole) -> str | None:
+    def data(self, index: QModelIndex, role: Qt.ItemDataRole) -> Optional[str]:
         """Return accessible text for a node, as the delegate paints the rest."""
         if role == QtAccessibleTextRole and (node := self.node(index)):
             if index.column() == self.C_TITLE:
@@ -317,7 +317,7 @@ class OutlineModel(QAbstractTableModel):
             return node.accessibleEntries(index.column() - self.C_COLUMNS)
         return None
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: Qt.ItemDataRole) -> str | None:
+    def headerData(self, section: int, orientation: Qt.Orientation, role: Qt.ItemDataRole) -> Optional[str]:
         """Return the header labels for the outline columns."""
         if orientation == Qt.Orientation.Horizontal and role == QtDisplayRole:
             return self._headers[section] if 0 <= section < len(self._headers) else None
@@ -331,7 +331,7 @@ class OutlineModel(QAbstractTableModel):
     #  Data Access
     ##
 
-    def node(self, index: QModelIndex) -> OutlineNode | None:
+    def node(self, index: QModelIndex) -> Optional[OutlineNode]:
         """Return the node for a given model index."""
         if index.isValid() and 0 <= (row := index.row()) < len(self._nodes):
             return self._nodes[row]
@@ -363,13 +363,13 @@ class OutlineModel(QAbstractTableModel):
     def buildOutline(
         self,
         index: Index,
-        rootHandle: str | None,
+        rootHandle: Optional[str],
         levels: set[int],
         countPerPage: int = 0,
         clearDouble: bool = False,
         target: int = 0,
         useChars: bool = False,
-        columns: list[tuple[str, tuple[str, ...]]] | None = None,
+        columns: Optional[list[tuple[str, tuple[str, ...]]]] = None,
         showStatus: bool = False,
         inactiveParts: bool = False,
         subCounts: bool = False,
@@ -394,7 +394,7 @@ class OutlineModel(QAbstractTableModel):
         )
         nodes: list[OutlineNode] = []
         progress: list[tuple[OutlineNode, int, int]] = []
-        scopes: list[tuple[int, OutlineNode | None]] = []
+        scopes: list[tuple[int, Optional[OutlineNode]]] = []
 
         count = 0
         pages = 0

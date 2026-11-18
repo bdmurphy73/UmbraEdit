@@ -28,7 +28,7 @@ import re
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import metadataFile
@@ -297,7 +297,7 @@ def validateIsbn(isbn: str) -> tuple[bool, str]:
     return False, normalized
 
 
-def formatValuesForBuild(metadata: Metadata, fmt: str, edition: str | None = None) -> dict[str, Any]:
+def formatValuesForBuild(metadata: Metadata, fmt: str, edition: Optional[str] = None) -> dict[str, Any]:
     """Get format values for a build, with edition awareness.
 
     Used by P24 and other features that need edition-specific values.
@@ -310,7 +310,7 @@ def formatValuesForBuild(metadata: Metadata, fmt: str, edition: str | None = Non
     return values
 
 
-def bookValues(edition: str | None, fmt: str, projectPath: Path) -> dict[str, Any]:
+def bookValues(edition: Optional[str], fmt: str, projectPath: Path) -> dict[str, Any]:
     """Service function used by P20, P21, P22, P24, P30, P31, P32.
 
     Returns merged book + format values for the given edition and format.
@@ -331,7 +331,7 @@ VARIABLE_PREFIXES = {
 
 
 def resolveVariables(
-    text: str, project: Any, edition: str | None = None, fmt: str = "paperback"
+    text: str, project: Any, edition: Optional[str] = None, fmt: str = "paperback"
 ) -> tuple[str, list[str]]:
     """Resolve {{...}} variables in text.
 

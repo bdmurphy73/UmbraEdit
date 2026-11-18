@@ -26,7 +26,7 @@ import logging
 import re
 
 from time import time
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, cast, Optional, Union
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QBrush, QColor, QSyntaxHighlighter, QTextCharFormat, QTextDocument
@@ -553,9 +553,9 @@ class GuiDocHighlighter(QSyntaxHighlighter):
     def _addCharFormat(
         self,
         name: str,
-        color: QColor | None = None,
-        style: str | None = None,
-        size: int | None = None,
+        color: Optional[QColor] = None,
+        style: Optional[str] = None,
+        size: Optional[int] = None,
     ) -> None:
         """Generate a highlighter character format."""
         charFormat = QTextCharFormat()

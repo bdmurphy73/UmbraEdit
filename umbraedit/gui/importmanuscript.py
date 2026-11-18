@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from PyQt6.QtCore import QObject, Qt
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QProgressDialog
@@ -50,8 +50,8 @@ class ImportManuscriptCommand(QObject):
         super().__init__()
         self._project = project
         self._parent = parent
-        self._dispatcher: IngestDispatcher | None = None
-        self._progress: QProgressDialog | None = None
+        self._dispatcher: Optional[IngestDispatcher] = None
+        self._progress: Optional[QProgressDialog] = None
 
     def execute(self) -> None:
         """Execute the import manuscript command."""

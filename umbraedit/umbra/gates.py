@@ -35,7 +35,7 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -70,8 +70,8 @@ class Finding:
     severity: str  # "block" | "advisory"
     message: str
     fix: str
-    handle: str | None = None
-    line: int | None = None
+    handle: Optional[str] = None
+    line: Optional[int] = None
     detail: dict = field(default_factory=dict)
 
 
@@ -88,8 +88,8 @@ class GateRule:
 @dataclass(frozen=True)
 class GateScope:
     project: Any
-    handles: list[str] | None = None
-    edition: str | None = None
+    handles: Optional[list[str]] = None
+    edition: Optional[str] = None
     options: dict = field(default_factory=dict)
     # Set by runGates so checks can tell which operation is running
     operation: str = ""
@@ -120,7 +120,7 @@ def registerGate(rule: GateRule) -> None:
     _gates[rule.ruleId] = rule
 
 
-def getGate(ruleId: str) -> GateRule | None:
+def getGate(ruleId: str) -> Optional[GateRule]:
     return _gates.get(ruleId)
 
 
@@ -164,7 +164,7 @@ def _runSingleRule(rule: GateRule, scope: GateScope, settings: Any) -> list[Find
         ]
 
 
-def runGates(operation: str, scope: GateScope, settings: Any | None = None) -> GateReport:
+def runGates(operation: str, scope: GateScope, settings: Optional[Any] = None) -> GateReport:
     ranAt = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     scope = replace(scope, operation=operation)
     allFindings: list[Finding] = []
@@ -176,7 +176,7 @@ def runGates(operation: str, scope: GateScope, settings: Any | None = None) -> G
     return GateReport(operation=operation, blocked=blocked, findings=allFindings, ranAt=ranAt)
 
 
-def requireGates(operation: str, scope: GateScope, settings: Any | None = None) -> GateReport:
+def requireGates(operation: str, scope: GateScope, settings: Optional[Any] = None) -> GateReport:
     report = runGates(operation, scope, settings)
     if report.blocked:
         raise GateBlockedError(report)

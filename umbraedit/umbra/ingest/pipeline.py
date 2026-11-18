@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from umbraedit.umbra.ingest.docx_classify import ClassifyResult, DocxClassify
 from umbraedit.umbra.ingest.docx_convert import ConvertResult, DocxConvert
@@ -74,7 +74,7 @@ class DocxIngestPipeline:
     def process(
         self,
         file_path: Path,
-        output_dir: Path | None = None,
+        output_dir: Optional[Path] = None,
     ) -> IngestResult:
         """Run the full ingest pipeline on a DOCX file."""
         logger.info("Starting ingest pipeline for %s", file_path)

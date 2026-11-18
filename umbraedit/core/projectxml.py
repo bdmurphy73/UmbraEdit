@@ -29,7 +29,7 @@ import xml.etree.ElementTree as ET
 from enum import Enum
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from umbraedit import CONFIG, SHARED, __hexversion__, __version__
 from umbraedit.common import (
@@ -381,8 +381,8 @@ class ProjectXMLReader:
         logger.debug("Parsing <content> section (legacy format)")
 
         # Create maps to look up name -> key for status and importance
-        sMap: dict[str | None, str] = {e.name: k for k, e in data.itemStatus.iterItems()}
-        iMap: dict[str | None, str] = {e.name: k for k, e in data.itemImport.iterItems()}
+        sMap: dict[Optional[str], str] = {e.name: k for k, e in data.itemStatus.iterItems()}
+        iMap: dict[Optional[str], str] = {e.name: k for k, e in data.itemImport.iterItems()}
 
         for xItem in xSection:
             if xItem.tag != "item":
@@ -606,8 +606,8 @@ class ProjectXMLWriter:
         self,
         xParent: ET.Element,
         name: str,
-        value: str | None,
-        attrib: dict | None = None,
+        value: Optional[str],
+        attrib: Optional[dict] = None,
     ) -> None:
         """Pack a single value into an XML element."""
         xItem = ET.SubElement(xParent, name, attrib=attrib or {})
@@ -618,7 +618,7 @@ class ProjectXMLWriter:
         xParent: ET.Element,
         name: str,
         data: list | tuple | set,
-        attrib: dict | None = None,
+        attrib: Optional[dict] = None,
     ) -> None:
         """Pack the entries of a sequence into an XML element."""
         xItem = ET.SubElement(xParent, name, attrib=attrib or {})
@@ -631,8 +631,8 @@ class ProjectXMLWriter:
         self,
         xParent: ET.Element,
         name: str,
-        data: Mapping[str, str | None],
-        attrib: dict | None = None,
+        data: Mapping[str, Optional[str]],
+        attrib: Optional[dict] = None,
     ) -> None:
         """Pack the entries of a dictionary into an XML element."""
         xItem = ET.SubElement(xParent, name, attrib=attrib or {})

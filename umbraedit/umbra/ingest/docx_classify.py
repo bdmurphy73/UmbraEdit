@@ -27,7 +27,7 @@ import re
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
     from umbraedit.umbra.ingest.docx_convert import ConvertResult
@@ -57,7 +57,7 @@ class DocumentBlock:
     title: str = ""
     text: str = ""
     source_paragraphs: list[int] = field(default_factory=list)
-    page_type: str | None = None  # For front/back matter
+    page_type: Optional[str] = None  # For front/back matter
 
 
 @dataclass(frozen=True)
@@ -107,7 +107,7 @@ def _normalize_text(text: str) -> str:
     return text.strip()
 
 
-def _is_chapter_heading(text: str, style_name: str, outline_level: int | None) -> tuple[bool, int]:
+def _is_chapter_heading(text: str, style_name: str, outline_level: Optional[int]) -> tuple[bool, int]:
     """Determine if a paragraph is a chapter heading.
 
     Returns (is_chapter, level)
@@ -127,9 +127,9 @@ def _is_chapter_heading(text: str, style_name: str, outline_level: int | None) -
 
     # Check for "Chapter" or "Part" keywords
     text_lower = text.lower().strip()
-    if re.match(r"^(chapter|part)\s+\d+", text_lower):
+    if re.match(r"^(chapter | part)\s+\d+", text_lower):
         return True, 1
-    if re.match(r"^(chapter|part)\s+[ivxlcdm]+", text_lower, re.IGNORECASE):
+    if re.match(r"^(chapter | part)\s+[ivxlcdm]+", text_lower, re.IGNORECASE):
         return True, 1
 
     # Scored guess: short line, centered/bold, followed by blank
@@ -140,7 +140,7 @@ def _is_chapter_heading(text: str, style_name: str, outline_level: int | None) -
     return False, 0
 
 
-def _classify_front_matter(text: str, title: str) -> str | None:
+def _classify_front_matter(text: str, title: str) -> Optional[str]:
     """Classify front matter type."""
     normalized = _normalize_text(text)
 
@@ -151,7 +151,7 @@ def _classify_front_matter(text: str, title: str) -> str | None:
     return None
 
 
-def _classify_back_matter(text: str) -> str | None:
+def _classify_back_matter(text: str) -> Optional[str]:
     """Classify back matter type."""
     normalized = _normalize_text(text)
 

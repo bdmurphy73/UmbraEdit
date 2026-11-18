@@ -28,7 +28,7 @@ import logging
 import time
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 import jsonschema
@@ -125,8 +125,8 @@ class AnalysisJob:
     response_hash: str = ""
     status: str = "pending"  # pending, running, done, failed
     created_at: str = ""
-    result: AnalysisResult | None = None
-    error: str | None = None
+    result: Optional[AnalysisResult] = None
+    error: Optional[str] = None
 
 
 class AnalysisGenerator:
@@ -252,7 +252,7 @@ class AnalysisGenerator:
             instructions=instructions,
         )
 
-    def _validate_response(self, response_text: str) -> AnalysisResult | None:
+    def _validate_response(self, response_text: str) -> Optional[AnalysisResult]:
         """Validate and parse the model response."""
         try:
             data = json.loads(response_text)
@@ -263,7 +263,7 @@ class AnalysisGenerator:
             logger.warning("Invalid analysis response: %s", e)
             return None
 
-    def _call_endpoint(self, prompt: str, settings: dict[str, Any]) -> str | None:
+    def _call_endpoint(self, prompt: str, settings: dict[str, Any]) -> Optional[str]:
         """Call the local LLM endpoint."""
         endpoint = settings.get("endpoint")
         if not endpoint:
@@ -289,7 +289,7 @@ class AnalysisGenerator:
             logger.error("Endpoint call failed: %s", e)
             return None
 
-    def generate_analysis(self, chapter_handle: str, edition: str = "main") -> str | None:
+    def generate_analysis(self, chapter_handle: str, edition: str = "main") -> Optional[str]:
         """Generate analysis for a chapter. Returns run ID on success, None on failure."""
         run_id = f"an-{hashlib.md5(f'{chapter_handle}{time.time()}'.encode()).hexdigest()[:12]}"
 
@@ -474,7 +474,7 @@ def create_analysis_prompt(
     )
 
 
-def validate_analysis_response(response_text: str) -> AnalysisResult | None:
+def validate_analysis_response(response_text: str) -> Optional[AnalysisResult]:
     """Validate analysis response against schema."""
     try:
         data = json.loads(response_text)

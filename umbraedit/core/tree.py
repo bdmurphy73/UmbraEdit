@@ -26,7 +26,7 @@ import logging
 import random
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, overload
+from typing import TYPE_CHECKING, Literal, overload, Optional, Union
 
 from PyQt6.QtCore import QModelIndex
 
@@ -84,7 +84,7 @@ class ProjectTree:
         """Return True if there are any items in the project."""
         return bool(self._items)
 
-    def __getitem__(self, tHandle: str | None) -> ProjectItem | None:
+    def __getitem__(self, tHandle: Optional[str]) -> Optional[ProjectItem]:
         """Return a project item based on its handle. Returns None if
         the handle doesn't exist in the project.
         """
@@ -113,7 +113,7 @@ class ProjectTree:
         return self._project
 
     @property
-    def trash(self) -> ProjectNode | None:
+    def trash(self) -> Optional[ProjectNode]:
         """Return trash node, if it exists."""
         if self._trash:
             if self._nodes.get(self._trash.item.itemHandle) is self._trash:
@@ -211,21 +211,21 @@ class ProjectTree:
     def create(
         self,
         label: str,
-        parent: str | None,
+        parent: Optional[str],
         itemType: nwItemType,
         itemClass: nwItemClass = nwItemClass.NO_CLASS,
         pos: int = -1,
-    ) -> str | None:
+    ) -> Optional[str]:
         pass
 
     def create(
         self,
         label: str,
-        parent: str | None,
+        parent: Optional[str],
         itemType: nwItemType,
         itemClass: nwItemClass = nwItemClass.NO_CLASS,
         pos: int = -1,
-    ) -> str | None:
+    ) -> Optional[str]:
         """Create a new item in the project tree, and return its handle.
         If the item cannot be added to the project because of an invalid
         parent, None is returned. For root elements, this cannot occur.
@@ -242,7 +242,7 @@ class ProjectTree:
                 return tHandle
         return None
 
-    def duplicate(self, sHandle: str, pHandle: str | None, putAfter: bool) -> ProjectItem | None:
+    def duplicate(self, sHandle: str, pHandle: Optional[str], putAfter: bool) -> Optional[ProjectItem]:
         """Duplicate an item and set a new handle."""
         if sNode := self._nodes.get(sHandle):
             nItem = ProjectItem.duplicate(sNode.item, self._makeHandle())
@@ -295,7 +295,7 @@ class ProjectTree:
             self._docs = [node.item.itemHandle for node in self._model.root.allChildren() if node.item.isFileType()]
         return self._docs
 
-    def pickParent(self, sNode: ProjectNode, hLevel: int, isNote: bool) -> tuple[str | None, int]:
+    def pickParent(self, sNode: ProjectNode, hLevel: int, isNote: bool) -> tuple[Optional[str], int]:
         """Pick an appropriate parent handle for adding a new item."""
         if sNode.item.isFolderType() or sNode.item.isRootType():
             # Always add as a direct child of folders
@@ -511,14 +511,14 @@ class ProjectTree:
             rootClasses.add(node.item.itemClass)
         return rootClasses
 
-    def iterRoots(self, itemClass: nwItemClass | None) -> Iterable[tuple[str, ProjectItem]]:
+    def iterRoots(self, itemClass: Optional[nwItemClass]) -> Iterable[tuple[str, ProjectItem]]:
         """Iterate over all root items of a given class in order."""
         for node in self._model.root.children:
             if node.item.isRootType() and (itemClass is None or node.item.itemClass == itemClass):
                 yield node.item.itemHandle, node.item
         return
 
-    def findRoot(self, itemClass: nwItemClass | None) -> str | None:
+    def findRoot(self, itemClass: Optional[nwItemClass]) -> Optional[str]:
         """Find the first root item for a given class."""
         for node in self._model.root.children:
             if node.item.itemClass == itemClass:
@@ -538,7 +538,7 @@ class ProjectTree:
         if item.isRootType():
             SHARED.emitRootFolderChanged(self._project, tHandle, change)
 
-    def _getTrashNode(self) -> ProjectNode | None:
+    def _getTrashNode(self) -> Optional[ProjectNode]:
         """Get the trash node. If it doesn't exist, create it."""
         for node in self._model.root.children:
             if node.item.itemClass == nwItemClass.TRASH:

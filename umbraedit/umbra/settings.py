@@ -14,7 +14,7 @@ format `<feature>.<name>`.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, Optional, Union
 
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import settingsFile
@@ -39,7 +39,7 @@ class UmbraSettings:
         self._declared: dict[str, DeclaredSetting] = {}
         self._appValues: dict[str, Any] = {}
         self._projValues: dict[str, Any] = {}
-        self._projectPath: Path | None = None
+        self._projectPath: Optional[Path] = None
 
     ##
     #  Registry

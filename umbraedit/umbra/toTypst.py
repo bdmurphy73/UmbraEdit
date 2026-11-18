@@ -28,7 +28,7 @@ import re
 import tempfile
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.formats.shared import BlockTyp
 from umbraedit.formats.tokenizer import Tokenizer
@@ -170,7 +170,7 @@ class ToTypst(Tokenizer):
         "_template",
     )
 
-    def __init__(self, project: NWProject, config: TypstConfig | None = None) -> None:
+    def __init__(self, project: NWProject, config: Optional[TypstConfig] = None) -> None:
         super().__init__(project)
         self._project = project
         self._config = config or TypstConfig()
@@ -362,7 +362,7 @@ class ToTypst(Tokenizer):
         return re.sub(r"\[IMAGE:([^\]]+)\]", replace_img, text)
 
 
-def toTypst(project: NWProject, output_path: Path | None = None, config: TypstConfig | None = None) -> str:
+def toTypst(project: NWProject, output_path: Optional[Path] = None, config: Optional[TypstConfig] = None) -> str:
     """Convert a project to Typst source and compile to PDF.
 
     Args:

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.gates import (
     OP_AUDIO_BOOK,
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 NARRATOR_TAG = "Narrator"
 
 
-def _voiceStore(scope: Any) -> VoiceStore | None:
+def _voiceStore(scope: Any) -> Optional[VoiceStore]:
     project = scope.project
     if project is None:
         return None

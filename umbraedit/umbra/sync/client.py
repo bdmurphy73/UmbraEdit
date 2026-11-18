@@ -36,7 +36,7 @@ try:
 except ImportError:
     from datetime import timezone as UTC
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -306,9 +306,9 @@ class SyncClient:
         entry: dict[str, Any],
         handle: str,
         path: str,
-        baseRev: str | None,
-        baseSha: str | None,
-        sha: str | None,
+        baseRev: Optional[str],
+        baseSha: Optional[str],
+        sha: Optional[str],
         acked: dict[str, dict[str, str]],
     ) -> str:
         """Push a single document change. Returns 'pushed', 'conflict', or 'error'."""
@@ -392,7 +392,7 @@ class SyncClient:
         # Other error
         return "error"
 
-    def _putFile(self, path: str, baseRev: str | None, op: str) -> str:
+    def _putFile(self, path: str, baseRev: Optional[str], op: str) -> str:
         """Push a file (tree or sidecar). Returns 'pushed', 'conflict', or 'error'."""
         filePath = Path(path)
         if not filePath.is_file():
@@ -429,7 +429,7 @@ class SyncClient:
 
         return "error"
 
-    def _deleteFile(self, handle: str, baseRev: str | None) -> str:
+    def _deleteFile(self, handle: str, baseRev: Optional[str]) -> str:
         """Delete a document file on the server."""
         headers: dict[str, str] = {}
         if baseRev:
@@ -528,7 +528,7 @@ class SyncClient:
     def _saveState(self, state: dict[str, Any]) -> None:
         writeJson(stateFile(self._projectPath), state)
 
-    def _getBaseText(self, handle: str, baseRev: str | None) -> str:
+    def _getBaseText(self, handle: str, baseRev: Optional[str]) -> str:
         """Get base document text from history revision or fetch from server."""
         # Try local history first
         if baseRev:

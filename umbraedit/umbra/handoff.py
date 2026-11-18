@@ -34,7 +34,7 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from umbraedit.umbra.gates import OP_PUBLISH_HANDOFF, GateScope, requireGates
 from umbraedit.umbra.paths import jobsDir
@@ -62,9 +62,9 @@ class PublishJob:
     package: str = ""
     manifestSha256: str = ""
     createdAt: str = ""
-    claimedBy: str | None = None
-    result: dict[str, Any] | None = None
-    retailer: str | None = None
+    claimedBy: Optional[str] = None
+    result: Optional[dict[str, Any]] = None
+    retailer: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert job to dictionary for JSON serialization."""
@@ -146,7 +146,7 @@ def _atomic_rename_claim(job_path: Path, new_status: JobStatus, claimer: str) ->
 def create_publish_job(
     project: NWProject,
     package_path: Path,
-    retailer_id: str | None = None,
+    retailer_id: Optional[str] = None,
 ) -> dict[str, Any]:
     """Create a publish handoff job file.
 
@@ -330,7 +330,7 @@ def list_publish_jobs(project: NWProject) -> list[dict[str, Any]]:
     return jobs
 
 
-def get_publish_job(project: NWProject, job_id: str) -> dict[str, Any] | None:
+def get_publish_job(project: NWProject, job_id: str) -> Optional[dict[str, Any]]:
     """Get a specific publish job."""
     storage_path = project.storage.storagePath
     if not storage_path:

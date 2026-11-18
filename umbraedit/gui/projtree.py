@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import logging
 
@@ -196,7 +197,7 @@ class GuiProjectView(QWidget):
 
     @pyqtSlot()
     @pyqtSlot(str, str)
-    def renameTreeItem(self, tHandle: str | None = None, name: str = "") -> None:
+    def renameTreeItem(self, tHandle: Optional[str] = None, name: str = "") -> None:
         """External request to rename an item or the currently selected
         item. This is triggered by the global menu or keyboard shortcut.
         """
@@ -214,7 +215,7 @@ class GuiProjectView(QWidget):
         self.projTree.setSelectedHandle(tHandle, doScroll=doScroll)
 
     @pyqtSlot(str)
-    def setActiveHandle(self, tHandle: str | None) -> None:
+    def setActiveHandle(self, tHandle: Optional[str]) -> None:
         """Highlight the active handle."""
         self.projTree.setActiveHandle(tHandle)
 
@@ -537,11 +538,11 @@ class GuiProjectTree(QTreeView):
     #  External Methods
     ##
 
-    def setActiveHandle(self, tHandle: str | None) -> None:
+    def setActiveHandle(self, tHandle: Optional[str]) -> None:
         """Set the handle to be highlighted."""
         self._actHandle = tHandle
 
-    def getSelectedHandle(self) -> str | None:
+    def getSelectedHandle(self) -> Optional[str]:
         """Get the currently selected handle."""
         if (indexes := self.selectedIndexes()) and (node := self._getNode(indexes[0])):
             return node.item.itemHandle
@@ -590,7 +591,7 @@ class GuiProjectTree(QTreeView):
                 self.setExpanded(index, True)
             self.blockSignals(False)
 
-    def setSelectedHandle(self, tHandle: str | None, doScroll: bool = False) -> None:
+    def setSelectedHandle(self, tHandle: Optional[str], doScroll: bool = False) -> None:
         """Set a specific handle as the selected item."""
         if (model := self._getModel()) and (index := model.indexFromHandle(tHandle)).isValid():
             self.setCurrentIndex(index)
@@ -601,10 +602,10 @@ class GuiProjectTree(QTreeView):
     def newTreeItem(
         self,
         itemType: nwItemType,
-        itemClass: nwItemClass | None = None,
+        itemClass: Optional[nwItemClass] = None,
         hLevel: int = 1,
         isNote: bool = False,
-        copyDoc: str | None = None,
+        copyDoc: Optional[str] = None,
     ) -> None:
         """Add new item to the tree, with a given itemType (and
         itemClass if Root), and attach it to the selected handle. Also
@@ -901,7 +902,7 @@ class GuiProjectTree(QTreeView):
                 self.setExpanded(model.indexFromNode(child), False)
 
     @pyqtSlot()
-    def processDeleteRequest(self, handles: list[str] | None = None, askFirst: bool = True) -> None:
+    def processDeleteRequest(self, handles: Optional[list[str]] = None, askFirst: bool = True) -> None:
         """Move selected items to Trash."""
         if handles and (model := self._getModel()):
             indices = [model.indexFromHandle(handle) for handle in handles]
@@ -957,7 +958,7 @@ class GuiProjectTree(QTreeView):
 
     @pyqtSlot()
     @pyqtSlot("QPoint")
-    def openContextMenu(self, point: QPoint | None = None) -> None:
+    def openContextMenu(self, point: Optional[QPoint] = None) -> None:
         """Open a context menu in-place where the user clicked."""
         if model := self._getModel():
             if point is None:
@@ -1030,13 +1031,13 @@ class GuiProjectTree(QTreeView):
         """Return all column 0 indexes."""
         return [i for i in self.selectedIndexes() if i.column() == 0]
 
-    def _getModel(self) -> ProjectModel | None:
+    def _getModel(self) -> Optional[ProjectModel]:
         """Return the model, if it exists."""
         if isinstance(model := self.model(), ProjectModel):
             return model
         return None
 
-    def _getNode(self, index: QModelIndex) -> ProjectNode | None:
+    def _getNode(self, index: QModelIndex) -> Optional[ProjectNode]:
         """Return a project node corresponding to a model index."""
         if isinstance(model := self.model(), ProjectModel) and (node := model.node(index)):
             return node

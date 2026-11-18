@@ -26,7 +26,7 @@ import logging
 import random
 import sys
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtGui import QFont, QFontDatabase
@@ -117,7 +117,7 @@ class ErrorMessage(QDialog):
         self.setSizeGripEnabled(True)
         self.resize(800, 400)
 
-    def setMessage(self, exType: type[BaseException], exValue: BaseException, exTrace: TracebackType | None) -> None:
+    def setMessage(self, exType: type[BaseException], exValue: BaseException, exTrace: Optional[TracebackType]) -> None:
         """Generate a message and append session data, error info and
         error traceback.
         """
@@ -174,7 +174,7 @@ class ErrorMessage(QDialog):
         self.close()
 
 
-def exceptionHandler(exType: type[BaseException], exValue: BaseException, exTrace: TracebackType | None) -> None:
+def exceptionHandler(exType: type[BaseException], exValue: BaseException, exTrace: Optional[TracebackType]) -> None:
     """Catch unhandled global exceptions."""
     from traceback import print_tb
 

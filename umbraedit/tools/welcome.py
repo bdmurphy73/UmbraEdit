@@ -26,12 +26,13 @@ import logging
 
 from datetime import datetime
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Optional, Union
 
 from PyQt6.QtCore import QAbstractListModel, QModelIndex, QObject, QPoint, QRect, QSize, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QCloseEvent, QKeyEvent, QPainter, QPaintEvent, QPalette, QPen, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
+    QFileDialog,
     QFormLayout,
     QFrame,
     QHBoxLayout,
@@ -326,7 +327,7 @@ class _OpenProjectPage(QWidget):
     #  Events
     ##
 
-    def keyPressEvent(self, event: QKeyEvent | None) -> None:
+    def keyPressEvent(self, event: Optional[QKeyEvent]) -> None:
         """Capture key press events."""
         if event and event.key() in (QtKeyUp, QtKeyDown):
             self.listWidget.setFocus()
@@ -505,17 +506,17 @@ class _ProjectListModel(QAbstractListModel):
                 _ProjectListEntry(title=SAMPLE_NAME, path=SAMPLE_KEY, details=details, accessible=details)
             )
 
-    def rowCount(self, parent: QModelIndex | None = None) -> int:
+    def rowCount(self, parent: Optional[QModelIndex] = None) -> int:
         """Return the size of the model."""
         return len(self._data)
 
-    def entry(self, index: QModelIndex) -> _ProjectListEntry | None:
+    def entry(self, index: QModelIndex) -> Optional[_ProjectListEntry]:
         """Return an entry in the model."""
         if index.isValid() and 0 <= (idx := index.row()) < len(self._data):
             return self._data[idx]
         return None
 
-    def data(self, index: QModelIndex, role: Qt.ItemDataRole) -> _ProjectListEntry | str | None:
+    def data(self, index: QModelIndex, role: Qt.ItemDataRole) -> Union[_ProjectListEntry, Optional[str]]:
         """Return data for an individual item."""
         if entry := self.entry(index):
             if role == QtDisplayRole:
@@ -625,7 +626,7 @@ class _NewProjectForm(QWidget):
         self.projAuthor = QLineEdit(self)
         self.projAuthor.setMaxLength(200)
         self.projAuthor.setPlaceholderText(self.tr("Optional"))
-        self.projAuthor.setText(CONFIG.lastAuthor)
+        # Don't pre-fill from CONFIG.lastAuthor - start fresh for new projects
 
         self.projAuthorLabel = QLabel(self.tr("Author"), self)
         self.projAuthorLabel.setBuddy(self.projAuthor)
@@ -674,6 +675,13 @@ class _NewProjectForm(QWidget):
             icon=SHARED.theme.getIcon("project_copy:action"),
         )
         self.fillCopy.triggered.connect(self._setFillCopy)
+
+        self.fillImport = qtAddAction(
+            self.fillMenu,
+            self.tr("Import Word Document (DOCX)"),
+            icon=SHARED.theme.getIcon("document-import"),
+        )
+        self.fillImport.triggered.connect(self._setFillImport)
 
         self.browseFill.setMenu(self.fillMenu)
 
@@ -843,6 +851,46 @@ class _NewProjectForm(QWidget):
             self._fillMode = self.FILL_COPY
             self._copyPath = copyPath
             self._updateFillInfo()
+
+    @pyqtSlot()
+    def _setFillImport(self) -> None:
+        """Set fill mode to import Word document."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("Select Word Document"),
+            "",
+            self.tr("Word Documents (*.docx *.docm)"),
+        )
+        if not file_path:
+            return
+        # Use the DOCX import pipeline to create a new project from the DOCX
+        from umbraedit.core.coretools import ProjectBuilder
+        from umbraedit.formats.fromdocx import FromDocxDocument
+
+        try:
+            # Parse the Word document
+            doc = FromDocxDocument(str(file_path))
+            result = doc.parse()
+
+            if not result.title and not result.scenes:
+                SHARED.error(self.tr("Failed to import document: No content found"))
+                return
+
+            # Build project data from the import
+            # Set path to the DOCX file's directory so the project is created there
+            docx_dir = str(Path(file_path).parent)
+            data = {
+                "name": result.title or "New Project",
+                "author": result.author or "",
+                "path": docx_dir,
+                "sample": False,
+            }
+
+            builder = ProjectBuilder()
+            if builder.buildProject(data) and (path := builder.projPath):
+                self.openProjectRequest.emit(path)
+        except Exception as exc:
+            SHARED.error(self.tr("Failed to import Word document"), exc=exc)
 
     ##
     #  Internal Functions

@@ -30,7 +30,7 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 from umbraedit import CONFIG, __hexversion__, __version__
@@ -120,12 +120,12 @@ class ProjectStorage:
     ##
 
     @property
-    def storagePath(self) -> Path | None:
+    def storagePath(self) -> Optional[Path]:
         """Return the path where the project is stored."""
         return self._storagePath
 
     @property
-    def runtimePath(self) -> Path | None:
+    def runtimePath(self) -> Optional[Path]:
         """Return the path where the project is stored at runtime."""
         return self._runtimePath
 
@@ -135,12 +135,12 @@ class ProjectStorage:
         return self._kind
 
     @property
-    def timeStamp(self) -> datetime | None:
+    def timeStamp(self) -> Optional[datetime]:
         """Return the time stamp recorded in the manifest."""
         return self._timeStamp
 
     @property
-    def contentPath(self) -> Path | None:
+    def contentPath(self) -> Optional[Path]:
         """Return the path used for project content. The folder must
         already exist, otherwise this property is None.
         """
@@ -150,14 +150,14 @@ class ProjectStorage:
         return None
 
     @property
-    def lockStatus(self) -> list | None:
+    def lockStatus(self) -> Optional[list]:
         """Return the project lock information."""
         if isinstance(self._lockedBy, list) and len(self._lockedBy) == 4:
             return self._lockedBy
         return None
 
     @property
-    def exc(self) -> Exception | None:
+    def exc(self) -> Optional[Exception]:
         """Return the latest exception of the storage instance."""
         return self._exception
 
@@ -318,25 +318,25 @@ class ProjectStorage:
     #  Content Access Methods
     ##
 
-    def getXmlReader(self) -> ProjectXMLReader | None:
+    def getXmlReader(self) -> Optional[ProjectXMLReader]:
         """Return a properly configured ProjectXMLReader instance."""
         if isinstance(self._runtimePath, Path) and self._ready:
             return ProjectXMLReader(self._runtimePath / nwFiles.PROJ_FILE)
         return None
 
-    def getXmlWriter(self) -> ProjectXMLWriter | None:
+    def getXmlWriter(self) -> Optional[ProjectXMLWriter]:
         """Return a properly configured ProjectXMLWriter instance."""
         if isinstance(self._runtimePath, Path) and self._ready:
             return ProjectXMLWriter(self._runtimePath / nwFiles.PROJ_FILE)
         return None
 
-    def getDocument(self, tHandle: str | None) -> ProjectDocument:
+    def getDocument(self, tHandle: Optional[str]) -> ProjectDocument:
         """Return a document wrapper object."""
         if isinstance(self._runtimePath, Path) and self._ready:
             return ProjectDocument(self._project, tHandle)
         return ProjectDocument(self._project, None)
 
-    def getMetaFile(self, fileName: str) -> Path | None:
+    def getMetaFile(self, fileName: str) -> Optional[Path]:
         """Return the path to a file in the project meta folder."""
         if isinstance(self._runtimePath, Path) and self._ready:
             return self._runtimePath / "meta" / fileName
@@ -359,7 +359,7 @@ class ProjectStorage:
             else []
         )
 
-    def zipIt(self, target: str | Path, saveTime: float, compression: int | None = None) -> bool:
+    def zipIt(self, target: str | Path, saveTime: float, compression: Optional[int] = None) -> bool:
         """Zip the content of the project at its runtime location into a
         zip file. This process will only grab files that are supposed to
         be in the project. All non-project files will be left out.

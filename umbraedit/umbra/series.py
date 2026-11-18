@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import bibleSeenFile, seriesFile
@@ -105,7 +105,7 @@ def saveSeries(projectPath: Path, series: SeriesInfo) -> None:
     writeJson(path, series.to_dict())
 
 
-def getBiblePath(projectPath: Path, series: SeriesInfo) -> Path | None:
+def getBiblePath(projectPath: Path, series: SeriesInfo) -> Optional[Path]:
     """Get the absolute path to the bible project."""
     if not series.bible:
         return None
@@ -282,7 +282,7 @@ def markBibleSeen(projectPath: Path, biblePath: Path) -> None:
 
 def iterBibleEntities(
     bookProjectPath: Path,
-    kind: str | None = None,
+    kind: Optional[str] = None,
 ) -> Iterable[EntityRow]:
     """Iterate all entities from the bible, marked with origin='bible'."""
     series_info = loadSeries(bookProjectPath)

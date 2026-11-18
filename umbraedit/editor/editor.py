@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import bisect
 import logging
@@ -308,9 +309,9 @@ class GuiDocEditor(QTextEdit):
         self._selCacheFormat: T_SelCache = {}
         self._dirtyBlocks: dict[int, QTextBlock] = {}
         self._suppressed = False
-        self._checkPassPos: int | None = None
+        self._checkPassPos: Optional[int] = None
         self._spellPassNotify = False
-        self._checkJob: T_TextCheckJob | None = None
+        self._checkJob: Optional[T_TextCheckJob] = None
         self._checkJobId = 0
         self._checkDispatcher = TextCheckDispatcher(self, self._textCheckResults)
 
@@ -464,7 +465,7 @@ class GuiDocEditor(QTextEdit):
         self.changeFocusState = self.docHeader.changeFocusState
 
         # Vim Mode
-        self._vimMode: EditorVimMode | None = None
+        self._vimMode: Optional[EditorVimMode] = None
 
         # Finalise
         self.updateSyntaxColors()
@@ -482,7 +483,7 @@ class GuiDocEditor(QTextEdit):
         return self._docChanged
 
     @property
-    def docHandle(self) -> str | None:
+    def docHandle(self) -> Optional[str]:
         """Return the handle of the currently open document."""
         return self._docHandle
 
@@ -685,7 +686,7 @@ class GuiDocEditor(QTextEdit):
         if updateVimMode:
             self._initVimMode()
 
-    def loadText(self, tHandle: str, tLine: int | None = None) -> bool:
+    def loadText(self, tHandle: str, tLine: Optional[int] = None) -> bool:
         """Load text from a document into the editor. If we have an I/O
         error, we must handle this and clear the editor so that we don't
         risk overwriting the file if it exists. This can for instance
@@ -924,7 +925,7 @@ class GuiDocEditor(QTextEdit):
             cursPos = self.getCursorPosition()
             self._nwItem.setCursorPos(cursPos)
 
-    def setCursorLine(self, line: int | None) -> None:
+    def setCursorLine(self, line: Optional[int]) -> None:
         """Move the cursor to a given line in the document."""
         if isinstance(line, int) and line != 0:
             line = self._qDocument.blockCount() + line if line < 0 else line - 1
@@ -957,7 +958,7 @@ class GuiDocEditor(QTextEdit):
     #  Spell Checking
     ##
 
-    def toggleSpellCheck(self, state: bool | None) -> None:
+    def toggleSpellCheck(self, state: Optional[bool]) -> None:
         """Toggle spell checking.
 
         This is the main spell check setting function, and this one
@@ -1435,7 +1436,7 @@ class GuiDocEditor(QTextEdit):
         data.setText(self.getSelectedText())
         return data
 
-    def insertFromMimeData(self, source: QMimeData | None) -> None:
+    def insertFromMimeData(self, source: Optional[QMimeData]) -> None:
         """Overload mime data insertion in the document."""
         if not source:
             # Blocks empty inserts, see #2598
@@ -1682,7 +1683,7 @@ class GuiDocEditor(QTextEdit):
                                 self._buildSelections(block, self._spellErrFormat, data.spellErrors),
                             )
                             self._selCacheSpell[key] = cached
-                        for (start, end, _), selection in zip(data.spellErrors, cached[1], strict=False):
+                        for (start, end, _), selection in zip(data.spellErrors, cached[1], ):
                             if position + start < cPos <= position + end:
                                 # Don't underline the word under the cursor
                                 suppressed = True
@@ -1697,7 +1698,7 @@ class GuiDocEditor(QTextEdit):
                                 self._buildSelections(block, self._formatErrFormat, data.formatErrors),
                             )
                             self._selCacheFormat[key] = cached
-                        for (start, end, kind), selection in zip(data.formatErrors, cached[1], strict=False):
+                        for (start, end, kind), selection in zip(data.formatErrors, cached[1], ):
                             if kind == "trail" and position + start < cPos <= position + end:
                                 # Not yet a real trailing space, still being typed
                                 suppressed = True
@@ -2209,7 +2210,7 @@ class GuiDocEditor(QTextEdit):
     def highlightSearchSelections(self, resS: list[int], resE: list[int]) -> None:
         """Highlight all search results in the document."""
         selections = []
-        for start, end in zip(resS, resE, strict=False):
+        for start, end in zip(resS, resE, ):
             cursor = QTextCursor(self._qDocument)
             cursor.setPosition(start)
             cursor.setPosition(end, QtKeepAnchor)
@@ -2296,8 +2297,8 @@ class GuiDocEditor(QTextEdit):
     def _wrapSelection(
         self,
         before: str,
-        after: str | None = None,
-        pos: int | None = None,
+        after: Optional[str] = None,
+        pos: Optional[int] = None,
         select: _SelectAction = _SelectAction.NO_DECISION,
         rtlMark: bool = False,
     ) -> None:
@@ -2886,7 +2887,7 @@ class GuiDocEditor(QTextEdit):
 
     def _processTag(
         self,
-        cursor: QTextCursor | None = None,
+        cursor: Optional[QTextCursor] = None,
         *,
         follow: bool = True,
         edit: bool = False,
@@ -2999,7 +3000,7 @@ class GuiDocEditor(QTextEdit):
 
         return cursor
 
-    def _makeSelection(self, mode: QTextCursor.SelectionType, cursor: QTextCursor | None = None) -> None:
+    def _makeSelection(self, mode: QTextCursor.SelectionType, cursor: Optional[QTextCursor] = None) -> None:
         """Select text based on selection mode."""
         if cursor is None:
             cursor = self.textCursor()

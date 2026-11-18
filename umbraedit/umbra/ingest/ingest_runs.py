@@ -32,7 +32,7 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import ingestRunsFile
@@ -140,7 +140,7 @@ def record_ingest_run(
     logger.info("Recorded ingest run %s for %s", run_id, file_path)
 
 
-def find_existing_import(project_path: Path, sha256: str) -> IngestRun | None:
+def find_existing_import(project_path: Path, sha256: str) -> Optional[IngestRun]:
     """Find an existing import run for the given file hash."""
     runs = _load_runs(project_path)
     for run in runs:

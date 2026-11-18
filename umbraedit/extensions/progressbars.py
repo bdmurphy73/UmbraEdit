@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import logging
 
@@ -71,10 +72,10 @@ class NProgressCircle(QProgressBar):
 
     def setColors(
         self,
-        back: QColor | None = None,
-        track: QColor | None = None,
-        bar: QColor | None = None,
-        text: QColor | None = None,
+        back: Optional[QColor] = None,
+        track: Optional[QColor] = None,
+        bar: Optional[QColor] = None,
+        text: Optional[QColor] = None,
     ) -> None:
         """Set the colours of the widget."""
         if isinstance(back, QColor):
@@ -87,7 +88,7 @@ class NProgressCircle(QProgressBar):
         if isinstance(text, QColor):
             self._tColor = text
 
-    def setCentreText(self, text: str | None) -> None:
+    def setCentreText(self, text: Optional[str]) -> None:
         """Replace the progress text with a custom string."""
         self._text = text
         self.setValue(self.value())  # Triggers a redraw
@@ -189,7 +190,7 @@ class NColorRangeProgress(QProgressBar):
         if isinstance(color, str):
             self.setBarRangeColors(color, color, steps=1)
 
-    def setBarRangeColors(self, start: str, end: str, mid: str | None = None, steps: int = 20) -> None:
+    def setBarRangeColors(self, start: str, end: str, mid: Optional[str] = None, steps: int = 20) -> None:
         """Set the colours of the progress bar."""
         self._pRange = {}
         self._pScale = max(steps, 1)
@@ -199,7 +200,7 @@ class NColorRangeProgress(QProgressBar):
         for i, color in enumerate(SHARED.theme.generateColorRange(start, end, mid, steps + 1)):
             self._pRange[i] = (QPen(QBrush(color), 2 * self._point, QtSolidLine), QBrush(color))
 
-    def setCentreText(self, text: str | None) -> None:
+    def setCentreText(self, text: Optional[str]) -> None:
         """Replace the progress text with a custom string."""
         self._text = text
         self.setValue(self.value())  # Triggers a redraw

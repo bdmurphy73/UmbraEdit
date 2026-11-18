@@ -28,7 +28,7 @@ import random
 
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from umbraedit import CONFIG, SHARED, __hexversion__
 from umbraedit.common import (
@@ -151,7 +151,7 @@ class Index:
     #  Getters
     ##
 
-    def getNovelModel(self, tHandle: str) -> NovelModel | None:
+    def getNovelModel(self, tHandle: str) -> Optional[NovelModel]:
         """Get the model for a specific novel root."""
         if tHandle not in self._novelModels:
             self._generateNovelModel(tHandle)
@@ -202,7 +202,7 @@ class Index:
         self._indexRevision += 1
         SHARED.emitIndexChangedTags(self._project, [], delTags)
 
-    def reIndexHandle(self, tHandle: str | None) -> None:
+    def reIndexHandle(self, tHandle: Optional[str]) -> None:
         """Put a file back into the index. This is used when files are
         moved from the archive or trash folders back into the active
         project.
@@ -220,7 +220,7 @@ class Index:
             else:
                 self._tagsIndex.updateClass(tHandle, item.itemClass.name)
 
-    def refreshNovelModel(self, tHandle: str | None) -> None:
+    def refreshNovelModel(self, tHandle: Optional[str]) -> None:
         """Refresh a novel model."""
         if tHandle and (model := self.getNovelModel(tHandle)):
             logger.info("Refreshing novel model '%s'", tHandle)
@@ -635,11 +635,11 @@ class Index:
     #  Extract Data
     ##
 
-    def getItemData(self, tHandle: str) -> IndexNode | None:
+    def getItemData(self, tHandle: str) -> Optional[IndexNode]:
         """Get the index data for a given item."""
         return self._itemIndex[tHandle]
 
-    def getItemHeading(self, tHandle: str, sTitle: str) -> IndexHeading | None:
+    def getItemHeading(self, tHandle: str, sTitle: str) -> Optional[IndexHeading]:
         """Get the heading entry for a specific item and heading."""
         if tItem := self._itemIndex[tHandle]:
             return tItem[sTitle]
@@ -652,7 +652,7 @@ class Index:
         return
 
     def iterNovelStructure(
-        self, rHandle: str | None = None, activeOnly: bool = True
+        self, rHandle: Optional[str] = None, activeOnly: bool = True
     ) -> Iterable[tuple[str, str, IndexHeading]]:
         """Iterate over all items and headers in the novel structure for
         a given root handle, or for all if root handle is None.
@@ -667,7 +667,7 @@ class Index:
         """Return all note comment keys."""
         return self._itemIndex.allNoteKeys()
 
-    def getCounts(self, tHandle: str, sTitle: str | None = None) -> tuple[int, int, int]:
+    def getCounts(self, tHandle: str, sTitle: Optional[str] = None) -> tuple[int, int, int]:
         """Return the counts for a file, or a section of a file,
         starting at title sTitle if it is provided.
         """
@@ -719,7 +719,7 @@ class Index:
                 counts[tag] = counts.get(tag, 0) + 1
         return counts
 
-    def getTagSource(self, tagKey: str) -> tuple[str | None, str]:
+    def getTagSource(self, tagKey: str) -> tuple[Optional[str], str]:
         """Return the source location of a given tag."""
         tHandle = self._tagsIndex.tagHandle(tagKey)
         sTitle = self._tagsIndex.tagHeading(tagKey)
@@ -731,19 +731,19 @@ class Index:
 
     # UmbraEdit (P06): entity sheet queries, delegated to the entity index
 
-    def getEntity(self, tag: str) -> EntityRow | None:
+    def getEntity(self, tag: str) -> Optional[EntityRow]:
         """Return the entity row for a tag, or None."""
         return self._umbraEntities.getEntity(self._project, tag)
 
-    def iterEntities(self, kind: str | None = None) -> list[EntityRow]:
+    def iterEntities(self, kind: Optional[str] = None) -> list[EntityRow]:
         """Return all entities, optionally filtered by kind."""
         return self._umbraEntities.iterEntities(self._project, kind)
 
-    def entityHandle(self, tag: str) -> str | None:
+    def entityHandle(self, tag: str) -> Optional[str]:
         """Return the note handle holding a tag, or None."""
         return self._umbraEntities.entityHandle(tag)
 
-    def getDocumentTags(self, tHandle: str | None) -> list[str]:
+    def getDocumentTags(self, tHandle: Optional[str]) -> list[str]:
         """Return all tags used by a specific document."""
         return self._itemIndex.allItemTags(tHandle) if tHandle else []
 
@@ -756,7 +756,7 @@ class Index:
 
     def getTagsData(
         self, activeOnly: bool = True
-    ) -> Iterable[tuple[str, str, str, IndexNode | None, IndexHeading | None]]:
+    ) -> Iterable[tuple[str, str, str, Optional[IndexNode], Optional[IndexHeading]]]:
         """Return all known tags."""
         for tag, data in self._tagsIndex.items():
             iItem = self._itemIndex[data.get("handle")]
@@ -765,7 +765,7 @@ class Index:
                 yield tag, data.get("name", ""), data.get("class", ""), iItem, hItem
         return
 
-    def getSingleTag(self, tagKey: str) -> tuple[str, str, IndexNode | None, IndexHeading | None]:
+    def getSingleTag(self, tagKey: str) -> tuple[str, str, Optional[IndexNode], Optional[IndexHeading]]:
         """Return tag data for a specific tag."""
         tName = self._tagsIndex.tagName(tagKey)
         tClass = self._tagsIndex.tagClass(tagKey)
@@ -806,7 +806,7 @@ class TagsIndex:
         if entry := self._tags.pop(tagKey.lower(), None):
             self._unlinkTag(entry)
 
-    def __getitem__(self, tagKey: str) -> dict | None:
+    def __getitem__(self, tagKey: str) -> Optional[dict]:
         """Return the data dictionary for a given tag key."""
         return self._tags.get(tagKey.lower(), None)
 
@@ -846,7 +846,7 @@ class TagsIndex:
         """Get the display name of a given tag."""
         return self._tags.get(tagKey.lower(), {}).get("display", default)
 
-    def tagHandle(self, tagKey: str) -> str | None:
+    def tagHandle(self, tagKey: str) -> Optional[str]:
         """Get the handle of a given tag."""
         return self._tags.get(tagKey.lower(), {}).get("handle", None)
 
@@ -854,11 +854,11 @@ class TagsIndex:
         """Get the heading of a given tag."""
         return self._tags.get(tagKey.lower(), {}).get("heading", TT_NONE)
 
-    def tagClass(self, tagKey: str) -> str | None:
+    def tagClass(self, tagKey: str) -> Optional[str]:
         """Get the class of a given tag."""
         return self._tags.get(tagKey.lower(), {}).get("class", None)
 
-    def filterTagNames(self, className: str | None) -> set[str]:
+    def filterTagNames(self, className: Optional[str]) -> set[str]:
         """Get the set of tag names for a given class, or all tags."""
         return self._cache.get(self._ALL if className is None else className, set())
 
@@ -975,7 +975,7 @@ class ItemIndex:
         """Delete the IndexNode for the given handle."""
         self._items.pop(tHandle, None)
 
-    def __getitem__(self, tHandle: str) -> IndexNode | None:
+    def __getitem__(self, tHandle: str) -> Optional[IndexNode]:
         """Return the IndexNode for the given handle."""
         return self._items.get(tHandle, None)
 
@@ -1016,7 +1016,7 @@ class ItemIndex:
 
     def iterNovelStructure(
         self,
-        rHandle: str | None = None,
+        rHandle: Optional[str] = None,
         activeOnly: bool = False,
     ) -> Iterable[tuple[str, str, IndexHeading]]:
         """Iterate over all items and headers in the novel structure for

@@ -28,7 +28,7 @@ import logging
 
 with contextlib.suppress(ImportError):
     pass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.formats.tokenizer import Tokenizer
 
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 SCHEMA_VERSION = 1
 
 
-def toPandocJson(project: NWProject, output_path: Path | None = None) -> str:
+def toPandocJson(project: NWProject, output_path: Optional[Path] = None) -> str:
     """Convert a project to Pandoc JSON AST.
 
     Args:

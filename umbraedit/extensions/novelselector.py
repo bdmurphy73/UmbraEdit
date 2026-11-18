@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QPalette
@@ -60,21 +60,21 @@ class NovelSelector(QComboBox):
     ##
 
     @property
-    def handle(self) -> str | None:
+    def handle(self) -> Optional[str]:
         """Return the selected handle, if any."""
         if tHandle := self.currentData():
             return tHandle
         return None
 
     @property
-    def firstHandle(self) -> str | None:
+    def firstHandle(self) -> Optional[str]:
         return self._firstHandle
 
     ##
     #  Methods
     ##
 
-    def setHandle(self, tHandle: str | None, blockSignal: bool = True) -> None:
+    def setHandle(self, tHandle: Optional[str], blockSignal: bool = True) -> None:
         """Set the currently selected handle."""
         if (index := self.findData(tHandle) if tHandle else (self.count() - 1)) >= 0:
             self._blockSignal = blockSignal
@@ -85,7 +85,7 @@ class NovelSelector(QComboBox):
         """Set flag to add an "All Novel Folders" option."""
         self._includeAll = value
 
-    def setListFormat(self, value: str | None) -> None:
+    def setListFormat(self, value: Optional[str]) -> None:
         """Set a format string for the list entries."""
         if value is None or "{0}" in value:
             self._listFormat = value

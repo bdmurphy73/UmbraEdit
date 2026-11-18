@@ -18,7 +18,7 @@ import shutil
 import tempfile
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 logger = logging.getLogger(__name__)
 SCHEMA_VERSION = 1
@@ -41,7 +41,7 @@ ALLOWED_TYPES: dict[str, set[str]] = {
 _SVG_SCRIPT_RE = re.compile(r"<script[\s>]", re.IGNORECASE)
 _SVG_ONATTR_RE = re.compile(r"\son\w+\s*=", re.IGNORECASE)
 _SVG_JSURL_RE = re.compile(r"javascript\s*:", re.IGNORECASE)
-_SVG_EXTREF_RE = re.compile(r"(xlink:href|href)\s*=\s*[\"']https?://", re.IGNORECASE)
+_SVG_EXTREF_RE = re.compile(r"(xlink:href | href)\s*=\s*[\"']https?://", re.IGNORECASE)
 
 
 def _sha256File(p: Path) -> str:
@@ -105,7 +105,7 @@ class AssetStore:
     def index(self) -> dict[str, dict[str, Any]]:
         return dict(self._index)
 
-    def addAsset(self, source: Path | bytes, role: str, attrs: dict[str, Any] | None = None, name: str | None = None) -> str:
+    def addAsset(self, source: Path | bytes, role: str, attrs: Optional[dict[str, Any]] = None, name: Optional[str] = None) -> str:
         if isinstance(source, Path):
             if not source.is_file(): raise FileNotFoundError(f"Asset file not found: {source}")
             fileName = source.name
@@ -182,11 +182,11 @@ class AssetStore:
         if not entry: raise KeyError(f"Asset not found: {assetId}")
         return self._assetsDir / entry["file"]
 
-    def getAsset(self, assetId: str) -> dict[str, Any] | None:
+    def getAsset(self, assetId: str) -> Optional[dict[str, Any]]:
         entry = self._index.get(assetId)
         return dict(entry) if entry else None
 
-    def iterAssets(self, role: str | None = None) -> list[tuple[str, dict[str, Any]]]:
+    def iterAssets(self, role: Optional[str] = None) -> list[tuple[str, dict[str, Any]]]:
         return [(aid, dict(e)) for aid, e in sorted(self._index.items()) if role is None or e.get("role") == role]
 
     def usedBy(self, assetId: str) -> list[str]:

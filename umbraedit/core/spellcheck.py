@@ -27,7 +27,7 @@ import logging
 
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from umbraedit import CONFIG
 from umbraedit.common import languageName
@@ -73,12 +73,12 @@ class SpellEnchant:
     ##
 
     @property
-    def spellLanguage(self) -> str | None:
+    def spellLanguage(self) -> Optional[str]:
         """Return the current spell check language."""
         return self._language
 
     @property
-    def requestedLanguage(self) -> str | None:
+    def requestedLanguage(self) -> Optional[str]:
         """Return the requested spell check language."""
         return self._requested
 
@@ -86,7 +86,7 @@ class SpellEnchant:
     #  Setters
     ##
 
-    def setLanguage(self, language: str | None) -> None:
+    def setLanguage(self, language: Optional[str]) -> None:
         """Load a dictionary for the language specified in the config.
         If that fails, we load a mock dictionary so that lookups don't
         crash.

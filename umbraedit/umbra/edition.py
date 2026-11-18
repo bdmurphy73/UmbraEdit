@@ -26,7 +26,7 @@ import logging
 import shutil
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.metadata import Metadata, loadMetadata
@@ -70,10 +70,10 @@ class EditionDoc:
 
     handle: str
     baseTextHash: str
-    translatedAt: str | None = None
+    translatedAt: Optional[str] = None
     status: str = "untranslated"  # untranslated, translated, stale
-    guideAnalysis: str | None = None
-    guideStatusAtTranslation: str | None = None
+    guideAnalysis: Optional[str] = None
+    guideStatusAtTranslation: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -157,7 +157,7 @@ def createEdition(
     language: str,
     emptyText: bool = False,
     copyPronunciation: bool = False,
-) -> Path | None:
+) -> Optional[Path]:
     """Create a new edition project from a source project.
 
     Args:
@@ -336,7 +336,7 @@ def getEditionStatus(
     return doc.status
 
 
-def markAsTranslated(editionPath: Path, handle: str, sourceHash: str, analysisHash: str | None = None) -> bool:
+def markAsTranslated(editionPath: Path, handle: str, sourceHash: str, analysisHash: Optional[str] = None) -> bool:
     """Mark a document as translated in the edition."""
     edition = loadEdition(editionPath)
     if handle not in edition.docs:
@@ -368,7 +368,7 @@ def markMetadataTranslated(editionPath: Path, key: str) -> bool:
     return False
 
 
-def getAlignment(editionPath: Path, handle: str) -> list[list[str | int]] | None:
+def getAlignment(editionPath: Path, handle: str) -> Optional[list[list[str | int]]]:
     """Get paragraph alignment for a document."""
     alignFile = editionPath / "umbra" / "align" / f"{handle}.json"
     if not alignFile.is_file():

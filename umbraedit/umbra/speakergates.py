@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.dialogue import DialogueConfig, findDialogueSpans
 from umbraedit.umbra.gates import (
@@ -49,7 +49,7 @@ def _paragraphHasDialogue(text: str) -> bool:
     return any(span.kind == "dialogue" for span in findDialogueSpans(text, _configureDialogue()))
 
 
-def _iterDialogueParagraphs(scope: Any) -> Iterable[tuple[str, str, str, VoiceData | None]]:
+def _iterDialogueParagraphs(scope: Any) -> Iterable[tuple[str, str, str, Optional[VoiceData]]]:
     """Yield (handle, lineNo, text, voice) for paragraphs with a dialogue
     span.
 

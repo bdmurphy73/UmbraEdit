@@ -34,7 +34,7 @@ try:
     from datetime import UTC
 except ImportError:
     from datetime import timezone as UTC
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.paths import cacheDir
 
@@ -150,7 +150,7 @@ class DocxOutput:
         logger.info("Output: wrote import plan to %s", output_file)
         return output_file
 
-    def load(self, run_id: str) -> ImportPlan | None:
+    def load(self, run_id: str) -> Optional[ImportPlan]:
         """Load an import plan from cache."""
         file_path = self._cache_dir / f"{run_id}.json"
         if not file_path.is_file():

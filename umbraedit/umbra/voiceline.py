@@ -13,6 +13,7 @@ skip them.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 import re
 
@@ -48,12 +49,12 @@ class VoiceData:
 
     """
 
-    spk: str | None = None
-    src: str | None = None
-    tone: str | None = None
-    ntone: str | None = None
-    lang: str | None = None
-    scope: str | None = None
+    spk: Optional[str] = None
+    src: Optional[str] = None
+    tone: Optional[str] = None
+    ntone: Optional[str] = None
+    lang: Optional[str] = None
+    scope: Optional[str] = None
     extra: dict[str, str] = field(default_factory=dict)
 
 
@@ -62,7 +63,7 @@ def isVoiceLine(line: str) -> bool:
     return _PREFIX_RE.match(line) is not None
 
 
-def parseVoiceLine(line: str) -> VoiceData | None:
+def parseVoiceLine(line: str) -> Optional[VoiceData]:
     """Parse a `%Voice:` annotation line.
 
     Returns None if the line is not a `%Voice:` line.

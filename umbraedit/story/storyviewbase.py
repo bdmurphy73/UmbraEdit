@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QEvent, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
@@ -93,7 +93,7 @@ class GuiStoryViewBase(QWidget):
     def initSettings(self) -> None:
         """Apply changes to the preferences."""
 
-    def refresh(self, rootHandle: str | None, force: bool = False) -> None:
+    def refresh(self, rootHandle: Optional[str], force: bool = False) -> None:
         """Refresh the view content."""
 
     def saveViewState(self) -> None:
@@ -102,7 +102,7 @@ class GuiStoryViewBase(QWidget):
     def setHighlight(self, tags: set[str]) -> None:
         """Set the reference tag keys to highlight."""
 
-    def settingsDialog(self) -> type[GuiStorySettingsBase] | None:
+    def settingsDialog(self) -> Optional[type[GuiStorySettingsBase]]:
         """Return the settings dialog class of the view, if any."""
         return None
 

@@ -32,7 +32,7 @@ import logging
 import os
 import sys
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtWidgets import QApplication, QErrorMessage
 
@@ -60,7 +60,7 @@ __license__    = "GPLv3"
 __author__     = "Veronica Berglyd Olsen"
 __maintainer__ = "Veronica Berglyd Olsen"
 __email__      = "code@vkbo.net"
-__version__    = "2026.11.0005"
+__version__    = "2026.11.0006"
 __hexversion__ = "0x01000000"  # Changed by B.D. Murphy 2026
 __date__       = "2026-11-05"  # Changed by B.D. Murphy 2026
 __status__     = "Stable"
@@ -99,7 +99,7 @@ FORCE_COLOR = bool(os.environ.get("FORCE_COLOR"))
 NO_COLOR = bool(os.environ.get("NO_COLOR"))
 
 
-def main(sysArgs: list | None = None) -> GuiMain | None:
+def main(sysArgs: Optional[list] = None) -> Optional[GuiMain]:
     """Parse command line, set up logging, and launch main GUI."""
     if sysArgs is None:
         sysArgs = sys.argv[1:]

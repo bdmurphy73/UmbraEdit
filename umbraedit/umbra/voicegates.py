@@ -29,7 +29,7 @@ from __future__ import annotations
 import logging
 import re
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.gates import (
     OP_AUDIO_CHAPTER,
@@ -50,13 +50,13 @@ _ATTR_PROPOSAL_RE = re.compile(r"\[attr:proposal\](.*?)\[/attr\]", re.DOTALL)
 _POV_RE = re.compile(r"@pov:\s*(\S+)")
 
 
-def _getVoiceMatrix(item: Any) -> str | None:
+def _getVoiceMatrix(item: Any) -> Optional[str]:
     """Return the voice_matrix attribute from an entity row, or None."""
     attrs = getattr(item, "attrs", None) or {}
     return attrs.get("voice_matrix")
 
 
-def _findPovTag(text: str) -> str | None:
+def _findPovTag(text: str) -> Optional[str]:
     """Return the @pov tag from document text, or None."""
     m = _POV_RE.search(text)
     return m.group(1) if m else None
@@ -98,7 +98,7 @@ def _checkAttribDropSameVoice(scope: Any) -> Iterable[Finding]:
             attrText = m.group(1).strip()
             # Extract speaker name from attribution text like "said Bob."
             speakerMatch = re.match(
-                r"(?:said|asked|replied|whispered|shouted)\s+(.+?)\s*[.,!?]\s*$",
+                r"(?:said | asked|replied | whispered|shouted)\s+(.+?)\s*[.,!?]\s*$",
                 attrText,
                 re.IGNORECASE,
             )

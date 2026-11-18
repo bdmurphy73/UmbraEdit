@@ -25,7 +25,7 @@ from __future__ import annotations
 import re
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 from umbraedit.umbra.proposals import (
     KIND_ATTRIBUTION,
@@ -165,7 +165,7 @@ def _guess_speaker_alternation(
     handle: str,
     target_para: int,
     sheet: Any,
-) -> str | None:
+) -> Optional[str]:
     """Guess the speaker based on alternation from previous paragraphs.
 
     If the previous paragraph had a speaker, guess a different one
@@ -356,7 +356,7 @@ def propose_from_document(
 
 def propose_from_project(
     project: Any,
-    handles: list[str] | None = None,
+    handles: Optional[list[str]] = None,
 ) -> ProposalSet:
     """Generate proposals for all (or selected) documents in a project."""
     if handles is None:

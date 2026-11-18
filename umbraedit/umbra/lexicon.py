@@ -28,7 +28,7 @@ from __future__ import annotations
 import json
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 from xml.sax.saxutils import escape
 
 from umbraedit.umbra.pronunciation import STATUS_AS_WRITTEN, STATUS_TODO
@@ -121,7 +121,7 @@ def collectLexemes(rows: list[Any], lang: str) -> list[Lexeme]:
     return lexemes
 
 
-def exportLexicon(project: Any, lang: str, output_path: Path | None = None) -> tuple[str, str]:
+def exportLexicon(project: Any, lang: str, output_path: Optional[Path] = None) -> tuple[str, str]:
     """Export the pronunciation lexicon for one language.
 
     Returns (plsXml, json). The PLS is W3C PLS 1.0 with one lexeme per

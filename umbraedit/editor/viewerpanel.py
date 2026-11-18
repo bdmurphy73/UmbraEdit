@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
@@ -175,7 +175,7 @@ class GuiDocViewerPanel(QWidget):
         self._updateTabVisibility()
 
     @pyqtSlot(str)
-    def updateHandle(self, tHandle: str | None) -> None:
+    def updateHandle(self, tHandle: Optional[str]) -> None:
         """Update the document handle."""
         self._lastHandle = tHandle
         self.tabBackRefs.refreshContent(tHandle or None)
@@ -306,7 +306,7 @@ class _ViewPanelBackRefs(QTreeWidget):
         self.clear()
         self._treeMap = {}
 
-    def refreshContent(self, dHandle: str | None) -> None:
+    def refreshContent(self, dHandle: Optional[str]) -> None:
         """Update the content."""
         self.clearContent()
         if dHandle:

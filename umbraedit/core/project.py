@@ -30,7 +30,7 @@ from enum import Enum
 from functools import partial
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QCoreApplication
 
@@ -171,7 +171,7 @@ class NWProject:
         return self._state
 
     @property
-    def lockStatus(self) -> list | None:
+    def lockStatus(self) -> Optional[list]:
         """Return the project lock information."""
         return self._storage.lockStatus
 
@@ -196,11 +196,11 @@ class NWProject:
         label = trConst(nwLabels.CLASS_NAME[itemClass])
         return self._tree.create(label, None, nwItemType.ROOT, itemClass=itemClass, pos=pos)
 
-    def newFolder(self, label: str, parent: str, pos: int = -1) -> str | None:
+    def newFolder(self, label: str, parent: str, pos: int = -1) -> Optional[str]:
         """Add a new folder with a given label and parent item."""
         return self._tree.create(label, parent, nwItemType.FOLDER, pos=pos)
 
-    def newFile(self, label: str, parent: str, pos: int = -1) -> str | None:
+    def newFile(self, label: str, parent: str, pos: int = -1) -> Optional[str]:
         """Add a new file with a given label and parent item."""
         return self._tree.create(label, parent, nwItemType.FILE, pos=pos)
 
@@ -250,7 +250,7 @@ class NWProject:
 
         return True
 
-    def copyFileContent(self, tHandle: str, sHandle: str, newTitle: str | None = None) -> bool:
+    def copyFileContent(self, tHandle: str, sHandle: str, newTitle: Optional[str] = None) -> bool:
         """Copy content to a new document after it is created. This
         will not run if the file exists and is not empty.
         """
@@ -704,7 +704,7 @@ class NWProject:
         self._data.itemImport.add(None, self.tr("Major"), "purple", "BLOCK_3", 0)
         self._data.itemImport.add(None, self.tr("Main"), "purple", "BLOCK_4", 0)
 
-    def setProjectLang(self, language: str | None, rtl: bool) -> None:
+    def setProjectLang(self, language: Optional[str], rtl: bool) -> None:
         """Set the project-specific language."""
         language = checkStringNone(language, None)
         reload = self._data.language != language

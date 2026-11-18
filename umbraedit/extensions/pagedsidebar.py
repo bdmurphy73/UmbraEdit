@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 from PyQt6.QtCore import QPoint, QRectF, QSize, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QColor, QPainter, QPaintEvent, QPolygon
@@ -195,7 +196,7 @@ class _PagedToolButton(QToolButton):
 class _NPagedToolLabel(QLabel):
     __slots__ = ("_bH", "_tM", "_textCol")
 
-    def __init__(self, parent: QWidget, textColor: QColor | None = None) -> None:
+    def __init__(self, parent: QWidget, textColor: Optional[QColor] = None) -> None:
         super().__init__(parent=parent)
 
         self.setSizePolicy(QtSizeExpanding, QtSizeFixed)
@@ -207,7 +208,7 @@ class _NPagedToolLabel(QLabel):
 
         self._textCol = textColor or self.palette().text().color()
 
-    def setTextColor(self, textColor: QColor | None = None) -> None:
+    def setTextColor(self, textColor: Optional[QColor] = None) -> None:
         """Set a new text colour."""
         self._textCol = textColor or self.palette().text().color()
 

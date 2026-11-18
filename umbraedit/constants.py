@@ -22,7 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, Optional, Union
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
@@ -101,8 +101,8 @@ class nwRegEx:
     FMT_ST = r"(?<![\w\\])(~{2})(?![\s~])(.+?)(?<![\s\\])(\1)(?!\w)"
     FMT_HL = r"(?<![\w\\])(={2})(?![\s=])(.+?)(?<![\s\\])(\1)(?!\w)"
     FMT_LN = r"(?<!\\)(\[)([^\[\]]+)(?<!\\)(\]\()([^\s()]+)(?<!\\)(\))"
-    FMT_SC = r"(?i)(?<!\\)(\[(?:b|/b|i|/i|s|/s|u|/u|m|/m|sup|/sup|sub|/sub|br)\])"
-    FMT_SV = r"(?i)(?<!\\)(\[(?:footnote|field):)(.+?)(?<!\\)(\])"
+    FMT_SC = r"(?i)(?<!\\)(\[(?:b|/b | i|/i | s|/s | u|/u | m|/m | sup|/sup | sub|/sub | br)\])"
+    FMT_SV = r"(?i)(?<!\\)(\[(?:footnote | field):)(.+?)(?<!\\)(\])"
     AUTO_REP = r"<([^\s<>]+)>"
     FMT_MARK = r"(?<!\\)(\[mark:an-[a-z0-9]{6}\])(.+?)(?<!\\)(\[/mark\])"
 

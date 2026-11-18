@@ -35,7 +35,7 @@ try:
 except ImportError:
     from datetime import timezone as UTC
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.paths import proposalsDir
 from umbraedit.umbra.voiceline import VoiceData, formatVoiceLine, parseVoiceLine
@@ -167,7 +167,7 @@ def _read_document_paragraphs(project_path: Path | str, handle: str) -> list[str
     return ["\n".join(unit.lines) for unit in iterUnits(text) if unit.kind == UnitKind.PARAGRAPH]
 
 
-def compute_text_hash(project_path: Path, handle: str, para_index: int) -> str | None:
+def compute_text_hash(project_path: Path, handle: str, para_index: int) -> Optional[str]:
     """Compute the SHA-256 hash of a paragraph's text.
 
     Returns None if the document or paragraph doesn't exist.
@@ -270,7 +270,7 @@ def list_proposals(project: NWProject) -> list[dict[str, Any]]:
     return result
 
 
-def get_proposal_items(project: NWProject, run_id: str) -> list[ProposalItem] | None:
+def get_proposal_items(project: NWProject, run_id: str) -> Optional[list[ProposalItem]]:
     """Get all items from a specific proposal run."""
     storage_path = project.storage.storagePath
     if not storage_path:
@@ -348,7 +348,7 @@ def accept_proposal(
         if existing_voice.tone is None:
             existing_voice.tone = target_unit.voice.tone
 
-    new_lines: list[str] | None = None
+    new_lines: Optional[list[str]] = None
 
     if item.kind == KIND_SPEAKER:
         proposed_spk = item.value.get("spk", "")
@@ -480,7 +480,7 @@ def parse_voice_from_lines(lines: list[str]) -> VoiceData:
     return VoiceData()
 
 
-def _set_voice_spk(lines: list[str], spk: str, src: str | None) -> list[str]:
+def _set_voice_spk(lines: list[str], spk: str, src: Optional[str]) -> list[str]:
     """Set or add spk= to the %Voice: line of a paragraph."""
     new_lines = []
     voice_line_found = False

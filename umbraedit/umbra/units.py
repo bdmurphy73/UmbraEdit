@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from umbraedit.umbra.voiceline import VoiceData, isVoiceLine, parseVoiceLine
 
@@ -30,14 +30,14 @@ class Unit:
     kind: UnitKind
     lines: list[str]
     startLine: int
-    voice: VoiceData | None = None
+    voice: Optional[VoiceData] = None
     orphanVoice: bool = False
 
 
 def iterUnits(text: str) -> Iterator[Unit]:
     """Split a document into logical units."""
     lines = text.split("\n")
-    currentVoice: VoiceData | None = None
+    currentVoice: Optional[VoiceData] = None
     i = 0
     while i < len(lines):
         line = lines[i]

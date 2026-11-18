@@ -32,7 +32,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from time import time
-from typing import Any
+from typing import Any, Optional, Union
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSlot
 from PyQt6.QtGui import QCloseEvent, QCursor, QGuiApplication, QIcon
@@ -296,7 +296,7 @@ class GuiMain(QMainWindow):
         self.asProjTimer.setInterval(int(CONFIG.autoSaveProj * 1000))
         self.asDocTimer.setInterval(int(CONFIG.autoSaveDoc * 1000))
 
-    def postLaunchTasks(self, cmdOpen: str | None) -> None:
+    def postLaunchTasks(self, cmdOpen: Optional[str]) -> None:
         """Process tasks after the main window has been created."""
         QApplication.processEvents()
         app = QApplication.instance()
@@ -382,7 +382,7 @@ class GuiMain(QMainWindow):
 
         return saveOK
 
-    def openProject(self, projFile: str | Path | None) -> bool:
+    def openProject(self, projFile: Union[str, Optional[Path]]) -> bool:
         """Open a project from a projFile path."""
         if projFile is None:
             return False
@@ -656,7 +656,7 @@ class GuiMain(QMainWindow):
 
         return True
 
-    def checkThemeUpdate(self, *, schemeHint: Any | None = None) -> None:
+    def checkThemeUpdate(self, *, schemeHint: Optional[Any] = None) -> None:
         """Load theme if mode changed."""
         if SHARED.theme.loadTheme(schemeHint=schemeHint):
             self.refreshThemeColors(syntax=True)
@@ -756,16 +756,16 @@ class GuiMain(QMainWindow):
             # Decision Matrix
             #  vM | vP | fP | vN | fN | Focus
             # ----|----|----|----|----|---------
-            #  T  | T  | T  | F  | F  | Novel
-            #  T  | T  | F  | F  | F  | Project
-            #  T  | F  | F  | T  | T  | Project
-            #  T  | F  | F  | T  | F  | Novel
-            #  T  | F  | F  | F  | F  | Project
-            #  F  | T  | T  | F  | F  | Project
-            #  F  | T  | F  | F  | F  | Project
-            #  F  | F  | F  | T  | T  | Novel
-            #  F  | F  | F  | T  | F  | Novel
-            #  F  | F  | F  | F  | F  | Project
+            #  T | T  | T | F  | F | Novel
+            #  T | T  | F | F  | F | Project
+            #  T | F  | F | T  | T | Project
+            #  T | F  | F | T  | F | Novel
+            #  T | F  | F | F  | F | Project
+            #  F | T  | T | F  | F | Project
+            #  F | T  | F | F  | F | Project
+            #  F | F  | F | T  | T | Novel
+            #  F | F  | F | T  | F | Novel
+            #  F | F  | F | F  | F | Project
 
             vM = self.mainStack.currentWidget() is self.splitMain
             vP = self.projStack.currentWidget() is self.projView
@@ -1004,6 +1004,6 @@ class GuiMain(QMainWindow):
             if width != size[0] or height != size[1] or CONFIG.moveMainWin:
                 self.move(screen.geometry().center() - self.rect().center())
 
-    def _updateWindowTitle(self, projName: str | None = None) -> None:
+    def _updateWindowTitle(self, projName: Optional[str] = None) -> None:
         """Set the window title and add the project's name."""
         self.setWindowTitle(" - ".join(filter(None, [projName, CONFIG.appName])))

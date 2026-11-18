@@ -28,7 +28,7 @@ import re
 from enum import Enum
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, TypeVar, Union
+from typing import TYPE_CHECKING, TypeVar, Union, Optional
 
 from PyQt6.QtCore import QObject, QRunnable, QThreadPool, QTimer, QUrl, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QDesktopServices, QFont, QScreen
@@ -157,7 +157,7 @@ class SharedData(QObject):
         return self.project.isValid
 
     @property
-    def projectLock(self) -> list | None:
+    def projectLock(self) -> Optional[list]:
         """Return cached lock information for the last project."""
         return self._lockedBy
 
@@ -172,7 +172,7 @@ class SharedData(QObject):
         return self._lastAlert
 
     @property
-    def mainScreen(self) -> QScreen | None:
+    def mainScreen(self) -> Optional[QScreen]:
         """Return the screen of the main window."""
         return QApplication.screenAt(self.mainGui.rect().center())
 
@@ -209,14 +209,14 @@ class SharedData(QObject):
         if pool := QThreadPool.globalInstance():  # pragma: no branch
             logger.debug("Thread Pool Max Count: %d", pool.maxThreadCount())
 
-    def closeDocument(self, tHandle: str | None = None) -> None:
+    def closeDocument(self, tHandle: Optional[str] = None) -> None:
         """Close the document editor, optionally a specific document."""
         if tHandle is None or tHandle == self.mainGui.docEditor.docHandle:
             self.mainGui.docPanes.closeDocument()
         if tHandle is None or tHandle == self.mainGui.docViewer.docHandle:
             self.mainGui.docPanes.closeViewerPanel()
 
-    def saveEditor(self, tHandle: str | None = None) -> None:
+    def saveEditor(self, tHandle: Optional[str] = None) -> None:
         """Save the editor content, optionally a specific document."""
         docEditor = self.mainGui.docEditor
         if self.hasProject and docEditor.docHandle and (tHandle is None or tHandle == docEditor.docHandle):
@@ -318,7 +318,7 @@ class SharedData(QObject):
         if pool := QThreadPool.globalInstance():
             pool.start(runnable, priority=priority)
 
-    def getProjectPath(self, parent: QWidget, path: str | Path | None = None, allowZip: bool = False) -> Path | None:
+    def getProjectPath(self, parent: QWidget, path: Union[str, Optional[Path]] = None, allowZip: bool = False) -> Optional[Path]:
         """Open the file dialog and select a UmbraEdit project file."""
         label = self.tr("UmbraEdit Project File or Zip File") if allowZip else self.tr("UmbraEdit Project File")
         ext = f"{nwFiles.PROJ_FILE} *.zip" if allowZip else nwFiles.PROJ_FILE
@@ -326,7 +326,7 @@ class SharedData(QObject):
         selected, _ = QFileDialog.getOpenFileName(parent, self.tr("Open Project"), str(path or ""), filter=fFilter)
         return Path(selected) if selected else None
 
-    def getProjectFolder(self, parent: QWidget, path: str | Path | None = None) -> Path | None:
+    def getProjectFolder(self, parent: QWidget, path: Union[str, Optional[Path]] = None) -> Optional[Path]:
         """Open the folder dialog and select a project folder."""
         location = QFileDialog.getExistingDirectory(
             parent,
@@ -342,7 +342,7 @@ class SharedData(QObject):
 
         return NFontDialog.selectFont(current, self.mainGui, self.tr("Select Font"), native)
 
-    def findTopLevelWidget(self, kind: type[NWidget]) -> NWidget | None:
+    def findTopLevelWidget(self, kind: type[NWidget]) -> Optional[NWidget]:
         """Find a top level widget."""
         for widget in self.mainGui.children():
             if isinstance(widget, kind):
@@ -452,7 +452,7 @@ class SharedData(QObject):
         info: str = "",
         details: str = "",
         log: bool = True,
-        exc: Exception | None = None,
+        exc: Optional[Exception] = None,
     ) -> None:
         """Open an error alert box."""
         alert = _GuiAlert(self.mainGui, self.theme)

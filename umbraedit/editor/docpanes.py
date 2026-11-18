@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtWidgets import QFileDialog, QSplitter, QVBoxLayout, QWidget
@@ -214,9 +214,9 @@ class GuiDocPanes(QWidget):
 
     def openDocument(
         self,
-        tHandle: str | None,
-        tLine: int | None = None,
-        sTitle: str | None = None,
+        tHandle: Optional[str],
+        tLine: Optional[int] = None,
+        sTitle: Optional[str] = None,
         changeFocus: bool = True,
         doScroll: bool = False,
     ) -> bool:
@@ -295,7 +295,7 @@ class GuiDocPanes(QWidget):
 
         self.docEditor.replaceText(text)
 
-    def viewDocument(self, tHandle: str | None = None, sTitle: str | None = None, changeFocus: bool = False) -> None:
+    def viewDocument(self, tHandle: Optional[str] = None, sTitle: Optional[str] = None, changeFocus: bool = False) -> None:
         """Load a document for viewing in the view panel."""
         if not SHARED.hasProject:
             logger.error("No project open")

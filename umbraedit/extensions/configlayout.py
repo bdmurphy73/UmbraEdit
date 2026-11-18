@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+from typing import Optional, Union
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPalette
@@ -174,7 +175,7 @@ class NScrollableForm(QScrollArea):
             if vBar := self.verticalScrollBar():  # pragma: no branch
                 vBar.setValue(yPos)
 
-    def addGroupLabel(self, label: str, identifier: int | None = None) -> None:
+    def addGroupLabel(self, label: str, identifier: Optional[int] = None) -> None:
         """Add a text label to separate groups of settings."""
         qLabel = QLabel(label, self)
         qLabel.setAlignment(qtVisualAlign(self, QtAlignLeftMiddle))
@@ -189,12 +190,12 @@ class NScrollableForm(QScrollArea):
 
     def addRow(
         self,
-        label: str | None,
-        widget: QWidget | list[QWidget | int],
+        label: Optional[str],
+        widget: Union[QWidget, Union[list[QWidget], int]],
         helpText: str = "",
-        unit: str | None = None,
-        button: QWidget | None = None,
-        editable: str | None = None,
+        unit: Optional[str] = None,
+        button: Optional[QWidget] = None,
+        editable: Optional[str] = None,
         stretch: tuple[int, int] = (1, 0),
     ) -> None:
         """Add a label and a widget as a new row of the form."""
@@ -291,9 +292,9 @@ class NColorLabel(QLabel):
         text: str,
         parent: QWidget,
         *,
-        color: QColor | None = None,
-        faded: QColor | None = None,
-        error: QColor | None = None,
+        color: Optional[QColor] = None,
+        faded: Optional[QColor] = None,
+        error: Optional[QColor] = None,
         scale: float = HELP_SCALE,
         wrap: bool = False,
         indent: int = 0,
@@ -319,9 +320,9 @@ class NColorLabel(QLabel):
     def setTextColors(
         self,
         *,
-        color: QColor | None = None,
-        faded: QColor | None = None,
-        error: QColor | None = None,
+        color: Optional[QColor] = None,
+        faded: Optional[QColor] = None,
+        error: Optional[QColor] = None,
     ) -> None:
         """Set or update the text colours."""
         self._color = color or self._color
@@ -351,9 +352,9 @@ class NColorLabel(QLabel):
 class NPathColorLabel(NColorLabel):
     """Extension: A Coloured Label for Paths."""
 
-    _crumbs: list[tuple[str, str]] | None = None
+    _crumbs: Optional[list[tuple[str, str]]] = None
 
-    def setText(self, value: str | list[tuple[str, str]]) -> None:
+    def setText(self, value: Union[str, list[tuple[str, str]]]) -> None:
         """Set the text or a clickable crumb-trail of links."""
         if isinstance(value, str):
             self._crumbs = None

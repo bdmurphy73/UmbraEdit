@@ -15,7 +15,7 @@ from __future__ import annotations
 import re
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional, Union
 
 from umbraedit.umbra.voiceline import VoiceData, isVoiceLine, parseVoiceLine
 
@@ -47,8 +47,8 @@ class ToneRef:
         return f"{self.key}:{self.intensity}"
 
 
-def parseTone(text: str) -> ToneRef | None:
-    """Parse a tone value ``key`` or ``key:1|2|3``.
+def parseTone(text: str) -> Optional[ToneRef]:
+    """Parse a tone value ``key`` or ``key:1 | 2|3``.
 
     Returns None when the value is not a valid tone.
     """
@@ -76,16 +76,16 @@ class UnitVoice:
 
     """
 
-    tone: ToneRef | None = None
-    ntone: ToneRef | None = None
-    sceneTone: ToneRef | None = None
+    tone: Optional[ToneRef] = None
+    ntone: Optional[ToneRef] = None
+    sceneTone: Optional[ToneRef] = None
 
 
 def parseUnitVoice(text: str) -> UnitVoice:
     """Extract tone/ntone/scene tone from a paragraph's ``%Voice:`` line."""
-    tone: ToneRef | None = None
-    ntone: ToneRef | None = None
-    sceneTone: ToneRef | None = None
+    tone: Optional[ToneRef] = None
+    ntone: Optional[ToneRef] = None
+    sceneTone: Optional[ToneRef] = None
     for line in text.split("\n"):
         if not isVoiceLine(line):
             continue
@@ -143,7 +143,7 @@ def narrationSpeaker(sceneHandle: str, index: Any) -> str:
 #  Attribution (R5/R6)
 ##
 
-_ATTR_OPEN_RE = re.compile(r"\[attr(?::(inherit|drop|keep|proposal))?\]")
+_ATTR_OPEN_RE = re.compile(r"\[attr(?::(inherit | drop|keep | proposal))?\]")
 _ATTR_CLOSE_RE = re.compile(r"\[/attr\]")
 
 
@@ -242,8 +242,8 @@ class UtteranceSpan:
     start: int
     end: int
     inner: str
-    spk: str | None = None
-    tone: ToneRef | None = None
+    spk: Optional[str] = None
+    tone: Optional[ToneRef] = None
 
 
 def parseUttSpans(paragraph: str) -> list[UtteranceSpan]:
@@ -254,8 +254,8 @@ def parseUttSpans(paragraph: str) -> list[UtteranceSpan]:
         if close < 0:
             continue
         paramsText = m.group(1)
-        spk: str | None = None
-        tone: ToneRef | None = None
+        spk: Optional[str] = None
+        tone: Optional[ToneRef] = None
         for param in paramsText.split(";"):
             if "=" not in param:
                 continue
@@ -281,7 +281,7 @@ def parseUttSpans(paragraph: str) -> list[UtteranceSpan]:
     return spans
 
 
-def effectiveUtteranceSpeaker(paragraphVoice: VoiceData | None, uttSpan: UtteranceSpan | None) -> str | None:
+def effectiveUtteranceSpeaker(paragraphVoice: Optional[VoiceData], uttSpan: Optional[UtteranceSpan]) -> Optional[str]:
     """R8: resolution order for an utterance speaker.
 
     utt span speaker, then paragraph voice spk, then None.

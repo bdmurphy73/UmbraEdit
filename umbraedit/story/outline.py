@@ -26,7 +26,7 @@ import logging
 import math
 import time
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QEvent, QModelIndex, QPoint, QPointF, QRect, QSize, Qt, pyqtSlot
 from PyQt6.QtGui import (
@@ -101,10 +101,7 @@ logger = logging.getLogger(__name__)
 
 
 COLUMN_FLAGS = (
-    Qt.ItemFlag.ItemIsEnabled
-    | Qt.ItemFlag.ItemIsSelectable
-    | Qt.ItemFlag.ItemIsEditable
-    | Qt.ItemFlag.ItemIsDropEnabled
+    Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDropEnabled
 )
 ENTRY_FLAGS = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsDragEnabled
 
@@ -148,7 +145,7 @@ class GuiStoryOutlineView(GuiStoryViewBase):
         if viewport := self.outlineContent.viewport():  # pragma: no branch
             viewport.update()
 
-    def refresh(self, rootHandle: str | None, force: bool = False) -> None:
+    def refresh(self, rootHandle: Optional[str], force: bool = False) -> None:
         """Refresh the outline content."""
         self.outlineContent.refresh(rootHandle, force=force)
 
@@ -511,7 +508,7 @@ class _ColumnsPage(NFixedPage):
     #  Internal Functions
     ##
 
-    def _selectedColumn(self) -> QTreeWidgetItem | None:
+    def _selectedColumn(self) -> Optional[QTreeWidgetItem]:
         """Return the column of the selected item, if any."""
         if item := self.columnTree.currentItem():
             return item.parent() or item
@@ -610,9 +607,9 @@ class GuiStoryOutlineTree(NTreeView):
 
         # Build State
         self._built = False
-        self._lastHandle: str | None = None
+        self._lastHandle: Optional[str] = None
         self._lastRevision = -1
-        self._columnIDs: list[str] | None = None
+        self._columnIDs: Optional[list[str]] = None
 
         self.setModel(self._model)
         self.setItemDelegate(self._delegate)
@@ -639,7 +636,7 @@ class GuiStoryOutlineTree(NTreeView):
     #  Getters
     ##
 
-    def node(self, index: QModelIndex) -> OutlineNode | None:
+    def node(self, index: QModelIndex) -> Optional[OutlineNode]:
         """Return the outline node for a given model index."""
         return self._model.node(index)
 
@@ -684,7 +681,7 @@ class GuiStoryOutlineTree(NTreeView):
         self._lastHandle = None
         self._lastRevision = -1
 
-    def refresh(self, rootHandle: str | None, force: bool = False) -> None:
+    def refresh(self, rootHandle: Optional[str], force: bool = False) -> None:
         """Rebuild the outline if anything changed, or if forced."""
         index = SHARED.project.index
         if force or not self._built or rootHandle != self._lastHandle or index.indexRevision != self._lastRevision:
@@ -1033,7 +1030,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         painter.restore()
 
     def helpEvent(
-        self, event: QHelpEvent | None, view: QAbstractItemView | None, option: QStyleOptionViewItem, index: QModelIndex
+        self, event: Optional[QHelpEvent], view: Optional[QAbstractItemView], option: QStyleOptionViewItem, index: QModelIndex
     ) -> bool:
         """Show the full label of an entry icon as a tooltip."""
         if event and event.type() == QEvent.Type.ToolTip:

@@ -5,7 +5,7 @@ This guide covers building Linux install packages from source.
 
 ## Source Distribution
 
-The source tarball (`umbraedit-2026.11.1.tar.gz`) includes everything needed to
+The source tarball (`umbraedit-2026.11.0006.tar.gz`) includes everything needed to
 build Linux packages:
 
 ```

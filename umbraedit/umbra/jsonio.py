@@ -19,7 +19,7 @@ import json
 import os
 import tempfile
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -31,7 +31,7 @@ class UmbraSchemaNewerError(Exception):
     """The file's schema version is newer than this code supports."""
 
 
-def readJson(path: Path, default: dict | list | None = None) -> dict | list:
+def readJson(path: Path, default: Union[dict, Optional[list]] = None) -> dict | list:
     """Read a JSON file. Returns `default` if the file doesn't exist.
 
     Raises `UmbraSchemaNewerError` if the schema version is newer than

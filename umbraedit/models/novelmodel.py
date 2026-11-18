@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union, Optional
 
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PyQt6.QtGui import QIcon, QPixmap
@@ -125,7 +125,7 @@ class NovelModel(QAbstractTableModel):
             logger.error("Novel model index is inconsistent")
         return None
 
-    def handle(self, index: QModelIndex) -> str | None:
+    def handle(self, index: QModelIndex) -> Optional[str]:
         """Return item handle for the row."""
         try:
             return self._rows[index.row()].get(R_HANDLE)  # type: ignore
@@ -133,7 +133,7 @@ class NovelModel(QAbstractTableModel):
             logger.error("Novel model index is inconsistent")
         return None
 
-    def key(self, index: QModelIndex) -> str | None:
+    def key(self, index: QModelIndex) -> Optional[str]:
         """Return item handle for the row."""
         try:
             return self._rows[index.row()].get(R_KEY)  # type: ignore
@@ -213,7 +213,7 @@ class NovelModel(QAbstractTableModel):
                 for j in scopes:
                     totals[j] += count
                 scopes.append(i)
-            for row, total in zip(self._rows, totals, strict=False):
+            for row, total in zip(self._rows, totals, ):
                 self._setCount(row, total)
 
     ##

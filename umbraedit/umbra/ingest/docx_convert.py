@@ -28,7 +28,7 @@ import tempfile
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
     from umbraedit.umbra.ingest.docx_intake import IntakeResult
@@ -43,7 +43,7 @@ class ConvertResult:
 
     markdown: str
     pandoc_paragraphs: list[str]  # Raw Pandoc output paragraphs
-    media_dir: Path | None = None
+    media_dir: Optional[Path] = None
     warnings: list[str] = field(default_factory=list)
 
 
@@ -51,13 +51,13 @@ class DocxConvert:
     """Convert stage: run Pandoc to get Markdown, map to pre-pass paragraphs."""
 
     def __init__(self) -> None:
-        self._media_dir: Path | None = None
+        self._media_dir: Optional[Path] = None
 
     def process(
         self,
         intake: IntakeResult,
         prepass: PrepassResult,
-        output_dir: Path | None = None,
+        output_dir: Optional[Path] = None,
     ) -> ConvertResult:
         """Run Pandoc and map output to pre-pass paragraphs."""
         logger.info("Convert: running Pandoc on %s", intake.file_path)
@@ -156,9 +156,9 @@ class DocxConvert:
         self,
         prepass_paras: list[ParagraphRecord],
         pandoc_paras: list[str],
-    ) -> list[tuple[ParagraphRecord, str | None]]:
+    ) -> list[tuple[ParagraphRecord, Optional[str]]]:
         """Map pre-pass paragraphs to Pandoc output by order and text similarity."""
-        mapped: list[tuple[ParagraphRecord, str | None]] = []
+        mapped: list[tuple[ParagraphRecord, Optional[str]]] = []
 
         # Simple mapping by index - assumes same order
         # In production, this could use fuzzy matching for robustness

@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 from umbraedit import CONFIG
 from umbraedit.common import checkInt, compact, isListInstance, isTitleTag
@@ -75,7 +75,7 @@ class IndexNode:
         """Return the number of headings in the index node."""
         return len(self._headings)
 
-    def __getitem__(self, sTitle: str) -> IndexHeading | None:
+    def __getitem__(self, sTitle: str) -> Optional[IndexHeading]:
         """Return the IndexHeading for the given title."""
         return self._headings.get(sTitle, None)
 

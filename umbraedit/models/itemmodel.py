@@ -202,7 +202,7 @@ class ProjectNode:
 
     def data(self, column: int, role: Qt.ItemDataRole) -> T_NodeData:
         """Return cached node data."""
-        return self._cache.get(C_FACTOR * (column | role))
+        return self._cache.get((C_FACTOR * column) | role)
 
     def flags(self) -> Qt.ItemFlag:
         """Return cached node flags."""

@@ -589,8 +589,15 @@ class _NewProjectPage(QWidget):
         if not data.get("name"):
             SHARED.error(self.tr("A project name is required."))
             return
-        builder = ProjectBuilder()
-        if builder.buildProject(data) and (path := builder.projPath):
+
+        if importPath := data.get("import"):
+            # Create the project from the Word document
+            path = self.projectForm.importDocument(importPath, data)
+        else:
+            builder = ProjectBuilder()
+            path = builder.projPath if builder.buildProject(data) else None
+
+        if path:
             self.openProjectRequest.emit(path)
         return
 
@@ -599,13 +606,20 @@ class _NewProjectForm(QWidget):
     FILL_BLANK = 0
     FILL_SAMPLE = 1
     FILL_COPY = 2
+    FILL_IMPORT = 3
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent=parent)
 
+        # Store reference to _NewProjectPage for signal emission (setWidget
+        # reparents this widget to the scroll area, so self.parent() won't
+        # return _NewProjectPage)
+        self._page = parent
+
         self._basePath = CONFIG.lastPath("project")
         self._fillMode = self.FILL_BLANK
         self._copyPath = None
+        self._importPath = None
 
         iPx = SHARED.theme.baseIconHeight
         iSz = SHARED.theme.baseIconSize
@@ -679,7 +693,7 @@ class _NewProjectForm(QWidget):
         self.fillImport = qtAddAction(
             self.fillMenu,
             self.tr("Import Word Document (DOCX)"),
-            icon=SHARED.theme.getIcon("document-import"),
+            icon=SHARED.theme.getIcon("import:apply"),
         )
         self.fillImport.triggered.connect(self._setFillImport)
 
@@ -799,11 +813,44 @@ class _NewProjectForm(QWidget):
             "blank": self._fillMode == self.FILL_BLANK,
             "sample": self._fillMode == self.FILL_SAMPLE,
             "template": self._copyPath if self._fillMode == self.FILL_COPY else None,
+            "import": self._importPath if self._fillMode == self.FILL_IMPORT else None,
             "chapters": self.numChapters.value(),
             "scenes": self.numScenes.value(),
             "roots": roots,
             "notes": self.addNotes.isChecked(),
         }
+
+    def importDocument(self, importPath: Path, data: dict) -> Optional[Path]:
+        """Create a new project from a Word document.
+
+        The project is created in the location selected in the form, and
+        the path of the new project is returned. If the import fails,
+        None is returned.
+
+        """
+        from umbraedit.core.coretools import DocxImporter
+
+        path = Path(data.get("path") or "").expanduser()
+        if not str(path):
+            SHARED.error(self.tr("A project path is required."))
+            return None
+
+        SHARED.newStatusMessage(self.tr("Importing Word document..."))
+        importer = DocxImporter()
+        if not importer.importFile(
+            importPath,
+            path,
+            name=data.get("name") or None,
+            author=data.get("author") or None,
+        ):
+            SHARED.error(
+                self.tr("Failed to import the Word document."),
+                info=importer.error,
+            )
+            return None
+
+        SHARED.newStatusMessage(self.tr("Word document imported."))
+        return importer.projectPath
 
     ##
     #  Private Slots
@@ -854,43 +901,39 @@ class _NewProjectForm(QWidget):
 
     @pyqtSlot()
     def _setFillImport(self) -> None:
-        """Set fill mode to import Word document."""
-        file_path, _ = QFileDialog.getOpenFileName(
+        """Set fill mode to import a Word document."""
+        filePath, _ = QFileDialog.getOpenFileName(
             self,
             self.tr("Select Word Document"),
             "",
             self.tr("Word Documents (*.docx *.docm)"),
         )
-        if not file_path:
+        if not filePath:
             return
-        # Use the DOCX import pipeline to create a new project from the DOCX
-        from umbraedit.core.coretools import ProjectBuilder
+
+        # Parse the document so the project details can be pre-filled
         from umbraedit.formats.fromdocx import FromDocxDocument
 
         try:
-            # Parse the Word document
-            doc = FromDocxDocument(str(file_path))
-            result = doc.parse()
-
-            if not result.title and not result.scenes:
-                SHARED.error(self.tr("Failed to import document: No content found"))
-                return
-
-            # Build project data from the import
-            # Set path to the DOCX file's directory so the project is created there
-            docx_dir = str(Path(file_path).parent)
-            data = {
-                "name": result.title or "New Project",
-                "author": result.author or "",
-                "path": docx_dir,
-                "sample": False,
-            }
-
-            builder = ProjectBuilder()
-            if builder.buildProject(data) and (path := builder.projPath):
-                self.openProjectRequest.emit(path)
+            result = FromDocxDocument(filePath).parse()
         except Exception as exc:
-            SHARED.error(self.tr("Failed to import Word document"), exc=exc)
+            SHARED.error(self.tr("Failed to read the Word document."), exc=exc)
+            return
+
+        if not result.scenes:
+            SHARED.error(self.tr("No content was found in the Word document."))
+            return
+
+        self._importPath = Path(filePath)
+        self._fillMode = self.FILL_IMPORT
+
+        # Pre-fill the project details from the document properties
+        if result.title and not self.projName.text().strip():
+            self.projName.setText(result.title)
+        if result.author and not self.projAuthor.text().strip():
+            self.projAuthor.setText(result.author)
+
+        self._updateFillInfo()
 
     ##
     #  Internal Functions
@@ -905,6 +948,8 @@ class _NewProjectForm(QWidget):
             text = self.tr("Example Project")
         elif self._fillMode == self.FILL_COPY:
             text = self.tr("Template: {0}").format(str(self._copyPath))
+        elif self._fillMode == self.FILL_IMPORT:
+            text = self.tr("Word Document: {0}").format(str(self._importPath))
         else:  # pragma: no cover
             pass
 

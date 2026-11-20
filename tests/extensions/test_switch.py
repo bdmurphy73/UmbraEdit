@@ -92,7 +92,10 @@ def testNSwitch_Direction(qtbot: QtBot):
         color = switch.palette().highlightedText().color()
         row = image.height() // 2
         xs = [x for x in range(image.width()) if image.pixelColor(x, row) == color]
-        return min(xs), max(xs)
+        # The grabbed image is in device pixels, but the widget size is
+        # in logical pixels, so scale the result to match.
+        ratio = image.devicePixelRatio() or 1.0
+        return int(min(xs) / ratio), int(max(xs) / ratio)
 
     # LTR places the checked knob on the right
     kL, _ = knobSpan()

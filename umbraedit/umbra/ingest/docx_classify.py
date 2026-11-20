@@ -127,9 +127,9 @@ def _is_chapter_heading(text: str, style_name: str, outline_level: Optional[int]
 
     # Check for "Chapter" or "Part" keywords
     text_lower = text.lower().strip()
-    if re.match(r"^(chapter | part)\s+\d+", text_lower):
+    if re.match(r"^(chapter|part)\s+\d+", text_lower):
         return True, 1
-    if re.match(r"^(chapter | part)\s+[ivxlcdm]+", text_lower, re.IGNORECASE):
+    if re.match(r"^(chapter|part)\s+[ivxlcdm]+", text_lower, re.IGNORECASE):
         return True, 1
 
     # Scored guess: short line, centered/bold, followed by blank

@@ -905,11 +905,14 @@ def testGuiProjectTree_MouseAndNavEdgeCases(qtbot: QtBot, nwGUI: GuiMain, projPa
     """
     projView = nwGUI.projView
     projTree = projView.projTree
-    model = SHARED.project.tree.model
 
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
     projTree.expandAll()
+
+    # The model must be fetched after the project is opened, as opening
+    # a project replaces the project object and its tree model
+    model = SHARED.project.tree.model
 
     eType = QEvent.Type.MouseButtonPress
     modifier = QtModNone

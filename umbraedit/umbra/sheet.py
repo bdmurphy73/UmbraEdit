@@ -18,13 +18,11 @@ import re
 import unicodedata
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Optional, Union
+from pathlib import Path
+from typing import Any, Optional, Union
 
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import sheetFile, tonesFile
-
-if TYPE_CHECKING:  # pragma: no cover
-    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +89,37 @@ def full_name(attrs: dict[str, str]) -> str:
         if val:
             parts.append(val)
     return " ".join(parts)
+
+
+def _readProjectItems(projectPath: Path) -> list[tuple[str, str, str]]:
+    """Read the document items of a project from its project XML file.
+
+    Returns a list of `(handle, name, class)` tuples. An unreadable or
+    missing project file returns an empty list.
+    """
+    from xml.etree import ElementTree as ET
+
+    from umbraedit.constants import nwFiles
+
+    projFile = projectPath / nwFiles.PROJ_FILE
+    if not projFile.is_file():
+        return []
+    try:
+        xml = ET.parse(str(projFile))
+    except Exception:
+        logger.exception("Could not parse project file: %s", projFile)
+        return []
+    items = []
+    for item in xml.getroot().iter("item"):
+        if item.get("type") != "FILE":
+            continue
+        name = item.find("name")
+        items.append((
+            item.get("handle", ""),
+            (name.text or "").strip() if name is not None else "",
+            item.get("class", ""),
+        ))
+    return items
 
 
 @dataclass
@@ -326,24 +355,24 @@ class SheetManager:
     ##
 
     def buildFromProject(self, project: Any) -> None:
-        """Build the entity map from the project tree and note files."""
+        """Build the entity map from the project tree and note files.
+
+        The project can be given either as a project object, or as the
+        path to a project folder.
+        """
         self._entityMap.clear()
-        for item in project.tree:
-            if not item.isFileType():
-                continue
-            handle = item.itemHandle
-            tag = item.itemName
+        items, contentPath = self._projectItems(project)
+        for handle, tag, className in items:
             kind = "character"
-            if item.itemClass.name == "WORLD":
+            if className == "WORLD":
                 kind = "place"
-            elif item.itemClass.name == "OBJECT":
+            elif className == "OBJECT":
                 kind = "thing"
-            elif item.itemClass.name == "ENTITY":
+            elif className == "ENTITY":
                 kind = "organisation"
             row = EntityRow(tag=tag, handle=handle, kind=kind)
-            docPath = project.storage.contentPath
-            if docPath:
-                docFile = docPath / f"{handle}.md"
+            if contentPath:
+                docFile = contentPath / f"{handle}.md"
                 if docFile.is_file():
                     content = docFile.read_text(encoding="utf-8")
                     for line in content.splitlines():
@@ -357,6 +386,54 @@ class SheetManager:
                             if key.strip():
                                 row.attrs[key.strip()] = value.strip()
             self._entityMap[tag] = row
+
+    def loadSheet(self) -> int:
+        """Load the entity sheet from `umbra/sheet.json`.
+
+        Returns the number of entities loaded. A missing or invalid
+        file leaves the entity map unchanged.
+        """
+        path = sheetFile(self._projectPath)
+        if not path.is_file():
+            return 0
+        try:
+            data = readJson(path)
+        except Exception:
+            logger.exception("Could not read entity sheet: %s", path)
+            return 0
+        if not isinstance(data, dict):
+            return 0
+        count = 0
+        for entityData in data.get("entities", []):
+            try:
+                row = EntityRow(**entityData)
+            except Exception:
+                continue
+            self._entityMap[row.tag] = row
+            count += 1
+        return count
+
+    ##
+    #  Internal Functions
+    ##
+
+    @staticmethod
+    def _projectItems(project: Any) -> tuple[list[tuple[str, str, str]], Optional[Path]]:
+        """Return the project items and content path.
+
+        The project may be a project object, or the path to a project
+        folder. In the latter case, the items are read from the project
+        XML file.
+        """
+        if isinstance(project, (str, Path)):
+            projectPath = Path(project)
+            return _readProjectItems(projectPath), projectPath / "content"
+        items = []
+        for item in project.tree:
+            if not item.isFileType():
+                continue
+            items.append((item.itemHandle, item.itemName, item.itemClass.name))
+        return items, project.storage.contentPath
 
     ##
     #  Queries

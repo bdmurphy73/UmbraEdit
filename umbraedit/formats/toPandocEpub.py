@@ -76,6 +76,11 @@ def _check_java_available() -> bool:
         return False
 
 
+def _check_epubcheck_available() -> bool:
+    """Check if EPUBCheck is available."""
+    return _find_epubcheck() is not None and _check_java_available()
+
+
 def validate_epub(epub_path: Path, epubcheck_jar: Optional[str] = None) -> tuple[bool, list[str], list[str]]:
     """Validate an EPUB file using EPUBCheck.
 
@@ -128,6 +133,7 @@ def build_epub_with_pandoc(
     project: NWProject,
     output_path: Path,
     pandoc_args: Optional[list[str]] = None,
+    json_ast: Optional[str] = None,
 ) -> tuple[bool, str]:
     """Build EPUB from project using Pandoc.
 
@@ -135,6 +141,8 @@ def build_epub_with_pandoc(
         project: The project to convert.
         output_path: Path to write EPUB to.
         pandoc_args: Additional Pandoc arguments.
+        json_ast: Optional pre-built Pandoc JSON AST. If not provided,
+            the AST is generated from the project.
 
     Returns:
         Tuple of (success, output_path_or_error).
@@ -147,7 +155,10 @@ def build_epub_with_pandoc(
             json_path = tmpdir_path / "manuscript.json"
 
             # Generate Pandoc JSON
-            toPandocJson(project, json_path)
+            if json_ast is None:
+                toPandocJson(project, json_path)
+            else:
+                json_path.write_text(json_ast, encoding="utf-8")
 
             # Build Pandoc command
             cmd = ["pandoc", str(json_path), "-o", str(output_path), "--from=json", "--to=epub3"]
@@ -196,6 +207,7 @@ def build_epub_validated(
     project: NWProject,
     output_path: Path,
     epubcheck_jar: Optional[str] = None,
+    json_ast: Optional[str] = None,
 ) -> tuple[bool, str]:
     """Build EPUB with Pandoc and validate with EPUBCheck.
 
@@ -203,20 +215,27 @@ def build_epub_validated(
         project: The project to convert.
         output_path: Path to write EPUB to.
         epubcheck_jar: Optional path to EPUBCheck JAR.
+        json_ast: Optional pre-built Pandoc JSON AST. If not provided,
+            the AST is generated from the project.
 
     Returns:
         Tuple of (success, output_path_or_error).
 
     """
     # Build EPUB with Pandoc
-    success, result = build_epub_with_pandoc(project, output_path)
+    success, result = build_epub_with_pandoc(project, output_path, json_ast=json_ast)
     if not success:
         return False, result
 
     epub_path = Path(result)
 
-    # Validate with EPUBCheck
-    is_valid, errors, _warnings = validate_epub(epub_path)
+    # Validate with EPUBCheck. If the validation tooling is not
+    # available, the EPUB is kept as is, but a warning is logged.
+    if not _check_java_available() and not (epubcheck_jar or _find_epubcheck()):
+        logger.warning("EPUBCheck is not available, skipping EPUB validation")
+        return True, str(output_path)
+
+    is_valid, errors, _warnings = validate_epub(epub_path, epubcheck_jar)
     if not is_valid:
         # Remove invalid EPUB
         with contextlib.suppress(Exception):

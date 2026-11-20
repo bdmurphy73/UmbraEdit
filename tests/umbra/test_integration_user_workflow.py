@@ -153,7 +153,6 @@ class TestCompleteUserWorkflow:
             lambda *a, **k: QMessageBox.StandardButton.No,
         )
 
-        from umbraedit.gui.importmanuscript import ImportManuscriptCommand
         command = ImportManuscriptCommand(project, None)
         command.execute()  # Should not crash
 

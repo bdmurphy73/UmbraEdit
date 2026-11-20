@@ -77,7 +77,7 @@ PAGE_TYPE_SCHEMA: dict[str, Any] = {
         "variants": {
             "type": "object",
             "patternProperties": {
-                "^(print | epub|audio)$": {
+                "^(print|epub|audio)$": {
                     "type": "object",
                     "properties": {
                         "enabled": {"type": "boolean"},

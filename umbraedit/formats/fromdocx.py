@@ -23,7 +23,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import logging
 import re
@@ -31,6 +30,7 @@ import xml.etree.ElementTree as ET
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 from zipfile import ZipFile, is_zipfile
 
 from umbraedit.constants import (
@@ -43,6 +43,9 @@ logger = logging.getLogger(__name__)
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 
+# Dublin Core namespaces, used by the core document properties
+DC_NS = "http://purl.org/dc/elements/1.1/"
+
 
 def _wtag(tag: str) -> str:
     """Return the namespaced tag for the w namespace."""
@@ -54,20 +57,59 @@ def _rtag(tag: str) -> str:
     return f"{{{R_NS}}}{tag}"
 
 
-# Mapping of Word paragraph styles to UmbraEdit heading levels
-# Style name -> (UmbraEdit heading level, is chapter)
-STYLE_MAP: dict[str, tuple[int, bool]] = {
-    "Title": (0, False),      # Book title (front matter)
-    "Subtitle": (0, False),   # Subtitle (front matter)
-    "WAChapter": (1, True),   # Chapter heading -> new chapter folder
-    "WAChpNrm": (3, False),   # Chapter-normal text (scene content)
-    "WANChpPgr": (3, False),  # Chapter paragraph (scene content)
-    "WANrmlPgr": (3, False),  # Normal paragraph (scene content)
-    "WASection": (4, False),  # Section break within a chapter
-    "NoSpacing": (3, False),  # Normal paragraph
-    "TOC1": (3, False),       # Table of contents entry
-    "TOCHeading": (2, False), # TOC heading
+def _dtag(tag: str) -> str:
+    """Return the namespaced tag for the dc namespace."""
+    return f"{{{DC_NS}}}{tag}"
+
+
+# Mapping of Word paragraph styles to UmbraEdit content roles.
+#
+# The style names are normalised with _styleKey() before the lookup, so
+# the keys below are lower case and stripped of spaces, dashes and
+# underscores.
+#
+# Roles:
+#   "title"    -> the document title, opens a front matter block
+#   "subtitle" -> the author name, appended to the current block
+#   "chapter"  -> opens a new chapter
+#   "scene"    -> opens a new scene inside the current chapter
+#   "body"     -> regular body text
+#
+# Any style not listed here is treated as body text.
+STYLE_MAP: dict[str, str] = {
+    "title": "title",
+    "subtitle": "subtitle",
+    "tocheading": "chapter",
+    "wachapter": "chapter",
+    "heading1": "chapter",
+    "wasection": "scene",
+    "heading2": "scene",
 }
+
+# Heading levels used for the imported documents. These correspond to the
+# novelWriter heading levels, where H1 is the title page, H2 is a chapter,
+# and H3 is a scene.
+LEVEL_FRONT = 0
+LEVEL_CHAPTER = 1
+LEVEL_SCENE = 2
+
+# Markers used in the source document for comments, footnotes and images
+_MARKER = re.compile(r"\[(?:COMMENT|FOOTNOTE|IMAGE)[^\]]*\]")
+
+# Angle bracket markers, often used by authors to mark scene breaks
+_ANGLE = re.compile(r"^[<>\s]+|[<>\s]+$")
+
+
+def _styleKey(style: str) -> str:
+    """Normalise a Word paragraph style name for style map lookups."""
+    return re.sub(r"[\s\-_]+", "", style).lower()
+
+
+def _cleanHeading(text: str) -> str:
+    """Clean up a heading string by stripping markers and extra spaces."""
+    text = _MARKER.sub("", text)
+    text = _ANGLE.sub("", text)
+    return " ".join(text.split())
 
 
 @dataclass
@@ -99,7 +141,19 @@ class ImportScene:
     level: int
     text: str
     style: str
-    is_chapter: bool = False  # True if this is a chapter heading (folder)
+    is_chapter: bool = False  # True if this is a chapter heading
+    is_front: bool = False    # True if this is front matter
+
+
+@dataclass
+class _Block:
+    """Internal container for a block of parsed document content."""
+
+    role: str
+    heading: str
+    level: int
+    style: str = "Normal"
+    lines: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -153,6 +207,7 @@ class FromDocxDocument:
             self._parse_document()
             self._parse_comments()
             self._parse_footnotes()
+            self._load_docprops()
         finally:
             self._zip.close()
             self._zip = None
@@ -172,6 +227,28 @@ class FromDocxDocument:
         except KeyError:
             logger.warning("File not found in DOCX: %s", name)
             return ""
+
+    def _load_docprops(self) -> None:
+        """Load the core document properties.
+
+        These are only used as a fallback for the title and author, as
+        the values in the document body are usually more accurate.
+        """
+        xml_text = self._read_xml("docProps/core.xml")
+        if not xml_text:
+            return
+        try:
+            root = ET.fromstring(xml_text)
+        except ET.ParseError:
+            logger.warning("Could not parse docProps/core.xml")
+            return
+
+        title = root.findtext(_dtag("title")) or ""
+        creator = root.findtext(_dtag("creator")) or ""
+        if title and not self._result.title:
+            self._result.title = " ".join(title.split())
+        if creator and not self._result.author:
+            self._result.author = " ".join(creator.split())
 
     def _load_relationships(self) -> None:
         """Load document relationships (maps rIds to targets)."""
@@ -232,43 +309,19 @@ class FromDocxDocument:
         if body is None:
             return
 
-        # Track current chapter/scene
-        current_chapter: Optional[str] = None
-        current_text: list[str] = []
-        current_style: Optional[str] = None
-        current_level: int = 0
+        # The document is parsed into a flat list of blocks. Each block
+        # becomes one project document when the project is created.
+        blocks: list[_Block] = []
+        current: Optional[_Block] = None
+        chapterHeading = ""
+        sceneCount = 0
 
-        def save_current_chapter() -> None:
-            """Save the accumulated chapter content as an ImportScene."""
-            nonlocal current_chapter, current_text, current_style, current_level
-            if current_chapter is None:
-                return
-            # Split text at >>> section breaks into multiple scenes
-            full_text = "\n".join(current_text)
-            parts = full_text.split(">>>")
-            for idx, part in enumerate(parts):
-                part = part.strip()
-                if not part:
-                    continue
-                if idx == 0:
-                    # First part gets the chapter heading
-                    scene_heading = current_chapter
-                else:
-                    # Subsequent parts are scenes within the chapter
-                    scene_heading = f"{current_chapter} - Scene {idx}"
-                self._result.scenes.append(
-                    ImportScene(
-                        heading=scene_heading,
-                        level=current_level,
-                        text=part,
-                        style=current_style or "Normal",
-                        is_chapter=(idx == 0),  # Only first part is the chapter folder
-                    )
-                )
-            current_chapter = None
-            current_text = []
-            current_style = None
-            current_level = 0
+        def closeBlock() -> None:
+            """Close the current block and add it to the block list."""
+            nonlocal current
+            if current is not None:
+                blocks.append(current)
+                current = None
 
         for para in body.findall(_wtag("p")):
             para_result = self._parse_paragraph(para)
@@ -277,7 +330,7 @@ class FromDocxDocument:
 
             style = para_result["style"]
             text = para_result["text"]
-            level, is_chapter = STYLE_MAP.get(style, (3, False))
+            role = STYLE_MAP.get(_styleKey(style), "body")
 
             # Collect non-translatable items as notes (images)
             if para_result["images"]:
@@ -293,55 +346,74 @@ class FromDocxDocument:
                         )
                         self._result.notes.append(note)
 
-            # Handle chapter headings - start a new chapter
-            if is_chapter:
-                # Save previous chapter if any
-                save_current_chapter()
+            # Handle the document title. It opens a front matter block,
+            # and is also used as the project title.
+            if role == "title":
+                title = _cleanHeading(text)
+                if title and not self._result.title:
+                    self._result.title = title
+                closeBlock()
+                current = _Block("front", title or "Title Page", LEVEL_FRONT, style)
+                continue
 
-                # Clean up chapter heading - remove comment/footnote markers
-                clean_heading = re.sub(r"\[(?:COMMENT | FOOTNOTE):\w+\]", "", text.strip())
-                current_chapter = clean_heading or f"Chapter {len(self._result.scenes) + 1}"
-                current_text = []
-                current_style = style
-                current_level = level
+            # Handle the subtitle. It is the author name, and is kept as
+            # a line of text in the current block.
+            if role == "subtitle":
+                subtitle = _cleanHeading(text)
+                if subtitle and not self._result.author:
+                    self._result.author = subtitle
+                if current is None:
+                    current = _Block("front", "Title Page", LEVEL_FRONT, style)
+                if subtitle:
+                    current.lines.append(subtitle)
+                    current.lines.append("")
+                continue
 
-                # Add chapter title
-                if text.strip():
-                    current_text.append(f"# {text.strip()}")
-                    current_text.append("")
+            # Handle chapter headings. These open a new chapter.
+            if role == "chapter":
+                heading = _cleanHeading(text)
+                closeBlock()
+                chapterHeading = heading or f"Chapter {len(blocks) + 1}"
+                sceneCount = 0
+                current = _Block("chapter", chapterHeading, LEVEL_CHAPTER, style)
+                continue
 
-            # Handle section breaks - split into separate scenes
-            elif style == "WASection":
-                current_text.append(">>>")
-                current_text.append("")
-
-            # Handle title/subtitle (front matter)
-            elif style in ("Title", "Subtitle"):
-                if not self._result.title and style == "Title":
-                    self._result.title = text.strip()
-                elif style == "Subtitle" and not self._result.author:
-                    self._result.author = text.strip()
-                current_text.append(f"{'#' * (level + 1)} {text.strip()}")
-                current_text.append("")
+            # Handle scene breaks. These open a new scene in the current
+            # chapter. The text of the break itself is used as the scene
+            # heading when it contains anything but markers.
+            if role == "scene":
+                heading = _cleanHeading(text)
+                closeBlock()
+                sceneCount += 1
+                if not heading:
+                    heading = f"{chapterHeading} - Scene {sceneCount}" if chapterHeading else f"Scene {sceneCount}"
+                current = _Block("scene", heading, LEVEL_SCENE, style)
+                continue
 
             # Regular content paragraphs
-            else:
-                if text.strip():
-                    current_text.append(text)
-                    current_text.append("")
+            if text.strip():
+                if current is None:
+                    current = _Block("front", "Front Matter", LEVEL_FRONT, style)
+                current.lines.append(text)
+                current.lines.append("")
 
-        # Save the last chapter
-        save_current_chapter()
+        # Save the last block
+        closeBlock()
 
-        # If no chapters were found, treat all content as one scene
-        if not self._result.scenes and current_text:
+        # Convert the blocks into scenes. Blocks without any text are
+        # dropped, as they only hold empty section breaks.
+        for block in blocks:
+            text = "\n".join(block.lines).strip()
+            if not text:
+                continue
             self._result.scenes.append(
                 ImportScene(
-                    heading="Imported Content",
-                    level=3,
-                    text="\n".join(current_text),
-                    style="Normal",
-                    is_chapter=False,
+                    heading=block.heading,
+                    level=block.level,
+                    text=text,
+                    style=block.style,
+                    is_chapter=(block.role == "chapter"),
+                    is_front=(block.role == "front"),
                 )
             )
 

@@ -52,9 +52,13 @@ ISBN10_RE = re.compile(
 )
 
 # Default format configurations
+#
+# No format is enabled by default. The user must opt in to the
+# formats they intend to publish, so that the publishing gates only
+# apply to the formats actually in use.
 DEFAULT_FORMATS = {
     "paperback": {
-        "enabled": True,
+        "enabled": False,
         "isbn": "",
         "publisher": "",
         "publicationDate": "",
@@ -74,14 +78,14 @@ DEFAULT_FORMATS = {
         "binding": "case",
     },
     "epub": {
-        "enabled": True,
+        "enabled": False,
         "isbn": "",
         "publisher": "",
         "publicationDate": "",
         "price": {},
     },
     "audiobook": {
-        "enabled": True,
+        "enabled": False,
         "isbn": "",
         "publisher": "",
         "publicationDate": "",

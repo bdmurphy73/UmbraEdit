@@ -22,6 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import shutil
 import tempfile
@@ -37,16 +38,18 @@ from PyQt6.QtCore import QCoreApplication
 from umbraedit import CONFIG, SHARED
 from umbraedit.common import (
     isHandle,
+    jsonEncode,
     minmax,
     safeExists,
+    safeIsDir,
     safeIsFile,
+    safeIterDir,
     simplified,
 )
 from umbraedit.constants import nwFiles, nwItemClass, nwItemLayout, nwStats
 from umbraedit.core.project import NWProject
-from umbraedit.core.projectxml import ProjectXMLWriter
 from umbraedit.core.storage import ProjectStorageCreate
-from umbraedit.formats.fromdocx import FromDocxDocument
+from umbraedit.formats.fromdocx import FromDocxDocument, ImportResult, ImportScene
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -555,20 +558,24 @@ class ProjectBuilder:
             project.closeProject()
 
 
+
 class DocxImporter:
     """Tool: Import a Word DOCX/DOCM file into a new UmbraEdit project.
 
-    Parses a Word document and creates a new UmbraEdit project with the
-    extracted content. Non-translatable items (images, headers, footers,
-    comments, footnotes) are captured as note documents in the project.
+    The Word document is parsed, and the content is written to a new
+    project where each chapter and scene becomes a project document.
+    Items that cannot be translated, like images, headers, footers,
+    comments and footnotes, are captured as note documents.
+
+    The project is built in a temporary folder next to the target
+    location, and moved into place when it is complete. If anything
+    fails along the way, no project is created.
     """
 
     def __init__(self) -> None:
-        self._project: Optional[NWProject] = None
         self._error = ""
-        self._novel_root: Optional[str] = None
-        self._notes_root: Optional[str] = None
-        self._current_chapter: Optional[str] = None
+        self._projectPath: Optional[Path] = None
+        self.tr = partial(QCoreApplication.translate, "DocxImporter")
 
     ##
     #  Properties
@@ -576,102 +583,100 @@ class DocxImporter:
 
     @property
     def error(self) -> str:
-        """Return any collected errors."""
+        """Return any collected error message."""
         return self._error
+
+    @property
+    def projectPath(self) -> Optional[Path]:
+        """Return the path of the project created by the last import."""
+        return self._projectPath
 
     ##
     #  Public API
     ##
 
-    def importFile(self, file_path: str | Path, project_path: str | Path) -> bool:
+    def importFile(
+        self,
+        file_path: str | Path,
+        project_path: str | Path,
+        name: Optional[str] = None,
+        author: Optional[str] = None,
+    ) -> bool:
         """Import a Word DOCX/DOCM file into a new UmbraEdit project.
 
         Args:
             file_path: Path to the .docm or .docx file to import.
             project_path: Path where the new project folder will be created.
+            name: Optional project name, overriding the document title.
+            author: Optional author name, overriding the document author.
 
         Returns:
             True if the import was successful, False otherwise.
 
         """
+        self._error = ""
+        self._projectPath = None
+
         try:
-            in_path = Path(file_path).resolve()
-            out_path = Path(project_path).resolve()
+            inPath = Path(file_path).expanduser().resolve()
+            outPath = Path(project_path).expanduser().resolve()
         except Exception as exc:
-            self._error = f"Invalid path: {exc}"
+            self._error = self.tr("Invalid path: {0}").format(str(exc))
+            logger.error(self._error)
+            return False
+
+        if not safeIsFile(inPath):
+            self._error = self.tr("The Word document could not be found.")
+            logger.error(self._error)
+            return False
+
+        if safeExists(outPath) and (
+            not safeIsDir(outPath) or len(list(safeIterDir(outPath))) > 0
+        ):
+            # The target folder must be empty, or not exist at all
+            self._error = self.tr("The target folder is not empty.")
             logger.error(self._error)
             return False
 
         # Parse the Word document
-        parser = FromDocxDocument(in_path)
         try:
-            result = parser.parse()
+            result = FromDocxDocument(inPath).parse()
         except Exception as exc:
-            self._error = f"Failed to parse Word document: {exc}"
+            self._error = self.tr("Failed to parse the Word document: {0}").format(str(exc))
             logger.error(self._error, exc_info=exc)
             return False
 
-        # Create the project storage
-        project = NWProject()
-        status = project.storage.createNewProject(out_path)
-        if status != ProjectStorageCreate.READY:
-            if status == ProjectStorageCreate.NOT_EMPTY:
-                self._error = self.tr("The target folder is not empty.")
-            else:
-                self._error = self.tr("Failed to create project storage.")
+        if not result.scenes:
+            self._error = self.tr("No content was found in the Word document.")
             logger.error(self._error)
             return False
 
-        self._project = project
-        self._novel_root = None
-        self._notes_root = None
-        self._current_chapter = None
-
-        # Initialise project data
-        project.data.setUuid(None)
-        project.data.setName(result.title or in_path.stem)
-        project.data.setAuthor(result.author or "")
-        project.data.setLanguage(CONFIG.guiLocale, CONFIG.rtlMode)
-        project.setDefaultStatusImport()
-        project.session.startSession()
-
-        # Create root folder
-        self._novel_root = project.newRoot(nwItemClass.NOVEL)
-        if not self._novel_root:
-            self._error = self.tr("Failed to create project root.")
+        # Build the project in a temporary folder next to the target, and
+        # move it into place when it is complete
+        tmpPath = None
+        try:
+            outPath.parent.mkdir(parents=True, exist_ok=True)
+            tmpPath = Path(tempfile.mkdtemp(prefix=".umbraedit-import-", dir=str(outPath.parent)))
+            if not self._buildProject(result, inPath, tmpPath, name, author):
+                shutil.rmtree(tmpPath, ignore_errors=True)
+                return False
+            if outPath.exists():
+                # The target is an empty folder, so it can be replaced
+                outPath.rmdir()
+            tmpPath.rename(outPath)
+        except Exception as exc:
+            if tmpPath is not None:
+                shutil.rmtree(tmpPath, ignore_errors=True)
+            self._error = self.tr("Failed to create the project: {0}").format(str(exc))
+            logger.error(self._error, exc_info=exc)
             return False
 
-        # Create notes root folder (for non-translatable items)
-        self._notes_root = project.newFolder("Import Notes", self._novel_root)
-        if not self._notes_root:
-            self._error = self.tr("Failed to create notes folder.")
-            return False
+        try:
+            outPath.chmod(0o755)
+        except OSError:  # pragma: no cover
+            logger.warning("Could not set permissions on %s", outPath)
 
-        # Process scenes
-        for scene in result.scenes:
-            self._addScene(scene)
-
-        # Process notes (non-translatable items)
-        for note in result.notes:
-            self._addNote(note)
-
-        # Write project XML
-        content = [item.pack() for item in project.tree]
-        saveTime = time_module.time()
-        editTime = 0
-
-        writer = ProjectXMLWriter(project.storage._manifestPath)
-        if not writer.write(project.data, content, saveTime, editTime):
-            self._error = self.tr("Failed to write project XML.")
-            return False
-
-        # Rebuild index
-        project.index.rebuild()
-
-        # Save and close
-        project.saveProject()
-        project.closeProject()
-
+        self._projectPath = outPath
         logger.info("Import completed: %d scenes, %d notes", len(result.scenes), len(result.notes))
         return True
 
@@ -679,83 +684,200 @@ class DocxImporter:
     #  Internal Functions
     ##
 
-    def _addScene(self, scene: ImportScene) -> None:
-        """Add a scene (chapter or scene document) to the project."""
-        if not self._project:
-            return
+    def _buildProject(
+        self,
+        result: ImportResult,
+        inPath: Path,
+        path: Path,
+        name: Optional[str] = None,
+        author: Optional[str] = None,
+    ) -> bool:
+        """Build the project in the given folder."""
+        project = NWProject()
+        status = project.storage.createNewProject(path)
+        if status != ProjectStorageCreate.READY:
+            if status == ProjectStorageCreate.NOT_EMPTY:
+                self._error = self.tr("The target folder is not empty.")
+            else:
+                self._error = self.tr("Failed to create the project folder.")
+            logger.error(self._error)
+            return False
 
-        # If this is a chapter, create a folder and write the chapter text
-        # as a scene document inside the folder
-        if scene.is_chapter:
-            self._current_chapter = scene.heading
-            cHandle = self._project.newFolder(scene.heading, self._novel_root)
-            if cHandle:
-                cItem = self._project.tree[cHandle]
-                cItem.setClass(nwItemClass.NOVEL)
-                # Write chapter text as the main scene document inside the folder
-                sHandle = self._project.newFile(scene.heading, cHandle)
-                if sHandle:
-                    sItem = self._project.tree[sHandle]
-                    sItem.setLayout(nwItemLayout.DOCUMENT)
-                    sItem.setMainHeading(scene.level)
-                    aDoc = self._project.storage.getDocument(sHandle)
-                    aDoc.writeDocument(scene.text)
-                    self._project.index.scanText(sHandle, scene.text)
-            return
+        try:
+            # Project meta data
+            project.data.setUuid(None)
+            project.data.setName(name or result.title or inPath.stem)
+            project.data.setAuthor(author if author is not None else (result.author or ""))
+            project.data.setLanguage(CONFIG.guiLocale, CONFIG.rtlMode)
+            project.setDefaultStatusImport()
+            project.session.startSession()
 
-        # Determine parent (chapter folder or novel root)
-        parent = self._current_chapter or self._novel_root
+            # Root folders
+            novelRoot = project.newRoot(nwItemClass.NOVEL)
+            notesRoot = project.newRoot(nwItemClass.CUSTOM)
+            if item := project.tree[notesRoot]:
+                item.setName("Import Notes")
+            project.newRoot(nwItemClass.ARCHIVE)
+            _ = project.tree.trash  # Triggers the creation of Trash
 
-        # Create the scene document
-        sHandle = self._project.newFile(scene.heading, parent)
-        if not sHandle:
-            return
+            # Documents
+            for scene in result.scenes:
+                self._addScene(project, novelRoot, scene)
+            for note in result.notes:
+                self._addNote(project, notesRoot, note)
 
-        sItem = self._project.tree[sHandle]
-        sItem.setLayout(nwItemLayout.DOCUMENT)
-        sItem.setMainHeading(scene.level)
+            # The issues document and the source provenance
+            self._addIssues(project, notesRoot, result, inPath)
+            self._writeProvenance(path, inPath)
 
-        # Write the document content
-        aDoc = self._project.storage.getDocument(sHandle)
-        aDoc.writeDocument(scene.text)
+            project.index.rebuild()
+            project.saveProject()
+        except Exception as exc:
+            self._error = self.tr("Failed to build the project: {0}").format(str(exc))
+            logger.error(self._error, exc_info=exc)
+            return False
+        finally:
+            project.closeProject()
 
-        # Re-index the document text
-        self._project.index.scanText(sHandle, scene.text)
+        return True
 
-    def _addNote(self, note: ImportNote) -> None:
-        """Add a note document for a non-translatable item."""
-        if not self._project:
-            return
+    def _addScene(self, project: NWProject, novelRoot: str, scene: ImportScene) -> None:
+        """Add a chapter or scene document to the project."""
+        if scene.is_front:
+            heading = scene.heading or self.tr("Front Matter")
+            marker = "#"
+            level = "H1"
+        elif scene.is_chapter:
+            heading = scene.heading
+            marker = "##"
+            level = "H2"
+        else:
+            heading = scene.heading
+            marker = "###"
+            level = "H3"
 
-        parent = self._notes_root or self._novel_root
-
-        # Create note file name from the note type and source
-        note_name = f"{note.note_type.title()}: {note.source[:50]}"
-        tHandle = self._project.newFile(note_name, parent)
+        tHandle = project.newFile(heading, novelRoot)
         if not tHandle:
+            logger.error("Could not create document '%s'", heading)
             return
 
-        tItem = self._project.tree[tHandle]
+        tItem = project.tree[tHandle]
+        if tItem is None:  # pragma: no cover
+            return
+
+        tItem.setLayout(nwItemLayout.DOCUMENT)
+        tItem.setMainHeading(level)
+
+        text = f"{marker} {heading}\n\n{scene.text}\n"
+        aDoc = project.storage.getDocument(tHandle)
+        aDoc.writeDocument(text)
+
+    def _addNote(self, project: NWProject, notesRoot: str, note: ImportNote) -> None:
+        """Add a note document for a non-translatable item."""
+        label = f"{note.note_type.title()}: {note.source[:50]}"
+        tHandle = project.newFile(label, notesRoot)
+        if not tHandle:
+            logger.error("Could not create note '%s'", label)
+            return
+
+        tItem = project.tree[tHandle]
+        if tItem is None:  # pragma: no cover
+            return
+
         tItem.setLayout(nwItemLayout.NOTE)
 
-        # Build note text with metadata about the source
-        text_lines = [
-            f"# {note.note_type.title()} Import",
+        lines = [
+            f"# {note.note_type.title()}",
             "",
             f"Source: {note.source}",
             f"Type: {note.note_type}",
             "",
             note.text,
         ]
-        text = "\n".join(text_lines)
-
-        # If there's image data, reference it
         if note.data:
-            text += f"\n\n[IMAGE DATA: {len(note.data)} bytes]"
+            lines.append("")
+            lines.append(f"Image data: {len(note.data)} bytes ({note.mime or 'unknown type'})")
 
-        aDoc = self._project.storage.getDocument(tHandle)
+        text = "\n".join(lines).strip() + "\n"
+        aDoc = project.storage.getDocument(tHandle)
         aDoc.writeDocument(text)
 
-        # Re-index
-        self._project.index.scanText(tHandle, text)
+    def _addIssues(
+        self, project: NWProject, notesRoot: str, result: ImportResult, inPath: Path
+    ) -> None:
+        """Add a document listing the items that could not be translated."""
+        tHandle = project.newFile("Import Issues", notesRoot)
+        if not tHandle:
+            return
 
+        tItem = project.tree[tHandle]
+        if tItem is None:  # pragma: no cover
+            return
+
+        tItem.setLayout(nwItemLayout.NOTE)
+
+        counts: dict[str, int] = {}
+        for note in result.notes:
+            counts[note.note_type] = counts.get(note.note_type, 0) + 1
+
+        lines = [
+            "# Import Issues",
+            "",
+            "The items listed below were found in the source document, but could not",
+            "be translated directly into the project. They are recorded here so that",
+            "they can be reviewed and corrected by hand.",
+            "",
+            f"Source file: {inPath.name}",
+            f"Documents created: {len(result.scenes)}",
+            "",
+        ]
+
+        if counts:
+            lines.append("## Summary")
+            lines.append("")
+            lines.extend(f"- {key.title()}: {counts[key]}" for key in sorted(counts))
+            lines.append("")
+            lines.append("## Details")
+            lines.append("")
+            details = []
+            for note in result.notes:
+                details.append(f"### {note.note_type.title()}: {note.source}")
+                details.append("")
+                if note.text:
+                    details.append(note.text)
+                    details.append("")
+            lines.extend(details)
+        else:
+            lines.append("No issues were found.")
+
+        text = "\n".join(lines).strip() + "\n"
+        aDoc = project.storage.getDocument(tHandle)
+        aDoc.writeDocument(text)
+
+    def _writeProvenance(self, path: Path, inPath: Path) -> None:
+        """Write the source document and a manifest to the import folder."""
+        try:
+            importDir = path / "import"
+            sourceDir = importDir / "source"
+            sourceDir.mkdir(parents=True, exist_ok=True)
+            target = sourceDir / f"original{inPath.suffix.lower()}"
+            shutil.copyfile(inPath, target)
+            data = {
+                "source": inPath.name,
+                "sha256": _fileSha256(inPath),
+                "imported": time_module.strftime("%Y-%m-%dT%H:%M:%S"),
+            }
+            (importDir / "manifest.json").write_text(
+                jsonEncode(data, nmax=4), encoding="utf-8", newline=CONFIG.lineEnding
+            )
+        except Exception as exc:
+            logger.error("Failed to write the import provenance", exc_info=exc)
+
+
+def _fileSha256(path: Path) -> str:
+    """Return the SHA-256 checksum of a file."""
+    digest = hashlib.sha256()
+    with open(path, mode="rb") as inFile:
+        for chunk in iter(lambda: inFile.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()

@@ -33,7 +33,13 @@ import pytest
 
 from umbraedit import CONFIG
 from umbraedit.constants import nwFiles, nwItemClass
-from umbraedit.core.coretools import DocDuplicator, DocMerger, DocSplitter, ProjectBuilder
+from umbraedit.core.coretools import (
+    DocDuplicator,
+    DocMerger,
+    DocSplitter,
+    DocxImporter,
+    ProjectBuilder,
+)
 from umbraedit.core.item import ProjectItem
 from umbraedit.core.project import NWProject
 from umbraedit.core.tree import ProjectTree
@@ -41,7 +47,16 @@ from umbraedit.enum import nwBuildFmt
 from umbraedit.manuscript.buildsettings import BuildSettings
 from umbraedit.manuscript.docbuild import DocumentBuilder
 
-from tests.helpers import NWD_IGNORE, XML_IGNORE, C, MockRnd, TstPaths, buildTestProject, cmpFiles
+from tests.helpers import (
+    NWD_IGNORE,
+    XML_IGNORE,
+    C,
+    MockRnd,
+    TstPaths,
+    buildTestProject,
+    cmpFiles,
+    makeDocx,
+)
 from tests.mocked import MockGuiMain, causeOSError
 
 
@@ -931,3 +946,140 @@ def testCoreTools_ProjectBuilderSample(
     assert sampleProject.data.author != ""
 
     dstSample.unlink()
+
+
+@pytest.mark.core
+def testCoreTools_DocxImporter(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """Import a Word document into a new project."""
+    docxPath = makeDocx(
+        fncPath / "novel.docx",
+        [
+            ("My Novel", "Title"),
+            ("Jane Doe", "Subtitle"),
+            ("Chapter One", "Heading1"),
+            ("The first paragraph of the chapter.", None),
+            ("Scene One", "Heading2"),
+            ("The first scene.", None),
+            ("Chapter Two", "Heading1"),
+            ("Another chapter.", None),
+        ],
+        title="My Novel",
+        author="Jane Doe",
+    )
+
+    projPath = fncPath / "imported"
+    importer = DocxImporter()
+    assert importer.importFile(docxPath, projPath) is True
+    assert importer.error == ""
+    assert importer.projectPath == projPath
+
+    # The project files must exist
+    assert (projPath / nwFiles.PROJ_FILE).is_file()
+    assert (projPath / "manifest.json").is_file()
+
+    # The source document is kept for provenance
+    assert (projPath / "import" / "source" / "original.docx").is_file()
+    assert (projPath / "import" / "manifest.json").is_file()
+
+    # Open the project and check its contents
+    project = NWProject()
+    assert project.openProject(projPath) is True
+    assert project.data.name == "My Novel"
+    assert project.data.author == "Jane Doe"
+
+    roots = {node.item.itemName: node for node in project.tree._model.root.children}
+    assert "Novel" in roots
+    assert "Import Notes" in roots
+    assert "Archive" in roots
+    assert "Trash" in roots
+
+    # The novel root has a document for each block of the Word document
+    novel = roots["Novel"]
+    assert novel.childCount() == 4
+    docs = [(node.item.itemName, node.item.mainHeading) for node in novel.children]
+    assert docs == [
+        ("My Novel", "H1"),
+        ("Chapter One", "H2"),
+        ("Scene One", "H3"),
+        ("Chapter Two", "H2"),
+    ]
+
+    # The text of the documents must be preserved
+    text = project.storage.getDocumentText(novel.children[2].item.itemHandle)
+    assert "### Scene One" in text
+    assert "The first scene." in text
+
+    # The import issues document must be present
+    notes = roots["Import Notes"]
+    assert notes.childCount() == 1
+    assert notes.children[0].item.itemName == "Import Issues"
+
+    # There must be no orphaned files in the project
+    assert project.tree.checkConsistency("Recovered") == (0, 0)
+
+    project.closeProject()
+
+
+@pytest.mark.core
+def testCoreTools_DocxImporterNameOverride(
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """The project name and author can be overridden."""
+    docxPath = makeDocx(
+        fncPath / "novel.docx",
+        [("Chapter One", "Heading1"), ("Some text.", None)],
+        title="Doc Title",
+        author="Doc Author",
+    )
+
+    projPath = fncPath / "imported"
+    importer = DocxImporter()
+    assert importer.importFile(docxPath, projPath, name="New Name", author="New Author") is True
+
+    project = NWProject()
+    assert project.openProject(projPath) is True
+    assert project.data.name == "New Name"
+    assert project.data.author == "New Author"
+    project.closeProject()
+
+
+@pytest.mark.core
+def testCoreTools_DocxImporterErrors(
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """Test the error handling of the Word document importer."""
+    importer = DocxImporter()
+
+    # A source file that does not exist
+    assert importer.importFile(fncPath / "missing.docx", fncPath / "imported") is False
+    assert importer.error != ""
+
+    # A source file that is not a Word document
+    badPath = fncPath / "bad.docx"
+    badPath.write_text("Not a Word document", encoding="utf-8")
+    assert importer.importFile(badPath, fncPath / "imported") is False
+    assert importer.error != ""
+
+    # A target folder that is not empty
+    docxPath = makeDocx(
+        fncPath / "novel.docx",
+        [("Chapter One", "Heading1"), ("Some text.", None)],
+    )
+    target = fncPath / "notempty"
+    target.mkdir(parents=True)
+    (target / "stuff.txt").write_text("Stuff", encoding="utf-8")
+    assert importer.importFile(docxPath, target) is False
+    assert importer.error != ""
+    assert not (target / nwFiles.PROJ_FILE).exists()
+
+    # A Word document with no content
+    emptyPath = makeDocx(fncPath / "empty.docx", [])
+    assert importer.importFile(emptyPath, fncPath / "imported") is False
+    assert importer.error != ""
+    assert not (fncPath / "imported").exists()

@@ -602,6 +602,9 @@ def testStoryOutline_ColumnsPage(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     def options() -> list[str]:
         return [combo.itemData(i) for i in range(combo.count())]
 
+    def indexOf(key: str) -> int:
+        return options().index(key)
+
     def keys(n: int) -> list[str]:
         section = tree.topLevelItem(n)
         assert section is not None
@@ -615,14 +618,14 @@ def testStoryOutline_ColumnsPage(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     assert tree.topLevelItem(1).child(0).foreground(0).color() == SHARED.theme.helpText  # type: ignore
     assert options() == [*refs, *notes]
     assert combo.itemText(0) == "Point of View"
-    assert combo.itemText(11) == "Story: Goal"
-    assert combo.itemText(15) == "Note: Consistency"
+    assert combo.itemText(indexOf("story.goal")) == "Story: Goal"
+    assert combo.itemText(indexOf("note.consistency")) == "Note: Consistency"
     assert not combo.itemIcon(0).isNull()
-    assert not combo.itemIcon(11).isNull()
+    assert not combo.itemIcon(indexOf("story.goal")).isNull()
 
     # Entries are added to the selected column, but only if the text matches
     tree.setCurrentItem(tree.topLevelItem(0))
-    combo.setCurrentIndex(15)
+    combo.setCurrentIndex(indexOf("note.consistency"))
     page.addEntry.click()
     assert keys(0) == ["synopsis", "note.consistency"]
     assert "note.consistency" not in options()

@@ -98,7 +98,7 @@ def _checkAttribDropSameVoice(scope: Any) -> Iterable[Finding]:
             attrText = m.group(1).strip()
             # Extract speaker name from attribution text like "said Bob."
             speakerMatch = re.match(
-                r"(?:said | asked|replied | whispered|shouted)\s+(.+?)\s*[.,!?]\s*$",
+                r"(?:said|asked|replied|whispered|shouted)\s+(.+?)\s*[.,!?]\s*$",
                 attrText,
                 re.IGNORECASE,
             )

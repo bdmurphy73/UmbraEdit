@@ -33,6 +33,7 @@ from umbraedit.umbra.gates import (
 )
 from umbraedit.umbra.metadata import loadMetadata
 from umbraedit.umbra.pages import PageManager
+from umbraedit.umbra.paths import metadataFile
 from umbraedit.umbra.sheet import SheetManager
 
 if TYPE_CHECKING:
@@ -140,7 +141,16 @@ def _check_metadata_required(scope: Any) -> Iterable[Finding]:
     project = scope.project
     if not project:
         return
-    metadata = loadMetadata(project.storage.storagePath)
+    storagePath = project.storage.storagePath
+    if not storagePath:
+        return
+
+    # The check only applies to projects that have been set up for
+    # publishing, which is to say projects that have a metadata file
+    if not metadataFile(storagePath).is_file():
+        return
+
+    metadata = loadMetadata(storagePath)
     if not metadata:
         return
 

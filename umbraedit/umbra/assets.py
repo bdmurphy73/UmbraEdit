@@ -41,7 +41,7 @@ ALLOWED_TYPES: dict[str, set[str]] = {
 _SVG_SCRIPT_RE = re.compile(r"<script[\s>]", re.IGNORECASE)
 _SVG_ONATTR_RE = re.compile(r"\son\w+\s*=", re.IGNORECASE)
 _SVG_JSURL_RE = re.compile(r"javascript\s*:", re.IGNORECASE)
-_SVG_EXTREF_RE = re.compile(r"(xlink:href | href)\s*=\s*[\"']https?://", re.IGNORECASE)
+_SVG_EXTREF_RE = re.compile(r"(xlink:href|href)\s*=\s*[\"']https?://", re.IGNORECASE)
 
 
 def _sha256File(p: Path) -> str:

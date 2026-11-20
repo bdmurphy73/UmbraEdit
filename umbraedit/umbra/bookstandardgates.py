@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import re
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.gates import (
@@ -23,6 +24,8 @@ from umbraedit.umbra.gates import (
     GateRule,
     registerGate,
 )
+from umbraedit.umbra.pages import PageManager
+from umbraedit.umbra.units import stripFrontMatter
 
 if TYPE_CHECKING:  # pragma: no cover
     from collections.abc import Iterable
@@ -111,8 +114,41 @@ def _bsHeadingSkipFindings(scope: Any) -> Iterable[Finding]:
 
 def _bsDoubleSpaceFindings(scope: Any) -> Iterable[Any]:
     """Advisory: double spaces after sentences."""
-    # TODO: Implement
-    return
+    project = scope.project
+    if not project:
+        return
+
+    content_path = project.storage.contentPath
+    if not content_path:
+        return
+
+    # Two spaces between words, but not at the start of a line, and
+    # not inside a formatting marker
+    rxDoubleSpace = re.compile(r"(?<=\S)  +(?=\S)")
+
+    for item in project.tree:
+        if not item.isFileType():
+            continue
+        doc_file = content_path / f"{item.itemHandle}.md"
+        if not doc_file.is_file():
+            continue
+        try:
+            text = stripFrontMatter(doc_file.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        for match in rxDoubleSpace.finditer(text):
+            line = text.count("\n", 0, match.start()) + 1
+            context = text[max(0, match.start() - 20):min(len(text), match.end() + 20)]
+            yield Finding(
+                ruleId="bsDoubleSpace",
+                severity="advisory",
+                message=f"Double space after sentence: '{context}'",
+                fix="Use a single space after the sentence",
+                handle=item.itemHandle,
+                line=line,
+                detail={"context": context},
+            )
 
 
 def _bsStraightQuotesFindings(scope: Any) -> Iterable[Any]:
@@ -138,7 +174,7 @@ def _bsStraightQuotesFindings(scope: Any) -> Iterable[Any]:
         if not doc_file.is_file():
             continue
         try:
-            text = doc_file.read_text(encoding="utf-8")
+            text = stripFrontMatter(doc_file.read_text(encoding="utf-8"))
         except Exception:
             continue
 
@@ -163,9 +199,40 @@ def _bsStraightQuotesFindings(scope: Any) -> Iterable[Any]:
 
 
 def _bsMixedQuoteStyleFindings(scope: Any) -> Iterable[Any]:
-    """Advisory: mixed quote styles."""
-    # TODO: Implement
-    return
+    """Advisory: mixed quote styles in the same document."""
+    project = scope.project
+    if not project:
+        return
+
+    content_path = project.storage.contentPath
+    if not content_path:
+        return
+
+    rxStraight = re.compile(r"[\"']")
+    rxCurly = re.compile(r"[\u2018\u2019\u201c\u201d]")
+
+    for item in project.tree:
+        if not item.isFileType():
+            continue
+        doc_file = content_path / f"{item.itemHandle}.md"
+        if not doc_file.is_file():
+            continue
+        try:
+            text = stripFrontMatter(doc_file.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        hasStraight = bool(rxStraight.search(text))
+        hasCurly = bool(rxCurly.search(text))
+        if hasStraight and hasCurly:
+            yield Finding(
+                ruleId="bsMixedQuoteStyle",
+                severity="advisory",
+                message="Mixed straight and curly quotes in the same document",
+                fix="Pick one quote style and use it consistently",
+                handle=item.itemHandle,
+                detail={"document": item.itemName},
+            )
 
 
 def _bsDashUseFindings(scope: Any) -> Iterable[Any]:
@@ -187,7 +254,7 @@ def _bsDashUseFindings(scope: Any) -> Iterable[Any]:
         if not doc_file.is_file():
             continue
         try:
-            text = doc_file.read_text(encoding="utf-8")
+            text = stripFrontMatter(doc_file.read_text(encoding="utf-8"))
         except Exception:
             continue
 
@@ -228,7 +295,7 @@ def _bsEllipsisStyleFindings(scope: Any) -> Iterable[Any]:
         if not doc_file.is_file():
             continue
         try:
-            text = doc_file.read_text(encoding="utf-8")
+            text = stripFrontMatter(doc_file.read_text(encoding="utf-8"))
         except Exception:
             continue
 
@@ -272,7 +339,7 @@ def _bsEmptyChapterFindings(scope: Any) -> Iterable[Any]:
             continue
 
         try:
-            text = doc_file.read_text(encoding="utf-8")
+            text = stripFrontMatter(doc_file.read_text(encoding="utf-8"))
         except Exception:
             continue
 
@@ -323,7 +390,7 @@ def _bsSceneBreakAtEdgeFindings(scope: Any) -> Iterable[Any]:
             continue
 
         try:
-            text = doc_file.read_text(encoding="utf-8")
+            text = stripFrontMatter(doc_file.read_text(encoding="utf-8"))
         except Exception:
             continue
 
@@ -368,8 +435,56 @@ def _bsSceneBreakAtEdgeFindings(scope: Any) -> Iterable[Any]:
 
 def _bsFrontMatterOrderFindings(scope: Any) -> Iterable[Any]:
     """Block/Advisory: front matter order incorrect."""
-    # TODO: Implement proper front matter order checking
-    return
+    project = scope.project
+    if not project:
+        return
+
+    edition_id = scope.edition or scope.options.get("edition", "") if scope.options else ""
+    if not edition_id:
+        return
+
+    projectPath = Path(project.storage.storagePath)
+    editionPath = projectPath.parent / f"{projectPath.name}-ed-{edition_id}"
+    if not editionPath.is_dir():
+        return
+
+    try:
+        pageManager = PageManager(editionPath)
+        pageTypes = pageManager.getPageTypes()
+        pages = [
+            page for page in pageManager.getAllPages()
+            if page.get("matter") == "front" and not page.get("variant")
+        ]
+    except Exception:
+        logger.exception("Could not read front matter pages")
+        return
+
+    ordered = []
+    for page in pages:
+        pageType = pageTypes.get(page.get("pageType", ""))
+        order = pageType.order if pageType else page.get("order", 0)
+        ordered.append((order, page.get("pageType", ""), page.get("title", "")))
+
+    for i in range(1, len(ordered)):
+        prevOrder, prevType, prevTitle = ordered[i - 1]
+        currOrder, currType, currTitle = ordered[i]
+        if currOrder < prevOrder:
+            yield Finding(
+                ruleId="bsFrontMatterOrder",
+                severity="block",
+                message=(
+                    f"Front matter is out of order: '{currTitle or currType}' "
+                    f"comes after '{prevTitle or prevType}'"
+                ),
+                fix="Reorder the front matter pages so they follow the standard order",
+                handle=None,
+                detail={
+                    "previous": prevType,
+                    "current": currType,
+                    "previousOrder": prevOrder,
+                    "currentOrder": currOrder,
+                },
+            )
 
 
 def _bsTocMissingFindings(scope: Any) -> Iterable[Any]:
@@ -418,7 +533,7 @@ def _bsOrphanFootnoteFindings(scope: Any) -> Iterable[Any]:
         if not doc_file.is_file():
             continue
         try:
-            text = doc_file.read_text(encoding="utf-8")
+            text = stripFrontMatter(doc_file.read_text(encoding="utf-8"))
         except Exception:
             continue
 

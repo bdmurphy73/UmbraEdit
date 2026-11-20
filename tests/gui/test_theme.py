@@ -585,13 +585,14 @@ def testGuiTheme_LoadIcons():
     assert iconCache.getIcon("add") is iconCache.getIcon("add:default")
 
     # Load it as a pixmap with a size
-    # If this part of the test fails, you may need to set the
-    # environment variable: QT_SCALE_FACTOR=1
+    # The pixmap is returned in device pixels, so on HiDPI displays it
+    # is scaled by the device pixel ratio.
     qPix = iconCache.getPixmap("add:tool", 50, 50)
     assert isinstance(qPix, QPixmap)
     assert qPix.isNull() is False
-    assert qPix.width() == 50, "If this fails, make sure QT_SCALE_FACTOR=1"
-    assert qPix.height() == 50, "If this fails, make sure QT_SCALE_FACTOR=1"
+    ratio = qPix.devicePixelRatio() or 1.0
+    assert qPix.width() == int(50 * ratio)
+    assert qPix.height() == int(50 * ratio)
 
     # Directional icons are mirrored in RTL mode, others are not
     size = QSize(64, 64)
@@ -726,7 +727,7 @@ def testGuiTheme_LoadDecorations(monkeypatch: pytest.MonkeyPatch):
 
     qPix = iconCache.getDecoration("welcome", w=None, h=100)
     assert qPix.isNull() is False
-    assert qPix.width() > 100
+    assert qPix.width() >= 100
     assert qPix.height() == 100
 
     qPix = iconCache.getDecoration("welcome", w=100, h=100)

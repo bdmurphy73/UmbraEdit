@@ -41,13 +41,13 @@ LANG_RE = re.compile(r"@lang:\s*(\S+)")
 
 # Para note pattern
 PARA_NOTE_RE = re.compile(
-    r"%Para:\s*(\d+)\s+h=([a-f0-9]{8})(?:\s+src=(machine | human))?(?:\n|$)",
+    r"%Para:\s*(\d+)\s+h=([a-f0-9]{8})(?:\s+src=(machine|human))?(?:\n|$)",
     re.MULTILINE,
 )
 
 # Para note field pattern
 PARA_FIELD_RE = re.compile(
-    r"^(Intent | Subtext|Register | Do not translate literally | Cultural):\s*(.+)$",
+    r"^(Intent|Subtext|Register|Do not translate literally|Cultural):\s*(.+)$",
     re.MULTILINE,
 )
 

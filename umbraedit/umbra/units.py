@@ -34,11 +34,33 @@ class Unit:
     orphanVoice: bool = False
 
 
+def stripFrontMatter(text: str) -> str:
+    """Remove the document meta data header from a document text.
+
+    The header is a TOML block at the very top of the document,
+    delimited by `+++` lines. If the document has no header, the text
+    is returned unchanged.
+    """
+    if not text.startswith("+++"):
+        return text
+    lines = text.split("\n")
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "+++":
+            return "\n".join(lines[i + 1:])
+    return text
+
+
 def iterUnits(text: str) -> Iterator[Unit]:
     """Split a document into logical units."""
     lines = text.split("\n")
     currentVoice: Optional[VoiceData] = None
     i = 0
+    # The document meta data header, if present, is not a content unit
+    if lines and lines[0].strip() == "+++":
+        i = 1
+        while i < len(lines) and lines[i].strip() != "+++":
+            i += 1
+        i += 1
     while i < len(lines):
         line = lines[i]
         lineNo = i + 1

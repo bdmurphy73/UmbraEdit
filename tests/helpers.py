@@ -288,3 +288,67 @@ class SimpleDialog(QDialog):
         layout = self.layout()
         assert layout is not None
         layout.addWidget(widget)
+
+
+DOCX_CONTENT_TYPES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+</Types>"""
+
+DOCX_ROOT_RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+</Relationships>"""
+
+DOCX_DOC_RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>"""
+
+
+def makeDocxParagraph(text: str, style: str | None = None) -> str:
+    """Return a WordprocessingML paragraph with optional style."""
+    from xml.sax.saxutils import escape
+
+    props = f'<w:pPr><w:pStyle w:val="{style}" /></w:pPr>' if style else ""
+    return f'<w:p>{props}<w:r><w:t xml:space="preserve">{escape(text)}</w:t></w:r></w:p>'
+
+
+def makeDocx(
+    path: Path,
+    paragraphs: Sequence[tuple[str, str | None]] | None = None,
+    title: str = "",
+    author: str = "",
+) -> Path:
+    """Create a minimal Word document at the given path.
+
+    The paragraphs are a sequence of (text, style) tuples, where the
+    style is the Word style id, like "Heading1".
+    """
+    import zipfile
+
+    body = "".join(makeDocxParagraph(text, style) for text, style in paragraphs or [])
+    document = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f"<w:body>{body}</w:body>"
+        "</w:document>"
+    )
+    core = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        "<cp:coreProperties "
+        'xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" '
+        'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+        f"<dc:title>{title}</dc:title><dc:creator>{author}</dc:creator>"
+        "</cp:coreProperties>"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path, mode="w") as inFile:
+        inFile.writestr("[Content_Types].xml", DOCX_CONTENT_TYPES)
+        inFile.writestr("_rels/.rels", DOCX_ROOT_RELS)
+        inFile.writestr("word/_rels/document.xml.rels", DOCX_DOC_RELS)
+        inFile.writestr("word/document.xml", document)
+        inFile.writestr("docProps/core.xml", core)
+    return path

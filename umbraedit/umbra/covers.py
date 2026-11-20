@@ -87,7 +87,7 @@ BOARD_THICKNESS = 2.5
 BLEED_MM = 3.175
 
 # Trim size parsing regex (e.g., "5.5x8.5", "6x9", "139.7x215.9mm")
-TRIM_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(?:mm | in)?\s*$", re.IGNORECASE)  # noqa: RUF001
+TRIM_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(?:mm|in)?\s*$", re.IGNORECASE)  # noqa: RUF001
 
 # Note: The regex uses the multiplication sign (×) which is common in trim size notation.  # noqa: RUF003
 # The '×' character is intentional and not the letter 'x'.  # noqa: RUF003

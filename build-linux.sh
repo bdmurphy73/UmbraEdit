@@ -2,14 +2,18 @@
 #=============================================================================
 # UmbraEdit Linux Build Script
 # ============================================================================
-# Downloads the UmbraEdit source tarball and builds a .deb package and/or
-# AppImage for Linux AMD64/ARM64.
+# Builds a .deb package and/or AppImage for Linux AMD64/ARM64 from the
+# UmbraEdit source tarball.
+#
+# The script assumes that the source tarball is in the same directory as
+# the script itself:
+#
+#     umbraedit-2026.11.0006.tar.gz
+#     build-linux.sh
 #
 # Usage:
 #   chmod +x build-linux.sh
-#   ./build-linux.sh [--arch amd64|arm64] [--distro ubuntu|debian] [--no-deb]
-#
-# No git clone required. Downloads the source tarball automatically.
+#   ./build-linux.sh [amd64|arm64] [ubuntu|debian] [yes|no]
 #=============================================================================
 
 set -euo pipefail
@@ -18,10 +22,25 @@ set -euo pipefail
 # Configuration
 #-----------------------------------------------------------------------------
 VERSION="2026.11.0006"
-RELEASE_VERSION="2026.11.0007"
-GITEA_URL="http://192.168.123.18:2222/umbragit/UmbraEdit"
-TARBALL_URL="${GITEA_URL}/-/archive/v${RELEASE_VERSION}/umbraedit-${RELEASE_VERSION}.tar.gz"
+RELEASE_VERSION="2026.11.0006"
+
+# The tarball is expected in the same directory as this script. If it is
+# not there, a GITEA_URL can be provided to download it instead.
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+GITEA_URL="${GITEA_URL:-}"
+
 TARBALL="umbraedit-${RELEASE_VERSION}.tar.gz"
+if [ -f "${SCRIPT_DIR}/${TARBALL}" ]; then
+    TARBALL_PATH="${SCRIPT_DIR}/${TARBALL}"
+    echo "Using local tarball: ${TARBALL_PATH}"
+elif [ -n "$GITEA_URL" ]; then
+    TARBALL_URL="${GITEA_URL}/-/archive/v${RELEASE_VERSION}/${TARBALL}"
+else
+    echo "ERROR: No source tarball found."
+    echo "Place ${TARBALL} in the same directory as this script, or set GITEA_URL."
+    exit 1
+fi
+
 EXTRACTED_DIR="umbraedit-${RELEASE_VERSION}"
 
 ARCH="${1:-amd64}"
@@ -38,9 +57,9 @@ echo "  Distro:     ${DISTRO}"
 echo "  Build .deb: ${BUILD_DEB}"
 echo ""
 
-#--------------------------------------------------------------
+#-----------------------------------------------------------------------------
 # Step 1: Check prerequisites
-#--------------------------------------------------------------
+#-----------------------------------------------------------------------------
 echo "[1/5] Checking prerequisites..."
 
 MISSING=0
@@ -50,6 +69,12 @@ for cmd in curl tar python3; do
         MISSING=1
     fi
 done
+
+if [ "$MISSING" -ne 0 ]; then
+    echo ""
+    echo "ERROR: Missing required tools"
+    exit 1
+fi
 
 if command -v apt-get &> /dev/null; then
     PKG_MGR="apt-get"
@@ -72,44 +97,19 @@ fi
 echo "  Package manager: $PKG_MGR"
 echo "  Prerequisites OK"
 
-#--------------------------------------------------------------
+#-----------------------------------------------------------------------------
 # Step 2: Install system dependencies
-#--------------------------------------------------------------
+#-----------------------------------------------------------------------------
 echo ""
 echo "[2/5] Installing system dependencies..."
 
-INSTALL_FAILED=0
-
-if [ "$PKG_MGR" = "apt-get" ]; then
-    echo "  Updating package lists..."
-    if ! sudo apt-get update 2>&1 | tail -5; then
-        echo ""
-        echo "============================================================"
-        echo "  ERROR: apt-get update failed!"
-        echo "============================================================"
-        echo ""
-        echo "  One of your package repositories is broken (likely a PPA or"
-        echo "  third-party repo like NVIDIA's)."
-        echo ""
-        echo "  To fix:"
-        echo "    1. Check /etc/apt/sources.list and /etc/apt/sources.list.d/"
-        echo "    2. Remove or disable any repositories that no longer exist"
-        echo "    3. Run: sudo apt-get update"
-        echo "    4. Then re-run this script: ./build-linux.sh"
-        echo ""
-        exit 1
-    fi
-fi
-
-echo ""
-echo "Installing packages..."
 install_pkg() {
     if [ "$PKG_MGR" = "apt-get" ]; then
         sudo apt-get install -y "$@" 2>&1 | tail -3
     elif [ "$PKG_MGR" = "dnf" ]; then
         sudo dnf install -y "$@" 2>&1 | tail -3
     elif [ "$PKG_MGR" = "pacman" ]; then
-        sudo pacman -Sy --noconfirm "$@" 2>&1 | tail -3
+        sudo pacman -S --noconfirm "$@" 2>&1 | tail -3
     fi
 }
 
@@ -142,48 +142,45 @@ install_pkg dh-python debhelper python3-build appimagetool 2>&1 | tail -3 || {
 
 echo "  System dependencies installed"
 
-#--------------------------------------------------------------
-# Step 3: Download source tarball
-#--------------------------------------------------------------
+#-----------------------------------------------------------------------------
+# Step 3: Fetch and extract the source tarball
+#-----------------------------------------------------------------------------
 echo ""
-echo "[3/5] Downloading source tarball..."
-echo "  URL: ${TARBALL_URL}"
+echo "[3/5] Extracting the source tarball..."
 
-if [ -f "$TARBALL" ]; then
-    echo "  Archive already exists, skipping download"
+if [ -n "${TARBALL_PATH:-}" ]; then
+    cp "$TARBALL_PATH" "${TARBALL}"
 else
-    curl -L -o "$TARBALL" "$TARBALL_URL"
-    echo "  Downloaded: $(ls -lh "$TARBALL" | awk '{print $5}')"
+    curl -L -o "${TARBALL}" "$TARBALL_URL"
 fi
-
-#--------------------------------------------------------------
-# Step 4: Extract source
-#--------------------------------------------------------------
-echo ""
-echo "[4/5] Extracting source..."
 
 rm -rf "$EXTRACTED_DIR"
 tar xzf "$TARBALL"
-cd "$EXTRACTED_DIR"
 
+# The tarball may contain a single top level folder with another name
+if [ ! -d "$EXTRACTED_DIR" ]; then
+    EXTRACTED_DIR="$(find . -maxdepth 1 -type d -name 'umbraedit-*' | head -1)"
+fi
+
+cd "$EXTRACTED_DIR"
 echo "  Extracted to: $(pwd)"
 
-#--------------------------------------------------------------
-# Step 5: Install Python dependencies
-#--------------------------------------------------------------
+#-----------------------------------------------------------------------------
+# Step 4: Install Python dependencies
+#-----------------------------------------------------------------------------
 echo ""
-echo "[5/5] Installing Python dependencies..."
+echo "[4/5] Installing Python dependencies..."
 
 python3 -m pip install --user --upgrade pip setuptools wheel 2>&1 | tail -1
 python3 -m pip install --user pyqt6 pyenchant 2>&1 | tail -1
 
 echo "  Python dependencies installed"
 
-#--------------------------------------------------------------
-# Step 6: Build packages
-#--------------------------------------------------------------
+#-----------------------------------------------------------------------------
+# Step 5: Build packages and install the start menu shortcut
+#-----------------------------------------------------------------------------
 echo ""
-echo "[6/6] Building packages..."
+echo "[5/5] Building packages..."
 
 # Build .deb (Debian/Ubuntu only)
 if [ "$BUILD_DEB" = "yes" ] && [ "$PKG_MGR" = "apt-get" ]; then
@@ -201,9 +198,49 @@ python3 utils/build_appimage.py --linux manylinux_2_28 --arch "$ARCH" --python 3
 echo ""
 echo "  AppImage: dist_appimage/umbraedit-${RELEASE_VERSION}-${ARCH}.AppImage"
 
-#--------------------------------------------------------------
+# Install the start menu shortcut and the UmbraEdit icon for the current
+# user. The .deb package does this system wide, but the AppImage and the
+# source install do not, so it is done here as well.
+echo ""
+echo "Installing the start menu shortcut..."
+
+DESKTOP_DIR="${HOME}/.local/share/applications"
+ICON_DIR="${HOME}/.local/share/icons/hicolor/256x256/apps"
+mkdir -p "$DESKTOP_DIR" "$ICON_DIR"
+
+ICON_SRC="setup/icons/umbraedit.png"
+if [ -f "$ICON_SRC" ]; then
+    cp "$ICON_SRC" "${ICON_DIR}/umbraedit.png"
+    echo "  Installed icon: ${ICON_DIR}/umbraedit.png"
+else
+    echo "  WARNING: Could not find the UmbraEdit icon at ${ICON_SRC}"
+fi
+
+cat > "${DESKTOP_DIR}/umbraedit.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=UmbraEdit
+Comment=A plain text editor for planning and writing novels
+Exec=$(pwd)/UmbraEdit.py %f
+Icon=umbraedit
+Categories=Qt;Office;WordProcessor;
+Terminal=false
+MimeType=application/x-umbraedit-project;
+EOF
+
+chmod +x "${DESKTOP_DIR}/umbraedit.desktop"
+echo "  Installed shortcut: ${DESKTOP_DIR}/umbraedit.desktop"
+
+if command -v update-desktop-database &> /dev/null; then
+    update-desktop-database "$DESKTOP_DIR" &> /dev/null || true
+fi
+if command -v gtk-update-icon-cache &> /dev/null; then
+    gtk-update-icon-cache -f -t "${HOME}/.local/share/icons/hicolor" &> /dev/null || true
+fi
+
+#-----------------------------------------------------------------------------
 # Done
-#--------------------------------------------------------------
+#-----------------------------------------------------------------------------
 echo ""
 echo "============================================================"
 echo "  Build Complete!"
@@ -217,5 +254,6 @@ echo "To run UmbraEdit:"
 echo "  From AppImage:  chmod +x dist_appimage/umbraedit-${RELEASE_VERSION}-${ARCH}.AppImage"
 echo "                  ./dist_appimage/umbraedit-${RELEASE_VERSION}-${ARCH}.AppImage"
 echo "  From .deb:      sudo dpkg -i dist_deb/umbraedit_*_${ARCH}.deb && umbraedit"
+echo "  From source:    python3 UmbraEdit.py"
 echo ""
 echo "Source directory: $(pwd)"

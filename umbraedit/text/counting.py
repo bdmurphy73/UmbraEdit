@@ -29,7 +29,7 @@ from umbraedit.constants import nwRegEx, nwUnicode
 
 RX_SC = re.compile(nwRegEx.FMT_SC)
 RX_SV = re.compile(nwRegEx.FMT_SV)
-RX_LO = re.compile(r"(?i)(?<!\\)(\[(?:vspace | newpage|new page)(:\d+)?)(?<!\\)(\])")
+RX_LO = re.compile(r"(?i)(?<!\\)(\[(?:vspace|newpage|new page)(:\d+)?)(?<!\\)(\])")
 
 
 def preProcessText(text: str, keepHeaders: bool = True) -> list[str]:

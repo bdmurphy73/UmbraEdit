@@ -415,7 +415,7 @@ def _attributionName(inner: str) -> str:
 
     ``said Uncle Bob.`` -> ``Uncle Bob``; ``asked Ana.`` -> ``Ana``.
     """
-    m = re.match(r"\s*(?:said | asked|replied | whispered|shouted)\s+(.+?)\s*[.,!?]\s*$", inner, re.IGNORECASE)
+    m = re.match(r"\s*(?:said|asked|replied|whispered|shouted)\s+(.+?)\s*[.,!?]\s*$", inner, re.IGNORECASE)
     if m:
         return m.group(1).strip()
     return inner.strip()

@@ -39,9 +39,10 @@ from umbraedit.formats.tohtml import ToHtml
 from umbraedit.formats.tomarkdown import ToMarkdown
 from umbraedit.formats.toodt import ToOdt
 from umbraedit.formats.toPandocEpub import build_epub_validated
+from umbraedit.formats.toPandocJson import ToPandocJson
 from umbraedit.formats.toqdoc import ToQTextDocument
 from umbraedit.formats.toraw import ToRaw
-from umbraedit.formats.toTypst import toTypst
+from umbraedit.formats.toTypst import ToTypst
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -197,25 +198,29 @@ class DocumentBuilder:
 
         elif bFormat == nwBuildFmt.EPUB_VALIDATED:
             # Build EPUB with Pandoc and validate with EPUBCheck
-            success, result = build_epub_validated(self._project, path)
+            makeObj = ToPandocJson(self._project)
+            filtered = self._setupBuild(makeObj)
+            makeObj.initDocument()
+            yield from self._iterBuild(makeObj, filtered)
+            makeObj.closeDocument()
+            success, result = build_epub_validated(
+                self._project, path, json_ast=makeObj.getJson()
+            )
             if not success:
                 logger.error("EPUB validation failed: %s", result)
                 self._error = result
                 return
             self._error = None
-            self._cache = None
+            self._cache = makeObj
             return
 
         elif bFormat == nwBuildFmt.PRINT_PDF:
             # Build print PDF with Typst
-            success, result = toTypst(self._project, path)
-            if not success:
-                logger.error("Print PDF generation failed: %s", result)
-                self._error = result
-                return
-            self._error = None
-            self._cache = None
-            return
+            makeObj = ToTypst(self._project)
+            filtered = self._setupBuild(makeObj)
+            makeObj.initDocument()
+            yield from self._iterBuild(makeObj, filtered)
+            makeObj.closeDocument()
 
         elif bFormat == nwBuildFmt.PDF:
             makeObj = ToQTextDocument(self._project, pdf=True)

@@ -311,7 +311,7 @@ def deriveUtterances(
                 skip = None
                 attribution = bool(
                     re.match(
-                        r"\s*(?:said | asked|replied | whispered|shouted)\s+.+?[.,!?]\s*$",
+                        r"\s*(?:said|asked|replied|whispered|shouted)\s+.+?[.,!?]\s*$",
                         seg,
                         re.IGNORECASE,
                     )
@@ -362,7 +362,7 @@ def _speakerFromFollowingText(cleanBody: str, dialEnd: int, index: Any) -> Optio
 
     following = cleanBody[dialEnd:]
     m = re.match(
-        r"\s*(?:said | asked|replied | whispered|shouted)\s+(.+?)\s*[.,!?]\s*",
+        r"\s*(?:said|asked|replied|whispered|shouted)\s+(.+?)\s*[.,!?]\s*",
         following,
         re.IGNORECASE,
     )

@@ -23,118 +23,107 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import logging
-import os
 import re
+import shutil
+import subprocess
 import tempfile
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from umbraedit.formats.shared import BlockTyp
+from umbraedit.formats.shared import BlockFmt, BlockTyp, TextFmt
 from umbraedit.formats.tokenizer import Tokenizer
-from umbraedit.umbra.metadata import loadMetadata
+from umbraedit.umbra.metadata import Metadata, loadMetadata
 from umbraedit.umbra.paths import assetsDir
 
 if TYPE_CHECKING:  # pragma: no cover
-    from pathlib import Path
-
     from umbraedit.core.project import NWProject
+    from umbraedit.formats.shared import T_Formats
 
 logger = logging.getLogger(__name__)
 
 # Default Typst template for print
 DEFAULT_TYPST_TEMPLATE = r"""
-#import "@preview/page-numbering:0.1.0" as pn
-#import "@preview/footnotes:0.1.0" as ft
-
-// Configuration
-#let trim-size = ({{trim_width}}, {{trim_height}})
-#let gutter = {{gutter}}
-#let margin-inner = {{margin_inner}}
-#let margin-outer = {{margin_outer}}
-#let margin-top = {{margin_top}}
-#let margin-bottom = {{margin_bottom}}
-#let font-family = "{{font_family}}"
-#let font-size = {{font_size}}pt
-#let line-height = {{line_height}}
-#let hyphenation-lang = "{{hyphenation_lang}}"
-#let running-headers = {{running_headers}}
+// UmbraEdit print template
+// =========================
 
 // Page setup
 #set page(
-  paper: (trim-size.x + 2 * gutter, trim-size.y),
-  margin: (margin-top, margin-inner + gutter, margin-bottom, margin-outer + gutter),
-  footer: if running-headers {
-    context pn.get-page-info().number != 0 => [
-      #if pn.get-page-info().number % 2 == 0 {
-        #align(center)[#pn.get-page-info().number] #h(1fr) #context header.left
-      } else {
-        #context header.right #h(1fr) #align(center)[#pn.get-page-info().number]
-      }
-    ]
-  } else { none }
+  paper: ({{trim_width}} + 2 * {{gutter}}, {{trim_height}}),
+  margin: ({{margin_top}}, {{margin_inner}} + {{gutter}}, {{margin_bottom}}, {{margin_outer}} + {{gutter}}),
 )
 
 // Typography
-#set text(font: font-family, size: font-size, lang: hyphenation-lang)
-#set par(justify: true, first-line-indent: 1.5em, leading: line-height)
-#set page(numbering: "1", number-align: center)
-#set heading(numbering: "1.1", outlined: true)
-#set heading(outline: (depth: 3))
-
-// Font setup
-#let font-family = (
-  "{{font_family}}",
-  fallback: ("DejaVu Serif", "Liberation Serif", "Noto Serif", "Times New Roman", "serif")
-)
-
-// Chapter openings on recto (odd pages)
-#let chapter-break = {
-  #if context.page() % 2 == 0 { pagebreak() }
-  pagebreak(to: "odd")
-  set page(numbering: "1", number-align: center)
-}
-
-// Front matter roman numerals
-#let front-matter = {
-  set page(numbering: "(i)", number-align: center)
-}
-
-// Chapter opening on recto with drop distance
-#show heading.where(level: 1): it => {
-  #if !context("first-chapter").or(false) {
-    pagebreak(to: "odd")
-  }
-  context first-chapter = true
-  set block(below: 2.5em)
-  it
-}
-
-// Scene break ornament
-#show raw.where(block: true): it => {
-  if it.text == "***" or it.text == "---" or it.text == "###" {
-    #align(center)[#text(size: 1.5em)[***]]
-  } else { it }
-}
-
-// Page break as raw block with class
-#show raw.where(block: true): it => {
-  if it.text.contains("pagebreak") {
-    pagebreak()
-  } else { it }
-}
-
-// Footnotes
-#show ft.note: it => ft.note(it)
+#set text(font: "{{font_family}}", size: {{font_size}}pt, lang: "{{hyphenation_lang}}")
+#set par(justify: true, leading: {{line_height}})
+#set heading(numbering: "1.1")
 
 // Embedded fonts (OFL)
 {% for font in embedded_fonts %}
-#let {{font.family | replace(" ", "_") | replace("-", "_")}} = @font("{{font.path}}")
+#let {{font.name}} = @font("{{font.path}}")
 {% endfor %}
 
 // Main content
 {{content}}
 """
+
+# Template Syntax
+# ================
+
+RX_TEMPLATE_VAR = re.compile(
+    r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*\}\}"
+)
+RX_TEMPLATE_LOOP = re.compile(
+    r"\{%\s*for\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\s+([A-Za-z_][A-Za-z0-9_]*)\s*%\}"
+    r"(.*?)"
+    r"\{%\s*endfor\s*%\}",
+    re.DOTALL,
+)
+
+
+def _lookupValue(path: str, values: dict[str, Any]) -> str:
+    """Look up a dotted path in a dictionary of template values."""
+    parts = path.split(".")
+    value: Any = values.get(parts[0], "")
+    for part in parts[1:]:
+        if isinstance(value, dict):
+            value = value.get(part, "")
+        else:
+            value = getattr(value, part, "")
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
+def renderTemplate(template: str, values: dict[str, Any]) -> str:
+    """Render a Typst template.
+
+    The template supports ``{{name}}`` substitutions and
+    ``{% for item in list %}`` blocks. Dotted paths are supported for
+    both, so ``{{item.name}}`` looks up the ``name`` key of the
+    ``item`` dictionary. Unknown names are replaced with an empty
+    string.
+    """
+    text = template
+    for _ in range(8):
+        match = RX_TEMPLATE_LOOP.search(text)
+        if match is None:
+            break
+        varName, listName, body = match.group(1), match.group(2), match.group(3)
+        items = values.get(listName, [])
+        if not isinstance(items, (list, tuple)):
+            items = []
+        parts = []
+        for item in items:
+            scope = dict(values)
+            scope[varName] = item
+            parts.append(RX_TEMPLATE_VAR.sub(
+                lambda m, s=scope: _lookupValue(m.group(1), s), body
+            ))
+        text = f"{text[:match.start()]}{''.join(parts)}{text[match.end():]}"
+    return RX_TEMPLATE_VAR.sub(lambda m: _lookupValue(m.group(1), values), text)
+
 
 @dataclass
 class TypstConfig:
@@ -158,38 +147,106 @@ class TypstConfig:
 class ToTypst(Tokenizer):
     """Core: Typst Print PDF Writer.
 
-    Converts the manuscript to Typst source, compiles with Typst,
-    and produces a print-ready PDF.
+    Converts the manuscript to Typst source, compiles it with Typst,
+    and produces a print-ready PDF. If the Typst compiler is not
+    available on the system, the PDF is generated with the Qt print
+    engine instead.
     """
 
     __slots__ = (
-        "_assets_dir",
+        "_assetsDir",
         "_config",
         "_metadata",
+        "_outputPath",
+        "_plainText",
         "_project",
         "_template",
+        "_typstSource",
     )
 
     def __init__(self, project: NWProject, config: Optional[TypstConfig] = None) -> None:
         super().__init__(project)
         self._project = project
         self._config = config or TypstConfig()
-        self._metadata = loadMetadata(self._project.storage.storagePath)
-        self._assets_dir = assetsDir(self._project.storage.storagePath)
-        self._template = self._load_template()
+        storagePath = self._project.storage.storagePath
+        self._metadata = loadMetadata(storagePath) if storagePath else Metadata()
+        self._assetsDir = assetsDir(storagePath) if storagePath else Path()
+        self._template = self._loadTemplate()
+        self._outputPath: Optional[Path] = None
+        self._plainText = ""
+        self._typstSource = ""
 
-    def _load_template(self) -> str:
-        """Load Typst template from project or use default."""
-        template_path = self._project.storage.storagePath / "umbra" / "templates" / "print.typ"
-        if template_path.is_file():
+    ##
+    #  Properties
+    ##
+
+    @property
+    def typstSource(self) -> str:
+        """The Typst source of the manuscript built so far."""
+        return self._typstSource
+
+    ##
+    #  Class Methods
+    ##
+
+    def tokenizeText(self) -> None:
+        """Tokenise the current document.
+
+        The Typst source is generated in ``doConvert()`` so that it is
+        built in the same way as for the other document writers.
+        """
+        super().tokenizeText()
+
+    def doConvert(self) -> None:
+        """Convert the blocks of the current document to Typst."""
+        source = self._blocksToTypst()
+        if source:
+            if self._typstSource:
+                self._typstSource += "\n\n"
+            self._typstSource += source
+        if self._plainText:
+            self._plainText += "\n\n"
+        self._plainText += self._blocksToPlainText()
+
+    def closeDocument(self) -> None:
+        """Run close document tasks. There is nothing to close."""
+
+    def saveDocument(self, path: Path) -> None:
+        """Save the manuscript as a PDF file."""
+        self._outputPath = path
+        source = self.getTypstSource()
+        exe = shutil.which("typst")
+        if exe is not None:
             try:
-                return template_path.read_text(encoding="utf-8")
-            except Exception as e:
-                logger.warning("Failed to load custom template: %s", e)
+                self._compileTypst(exe, source, path)
+            except Exception as exc:
+                logger.warning("Typst compilation failed, falling back to Qt: %s", exc)
+            else:
+                logger.info("Wrote file: %s", path)
+                return
+        else:
+            logger.warning("Typst compiler not found, using the Qt PDF engine")
+        self._savePdfFallback(path)
+        logger.info("Wrote file: %s", path)
+
+    ##
+    #  Internal Functions
+    ##
+
+    def _loadTemplate(self) -> str:
+        """Load the Typst template from the project, or use default."""
+        storagePath = self._project.storage.storagePath
+        if storagePath:
+            templatePath = storagePath / "umbra" / "templates" / "print.typ"
+            if templatePath.is_file():
+                try:
+                    return templatePath.read_text(encoding="utf-8")
+                except Exception as exc:
+                    logger.warning("Failed to load custom template: %s", exc)
         return DEFAULT_TYPST_TEMPLATE
 
-    def _get_metadata(self) -> dict[str, Any]:
-        """Extract metadata for template."""
+    def _getMetadata(self) -> dict[str, Any]:
+        """Extract the metadata used by the template."""
         meta = self._metadata
         return {
             "title": meta.book.get("title", ""),
@@ -198,174 +255,305 @@ class ToTypst(Tokenizer):
             "isbn": meta.book.get("isbn", ""),
         }
 
-    def _build_typst_config(self) -> dict[str, Any]:
-        """Build configuration dictionary for template."""
+    def _buildTypstConfig(self) -> dict[str, Any]:
+        """Build the configuration dictionary for the template."""
         meta = self._metadata
         cfg = self._config
 
-        # Get trim size from edition metadata
-        trim_size = "152mm x 229mm"  # 6x9 inches default
-        if meta.book.get("trim_size"):
-            trim_size = meta.book["trim_size"]
-
-        width, height = "152mm", "229mm"
-        if "x" in trim_size:
-            parts = trim_size.split("x")
+        # Get trim size from the book metadata
+        trimSize = meta.book.get("trim_size") or ""
+        if "x" in trimSize:
+            parts = trimSize.split("x")
             width = parts[0].strip() + "mm"
             height = parts[1].strip() + "mm"
         else:
-            width, height = "152mm", "229mm"
+            width = cfg.trim_width
+            height = cfg.trim_height
 
-        # Get edition-specific margins
-        gutter = cfg.gutter
-        margin_inner = cfg.margin_inner
-        margin_outer = cfg.margin_outer
-
-        # Get font configuration
-        font_family = cfg.font_family
+        # Font settings from the build settings take priority
+        fontFamily = cfg.font_family
+        fontSize = cfg.font_size
+        if self._textFont is not None:
+            if family := self._textFont.family():
+                fontFamily = family
+            if pointSize := self._textFont.pointSize():
+                fontSize = pointSize
         if meta.book.get("font_family"):
-            font_family = meta.book["font_family"]
-
-        # Get embedded fonts from assets
-        embedded_fonts = []
-        assets_dir = assetsDir(self._project.storage.storagePath)
-        for _asset_file in assets_dir.glob("*.otf"):
-            try:
-                # Could parse font metadata here
-                pass
-            except Exception:
-                pass
+            fontFamily = meta.book["font_family"]
 
         return {
             "trim_width": width,
             "trim_height": height,
-            "gutter": gutter,
-            "margin_inner": margin_inner,
-            "margin_outer": margin_outer,
+            "gutter": cfg.gutter,
+            "margin_inner": cfg.margin_inner,
+            "margin_outer": cfg.margin_outer,
             "margin_top": cfg.margin_top,
             "margin_bottom": cfg.margin_bottom,
-            "font_family": font_family,
-            "font_size": cfg.font_size,
-            "line_height": cfg.line_height,
+            "font_family": fontFamily.replace('"', ""),
+            "font_size": fontSize,
+            "line_height": self._lineHeight or cfg.line_height,
             "hyphenation_lang": cfg.hyphenation_lang,
             "running_headers": str(cfg.running_headers).lower(),
-            "embedded_fonts": embedded_fonts,
-            "content": "",  # Will be filled in
+            "embedded_fonts": self._embeddedFonts(),
+            "content": "",  # Filled in by the caller
         }
 
-    def tokenizeText(self) -> None:
-        """Override tokenizeText to build Typst source."""
-        super().tokenizeText()
+    def _embeddedFonts(self) -> list[dict[str, str]]:
+        """Return the list of fonts embedded in the project assets."""
+        fonts = []
+        try:
+            fontFiles = sorted(self._assetsDir.glob("*.otf"))
+        except Exception:  # pragma: no cover
+            return fonts
+        for fontFile in fontFiles:
+            fonts.append({
+                "name": re.sub(r"\W+", "_", fontFile.stem),
+                "path": str(fontFile),
+            })
+        return fonts
 
-        # Build Typst source from blocks
-        typst_source = self._blocks_to_typst()
+    def getTypstSource(self) -> str:
+        """Return the rendered Typst source of the manuscript."""
+        config = self._buildTypstConfig()
+        config["content"] = self._typstSource
+        return renderTemplate(self._template, config)
 
-        # Get template and render
-        config = self._build_typst_config()
-        config["content"] = typst_source
+    def _compileTypst(self, exe: str, source: str, path: Path) -> None:
+        """Compile the Typst source into a PDF file."""
+        with tempfile.TemporaryDirectory(prefix="umbraedit-typst-") as tmpDir:
+            srcPath = Path(tmpDir) / "manuscript.typ"
+            pdfPath = Path(tmpDir) / "manuscript.pdf"
+            srcPath.write_text(source, encoding="utf-8")
+            result = subprocess.run(
+                [exe, "compile", str(srcPath), str(pdfPath)],
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f"Typst exited with {result.returncode}: {result.stderr.strip()}")
+            shutil.copy2(pdfPath, path)
 
-        # Render template
-        from string import Template
-        template = Template(self._template)
-        typst_source = template.safe_substitute(config)
+    def _savePdfFallback(self, path: Path) -> None:
+        """Write the manuscript as a PDF using the Qt print engine.
 
-        # Write Typst source to temp file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".typ", delete=False, encoding="utf-8") as f:
-            f.write(typst_source)
-            typst_path = f.name
+        This is used when the Typst compiler is not available.
+        """
+        from PyQt6.QtCore import QMarginsF, QSizeF
+        from PyQt6.QtGui import QFont, QPageLayout, QPageSize, QTextDocument
+        from PyQt6.QtPrintSupport import QPrinter
 
-        # Compile with Typst
-        pdf_path = self._compile_typst(typst_path)
+        config = self._buildTypstConfig()
+        width = self._parseLength(config["trim_width"])
+        height = self._parseLength(config["trim_height"])
 
-        # Copy PDF to output
-        if hasattr(self, "_output_path") and self._output_path:
-            import shutil
-            shutil.copy2(pdf_path, self._output_path)
+        printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+        printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+        printer.setOutputFileName(str(path))
+        printer.setPageSize(QPageSize(
+            QSizeF(width, height),
+            QPageSize.Unit.Millimeter,
+            "Trim",
+            QPageSize.SizeMatchPolicy.ExactMatch,
+        ))
+        printer.setPageMargins(QMarginsF(
+            self._parseLength(config["margin_top"]),
+            self._parseLength(config["margin_inner"]),
+            self._parseLength(config["margin_bottom"]),
+            self._parseLength(config["margin_outer"]),
+        ), QPageLayout.Unit.Millimeter)
+        printer.setDocName(self._project.data.name)
 
-        # Clean up
-        os.unlink(typst_path)
-        os.unlink(pdf_path)
+        document = QTextDocument()
+        document.setDefaultFont(QFont(config["font_family"], int(config["font_size"])))
+        document.setPlainText(self._plainText)
+        document.print(printer)
 
-    def _blocks_to_typst(self) -> str:
-        """Convert internal blocks to Typst source."""
-        lines: list[str] = []
+    @staticmethod
+    def _parseLength(value: str) -> float:
+        """Parse a length string into millimetres."""
+        match = re.match(r"^\s*([0-9.]+)\s*mm", str(value))
+        if match:
+            return float(match.group(1))
+        match = re.match(r"^\s*([0-9.]+)\s*in", str(value))
+        if match:
+            return float(match.group(1)) * 25.4
+        return 0.0
 
-        for block in self._blocks:
-            block_type = block[0]
+    def _blocksToTypst(self) -> str:
+        """Convert the blocks of the current document to Typst markup."""
+        paras: list[str] = []
+        items: list[str] = []
+        nItem = 0
 
-            if block_type == BlockTyp.TITLE:
-                lines.append(f"#title[{block[2]}]")
-            elif block_type == BlockTyp.PART:
-                lines.append(f"#part[{block[2]}]")
-            elif block_type in (BlockTyp.HEAD1, BlockTyp.HEAD2, BlockTyp.HEAD3, BlockTyp.HEAD4):
-                level = block[0] - BlockTyp.HEAD1 + 1
-                lines.append(f"{'#' * (level + 1)} {block[2]}")
-            elif block_type == BlockTyp.SCENE_SEP:
-                lines.append("***")
-            elif block_type == BlockTyp.TEXT:
-                lines.append(self._inline_to_typst(block[2]))
-            elif block_type == BlockTyp.SCENE_SEP:
-                lines.append("***")
-            elif block_type == BlockTyp.LIST_U:
-                lines.append(self._list_to_typst(block[2], False))
-            elif block_type == BlockTyp.LIST_O:
-                lines.append(self._list_to_typst(block[2], True))
-            elif block_type == BlockTyp.FOOTNOTE:
-                lines.append(self._footnote_to_typst(block[2]))
-            elif block_type == BlockTyp.IMG:
-                lines.append(self._image_to_typst(block[2]))
-            elif block_type == BlockTyp.TABLE:
-                lines.append(self._table_to_typst(block[2]))
-            elif block_type == BlockTyp.PAGE_BREAK:
-                lines.append("#pagebreak()")
+        for tType, _, tText, tFormat, tStyle in self._blocks:
 
-        return "\n\n".join(lines)
+            if tType in (BlockTyp.LIST_U, BlockTyp.LIST_O):
+                if tType == BlockTyp.LIST_O:
+                    nItem = 1 if tStyle & BlockFmt.LIST_S else nItem + 1
+                    items.append(f"{nItem}. {self._formatText(tText, tFormat)}")
+                else:
+                    items.append(f"- {self._formatText(tText, tFormat)}")
+                continue
 
-    def _inline_to_typst(self, text: str) -> str:
-        """Convert inline formatting to Typst markup."""
-        # Convert markdown-style formatting to Typst
-        text = re.sub(r"\*\*(.+?)\*\*", r"*\1*", text)  # Bold
-        text = re.sub(r"\*(.+?)\*", r"_\1_", text)  # Italic
-        text = re.sub(r"~~(.+?)~~", r"~~\1~~", text)  # Strikethrough
-        return re.sub(r"==(.+?)==", r"`\1`", text)  # Highlight/Mark
+            if items:
+                paras.append("\n".join(items))
+                items = []
+                nItem = 0
 
-    def _list_to_typst(self, items: list[str], ordered: bool) -> str:
-        lines = []
-        for i, item in enumerate(items, 1):
-            if ordered:
-                lines.append(f"{i}. {item}")
+            if tType == BlockTyp.TEXT:
+                paras.append(self._formatText(tText, tFormat))
+
+            elif tType in (BlockTyp.TITLE, BlockTyp.PART):
+                paras.append(f"#align(center)[{self._formatText(tText, tFormat)}]")
+
+            elif tType in (BlockTyp.HEAD1, BlockTyp.HEAD2, BlockTyp.HEAD3, BlockTyp.HEAD4):
+                level = int(tType) - int(BlockTyp.HEAD1) + 1
+                paras.append(f"{'=' * level} {self._formatText(tText, tFormat)}")
+
+            elif tType == BlockTyp.SEP:
+                paras.append("#align(center)[* * *]")
+
+            elif tType == BlockTyp.HRULE:
+                paras.append("#line(length: 100%)")
+
+            elif tType == BlockTyp.SKIP:
+                paras.append("#v(0.5em)")
+
+            elif tType == BlockTyp.KEYWORD:
+                paras.append(self._formatText(tText, tFormat))
+
             else:
-                lines.append(f"- {item}")
+                continue
+
+        if items:
+            paras.append("\n".join(items))
+
+        return "\n\n".join(paras)
+
+    def _blocksToPlainText(self) -> str:
+        """Convert the blocks of the current document to plain text."""
+        lines: list[str] = []
+        for tType, _, tText, _, _ in self._blocks:
+            if tType == BlockTyp.TEXT:
+                lines.append(tText)
+            elif tType in (BlockTyp.TITLE, BlockTyp.PART):
+                lines.append(tText)
+            elif tType in (BlockTyp.HEAD1, BlockTyp.HEAD2, BlockTyp.HEAD3, BlockTyp.HEAD4):
+                level = int(tType) - int(BlockTyp.HEAD1) + 1
+                lines.append(f"{'#' * level} {tText}")
+            elif tType == BlockTyp.SEP:
+                lines.append("* * *")
+            elif tType == BlockTyp.HRULE:
+                lines.append("----")
+            elif tType == BlockTyp.SKIP:
+                lines.append("")
+            elif tType == BlockTyp.KEYWORD:
+                lines.append(tText)
         return "\n".join(lines)
 
-    def _footnote_to_typst(self, footnote: dict) -> str:
-        text = footnote.get("text", "")
-        return f"#footnote[{text}]"
+    def _formatText(self, text: str, tFmt: T_Formats) -> str:
+        """Apply the text format map and convert it to Typst markup."""
+        tags: list[tuple[int, str]] = []
+        for pos, fmt, data in tFmt:
+            if fmt == TextFmt.B_B:
+                tags.append((pos, "*"))
+            elif fmt == TextFmt.B_E:
+                tags.append((pos, "*"))
+            elif fmt == TextFmt.I_B:
+                tags.append((pos, "_"))
+            elif fmt == TextFmt.I_E:
+                tags.append((pos, "_"))
+            elif fmt == TextFmt.D_B:
+                tags.append((pos, "-"))
+            elif fmt == TextFmt.D_E:
+                tags.append((pos, "-"))
+            elif fmt == TextFmt.U_B:
+                tags.append((pos, "#underline["))
+            elif fmt == TextFmt.U_E:
+                tags.append((pos, "]"))
+            elif fmt == TextFmt.M_B:
+                tags.append((pos, "#highlight["))
+            elif fmt == TextFmt.M_E:
+                tags.append((pos, "]"))
+            elif fmt == TextFmt.SUP_B:
+                tags.append((pos, "#super["))
+            elif fmt == TextFmt.SUP_E:
+                tags.append((pos, "]"))
+            elif fmt == TextFmt.SUB_B:
+                tags.append((pos, "#sub["))
+            elif fmt == TextFmt.SUB_E:
+                tags.append((pos, "]"))
+            elif fmt == TextFmt.COL_B:
+                tags.append((pos, "#text(fill: black)["))
+            elif fmt == TextFmt.COL_E:
+                tags.append((pos, "]"))
+            elif fmt == TextFmt.ANM_B:
+                tags.append((pos, f'#label("{data}")'))
+            elif fmt == TextFmt.ARF_B:
+                tags.append((pos, f"#link(<{data}>)["))
+            elif fmt == TextFmt.ARF_E:
+                tags.append((pos, "]"))
+            elif fmt == TextFmt.HRF_B:
+                tags.append((pos, f'#link("{data}")['))
+            elif fmt == TextFmt.HRF_E:
+                tags.append((pos, "]"))
+            elif fmt == TextFmt.FNOTE:
+                if data in self._footnotes:
+                    note = self._footnotes[data]
+                    tags.append((pos, f"#footnote[{self._formatText(note[0], note[1])}]"))
+                else:
+                    tags.append((pos, "#footnote[Missing footnote]"))
+            elif fmt == TextFmt.FIELD:
+                tags.append((pos, ""))
+            elif fmt == TextFmt.STRIP:
+                tags.append((pos, ""))
+            elif fmt in (TextFmt.ERR_B, TextFmt.ERR_E):
+                tags.append((pos, ""))
 
-    def _image_to_typst(self, image: dict) -> str:
-        src = image.get("src", "")
-        alt = image.get("alt", "")
-        return f'#image("{src}", alt: "{alt}")'
+        # Insert all tags at their correct position, starting from the back
+        temp = text
+        for pos, tag in reversed(tags):
+            temp = f"{temp[:pos]}{tag}{temp[pos:]}"
 
-    def _table_to_typst(self, table: dict) -> str:
-        # Simplified table
-        return "#table()"  # Would need full implementation
+        return temp.replace("\n", " ")
 
 
-def toTypst(project: NWProject, output_path: Optional[Path] = None, config: Optional[TypstConfig] = None) -> str:
-    """Convert a project to Typst source and compile to PDF.
+def toTypst(
+    project: NWProject,
+    outputPath: Optional[Path] = None,
+    config: Optional[TypstConfig] = None,
+) -> tuple[bool, str]:
+    """Convert a project to a print PDF.
 
     Args:
         project: The project to convert.
-        output_path: Optional path to write PDF to.
+        outputPath: Optional path to write the PDF to.
         config: Optional configuration for Typst output.
 
     Returns:
-        Path to the generated PDF file.
+        A tuple of (success, result), where result is the path to the
+        generated file, or an error message.
 
     """
+    from umbraedit.enum import nwItemLayout
+
     tokenizer = ToTypst(project, config)
-    if output_path:
-        tokenizer._output_path = output_path
-    tokenizer.tokenizeText()
-    return str(output_path) if output_path else ""
+    tokenizer.initDocument()
+    for item in project.tree:
+        if item.isFileType() and item.itemLayout == nwItemLayout.DOCUMENT:
+            tokenizer.setText(item.itemHandle)
+            tokenizer.tokenizeText()
+            tokenizer.doConvert()
+    tokenizer.closeDocument()
+
+    if outputPath is None:
+        return False, "No output path specified"
+
+    try:
+        tokenizer.saveDocument(outputPath)
+    except Exception as exc:
+        logger.exception("Print PDF generation failed")
+        return False, str(exc)
+
+    return True, str(outputPath)

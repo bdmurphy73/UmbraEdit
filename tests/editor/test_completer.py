@@ -134,8 +134,8 @@ def testCompleter_KeywordAndTagOptions(qtbot: QtBot, nwGUI: GuiMain, projPath: P
     # A keyword prefix narrows the list, and the stored action appends
     # the missing colon since the line doesn't have one yet
     assert completer.updateMetaText("@c", 2) is True
-    assert labels() == ["@char", "@custom"]
-    assert action(0) == CompleterAction(pos=0, length=2, value="@char:")
+    assert labels() == ["@chapter", "@char", "@custom"]
+    assert action(0) == CompleterAction(pos=0, length=2, value="@chapter:")
 
     # A keyword that matches nothing yields no options at all
     assert completer.updateMetaText("@q", 2) is False
@@ -252,7 +252,7 @@ def testGuiDocEditor_CompleterKeyRouting(qtbot: QtBot, nwGUI: GuiMain, projPath:
     # of using QCompleter over a QMenu here (issue #2510).
     qtbot.keyClick(popup, "c", delay=KEY_DELAY)
     assert docEditor.getText() == "@c"
-    assert completionModel(completer).rowCount() == 2
+    assert completionModel(completer).rowCount() == 3
 
     # Escape cancels the popup without touching the document. This
     # also exercises GuiDocEditor.event(): UmbraEdit has its own

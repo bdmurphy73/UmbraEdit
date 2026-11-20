@@ -623,6 +623,10 @@ class GuiStoryOutlineTree(NTreeView):
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
 
+        # The mouse wheel should scroll one item per step, so the
+        # vertical scroll must be handled in items, not pixels
+        self.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerItem)
+
         self.initViewport()
         self._disableNativeHighlight()
 

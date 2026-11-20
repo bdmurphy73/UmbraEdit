@@ -73,16 +73,16 @@ TRANSLATION_OUTPUT_SCHEMA = {
 # Default translation prompt template
 DEFAULT_TRANSLATION_PROMPT = (
     "Translate the following chapter from {sourceLanguage} to {targetLanguage}.\n\n"
-    "Book: {{bookTitle}}\n"
-    "Chapter: {{chapterTitle}}\n\n"
-    "Style Guide:\n{{styleGuide}}\n\n"
-    "Analysis:\n{{analysis}}\n\n"
-    "Glossary (source form → target form, pronunciation):\n{{glossary}}\n\n"
-    "Cast Voices (speaker, relationships, typical register):\n{{castVoices}}\n\n"
-    "Previous Chapter Tail (last 3 translated paragraphs):\n{{previousTail}}\n\n"
-    "Source Paragraphs (numbered, with notes and voice info):\n{{paragraphs}}\n\n"
-    "Instructions:\n{{instructions}}\n\n"
-    "Output Schema:\n{{outputSchema}}\n\n"
+    "Book: {bookTitle}\n"
+    "Chapter: {chapterTitle}\n\n"
+    "Style Guide:\n{styleGuide}\n\n"
+    "Analysis:\n{analysis}\n\n"
+    "Glossary (source form → target form, pronunciation):\n{glossary}\n\n"
+    "Cast Voices (speaker, relationships, typical register):\n{castVoices}\n\n"
+    "Previous Chapter Tail (last 3 translated paragraphs):\n{previousTail}\n\n"
+    "Source Paragraphs (numbered, with notes and voice info):\n{paragraphs}\n\n"
+    "Instructions:\n{instructions}\n\n"
+    "Output Schema:\n{outputSchema}\n\n"
     "Output ONLY valid JSON matching the schema exactly. No extra text."
 )
 
@@ -282,8 +282,8 @@ def _get_cast_voices(source_project: Any, chapter_handle: str, edition_path: Pat
     """Get voice matrix info for speakers in the chapter."""
     from umbraedit.umbra.sheet import SheetManager
 
-    sheet = SheetManager(edition_path / "umbra")
-    sheet.buildFromProject(str(edition_path))
+    sheet = SheetManager(edition_path)
+    sheet.loadSheet()
 
     # Find all speakers in the chapter
     speakers = set()
@@ -292,14 +292,16 @@ def _get_cast_voices(source_project: Any, chapter_handle: str, edition_path: Pat
         return ""
 
     chapter_ref = source_project.chapterOf(chapter_handle) if hasattr(source_project, "chapterOf") else None
-    if not chapter_ref:
-        # Fallback: check single document
-        doc_file = content_path / f"{chapter_handle}.md"
-        if doc_file.is_file():
-            text = doc_file.read_text(encoding="utf-8")
-            for unit in iterUnits(text):
-                if unit.voice and unit.voice.spk:
-                    speakers.add(unit.voice.spk)
+    handles = chapter_ref.handles if chapter_ref else [chapter_handle]
+
+    for handle in handles:
+        doc_file = content_path / f"{handle}.md"
+        if not doc_file.is_file():
+            continue
+        text = doc_file.read_text(encoding="utf-8")
+        for unit in iterUnits(text):
+            if unit.voice and unit.voice.spk:
+                speakers.add(unit.voice.spk)
 
     if not speakers:
         return "(none)"
@@ -839,8 +841,8 @@ def _check_glossary_gaps(edition_path: Path, source_project: Any, chapter_handle
     from umbraedit.umbra.sheet import SheetManager
 
     glossary_entries = {e["source"]: e for e in glossary(edition_path)}
-    sheet = SheetManager(edition_path / "umbra")
-    sheet.buildFromProject(str(edition_path))
+    sheet = SheetManager(edition_path)
+    sheet.loadSheet()
 
     # Find all speakers in chapter
     speakers = set()
@@ -860,10 +862,13 @@ def _check_glossary_gaps(edition_path: Path, source_project: Any, chapter_handle
     gaps = []
     for spk in speakers:
         entity = sheet.getEntity(spk)
-        if entity:
-            target_form = entity.attrs.get("name_target", entity.tag)
-            if target_form == entity.tag and spk not in glossary_entries:
-                gaps.append(spk)
+        if entity is None:
+            # No entity note, so no target form is known
+            gaps.append(spk)
+            continue
+        target_form = entity.attrs.get("name_target", entity.tag)
+        if target_form == entity.tag and spk not in glossary_entries:
+            gaps.append(spk)
 
     return gaps
 

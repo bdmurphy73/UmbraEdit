@@ -24,20 +24,20 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import subprocess
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from umbraedit.formats.shared import BlockTyp
+from umbraedit.formats.shared import BlockTyp, TextFmt
 from umbraedit.formats.tokenizer import Tokenizer
-from umbraedit.umbra.metadata import loadMetadata
+from umbraedit.umbra.metadata import Metadata, loadMetadata
 
 if TYPE_CHECKING:  # pragma: no cover
     from pathlib import Path
 
     from umbraedit.core.project import NWProject
+    from umbraedit.formats.shared import T_Formats
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +45,34 @@ logger = logging.getLogger(__name__)
 PandocMeta = dict[str, Any]
 PandocBlock = dict[str, Any]
 PandocInline = dict[str, Any]
+
+# Inline format codes mapped to Pandoc node kinds
+PANDOC_OPENER: dict[TextFmt, str] = {
+    TextFmt.B_B: "strong",
+    TextFmt.I_B: "emph",
+    TextFmt.D_B: "strike",
+    TextFmt.U_B: "underline",
+    TextFmt.SUP_B: "superscript",
+    TextFmt.SUB_B: "subscript",
+    TextFmt.M_B: "span",
+    TextFmt.COL_B: "span",
+    TextFmt.ANM_B: "anchor",
+    TextFmt.ARF_B: "anchor",
+    TextFmt.HRF_B: "link",
+}
+
+PANDOC_CLOSER: dict[TextFmt, str] = {
+    TextFmt.B_E: "strong",
+    TextFmt.I_E: "emph",
+    TextFmt.D_E: "strike",
+    TextFmt.U_E: "underline",
+    TextFmt.SUP_E: "superscript",
+    TextFmt.SUB_E: "subscript",
+    TextFmt.M_E: "span",
+    TextFmt.COL_E: "span",
+    TextFmt.ARF_E: "anchor",
+    TextFmt.HRF_E: "link",
+}
 
 
 @dataclass
@@ -66,6 +94,7 @@ class ToPandocJson(Tokenizer):
     __slots__ = (
         "_api_version",
         "_metadata",
+        "_pandocBlocks",
         "_pandoc_version",
         "_project",
     )
@@ -75,7 +104,9 @@ class ToPandocJson(Tokenizer):
         self._project = project
         self._pandoc_version = ""
         self._api_version = ""
-        self._metadata = loadMetadata(self._project.storage.storagePath)
+        self._pandocBlocks: list[PandocBlock] = []
+        storagePath = self._project.storage.storagePath
+        self._metadata = loadMetadata(storagePath) if storagePath else Metadata()
         self._detect_pandoc_version()
 
     def _detect_pandoc_version(self) -> None:
@@ -91,17 +122,29 @@ class ToPandocJson(Tokenizer):
             lines = result.stdout.strip().split("\n")
             if lines:
                 self._pandoc_version = lines[0].strip()
-                # Extract version number
-                version_match = re.search(r"pandoc\s+(\d+\.\d+\.\d+)", self._pandoc_version)
-                if version_match:
-                    version = version_match.group(1)
-                    major, minor, _patch = map(int, version.split("."))
-                    # Pandoc API version follows major.minor
-                    self._api_version = f"{major}.{minor}"
         except Exception as e:
             logger.warning("Failed to detect Pandoc version: %s", e)
             self._pandoc_version = "unknown"
-            self._api_version = "1.23"  # Default fallback
+
+        # Ask Pandoc itself for the JSON AST API version. This is the
+        # only reliable way to get the exact version, as it is not the
+        # same as the Pandoc release version.
+        try:
+            probe = subprocess.run(
+                ["pandoc", "--from=markdown", "--to=json"],
+                input="",
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=True,
+            )
+            version = json.loads(probe.stdout).get("pandoc-api-version", [])
+            if version:
+                self._api_version = ".".join(str(v) for v in version)
+        except Exception as e:
+            logger.warning("Failed to detect Pandoc API version: %s", e)
+            if not self._api_version:
+                self._api_version = "1.23"  # Default fallback
 
     def _get_pandoc_api_version(self) -> str:
         """Return the Pandoc API version."""
@@ -112,9 +155,13 @@ class ToPandocJson(Tokenizer):
         meta = self._metadata
         pandoc_meta: PandocMeta = {}
 
+        def metaString(value: str) -> PandocMeta:
+            """Return a Pandoc MetaInlines object for a string."""
+            return {"t": "MetaInlines", "c": [{"t": "Str", "c": value}]}
+
         # Title
         if meta.book.get("title"):
-            pandoc_meta["title"] = [{"t": "MetaInlines", "c": [{"t": "Str", "c": meta.book["title"]}]}]
+            pandoc_meta["title"] = metaString(meta.book["title"])
 
         # Authors
         if meta.book.get("author"):
@@ -126,151 +173,231 @@ class ToPandocJson(Tokenizer):
 
         # Language
         lang = meta.book.get("language", "en")
-        pandoc_meta["lang"] = lang
+        pandoc_meta["lang"] = metaString(lang)
 
         # Date
         if meta.book.get("date"):
-            pandoc_meta["date"] = [{"t": "MetaInlines", "c": [{"t": "Str", "c": meta.book["date"]}]}]
+            pandoc_meta["date"] = metaString(meta.book["date"])
 
         # Subjects/Keywords
         if meta.book.get("keywords"):
             keywords = [k.strip() for k in meta.book["keywords"].split(",") if k.strip()]
             if keywords:
-                pandoc_meta["subject"] = [{"t": "MetaInlines", "c": [{"t": "Str", "c": k}]} for k in keywords]
+                pandoc_meta["subject"] = [
+                    {"t": "MetaInlines", "c": [{"t": "Str", "c": k}]} for k in keywords
+                ]
 
         # Description
         if meta.book.get("description"):
-            pandoc_meta["description"] = [{"t": "MetaInlines", "c": [{"t": "Str", "c": meta.book["description"]}]}]
+            pandoc_meta["description"] = metaString(meta.book["description"])
 
         # ISBN
         if meta.book.get("isbn"):
-            pandoc_meta["isbn"] = [{"t": "MetaInlines", "c": [{"t": "Str", "c": meta.book["isbn"]}]}]
+            pandoc_meta["isbn"] = metaString(meta.book["isbn"])
 
         # Custom metadata
         for key, value in meta.custom.items():
             if value:
-                pandoc_meta[key] = [{"t": "MetaInlines", "c": [{"t": "Str", "c": value}]}]
+                pandoc_meta[key] = metaString(value)
 
         return pandoc_meta
 
+    ##
+    #  Class Methods
+    ##
+
     def tokenizeText(self) -> None:
-        """Override tokenizeText to build Pandoc JSON AST."""
-        # First run the standard tokenization
+        """Tokenise the current document.
+
+        The Pandoc blocks are generated in ``doConvert()`` so that they
+        are built in the same way as for the other document writers.
+        """
         super().tokenizeText()
 
-        # Convert blocks to Pandoc JSON AST
-        blocks = self._blocks_to_pandoc()
+    def doConvert(self) -> None:
+        """Convert the blocks of the current document to Pandoc JSON."""
+        self._pandocBlocks.extend(self._blocks_to_pandoc())
 
-        # Build final AST
+    def closeDocument(self) -> None:
+        """Run close document tasks. There is nothing to close."""
+
+    def saveDocument(self, path: Path) -> None:
+        """Save the Pandoc JSON AST to a file."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.getJson(), encoding="utf-8")
+        logger.info("Wrote file: %s", path)
+
+    ##
+    #  Internal Functions
+    ##
+
+    def getJson(self) -> str:
+        """Return the Pandoc JSON AST of the manuscript."""
         ast = PandocAST(
             meta=self._get_metadata(),
-            blocks=blocks,
+            blocks=self._pandocBlocks,
         )
-
-        # Convert to JSON with Pandoc API version
         output = {
             "pandoc-api-version": [int(v) for v in self._api_version.split(".")],
             "meta": ast.meta,
             "blocks": ast.blocks,
         }
-
-        # Write JSON output
-        self._text = json.dumps(output, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
+        return json.dumps(output, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
 
     def _blocks_to_pandoc(self) -> list[PandocBlock]:
         """Convert internal blocks to Pandoc JSON AST blocks."""
         blocks: list[PandocBlock] = []
+        items: list[list[PandocBlock]] = []
+        ordered = False
 
-        for block in self._blocks:
-            block_type = block[0]
+        for tType, _, tText, tFormat, _tStyle in self._blocks:
 
-            if block_type == BlockTyp.TITLE:
-                blocks.append(self._title_to_pandoc(block[2]))
-            elif block_type == BlockTyp.PART:
-                blocks.append(self._heading_to_pandoc(block[2], 1))
-            elif block_type == BlockTyp.HEAD1:
-                blocks.append(self._heading_to_pandoc(block[2], 2))
-            elif block_type == BlockTyp.HEAD2:
-                blocks.append(self._heading_to_pandoc(block[2], 3))
-            elif block_type == BlockTyp.HEAD3:
-                blocks.append(self._heading_to_pandoc(block[2], 4))
-            elif block_type == BlockTyp.HEAD4:
-                blocks.append(self._heading_to_pandoc(block[2], 5))
-            elif block_type == BlockTyp.SCENE_SEP:
-                blocks.append({"t": "HorizontalRule", "c": [], "a": ["scene-break"]})
-            elif block_type == BlockTyp.TEXT:
-                blocks.extend(self._text_to_pandoc(block[2]))
-            elif block_type == BlockTyp.LIST_U:
-                blocks.append(self._list_to_pandoc(block[2], False))
-            elif block_type == BlockTyp.LIST_O:
-                blocks.append(self._list_to_pandoc(block[2], True))
-            elif block_type == BlockTyp.FOOTNOTE:
-                blocks.append(self._footnote_to_pandoc(block[2]))
-            elif block_type == BlockTyp.COMMENT:
-                # Skip comments in Pandoc output
-                pass
-            elif block_type == BlockTyp.NOTE:
-                # Handle notes as footnotes or similar
-                pass
-            elif block_type == BlockTyp.IMG:
-                blocks.append(self._image_to_pandoc(block[2]))
-            elif block_type == BlockTyp.TABLE:
-                blocks.append(self._table_to_pandoc(block[2]))
-            elif block_type == BlockTyp.PAGE_BREAK:
-                blocks.append({"t": "RawBlock", "c": ["openxml", '<w:p><w:r><w:br w:type="page"/></w:r></w:p>']})
-            elif block_type == BlockTyp.HRULE:
+            if tType in (BlockTyp.LIST_U, BlockTyp.LIST_O):
+                isOrdered = tType == BlockTyp.LIST_O
+                if items and ordered != isOrdered:
+                    blocks.append(self._list_block(items, ordered))
+                    items = []
+                ordered = isOrdered
+                items.append([{"t": "Plain", "c": self._inline_to_pandoc(tText, tFormat)}])
+                continue
+
+            if items:
+                blocks.append(self._list_block(items, ordered))
+                items = []
+                ordered = False
+
+            if tType == BlockTyp.TITLE:
+                blocks.append(self._heading_to_pandoc(tText, tFormat, 1))
+
+            elif tType == BlockTyp.PART:
+                blocks.append(self._heading_to_pandoc(tText, tFormat, 1))
+
+            elif tType == BlockTyp.HEAD1:
+                blocks.append(self._heading_to_pandoc(tText, tFormat, 2))
+
+            elif tType == BlockTyp.HEAD2:
+                blocks.append(self._heading_to_pandoc(tText, tFormat, 3))
+
+            elif tType == BlockTyp.HEAD3:
+                blocks.append(self._heading_to_pandoc(tText, tFormat, 4))
+
+            elif tType == BlockTyp.HEAD4:
+                blocks.append(self._heading_to_pandoc(tText, tFormat, 5))
+
+            elif tType == BlockTyp.SEP:
                 blocks.append({"t": "HorizontalRule", "c": []})
+
+            elif tType == BlockTyp.HRULE:
+                blocks.append({"t": "HorizontalRule", "c": []})
+
+            elif tType == BlockTyp.TEXT:
+                blocks.extend(self._text_to_pandoc(tText, tFormat))
+
+            elif tType == BlockTyp.KEYWORD:
+                blocks.append({"t": "Para", "c": self._inline_to_pandoc(tText, tFormat)})
+
+            elif tType in (BlockTyp.SUMMARY, BlockTyp.NOTE, BlockTyp.COMMENT):
+                # Comments and notes are not included in the manuscript
+                pass
+
+            else:  # pragma: no cover
+                pass
+
+        if items:
+            blocks.append(self._list_block(items, ordered))
 
         return blocks
 
-    def _inline_to_pandoc(self, text: str) -> list[PandocInline]:
-        """Convert text with inline formatting to Pandoc inlines."""
-        # This is a simplified version - real implementation would parse
-        # the TextFmt markers and convert to Pandoc inlines
-        # For now, return plain text
-        if not text:
-            return [{"t": "Str", "c": ""}]
-        return [{"t": "Str", "c": text}]
+    def _list_block(self, items: list[list[PandocBlock]], ordered: bool) -> PandocBlock:
+        """Build a Pandoc list block from a list of items."""
+        if ordered:
+            return {"t": "OrderedList", "c": [[1, "Decimal", "."], items]}
+        return {"t": "BulletList", "c": items}
 
-    def _text_to_pandoc(self, text: str) -> list[PandocBlock]:
-        """Convert plain text paragraph to Pandoc Para."""
+    def _inline_to_pandoc(self, text: str, tFmt: T_Formats) -> list[PandocInline]:
+        """Convert text with inline formatting to Pandoc inlines."""
+        result: list[PandocInline] = []
+        stack: list[dict[str, Any]] = [{"kind": "root", "items": result, "data": ""}]
+        pos = 0
+
+        for ePos, fmt, data in tFmt:
+            if ePos > pos:
+                chunk = text[pos:ePos]
+                if chunk:
+                    stack[-1]["items"].append({"t": "Str", "c": chunk})
+                pos = ePos
+
+            if kind := PANDOC_OPENER.get(fmt):
+                stack.append({"kind": kind, "items": [], "data": data})
+                continue
+
+            if kind := PANDOC_CLOSER.get(fmt):
+                if len(stack) > 1:
+                    entry = stack.pop()
+                    stack[-1]["items"].append(self._pandocNode(entry))
+                continue
+
+            if fmt == TextFmt.FNOTE:
+                if data in self._footnotes:
+                    note = self._footnotes[data]
+                    blocks = [{"t": "Para", "c": self._inline_to_pandoc(note[0], note[1])}]
+                    stack[-1]["items"].append({"t": "Note", "c": blocks})
+                else:
+                    stack[-1]["items"].append({
+                        "t": "Note", "c": [{"t": "Para", "c": [{"t": "Str", "c": "ERR"}]}]
+                    })
+                continue
+
+            if fmt == TextFmt.FIELD:
+                continue
+
+            if fmt == TextFmt.STRIP:
+                continue
+
+            if fmt in (TextFmt.ERR_B, TextFmt.ERR_E):
+                continue
+
+        if pos < len(text):
+            chunk = text[pos:]
+            if chunk:
+                stack[-1]["items"].append({"t": "Str", "c": chunk})
+
+        return result
+
+    def _pandocNode(self, entry: dict[str, Any]) -> PandocInline:
+        """Build a Pandoc inline node from a format stack entry."""
+        kind = entry["kind"]
+        inner = entry["items"]
+        data = entry["data"]
+        if kind == "strong":
+            return {"t": "Strong", "c": inner}
+        if kind == "emph":
+            return {"t": "Emph", "c": inner}
+        if kind == "strike":
+            return {"t": "Strikeout", "c": inner}
+        if kind == "underline":
+            return {"t": "Underline", "c": inner}
+        if kind == "superscript":
+            return {"t": "Superscript", "c": inner}
+        if kind == "subscript":
+            return {"t": "Subscript", "c": inner}
+        if kind == "anchor":
+            target = data if data.startswith("#") else f"#{data}"
+            return {"t": "Link", "c": [[["", [], []], inner, target]]}
+        if kind == "link":
+            return {"t": "Link", "c": [[["", [], []], inner, data]]}
+        return {"t": "Span", "c": [["", [], []], inner, []]}
+
+    def _text_to_pandoc(self, text: str, tFmt: T_Formats) -> list[PandocBlock]:
+        """Convert a plain text paragraph to Pandoc Para."""
         if not text.strip():
             return []
-        inlines = self._inline_to_pandoc(text)
+        inlines = self._inline_to_pandoc(text, tFmt)
         return [{"t": "Para", "c": inlines}]
 
-    def _title_to_pandoc(self, text: str) -> PandocBlock:
-        """Convert title to Pandoc header level 1."""
-        return {"t": "Header", "c": [1, [], self._inline_to_pandoc(text)]}
-
-    def _heading_to_pandoc(self, text: str, level: int) -> PandocBlock:
-        """Convert heading to Pandoc header."""
-        return {"t": "Header", "c": [level, [], self._inline_to_pandoc(text)]}
-
-    def _list_to_pandoc(self, items: list[str], ordered: bool) -> PandocBlock:
-        """Convert list to Pandoc BulletList or OrderedList."""
-        items_pandoc = []
-        for item in items:
-            items_pandoc.append([{"t": "Para", "c": self._inline_to_pandoc(item)}])
-        if ordered:
-            return {"t": "OrderedList", "c": [[1, "Decimal", "."], items_pandoc]}
-        return {"t": "BulletList", "c": items_pandoc}
-
-    def _footnote_to_pandoc(self, footnote: dict) -> PandocBlock:
-        """Convert footnote to Pandoc Note."""
-        # Simplified - would need proper footnote handling
-        return {"t": "Note", "c": [{"t": "Para", "c": self._inline_to_pandoc(footnote.get("text", ""))}]}
-
-    def _image_to_pandoc(self, image: dict) -> PandocBlock:
-        """Convert image to Pandoc Figure."""
-        src = image.get("src", "")
-        alt = image.get("alt", "")
-        return {"t": "Figure", "c": [[{"t": "Image", "c": [["", [], []], [alt, src]]}]]}
-
-    def _table_to_pandoc(self, table: dict) -> PandocBlock:
-        """Convert table to Pandoc Table."""
-        # Simplified table conversion
-        return {"t": "Table", "c": [[], [], [], []]}
+    def _heading_to_pandoc(self, text: str, tFmt: T_Formats, level: int) -> PandocBlock:
+        """Convert a heading to a Pandoc header."""
+        return {"t": "Header", "c": [level, ["", [], []], self._inline_to_pandoc(text, tFmt)]}
 
 
 def toPandocJson(project: NWProject, output_path: Optional[Path] = None) -> str:
@@ -284,11 +411,21 @@ def toPandocJson(project: NWProject, output_path: Optional[Path] = None) -> str:
         JSON string of the Pandoc AST.
 
     """
+    from umbraedit.enum import nwItemLayout
+
     tokenizer = ToPandocJson(project)
-    tokenizer.tokenizeText()
-    json_output = tokenizer._text
+    tokenizer.initDocument()
+    for item in project.tree:
+        if item.isFileType() and item.itemLayout == nwItemLayout.DOCUMENT:
+            tokenizer.setText(item.itemHandle)
+            tokenizer.tokenizeText()
+            tokenizer.doConvert()
+    tokenizer.closeDocument()
+
+    json_output = tokenizer.getJson()
 
     if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json_output, encoding="utf-8")
 
     return json_output

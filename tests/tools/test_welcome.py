@@ -36,6 +36,7 @@ from pytestqt.qtbot import QtBot
 from umbraedit import CONFIG, SHARED
 from umbraedit.constants import nwFiles
 from umbraedit.core.coretools import ProjectBuilder
+from umbraedit.core.project import NWProject
 from umbraedit.core.projectdata import ProjectData
 from umbraedit.enum import nwItemClass
 from umbraedit.guimain import GuiMain
@@ -55,6 +56,8 @@ from umbraedit.types import (
     QtToolTipRole,
     QtUserRole,
 )
+
+from tests.helpers import makeDocx
 
 
 @pytest.mark.gui
@@ -397,6 +400,7 @@ def testGuiWelcome_New(
         "blank": True,
         "sample": False,
         "template": None,
+        "import": None,
         "chapters": 10,
         "scenes": 6,
         "roots": [nwItemClass.PLOT, nwItemClass.CHARACTER, nwItemClass.WORLD],
@@ -418,4 +422,112 @@ def testGuiWelcome_New(
     assert (projPath / nwFiles.PROJ_FILE).exists()
 
     # qtbot.stop()
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_NewImport(
+    qtbot: QtBot,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test importing a Word document from the new project tab."""
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    assert welcome.mainStack.currentIndex() == 1
+    tabNew = welcome.tabNew
+    newForm = tabNew.projectForm
+
+    docxPath = makeDocx(
+        fncPath / "novel.docx",
+        [
+            ("My Novel", "Title"),
+            ("Jane Doe", "Subtitle"),
+            ("Chapter One", "Heading1"),
+            ("The first paragraph of the chapter.", None),
+        ],
+        title="My Novel",
+        author="Jane Doe",
+    )
+
+    # Cancelling the file dialog leaves the fill mode unchanged
+    fillModeBefore = newForm._fillMode
+    with monkeypatch.context() as mp:
+        mp.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: ("", ""))
+        newForm.fillImport.trigger()
+        assert newForm._fillMode == fillModeBefore
+
+    # Selecting a Word document sets the fill mode and fills in details
+    with monkeypatch.context() as mp:
+        mp.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(docxPath), ""))
+        newForm.fillImport.trigger()
+    assert newForm._fillMode == newForm.FILL_IMPORT
+    assert newForm.projName.text() == "My Novel"
+    assert newForm.projAuthor.text() == "Jane Doe"
+    assert "novel.docx" in newForm.projFill.text()
+    assert newForm.extraWidget.isVisible() is False
+
+    # Set the target folder
+    with monkeypatch.context() as mp:
+        mp.setattr(QFileDialog, "getExistingDirectory", lambda *a, **k: str(fncPath))
+        newForm.browsePath.click()
+    assert newForm.projPath.text() == str(fncPath / "My Novel")
+
+    # Creating the project must open it
+    received: list[Path] = []
+    welcome.openProjectRequest.connect(received.append)
+    welcome.btnCreate.click()
+    assert len(received) == 1
+    assert Path(received[0]) == fncPath / "My Novel"
+    assert (fncPath / "My Novel" / nwFiles.PROJ_FILE).is_file()
+
+    # The imported project must have the documents from the Word file
+    project = NWProject()
+    assert project.openProject(fncPath / "My Novel") is True
+    assert project.data.name == "My Novel"
+    assert project.data.author == "Jane Doe"
+    roots = {node.item.itemName: node for node in project.tree._model.root.children}
+    assert roots["Novel"].childCount() == 2
+    project.closeProject()
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_NewImportError(
+    qtbot: QtBot,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that a failed Word document import is handled."""
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    tabNew = welcome.tabNew
+    newForm = tabNew.projectForm
+
+    # A file that is not a Word document cannot be read
+    badPath = fncPath / "bad.docx"
+    badPath.write_text("Not a Word document", encoding="utf-8")
+
+    with monkeypatch.context() as mp:
+        mp.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(badPath), ""))
+        newForm.fillImport.trigger()
+    assert newForm._fillMode == newForm.FILL_BLANK
+    welcome.close()
+
+    # A Word document with no content cannot be imported
+    emptyPath = makeDocx(fncPath / "empty.docx", [])
+    with monkeypatch.context() as mp:
+        mp.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(emptyPath), ""))
+        newForm.fillImport.trigger()
+    assert newForm._fillMode == newForm.FILL_BLANK
     welcome.close()

@@ -143,7 +143,7 @@ def narrationSpeaker(sceneHandle: str, index: Any) -> str:
 #  Attribution (R5/R6)
 ##
 
-_ATTR_OPEN_RE = re.compile(r"\[attr(?::(inherit | drop|keep | proposal))?\]")
+_ATTR_OPEN_RE = re.compile(r"\[attr(?::(inherit|drop|keep|proposal))?\]")
 _ATTR_CLOSE_RE = re.compile(r"\[/attr\]")
 
 

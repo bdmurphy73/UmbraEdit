@@ -31,7 +31,7 @@ This project is a fork of novelWrite. Taking the great start and extending it. I
 UmbraEdit is written in Python and uses Qt6 with PyQt6 Python binding as the UI framework. It runs on Linux, Windows and MacOS. It can in principle run on any Operating System that also supports Qt, PyQt and Python.
 
 <p align="center">
-  <img width="80%" src="https://raw.githubusercontent.com/bdmurphy73/UmbraEdit/main/UmbraEdit_MainScreen.png">
+  <img width="80%" src="https://rgithub.com/bdmurphy73/UmbraEdit/main/UmbraEdit_MainScreen.png">
 </p>
 
 
@@ -44,14 +44,14 @@ or if the idea isn't fully formed, start a [discussion](https://github.com/bdmur
 
 Please also don't make pull requests to reformat or rewrite existing code unless there is a very good reason for doing so. 
 
-See our [AI Policy](https://github.com/saga-soft/UmbraEdit/blob/main/AI_POLICY.md) for details on using AI.
+See our [AI Policy](https://github.com/bdmurphy73/UmbraEdit/blob/main/AI_POLICY.md) for details on using AI.
 
 Fixes and patches are welcome. Contributions related to packaging and installing UmbraEdit will also be appreciated. Before contributing any code, please read the full
-[Contributing Guide](https://github.com/saga-soft/UmbraEdit/blob/main/CONTRIBUTING.md).
+[Contributing Guide](https://github.com/bdmurphy73/UmbraEdit/blob/main/CONTRIBUTING.md).
 
 ## Original Credits
 
-Project credits are available in [CREDITS.md](https://github.com/saga-soft/novelwriter/blob/main/CREDITS.md).
+Project credits are available in [CREDITS.md](https://github.com/bdmurphy73/novelwriter/blob/main/CREDITS.md).
 
 **Note:** New features and most pre-releases are made on the `main` branch. Full releases are made from the `release` branch. So if you're submitting a fix to a current release, **including changes to documentation**, they must be made to the `release` branch.
 

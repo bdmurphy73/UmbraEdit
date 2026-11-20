@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import unicodedata
 import uuid
 import weakref
@@ -36,7 +37,7 @@ with suppress(ModuleNotFoundError):
 
 from datetime import date, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, TypeVar, Union
 
 try:
     from typing import TypeGuard
@@ -839,6 +840,23 @@ def readTextFile(path: str | Path) -> str:
         logger.error("Could not read file: %s", path)
         logException()
         return ""
+
+
+def writeTextFile(path: str | Path, text: str, newline: Optional[str] = "\n") -> None:
+    """Write text to a file with a specific line ending.
+
+    This is a replacement for the ``newline`` argument of
+    ``Path.write_text()``, which is only available from Python 3.10 and
+    newer. The call is forwarded to ``Path.write_text()`` whenever the
+    requested line ending is the platform default, so that the result is
+    the same as the native call.
+    """
+    filePath = Path(path)
+    if newline is None or newline == os.linesep:
+        filePath.write_text(text, encoding="utf-8")
+    else:
+        with open(filePath, mode="w", encoding="utf-8", newline=newline) as outFile:
+            outFile.write(text)
 
 
 def makeFileNameSafe(text: str) -> str:

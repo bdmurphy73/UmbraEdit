@@ -34,8 +34,11 @@ from datetime import datetime
 try:
     from datetime import UTC
 except ImportError:
-    from datetime import timezone as UTC
+    from datetime import timezone
+    UTC = timezone.utc
 from typing import TYPE_CHECKING, Any, Optional, Union
+
+from umbraedit.common import writeTextFile
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
@@ -202,7 +205,7 @@ def saveReport(report: GateReport, projectPath: Path) -> Path:
     data = reportToJson(report)
     text = json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n"
     reportPath.parent.mkdir(parents=True, exist_ok=True)
-    reportPath.write_text(text, encoding="utf-8", newline="\n")
+    writeTextFile(reportPath, text, newline="\n")
     return reportPath
 
 

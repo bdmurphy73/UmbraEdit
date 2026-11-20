@@ -165,9 +165,9 @@ git merge upstream/main   # or cherry-pick as desired
 ```
 
 ### Project URLs to update
-`README.md` and `pyproject.toml` currently carry mechanically-renamed GitHub URLs
-(`https://github.com/saga-soft/UmbraEdit`, etc.). Before publishing, replace these
-with your Gitee instance URLs, e.g.:
+`README.md` and `pyproject.toml` carry the GitHub URLs for this fork
+(`https://github.com/bdmurphy73/UmbraEdit`, etc.). If the project is
+published elsewhere, replace these with your Gitea instance URLs, e.g.:
 - Repository → `https://<gitea>/<owner>/UmbraEdit`
 - Issues → `https://<gitea>/<owner>/UmbraEdit/issues`
 - Homepage / Documentation → your UmbraEdit docs site

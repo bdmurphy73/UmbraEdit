@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pytest
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.lexicon import collectLexemes, exportLexicon
 from umbraedit.umbra.sheet import EntityRow
 
@@ -78,7 +79,7 @@ def test_lexicon_A3_goldenFileReference(lexProject):
     reference = Path(__file__).parent / "_reference" / "pron_lexicon_en.pls"
     plsXml, _jsonText = exportLexicon(lexProject, "en")
     if not reference.is_file():
-        reference.write_text(plsXml, encoding="utf-8", newline="\n")
+        writeTextFile(reference, plsXml, newline="\n")
     assert plsXml == reference.read_text(encoding="utf-8")
 
 

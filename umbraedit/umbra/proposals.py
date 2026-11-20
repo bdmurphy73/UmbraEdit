@@ -33,10 +33,12 @@ from datetime import datetime
 try:
     from datetime import UTC
 except ImportError:
-    from datetime import timezone as UTC
+    from datetime import timezone
+    UTC = timezone.utc
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.paths import proposalsDir
 from umbraedit.umbra.voiceline import VoiceData, formatVoiceLine, parseVoiceLine
 
@@ -414,7 +416,7 @@ def accept_proposal(
         else:
             new_units_lines.extend(unit.lines)
     new_text = "\n".join(new_units_lines)
-    doc_file.write_text(new_text, encoding="utf-8", newline="\n")
+    writeTextFile(doc_file, new_text, newline="\n")
 
     # Remove the accepted proposal item from the file
     proposal_file = proposalsDir(project_path) / f"{run_id}.json"

@@ -13,6 +13,8 @@ import random
 
 from pathlib import Path
 
+from umbraedit.common import writeTextFile
+
 
 class FaultInjector:
     """Damages document files in various ways for testing verification and repair.
@@ -76,7 +78,7 @@ class FaultInjector:
             return
         # Remove the closing +++ line
         del lines[close_idx]
-        docFile.write_text("\n".join(lines), encoding="utf-8", newline="\n")
+        writeTextFile(docFile, "\n".join(lines), newline="\n")
 
     def _insertNull(self, docFile: Path) -> None:
         """Insert a NUL byte at a random position."""

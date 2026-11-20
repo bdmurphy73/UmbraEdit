@@ -243,7 +243,7 @@ def _align_texts(a_units: list[Unit], b_units: list[Unit]) -> list[tuple[Optiona
     result: list[tuple[Optional[Unit], Optional[Unit]]] = []
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
-            for i, j in zip(range(i1, i2), range(j1, j2), strict=False):
+            for i, j in zip(range(i1, i2), range(j1, j2)):
                 result.append((a_units[i], b_units[j]))
         elif tag == "delete":
             for i in range(i1, i2):

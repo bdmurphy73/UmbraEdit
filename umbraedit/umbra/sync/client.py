@@ -34,12 +34,14 @@ from datetime import datetime
 try:
     from datetime import UTC
 except ImportError:
-    from datetime import timezone as UTC
+    from datetime import timezone
+    UTC = timezone.utc
 from pathlib import Path
 from typing import Any, Optional, Union
 
 import httpx
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.merge import MergeResult, merge_units
 from umbraedit.umbra.paths import (
@@ -187,7 +189,7 @@ def _removeOutboxEntries(projectPath: Path, keysToRemove: set[str]) -> None:
 
     # Rewrite atomically
     text = "".join(json.dumps(e, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n" for e in entries)
-    outboxPath.write_text(text, encoding="utf-8", newline="\n")
+    writeTextFile(outboxPath, text, newline="\n")
 
 
 def _targetKey(entry: dict[str, Any]) -> str:
@@ -365,7 +367,7 @@ class SyncClient:
             if not result.conflicts:
                 # Auto-merge succeeded - write merged file locally
                 mergedText = self._unitsToText(result.units)
-                docFile.write_text(mergedText, encoding="utf-8", newline="\n")
+                writeTextFile(docFile, mergedText, newline="\n")
 
                 # Push merged result with head as If-Match
                 try:
@@ -594,9 +596,9 @@ class SyncClient:
             if ourText == theirText:
                 return "applied"
             # Otherwise, theirs wins (pull overwrites local)
-            docFile.write_text(theirText, encoding="utf-8", newline="\n")
+            writeTextFile(docFile, theirText, newline="\n")
         else:
-            docFile.write_text(theirText, encoding="utf-8", newline="\n")
+            writeTextFile(docFile, theirText, newline="\n")
 
         return "applied"
 

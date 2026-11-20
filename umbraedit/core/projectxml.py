@@ -588,7 +588,11 @@ class ProjectXMLWriter:
             xml = ET.ElementTree(xRoot)
             xmlIndent(xml)
             with open(tmp, mode="w", encoding="utf-8", errors="xmlcharrefreplace", newline=CONFIG.lineEnding) as fObj:
-                xml.write(fObj, encoding="unicode", xml_declaration=True)
+                # The XML declaration is written explicitly. The encoding
+                # spelling differs between Python versions when ElementTree
+                # generates it, and this keeps the output consistent.
+                fObj.write("<?xml version='1.0' encoding='utf-8'?>\n")
+                xml.write(fObj, encoding="unicode", xml_declaration=False)
             tmp.replace(self._path)
         except Exception as exc:
             SHARED.appendErrorMessage(exc)

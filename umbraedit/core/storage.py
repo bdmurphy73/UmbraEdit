@@ -43,6 +43,7 @@ from umbraedit.common import (
     safeIsFile,
     safeIterDir,
     simplified,
+    writeTextFile,
 )
 from umbraedit.constants import nwFiles
 from umbraedit.core.document import ProjectDocument
@@ -482,11 +483,7 @@ class ProjectStorage:
         """Write the manifest file."""
         if self._manifestPath is not None:
             try:
-                self._manifestPath.write_text(
-                    self._generateManifest(kind, saveTime),
-                    encoding="utf-8",
-                    newline=CONFIG.lineEnding,
-                )
+                writeTextFile(self._manifestPath, self._generateManifest(kind, saveTime), newline=CONFIG.lineEnding)
             except Exception:
                 logger.error("Failed to write manifest")
                 logException()
@@ -677,7 +674,7 @@ class _LegacyDocuments:
                     parser = NTomlParser(flat=True)
                     toml = parser.writeString(self._parseOldDocumentMeta(meta)).strip()
                     output = item.with_suffix(".md")
-                    output.write_text(f"+++\n{toml}\n+++\n{text}", encoding="utf-8", newline=CONFIG.lineEnding)
+                    writeTextFile(output, f"+++\n{toml}\n+++\n{text}", newline=CONFIG.lineEnding)
                     logger.info("Converted file: %s -> %s", item.name, output.name)
 
                 except Exception:

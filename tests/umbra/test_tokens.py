@@ -14,6 +14,7 @@ from typing import Any
 
 import pytest
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.dialogue import DialogueConfig, findDialogueSpans
 from umbraedit.umbra.gates import (
     OP_AUDIO_CHAPTER,
@@ -54,14 +55,10 @@ def _makeSheetManager(tmp_path: Path) -> Any:
         fn_name = "Ana" if i == 0 else "Robert"
         ln_name = "Soler" if i == 0 else "Vega"
         slot = str(i + 1)
-        docFile.write_text(
-            f"+++\ntag: {handle}\nkind: character\n"
+        writeTextFile(docFile, f"+++\ntag: {handle}\nkind: character\n"
             f"+++\n@tag: {handle}\n@attr: slot | {slot}\n"
             f"@attr: fn | {fn_name}\n@attr: ln | {ln_name}\n"
-            f"@alias: {fn_name}\n\nScene text.\n",
-            encoding="utf-8",
-            newline="\n",
-        )
+            f"@alias: {fn_name}\n\nScene text.\n", newline="\n")
 
     project.session.startSession()
     project._valid = True
@@ -205,7 +202,7 @@ def test_tokens_A2_fn_change_updates_output(tmp_path: Path, mockRnd: Any, nwGUI:
     docFile = doc_files[0]  # First document = slot 1
     text_content = docFile.read_text(encoding="utf-8")
     text_content = text_content.replace("@attr: fn | Ana", "@attr: fn | Bella")
-    docFile.write_text(text_content, encoding="utf-8", newline="\n")
+    writeTextFile(docFile, text_content, newline="\n")
 
     text2 = "{char1 fn} is here."
     result2, _ = resolveTokens(text2, project)
@@ -235,13 +232,9 @@ def test_tokens_R2_tokenizer_preprocess_hook(tmp_path: Path, mockRnd: Any, nwGUI
     contentPath = project.storage.contentPath
     assert contentPath is not None
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text(
-        "+++\ntag: h000000000000e\nkind: character\n"
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: character\n"
         "@attr: slot | 1\n@attr: fn | Ana\n@attr: ln | Soler\n"
-        "@alias: Ana\n+++\n\nScene text.\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+        "@alias: Ana\n+++\n\nScene text.\n", newline="\n")
 
     text = "Hello {char1 fn}!"
     result, _unresolved = resolveTokens(text, project)
@@ -273,7 +266,7 @@ def test_tokens_R7_renaming_updates_output(tmp_path: Path, mockRnd: Any, nwGUI: 
     docFile = doc_files[0]
     text_content = docFile.read_text(encoding="utf-8")
     text_content = text_content.replace("@attr: fn | Ana", "@attr: fn | Ana")  # ensure Ana
-    docFile.write_text(text_content, encoding="utf-8", newline="\n")
+    writeTextFile(docFile, text_content, newline="\n")
 
     text = "{char1 fn} is the main character."
     result1, _ = resolveTokens(text, project)
@@ -282,7 +275,7 @@ def test_tokens_R7_renaming_updates_output(tmp_path: Path, mockRnd: Any, nwGUI: 
     # Rename the character
     text_content = docFile.read_text(encoding="utf-8")
     text_content = text_content.replace("@attr: fn | Ana", "@attr: fn | Bella")
-    docFile.write_text(text_content, encoding="utf-8", newline="\n")
+    writeTextFile(docFile, text_content, newline="\n")
 
     result2, _ = resolveTokens(text, project)
     assert "Bella" in result2
@@ -304,13 +297,9 @@ def test_tokens_A4_placeholder_creation(tmp_path: Path, mockRnd: Any, nwGUI: Any
     else:
         docFile = doc_files[2]  # Third document
 
-    docFile.write_text(
-        "+++\ntag: h0000000000003\nkind: character\n"
+    writeTextFile(docFile, "+++\ntag: h0000000000003\nkind: character\n"
         "@attr: slot | 3\n@attr: fn | Placeholder\n@attr: ln | Three\n"
-        "@alias: Placeholder 3\n+++\n\nPlaceholder text.\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+        "@alias: Placeholder 3\n+++\n\nPlaceholder text.\n", newline="\n")
 
     text = "{char3 fn} is a placeholder."
     result, unresolved = resolveTokens(text, project)

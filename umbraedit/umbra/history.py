@@ -40,11 +40,13 @@ from datetime import datetime
 try:
     from datetime import UTC
 except ImportError:
-    from datetime import timezone as UTC
+    from datetime import timezone
+    UTC = timezone.utc
 import contextlib
 
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.hooks import DOCUMENT_SAVED, PROJECT_CLOSING, PROJECT_OPENED, register
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import deviceFile, historyDir, journalFile
@@ -422,7 +424,7 @@ class HistoryManager:
         # Write directly to the document file
         try:
             docFile = self._project.storage.contentPath / f"{handle}.md"
-            docFile.write_text(text, encoding="utf-8", newline="\n")
+            writeTextFile(docFile, text, newline="\n")
         except Exception:
             logger.exception("Could not write document %s", handle)
             return False

@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.verify import RULE_INVALID_ENCODING, verifyDocument
 
 from tests.umbra.faults import FAULT_TYPES, FaultInjector
@@ -20,7 +21,7 @@ from tests.umbra.faults import FAULT_TYPES, FaultInjector
 
 def _writeDoc(contentPath: Path, handle: str, text: str) -> Path:
     docFile = contentPath / f"{handle}.md"
-    docFile.write_text(text, encoding="utf-8", newline="\n")
+    writeTextFile(docFile, text, newline="\n")
     return docFile
 
 
@@ -135,7 +136,7 @@ def test_faults_A2_external_edit_hash_change(tmp_path: Path):
 
     # Simulate external edit: modify the file outside the app
     modified_text = "+++\ntag: h0001\nkind: text\n+++\n\nHello world. Edited externally.\n"
-    docFile.write_text(modified_text, encoding="utf-8", newline="\n")
+    writeTextFile(docFile, modified_text, newline="\n")
 
     findings = verifyDocument(docFile)
     # The document is still structurally valid
@@ -153,7 +154,7 @@ def test_faults_A3_kill_between_write_and_rename(tmp_path: Path):
 
     # Simulate: write to temp but crash before rename
     docTemp = docFile.with_suffix(".tmp")
-    docTemp.write_text("CORRUPTED TEMP CONTENT\n", encoding="utf-8", newline="\n")
+    writeTextFile(docTemp, "CORRUPTED TEMP CONTENT\n", newline="\n")
 
     # The original file should still be intact
     assert docFile.read_text(encoding="utf-8") == original_text

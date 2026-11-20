@@ -98,12 +98,7 @@ def initDatabase(dataDir: Path) -> None:
 
 def utcNow() -> str:
     """Return current UTC time as ISO 8601 with Z, seconds precision."""
-    from datetime import datetime
-
-    try:
-        from datetime import UTC
-    except ImportError:  # Python 3.10 and older
-        from datetime import timezone as UTC
+    from datetime import UTC, datetime
 
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -115,12 +110,7 @@ def ulid() -> str:
     """
     import secrets
 
-    from datetime import datetime
-
-    try:
-        from datetime import UTC
-    except ImportError:  # Python 3.10 and older
-        from datetime import timezone as UTC
+    from datetime import UTC, datetime
 
     # Crockford base32 alphabet (no ambiguous chars: I, L, O, U)
     alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"

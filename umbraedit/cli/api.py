@@ -30,6 +30,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any, Optional, Union
 
+from umbraedit.common import writeTextFile
+
 EXIT_OK = 0
 EXIT_BLOCKED = 2
 EXIT_ERROR = 1
@@ -48,7 +50,8 @@ def _utc_now_iso() -> str:
     try:
         from datetime import UTC
     except ImportError:
-        from datetime import timezone as UTC
+        from datetime import timezone
+        UTC = timezone.utc
 
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -292,7 +295,7 @@ class APIHandler(BaseHTTPRequestHandler):
 
             text = data.get("text", "")
             doc_file = self._project.storage.contentPath / f"{handle}.md"
-            doc_file.write_text(text, encoding="utf-8", newline="\n")
+            writeTextFile(doc_file, text, newline="\n")
 
             # Create history snapshot
             from umbraedit.umbra.history import HistoryManager
@@ -413,7 +416,7 @@ class APIHandler(BaseHTTPRequestHandler):
                 para_index += 1  # noqa: SIM113 - only counts paragraph units, not all units
 
             if modified:
-                doc_file.write_text("\n".join(new_lines), encoding="utf-8", newline="\n")
+                writeTextFile(doc_file, "\n".join(new_lines), newline="\n")
 
                 # Create history snapshot
                 from umbraedit.umbra.history import HistoryManager

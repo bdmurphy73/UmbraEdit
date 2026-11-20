@@ -41,8 +41,8 @@ lint = ["pyright", "ruff"]
 
 [project.urls]
 Homepage = "https://umbratools.com/umbrastore"
-Repository = "https://github.com/saga-soft/UmbraEdit"
-Issues = "https://github.com/saga-soft/UmbraEdit/issues"
+Repository = "https://github.com/bdmurphy73/UmbraEdit"
+Issues = "https://github.com/bdmurphy73/UmbraEdit/issues"
 
 [project.scripts]
 umbrastore = "umbrastore.cli:main"

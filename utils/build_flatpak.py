@@ -51,8 +51,8 @@ PIP_GEN_COMMIT = "737c0085912f9f7dabf9341d4608e2a77a51a73a"
 PIP_GEN_FILE = "pip/flatpak-pip-generator.py"
 PIP_GEN_URL = f"https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/{PIP_GEN_COMMIT}/{PIP_GEN_FILE}"
 ENCHANT_RELEASE_API = "https://api.github.com/repos/rrthomas/enchant/releases/tags/v{version}"
-NW_REPO_URL = "https://github.com/saga-soft/UmbraEdit.git"
-NW_COMMIT_API = "https://api.github.com/repos/saga-soft/UmbraEdit/commits/v{version}"
+NW_REPO_URL = "https://github.com/bdmurphy73/UmbraEdit.git"
+NW_COMMIT_API = "https://api.github.com/repos/bdmurphy73/UmbraEdit/commits/v{version}"
 FLATHUB_FILES = ("io.umbraedit.umbraedit.yml", "pypi-deps.json", "enchant.json", "umbraedit.appdata.xml")
 
 

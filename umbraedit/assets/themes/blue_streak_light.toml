@@ -3,7 +3,7 @@ name   = "Blue Streak Light"
 mode   = "light"
 author = "Veronica Berglyd Olsen"
 credit = "Veronica Berglyd Olsen"
-url    = "https://github.com/saga-soft/UmbraEdit"
+url    = "https://github.com/bdmurphy73/UmbraEdit"
 
 [Base]
 base    = "#fcfcfc"

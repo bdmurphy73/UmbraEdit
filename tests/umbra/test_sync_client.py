@@ -18,6 +18,7 @@ from typing import Any
 import httpx
 import pytest
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.paths import ackedFile, stateFile
 from umbraedit.umbra.sync.client import SyncClient
 
@@ -82,11 +83,7 @@ def test_sync_client_R2_push_success(tmp_path: Path, mockRnd: Any, nwGUI: Any) -
 
     contentPath = tmp_path / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text(
-        "+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -132,11 +129,7 @@ def test_sync_client_R2_push_409_conflict(tmp_path: Path, mockRnd: Any, nwGUI: A
 
     contentPath = tmp_path / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text(
-        "+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -187,11 +180,7 @@ def test_sync_client_R2_pull(tmp_path: Path, mockRnd: Any, nwGUI: Any) -> None:
     # Create local document that will be overwritten
     contentPath = tmp_path / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text(
-        "+++\ntag: h000000000000e\nkind: text\n+++\n\nLocal.\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nLocal.\n", newline="\n")
 
     changesBody = json.dumps({
         "items": [
@@ -485,7 +474,13 @@ def test_sync_gates_R8_sync_stale_advisory(tmp_path: Path, mockRnd: Any, nwGUI: 
     buildTestProject(project, tmp_path)
 
     # Write old state
-    from datetime import UTC, datetime
+    from datetime import datetime
+
+    try:
+        from datetime import UTC
+    except ImportError:
+        from datetime import timezone
+        UTC = timezone.utc
 
     from umbraedit.umbra.jsonio import writeJson
     from umbraedit.umbra.paths import stateFile
@@ -545,7 +540,13 @@ def test_sync_client_R10_soft_notice(tmp_path: Path, mockRnd: Any, nwGUI: Any) -
 
     # Changes show same doc edited by another device recently
     def handler(request: httpx.Request) -> httpx.Response:
-        from datetime import UTC, datetime
+        from datetime import datetime
+
+        try:
+            from datetime import UTC
+        except ImportError:
+            from datetime import timezone
+            UTC = timezone.utc
 
         recentTime = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         return httpx.Response(

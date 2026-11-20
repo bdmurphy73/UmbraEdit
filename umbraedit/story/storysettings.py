@@ -53,6 +53,11 @@ logger = logging.getLogger(__name__)
 
 T_ViewValue = Union[str, int, float, bool]
 
+# Runtime counterpart of T_ViewValue. Python 3.9 does not allow isinstance
+# checks against a subscripted typing generic, so the concrete types are
+# listed separately for runtime validation.
+VIEW_VALUE_TYPES = (str, int, float, bool)
+
 COMMENT_SYNOPSIS = "synopsis"
 MAX_COLUMN_KEYS = 5
 
@@ -306,7 +311,8 @@ class StoryViewSettings:
         self._settings = {k: v[1] for k, v in SETTINGS_TEMPLATE.items() if k.startswith(self._prefix)}
         if isinstance(settings, dict):
             for key, value in settings.items():
-                if isinstance(key, str) and key.startswith(self._prefix) and isinstance(value, T_ViewValue):
+                if (isinstance(key, str) and key.startswith(self._prefix)
+                        and isinstance(value, VIEW_VALUE_TYPES)):
                     self.setValue(key, value)
 
         self._state = state.copy() if isinstance(state, dict) else {}

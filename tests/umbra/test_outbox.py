@@ -18,6 +18,7 @@ from typing import Any
 
 import pytest
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.hooks import SIDECAR_WRITTEN
 from umbraedit.umbra.outbox import (
     OP_DOC_DELETE,
@@ -64,7 +65,7 @@ def test_outbox_R1_record_doc_put(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     contentPath = projectPath / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", newline="\n")
 
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
     assert ob.queuedCount() == 1
@@ -109,7 +110,7 @@ def test_outbox_R1_record_sidecar_put(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     ob, projectPath = _makeOutbox(tmp_path, mockRnd, nwGUI)
 
     sidecarPath = umbraDir(projectPath) / "voices.json"
-    sidecarPath.write_text('{"v":1,"voices":[]}', encoding="utf-8", newline="\n")
+    writeTextFile(sidecarPath, '{"v":1,"voices":[]}', newline="\n")
 
     ob.record(OP_SIDECAR_PUT, path=sidecarPath)
     assert ob.queuedCount() == 1
@@ -128,16 +129,16 @@ def test_outbox_R1_collapse_multiple_edits(tmp_path: Path, mockRnd: Any, nwGUI: 
 
     contentPath = projectPath / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nVersion 1.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nVersion 1.\n", newline="\n")
 
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
     assert ob.queuedCount() == 1
 
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nVersion 2.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nVersion 2.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
     assert ob.queuedCount() == 1
 
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nVersion 3.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nVersion 3.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
     assert ob.queuedCount() == 1
 
@@ -158,15 +159,11 @@ def test_outbox_R2_base_from_acked(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     ackedPath = ackedFile(projectPath)
     ackedPath.parent.mkdir(parents=True, exist_ok=True)
-    ackedPath.write_text(
-        '{"h000000000000e":{"rev":"rev-001","sha":"abc123"}}',
-        encoding="utf-8",
-        newline="\n",
-    )
+    writeTextFile(ackedPath, '{"h000000000000e":{"rev":"rev-001","sha":"abc123"}}', newline="\n")
 
     contentPath = projectPath / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", newline="\n")
 
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
 
@@ -183,7 +180,7 @@ def test_outbox_R2_no_acked_empty_base(tmp_path: Path, mockRnd: Any, nwGUI: Any)
 
     contentPath = projectPath / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", newline="\n")
 
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
 
@@ -200,14 +197,14 @@ def test_outbox_R3_crc_validation(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     contentPath = projectPath / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", newline="\n")
 
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
 
     outboxPath = umbraDir(projectPath) / "outbox.jsonl"
     text = outboxPath.read_text(encoding="utf-8")
     corrupted = re.sub(r'"c":"[0-9a-f]{8}"', '"c":"deadbeef"', text)
-    outboxPath.write_text(corrupted, encoding="utf-8", newline="\n")
+    writeTextFile(outboxPath, corrupted, newline="\n")
 
     ob2 = Outbox(projectPath, "dev-test00000001", "usr-test00000001")
     assert ob2.queuedCount() == 0
@@ -220,17 +217,13 @@ def test_outbox_R3_rebuild_detects_changed_files(tmp_path: Path, mockRnd: Any, n
 
     contentPath = projectPath / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nOriginal.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nOriginal.\n", newline="\n")
 
     ackedPath = ackedFile(projectPath)
     ackedPath.parent.mkdir(parents=True, exist_ok=True)
-    ackedPath.write_text(
-        '{"h000000000000e":{"rev":"rev-001","sha":"oldsha"}}',
-        encoding="utf-8",
-        newline="\n",
-    )
+    writeTextFile(ackedPath, '{"h000000000000e":{"rev":"rev-001","sha":"oldsha"}}', newline="\n")
 
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nModified.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nModified.\n", newline="\n")
 
     changed = ob.rebuild()
     assert "h000000000000e" in changed
@@ -256,12 +249,12 @@ def test_outbox_R4_seq_persisted(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     contentPath = projectPath / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nV1.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nV1.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
     assert ob.queuedCount() == 1
 
     docFile2 = contentPath / "h000000000000f.md"
-    docFile2.write_text("+++\ntag: h000000000000f\nkind: text\n+++\n\nV1.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile2, "+++\ntag: h000000000000f\nkind: text\n+++\n\nV1.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000f", path=docFile2)
     assert ob.queuedCount() == 2
 
@@ -275,7 +268,7 @@ def test_outbox_R4_seq_persisted(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     ob2 = Outbox(projectPath, "dev-test00000001", "usr-test00000001")
     docFile3 = contentPath / "h000000000000g.md"
-    docFile3.write_text("+++\ntag: h000000000000g\nkind: text\n+++\n\nV1.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile3, "+++\ntag: h000000000000g\nkind: text\n+++\n\nV1.\n", newline="\n")
     ob2.record(OP_DOC_PUT, handle="h000000000000g", path=docFile3)
     lines2 = outboxPath.read_text(encoding="utf-8").strip().splitlines()
     e3 = json.loads(lines2[2])
@@ -289,7 +282,7 @@ def test_outbox_R4_atomic_write(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     contentPath = projectPath / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", newline="\n")
 
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
 
@@ -306,12 +299,12 @@ def test_outbox_R5_queued_count(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     contentPath = projectPath / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
     assert ob.queuedCount() == 1
 
     docFile2 = contentPath / "h000000000000f.md"
-    docFile2.write_text("+++\ntag: h000000000000f\nkind: text\n+++\n\nWorld.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile2, "+++\ntag: h000000000000f\nkind: text\n+++\n\nWorld.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000f", path=docFile2)
     assert ob.queuedCount() == 2
 
@@ -326,19 +319,15 @@ def test_outbox_A1_three_edits_one_record(tmp_path: Path, mockRnd: Any, nwGUI: A
 
     ackedPath = ackedFile(projectPath)
     ackedPath.parent.mkdir(parents=True, exist_ok=True)
-    ackedPath.write_text(
-        '{"h000000000000e":{"rev":"rev-base","sha":"sha-base"}}',
-        encoding="utf-8",
-        newline="\n",
-    )
+    writeTextFile(ackedPath, '{"h000000000000e":{"rev":"rev-base","sha":"sha-base"}}', newline="\n")
 
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nEdit 1.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nEdit 1.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
 
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nEdit 2.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nEdit 2.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
 
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nEdit 3.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nEdit 3.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
 
     assert ob.queuedCount() == 1
@@ -358,7 +347,7 @@ def test_outbox_A2_corrupt_line_rebuild(tmp_path: Path, mockRnd: Any, nwGUI: Any
 
     contentPath = projectPath / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nOriginal.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nOriginal.\n", newline="\n")
 
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
     assert ob.queuedCount() == 1
@@ -366,7 +355,7 @@ def test_outbox_A2_corrupt_line_rebuild(tmp_path: Path, mockRnd: Any, nwGUI: Any
     outboxPath = umbraDir(projectPath) / "outbox.jsonl"
     text = outboxPath.read_text(encoding="utf-8")
     corrupted = re.sub(r'"c":"[0-9a-f]{8}"', '"c":"00000000"', text)
-    outboxPath.write_text(corrupted, encoding="utf-8", newline="\n")
+    writeTextFile(outboxPath, corrupted, newline="\n")
 
     changed = ob.rebuild()
     assert "h000000000000e" in changed
@@ -411,7 +400,7 @@ def test_outbox_A4_persists_across_reload(tmp_path: Path, mockRnd: Any, nwGUI: A
 
     contentPath = projectPath / "content"
     docFile = contentPath / "h000000000000e.md"
-    docFile.write_text("+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: text\n+++\n\nHello.\n", newline="\n")
     ob.record(OP_DOC_PUT, handle="h000000000000e", path=docFile)
 
     unbindOutbox()
@@ -419,7 +408,7 @@ def test_outbox_A4_persists_across_reload(tmp_path: Path, mockRnd: Any, nwGUI: A
     assert ob2.queuedCount() == 1
 
     docFile2 = contentPath / "h000000000000f.md"
-    docFile2.write_text("+++\ntag: h000000000000f\nkind: text\n+++\n\nWorld.\n", encoding="utf-8", newline="\n")
+    writeTextFile(docFile2, "+++\ntag: h000000000000f\nkind: text\n+++\n\nWorld.\n", newline="\n")
     ob2.record(OP_DOC_PUT, handle="h000000000000f", path=docFile2)
     assert ob2.queuedCount() == 2
 
@@ -431,7 +420,7 @@ def test_outbox_A5_tone_change_creates_record(tmp_path: Path, mockRnd: Any, nwGU
 
     tonesPath = tonesFile(projectPath)
     tonesPath.parent.mkdir(parents=True, exist_ok=True)
-    tonesPath.write_text('{"v":1,"tones":[]}', encoding="utf-8", newline="\n")
+    writeTextFile(tonesPath, '{"v":1,"tones":[]}', newline="\n")
 
     from umbraedit.umbra import hooks as _umbraHooks
 

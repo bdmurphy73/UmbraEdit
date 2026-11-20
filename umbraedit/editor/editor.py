@@ -2917,7 +2917,7 @@ class GuiDocEditor(QTextEdit):
             exist = False
             cPos = cursor.selectionStart() - block.position()
             tExist = SHARED.project.index.checkThese(tBits, self._docHandle)
-            for sTag, sPos, sExist in zip(reversed(tBits), reversed(tPos), reversed(tExist), strict=False):
+            for sTag, sPos, sExist in zip(reversed(tBits), reversed(tPos), reversed(tExist)):
                 if cPos >= sPos:
                     # The cursor is between the start of two tags
                     if cPos <= sPos + len(sTag):

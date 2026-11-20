@@ -32,12 +32,13 @@ import urllib.request
 import xml.etree.ElementTree as ET
 import zipfile
 
-from datetime import datetime
-from datetime import timezone as UTC
+from datetime import datetime, timezone
 from pathlib import Path
 
 from utils.common import ROOT_DIR, apiRequest, getEnvValue, log, writeFile
 from utils.docs import buildPdfDocAssets
+
+UTC = timezone.utc
 
 CROWDIN_API = "https://api.crowdin.com/api/v2"
 CROWDIN_PROJECT_ID = 476941

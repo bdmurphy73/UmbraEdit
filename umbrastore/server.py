@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import os
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,11 +24,6 @@ from umbrastore import __version__
 from umbrastore.auth import verifyToken
 from umbrastore.blobs import BlobStore
 from umbrastore.database import Database, connect, initDatabase, ulid
-
-try:
-    from datetime import UTC
-except ImportError:  # Python 3.10 and older
-    from datetime import timezone as UTC
 
 # ---------------------------------------------------------------------------
 # Request/Response models

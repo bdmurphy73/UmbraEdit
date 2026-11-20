@@ -80,7 +80,8 @@ They stay unchanged:
 
 - `umbraedit/assets/icons/*.icons` (Fluent UI, Lucide, Material Symbols)
 - `umbraedit/assets/icons/none.svg`
-- `setup/screenshot.png` (application screenshot — needs update after UI changes)
+- `setup/screenshot.png` (upstream novelWriter screenshot — kept for reference)
+- `UmbraEdit_MainScreen.png` (UmbraEdit application screenshot — used in the README)
 - `setup/signpath_logo.png` (third-party logo)
 - `setup/cloudsmith_logo.png` (third-party logo)
 

@@ -33,7 +33,8 @@ from datetime import datetime
 try:
     from datetime import UTC
 except ImportError:
-    from datetime import timezone as UTC
+    from datetime import timezone
+    UTC = timezone.utc
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union
 

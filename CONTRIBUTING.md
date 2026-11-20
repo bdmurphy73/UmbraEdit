@@ -1,6 +1,6 @@
 # Contributing Guide
 
-See also our [Code of Conduct](https://github.com/saga-soft/UmbraEdit?tab=coc-ov-file#code-of-conduct)
+See also our [Code of Conduct](https://github.com/bdmurphy73/UmbraEdit?tab=coc-ov-file#code-of-conduct)
 and our [AI Policy](https://github.com/bdmurphy73/UmbraEdit/blob/main/AI_POLICY.md).
 
 When contributing to this repository, please first discuss the change you wish to make with the maintainers. For new and complex ideas, it is better to open a discussion before adding a new feature request. If you just want to make a minor correction, like fix a typo or similar, feel free to just make a pull request directly.

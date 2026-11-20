@@ -46,6 +46,11 @@ logger = logging.getLogger(__name__)
 
 T_BuildValue = Union[str, int, float, bool]
 
+# Runtime counterpart of T_BuildValue. Python 3.9 does not allow isinstance
+# checks against a subscripted typing generic, so the concrete types are
+# listed separately for runtime validation.
+BUILD_VALUE_TYPES = (str, int, float, bool)
+
 # The Settings Template
 # =====================
 # Each entry contains a tuple on the form: (type, default)
@@ -544,7 +549,7 @@ class BuildSettings:
         self._settings = {k: v[1] for k, v in SETTINGS_TEMPLATE.items()}
         if isinstance(settings, dict):
             for key, value in settings.items():
-                if isinstance(key, str) and isinstance(value, T_BuildValue):
+                if isinstance(key, str) and isinstance(value, BUILD_VALUE_TYPES):
                     self.setValue(RENAMED.get(key, key), value)
 
         self._changed = False

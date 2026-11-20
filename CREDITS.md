@@ -18,7 +18,7 @@ Larger contributions were made by:
 * Vim Mode: Alexis Dumelie
 * UmbraEdit Rebranding and Word DOCX/DOCM Import: B.D. Murphy
 
-For other contributions, see the project's [Contributors](https://github.com/saga-soft/UmbraEdit/graphs/contributors) page.
+For other contributions, see the project's [Contributors](https://github.com/bdmurphy73/UmbraEdit/graphs/contributors) page.
 
 ## Artwork
 

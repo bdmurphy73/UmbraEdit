@@ -3,7 +3,7 @@ name   = "Grey Dark"
 mode   = "dark"
 author = "Veronica Berglyd Olsen"
 credit = "Veronica Berglyd Olsen"
-url    = "https://github.com/saga-soft/UmbraEdit"
+url    = "https://github.com/bdmurphy73/UmbraEdit"
 
 [Base]
 base    = "#3e3e3e"

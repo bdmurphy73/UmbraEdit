@@ -536,7 +536,7 @@ def testGuiMainMenu_Insert(
     # Insert Keywords
     # ===============
 
-    for action, key in zip(mainMenu.mInsKeywords.actions(), nwKeyWords.ALL_KEYS, strict=False):
+    for action, key in zip(mainMenu.mInsKeywords.actions(), nwKeyWords.ALL_KEYS):
         docEditor.setPlainText("Stuff")
         action.activate(QAction.ActionEvent.Trigger)
         assert docEditor.getText() == f"Stuff\n{key}: "
@@ -550,7 +550,7 @@ def testGuiMainMenu_Insert(
     # Insert Fields
     # =============
 
-    for action, field in zip(mainMenu.mInsField.actions(), nwStats.ALL_FIELDS, strict=False):
+    for action, field in zip(mainMenu.mInsField.actions(), nwStats.ALL_FIELDS):
         value = nwShortcode.FIELD_VALUE.format(field)
         docEditor.setPlainText("Stuff ")
         docEditor.setCursorPosition(6)

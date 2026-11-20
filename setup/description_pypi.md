@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/saga-soft/UmbraEdit/main/setup/umbraedit_text.png">
+<img src="https://raw.githubusercontent.com/bdmurphy73/UmbraEdit/main/setup/umbraedit_text.png">
 
 UmbraEdit is a plain text editor designed for writing novels assembled from many smaller text
 documents. It uses a minimal formatting syntax inspired by Markdown, and adds a meta data syntax
@@ -18,4 +18,4 @@ UmbraEdit is developed and maintained by [Veronica Berglyd Olsen](https://github
 
 **Website:** https://umbratools.com/umbraedit  
 **Documentation:** https://umbratools.com/umbraedit/docs/  
-**Source Code:** https://github.com/saga-soft/UmbraEdit
+**Source Code:** https://github.com/bdmurphy73/UmbraEdit

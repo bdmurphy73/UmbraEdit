@@ -34,10 +34,12 @@ from datetime import datetime
 try:
     from datetime import UTC
 except ImportError:
-    from datetime import timezone as UTC
+    from datetime import timezone
+    UTC = timezone.utc
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.covers import loadCovers
 from umbraedit.umbra.edition import EditionInfo, loadEdition
 from umbraedit.umbra.gates import OP_PUBLISH_PACKAGE, GateScope, reportToJson, requireGates, runGates
@@ -387,7 +389,7 @@ class PublishPackageBuilder:
         manuscript_text = "\n\n---\n\n".join(manuscript_parts)
 
         manuscript_path = self.package_dir / "manuscript.md"
-        manuscript_path.write_text(manuscript_text, encoding="utf-8", newline="\n")
+        writeTextFile(manuscript_path, manuscript_text, newline="\n")
 
         # Copy assets
         asset_map = self._collect_assets()

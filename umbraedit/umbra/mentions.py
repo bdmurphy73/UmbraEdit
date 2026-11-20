@@ -156,7 +156,11 @@ def buildMatcher(entities: Iterable[EntityRow]) -> Optional[MentionMatcher]:
     alternatives: list[str] = []
     if regularForms:
         escaped = sorted((re.escape(form) for form in regularForms), key=len, reverse=True)
-        alternatives.append(rf"(?<!\w)(?:{'|'.join(escaped)})(?!\w)")
+        # A first-character look-ahead rejects most positions in the text
+        # before the alternation is entered. This keeps the scan fast when
+        # there are many entity forms.
+        firstChars = "".join(sorted({re.escape(form[0]) for form in regularForms}))
+        alternatives.append(rf"(?<!\w)(?=[{firstChars}])(?:{'|'.join(escaped)})(?!\w)")
     if cjkForms:
         escaped = sorted((re.escape(form) for form in cjkForms), key=len, reverse=True)
         alternatives.append(rf"(?:{'|'.join(escaped)})")

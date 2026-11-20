@@ -350,7 +350,7 @@ def testItemStatus_RefreshIcons_Theme(mockGUIwithTheme: MockGuiMain, mockRnd: Mo
     iconsB = [nStatus[statusKeys[i]].icon for i in range(4)]
     themeB = [nStatus[statusKeys[i]].theme for i in range(4)]
 
-    for before, after in zip(iconsA, iconsB, strict=False):
+    for before, after in zip(iconsA, iconsB):
         assert before is not after
 
     assert themeA == themeB
@@ -375,7 +375,7 @@ def testItemStatus_RefreshIcons_Custom(mockGUIwithTheme: MockGuiMain, mockRnd: M
     themeB = [nStatus[statusKeys[i]].theme for i in range(4)]
     colorB = [nStatus[statusKeys[i]].color.getRgb() for i in range(4)]
 
-    for before, after in zip(iconsA, iconsB, strict=False):
+    for before, after in zip(iconsA, iconsB):
         assert before is not after
 
     # But they should have the same colour value (#2452)

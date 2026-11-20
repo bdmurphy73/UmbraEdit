@@ -45,6 +45,7 @@ from umbraedit.common import (
     safeIsFile,
     safeIterDir,
     simplified,
+    writeTextFile,
 )
 from umbraedit.constants import nwFiles, nwItemClass, nwItemLayout, nwStats
 from umbraedit.core.project import NWProject
@@ -867,8 +868,10 @@ class DocxImporter:
                 "sha256": _fileSha256(inPath),
                 "imported": time_module.strftime("%Y-%m-%dT%H:%M:%S"),
             }
-            (importDir / "manifest.json").write_text(
-                jsonEncode(data, nmax=4), encoding="utf-8", newline=CONFIG.lineEnding
+            writeTextFile(
+                importDir / "manifest.json",
+                jsonEncode(data, nmax=4),
+                newline=CONFIG.lineEnding,
             )
         except Exception as exc:
             logger.error("Failed to write the import provenance", exc_info=exc)

@@ -21,7 +21,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import datetime
 import hashlib
@@ -29,7 +28,15 @@ import logging
 
 from dataclasses import dataclass
 from pathlib import Path  # noqa: TC003
+from typing import Optional, Union
 
+try:
+    from datetime import UTC
+except ImportError:
+    from datetime import timezone
+    UTC = timezone.utc
+
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.paths import historyDir, lostFoundDir
 from umbraedit.umbra.voiceline import parseVoiceLine
 
@@ -405,7 +412,7 @@ def verifyProject(projectPath: Path) -> VerifyReport:
         doc_findings = verifyDocument(docFile)
         findings.extend(doc_findings)
 
-    ranAt = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ranAt = datetime.datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     return VerifyReport(projectPath=str(projectPath), findings=findings, ranAt=ranAt)
 
 
@@ -452,7 +459,7 @@ def _attemptFix(projectPath: Path, finding: Problem) -> None:
                             new_header_lines.append(line)
                     new_header = "\n".join(new_header_lines)
                     new_text = f"+++\n{new_header}\n+++\n{body}"
-                    docFile.write_text(new_text, encoding="utf-8", newline="\n")
+                    writeTextFile(docFile, new_text, newline="\n")
             except Exception:
                 logger.exception("Could not update hash for %s", docFile)
 
@@ -492,7 +499,7 @@ def _restoreFromBackup(projectPath: Path, handle: str) -> None:
 
         with gzip.open(backup_file, "rb") as f:
             backup_text = f.read().decode("utf-8")
-        docFile.write_text(backup_text, encoding="utf-8", newline="\n")
+        writeTextFile(docFile, backup_text, newline="\n")
     except Exception:
         logger.exception("Could not restore from backup %s", backup_file)
 

@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.sheet import EntityRow, aliasNorm
 from umbraedit.umbra.voiceline import (
     VoiceData,
@@ -345,7 +346,7 @@ def saveReviewFlags(projectPath: Path, flags: set[tuple[str, int]]) -> None:
     }
     text = json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n"
     tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(text, encoding="utf-8", newline="\n")
+    writeTextFile(tmp, text, newline="\n")
     tmp.replace(path)
 
 

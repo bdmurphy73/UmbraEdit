@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.voicestore import VoiceEntry, VoiceStore
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -146,7 +147,7 @@ def test_voicestore_R3_getVoice(
     text = docFile.read_text(encoding="utf-8")
     edit = parseSheetNote(text)
     edit.attrs["voice_matrix"] = code
-    docFile.write_text(applySheetEdit(text, edit), encoding="utf-8", newline="\n")
+    writeTextFile(docFile, applySheetEdit(text, edit), newline="\n")
     project.index.reIndexHandle(cHandle)
 
     voice = store.getVoice("Bob", "en", index=project.index)

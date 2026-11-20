@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from umbraedit.common import writeTextFile
 from umbraedit.umbra.verify import (
     RULE_EMPTY_BODY,
     RULE_INVALID_ANNOTATION,
@@ -35,7 +36,7 @@ from umbraedit.umbra.verify import (
 def _writeDoc(contentPath: Path, handle: str, text: str) -> Path:
     """Write a document file and return its path."""
     docFile = contentPath / f"{handle}.md"
-    docFile.write_text(text, encoding="utf-8", newline="\n")
+    writeTextFile(docFile, text, newline="\n")
     return docFile
 
 
@@ -130,7 +131,7 @@ def test_verify_R1_no_final_newline(tmp_path: Path):
     contentPath = tmp_path / "content"
     contentPath.mkdir(parents=True, exist_ok=True)
     docFile = contentPath / "h0001.md"
-    docFile.write_text("+++\ntag: h0001\nkind: text\n+++\n\nHello world.", encoding="utf-8", newline="\n")
+    writeTextFile(docFile, "+++\ntag: h0001\nkind: text\n+++\n\nHello world.", newline="\n")
     findings = verifyDocument(docFile)
     noNl = [f for f in findings if f.ruleId == RULE_NO_FINAL_NEWLINE]
     assert len(noNl) == 1

@@ -77,7 +77,7 @@ def checkHashes() -> list[str]:
             digest = sha256(data)
             if digest in upstreamHashes:
                 failures.append(f"  HASH MATCH: {path.relative_to(ROOT_DIR)} ({digest[:12]}...)")
-        except OSError:
+        except OSError:  # noqa: PERF203
             pass
     return failures
 
@@ -102,9 +102,7 @@ def checkOldName() -> list[str]:
                     continue
                 # Check for old name in user-visible strings (self.tr, tr, format)
                 if oldName in line and ("tr(" in line or "self.tr(" in line or "QCoreApplication" in line):
-                    failures.append(
-                        f"  OLD NAME: {relPath}:{lineNo}: {stripped[:80]}"
-                    )
+                    failures.append(f"  OLD NAME: {relPath}:{lineNo}: {stripped[:80]}")
         except OSError:
             pass
 

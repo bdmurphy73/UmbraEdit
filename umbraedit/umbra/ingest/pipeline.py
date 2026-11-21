@@ -102,8 +102,7 @@ class DocxIngestPipeline:
             prepass.paragraphs,
             prepass.footnotes,
             prepass.comments,
-            [{"rid": img["rid"], "filename": img["filename"], "alt": img["filename"]}
-             for img in prepass.images],
+            [{"rid": img["rid"], "filename": img["filename"], "alt": img["filename"]} for img in prepass.images],
         )
 
         # Stage 7: Propose

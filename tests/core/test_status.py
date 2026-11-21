@@ -279,7 +279,7 @@ def testItemStatus_Entries(mockGUI: MockGuiMain, mockRnd: MockRnd):
     assert list(nStatus._store.keys()) == statusKeys
 
     # Reverse
-    order: list[tuple[str | None, StatusEntry]] = list(nStatus.iterItems())
+    order: list[tuple[str, StatusEntry]] = list(nStatus.iterItems())
     nStatus.update(list(reversed(order)))
     assert list(nStatus._store.keys()) == list(reversed(statusKeys))
 
@@ -306,7 +306,7 @@ def testItemStatus_Entries(mockGUI: MockGuiMain, mockRnd: MockRnd):
     # ======
     # This uses update with deleted items
 
-    order: list[tuple[str | None, StatusEntry]] = list(nStatus.iterItems())
+    order: list[tuple[str, StatusEntry]] = list(nStatus.iterItems())
 
     # Remove Entry 0
     nStatus.update([order[1], order[3], order[2]])

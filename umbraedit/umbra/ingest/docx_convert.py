@@ -91,8 +91,10 @@ class DocxConvert:
 
         cmd = [
             "pandoc",
-            "--from", "docx",
-            "--to", "markdown",
+            "--from",
+            "docx",
+            "--to",
+            "markdown",
             "--wrap=none",
             f"--extract-media={self._media_dir}",
             "--track-changes=accept",

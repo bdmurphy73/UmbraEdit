@@ -151,7 +151,9 @@ def test_voicematrixgates_R8_voiceMatrixCorrupt(tmp_path: Path) -> None:
     index.setEntity("Bob", {"kind": "character", "voice_matrix": code})
     project.index.setEntity("Bob", {"kind": "character", "voice_matrix": code})
     # Flip a byte in the stored asset
-    assetPath = store._assets.assetPath(store.getVoiceEntry(code).assetId)
+    voice_entry = store.getVoiceEntry(code)
+    assert voice_entry is not None
+    assetPath = store._assets.assetPath(voice_entry.assetId)
     corrupted = bytearray(assetPath.read_bytes())
     corrupted[22] ^= 0xFF
     assetPath.write_bytes(corrupted)
@@ -198,6 +200,7 @@ def test_voicematrixgates_R8_voiceMatrixRetired(tmp_path: Path) -> None:
     index.setEntity("Bob", {"kind": "character", "voice_matrix": code, "pron_status": "confirmed"})
     index.setEntity("Ana", {"kind": "character", "voice_matrix": code, "pron_status": "confirmed"})
     entry = store.getVoiceEntry(code)
+    assert entry is not None
     entry.retired = True
     store._saveRegistry()
 

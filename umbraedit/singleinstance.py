@@ -139,7 +139,7 @@ def checkSingleInstance() -> bool:
         try:
             os.kill(pid, 0)  # Check if process exists
             alivePids.append(pid)
-        except (ProcessLookupError, PermissionError):
+        except (ProcessLookupError, PermissionError):  # noqa: PERF203
             pass  # Process doesn't exist anymore
 
     if not alivePids:
@@ -176,7 +176,7 @@ def checkSingleInstance() -> bool:
             try:
                 os.kill(pid, signal.SIGKILL)
                 logger.info("Killed hung process %d", pid)
-            except (ProcessLookupError, PermissionError):
+            except (ProcessLookupError, PermissionError):  # noqa: PERF203
                 pass
         # Remove hung pids from alive list
         alivePids = [pid for pid in alivePids if pid not in hungPids]

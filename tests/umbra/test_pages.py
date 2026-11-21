@@ -148,6 +148,7 @@ def test_pages_R2_page_manager_load(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     # Update page
     manager.updatePage("page-titlePage", fields={"title": "Custom Title"})
     page = manager.getPage("page-titlePage")
+    assert page is not None
     assert page["fields"].get("title") == "Custom Title"
 
     # Delete page
@@ -267,6 +268,7 @@ def test_pages_R5_build_integration(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 def test_pages_R6_pageRequired_gate(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     """R6: pageRequired gate blocks missing required pages."""
     from umbraedit.umbra.gates import getGate
+
     gate = getGate("pageRequired")
     assert gate is not None
     assert gate.ruleId == "pageRequired"
@@ -279,6 +281,7 @@ def test_pages_R6_pageRequired_gate(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 def test_pages_R6_pageFieldEmpty_gate(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     """R6: pageFieldEmpty gate blocks empty required fields."""
     from umbraedit.umbra.gates import getGate
+
     gate = getGate("pageFieldEmpty")
     assert gate is not None
     assert gate.ruleId == "pageFieldEmpty"
@@ -289,6 +292,7 @@ def test_pages_R6_pageFieldEmpty_gate(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 def test_pages_R6_pageOrder_gate(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     """R6: pageOrder gate is advisory."""
     from umbraedit.umbra.gates import getGate
+
     gate = getGate("pageOrder")
     assert gate is not None
     assert gate.ruleId == "pageOrder"
@@ -300,6 +304,7 @@ def test_pages_R6_pageOrder_gate(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 def test_pages_R6_pageVariantMissing_gate(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     """R6: pageVariantMissing gate blocks missing variants."""
     from umbraedit.umbra.gates import getGate
+
     gate = getGate("pageVariantMissing")
     assert gate is not None
     assert gate.ruleId == "pageVariantMissing"
@@ -357,6 +362,7 @@ def test_pages_R9_matter_by_format(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 def test_pages_R10_pageVariantMissing_gate(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     """R10: pageVariantMissing gate is registered."""
     from umbraedit.umbra.gates import getGate
+
     gate = getGate("pageVariantMissing")
     assert gate is not None
     assert gate.ruleId == "pageVariantMissing"
@@ -398,6 +404,7 @@ def test_pages_A2_title_update(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 def test_pages_A3_missing_copyright_blocks(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     """A3: Missing copyright page blocks print build."""
     from umbraedit.umbra.gates import getGate
+
     gate = getGate("pageRequired")
     assert gate is not None
 
@@ -443,10 +450,12 @@ def test_pages_A7_matter_table(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     # Check audio-only pages
     audioOpening = loadPageTypes(Path("umbraedit/umbra/pagetypes")).get("audioOpeningCredits")
     assert audioOpening is not None
-    assert audioOpening.getVariant("audio") is not None
-    assert audioOpening.getVariant("audio").enabled is True
-    assert audioOpening.getVariant("print") is not None
-    assert audioOpening.getVariant("print").enabled is False
+    audio_variant = audioOpening.getVariant("audio")
+    print_variant = audioOpening.getVariant("print")
+    assert audio_variant is not None
+    assert print_variant is not None
+    assert audio_variant.enabled is True
+    assert print_variant.enabled is False
 
 
 @pytest.mark.umbra

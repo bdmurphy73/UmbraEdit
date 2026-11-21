@@ -26,7 +26,7 @@ import logging
 import random
 import sys
 
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtGui import QFont, QFontDatabase

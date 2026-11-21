@@ -25,11 +25,11 @@ from __future__ import annotations
 import logging
 import shutil
 
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Optional, Union
+from dataclasses import dataclass, field, replace
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 from umbraedit.umbra.jsonio import readJson, writeJson
-from umbraedit.umbra.metadata import Metadata, loadMetadata
+from umbraedit.umbra.metadata import Metadata, loadMetadata, saveMetadata
 from umbraedit.umbra.paths import editionFile
 from umbraedit.umbra.sheet import EntityRow, SheetManager
 
@@ -75,6 +75,17 @@ class EditionDoc:
     guideAnalysis: Optional[str] = None
     guideStatusAtTranslation: Optional[str] = None
 
+    def to_dict(self) -> dict[str, Any]:
+        """Return the serialisable representation of the document."""
+        return {
+            "handle": self.handle,
+            "baseTextHash": self.baseTextHash,
+            "translatedAt": self.translatedAt,
+            "status": self.status,
+            "guideAnalysis": self.guideAnalysis,
+            "guideStatusAtTranslation": self.guideStatusAtTranslation,
+        }
+
 
 @dataclass(frozen=True)
 class EditionInfo:
@@ -95,7 +106,7 @@ class EditionInfo:
             "editionId": self.editionId,
             "language": self.language,
             "source": self.source,
-            "docs": {k: v.__dict__ for k, v in self.docs.items()},
+            "docs": {k: v.to_dict() for k, v in self.docs.items()},
             "titleTemplate": self.titleTemplate,
             "translatable": self.translatable,
             "pending": self.pending,
@@ -192,8 +203,14 @@ def createEdition(
 
         # Mark translatable fields as pending
         editionPending = []
-        for key in ["book.title", "book.subtitle", "book.description",
-                    "book.keywords", "book.bisac", "custom.dedicationName"]:
+        for key in [
+            "book.title",
+            "book.subtitle",
+            "book.description",
+            "book.keywords",
+            "book.bisac",
+            "custom.dedicationName",
+        ]:
             editionPending.append(key)
 
         # Save edition metadata
@@ -339,14 +356,17 @@ def getEditionStatus(
 def markAsTranslated(editionPath: Path, handle: str, sourceHash: str, analysisHash: Optional[str] = None) -> bool:
     """Mark a document as translated in the edition."""
     edition = loadEdition(editionPath)
-    if handle not in edition.docs:
-        edition.docs[handle] = EditionDoc(handle=handle, baseTextHash=sourceHash)
+    doc = edition.docs.get(handle)
+    if doc is None:
+        doc = EditionDoc(handle=handle, baseTextHash=sourceHash)
 
-    edition.docs[handle].status = "translated"
-    edition.docs[handle].translatedAt = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    edition.docs[handle].baseTextHash = sourceHash
-    if analysisHash:
-        edition.docs[handle].guideAnalysis = analysisHash
+    edition.docs[handle] = replace(
+        doc,
+        status="translated",
+        translatedAt=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        baseTextHash=sourceHash,
+        guideAnalysis=analysisHash or doc.guideAnalysis,
+    )
 
     saveEdition(editionPath, edition)
     return True
@@ -368,19 +388,29 @@ def markMetadataTranslated(editionPath: Path, key: str) -> bool:
     return False
 
 
-def getAlignment(editionPath: Path, handle: str) -> Optional[list[list[str | int]]]:
+def getAlignment(editionPath: Path, handle: str) -> Optional[list[list[Union[str, int]]]]:
     """Get paragraph alignment for a document."""
     alignFile = editionPath / "umbra" / "align" / f"{handle}.json"
     if not alignFile.is_file():
         return None
     try:
         data = readJson(alignFile)
-        return data.get("pairs")
+        if not isinstance(data, dict):
+            return None
+        pairs = data.get("pairs")
+        if not isinstance(pairs, list):
+            return None
+        for pair in pairs:
+            if not isinstance(pair, list):
+                return None
+            if not all(isinstance(value, (str, int)) and not isinstance(value, bool) for value in pair):
+                return None
+        return cast("Optional[list[list[Union[str, int]]]]", pairs)
     except Exception:
         return None
 
 
-def setAlignment(editionPath: Path, handle: str, pairs: list[list[int | str]]) -> bool:
+def setAlignment(editionPath: Path, handle: str, pairs: list[list[Union[int, str]]]) -> bool:
     """Set paragraph alignment for a document."""
     alignFile = editionPath / "umbra" / "align" / f"{handle}.json"
     alignFile.parent.mkdir(parents=True, exist_ok=True)
@@ -424,10 +454,6 @@ def glossary(editionPath: Path) -> list[dict[str, str]]:
     return entries
 
 
-from datetime import datetime
+from datetime import datetime, timezone
 
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+UTC = timezone.utc

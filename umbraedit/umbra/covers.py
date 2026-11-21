@@ -23,6 +23,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import copy
+import importlib
 import logging
 import re
 
@@ -255,7 +256,7 @@ class CoverStore:
             return None
         return {"assetId": asset_id, **asset}
 
-    def setCover(self, fmt: str, path: Path | str) -> str:
+    def setCover(self, fmt: str, path: Union[Path, str]) -> str:
         """Set cover for a format.
 
         Adds the file as an asset with role 'cover', validates it,
@@ -291,9 +292,9 @@ class CoverStore:
         # Validate image dimensions
         dims = {}
         try:
-            from PIL import Image
+            image_module = importlib.import_module("PIL.Image")
 
-            with Image.open(file_path) as img:
+            with image_module.open(file_path) as img:
                 dims = {"width": img.width, "height": img.height}
         except Exception:
             pass

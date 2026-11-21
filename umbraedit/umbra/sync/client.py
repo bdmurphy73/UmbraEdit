@@ -29,13 +29,7 @@ import logging
 import os
 import tempfile
 
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -49,6 +43,8 @@ from umbraedit.umbra.paths import (
     stateFile,
     umbraDir,
 )
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 
@@ -462,7 +458,7 @@ class SyncClient:
         cursor = state.get("cursor", "")
 
         try:
-            params: dict[str, str | int] = {"limit": 500}
+            params: dict[str, Union[str, int]] = {"limit": 500}
             if cursor:
                 params["since"] = cursor
 

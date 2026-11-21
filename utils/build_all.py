@@ -1,5 +1,23 @@
-"""UmbraEdit - Multi-Platform Build Script.
+"""
+UmbraEdit - Multi-Platform Build Script
 =======================================
+
+This file is a part of UmbraEdit.
+
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 Builds install packages for all supported platforms:
 
@@ -32,7 +50,7 @@ iOS / iPadOS:
     NOT SUPPORTED. PyQt6 does not support iOS. UmbraEdit requires a
     full desktop Qt environment. iOS would require a complete rewrite
     using SwiftUI or a different framework entirely.
-"""
+"""  # noqa
 
 from __future__ import annotations
 
@@ -63,29 +81,17 @@ def check_tool(tool: str) -> bool:
 
 def check_linux_tools() -> list[str]:
     """Check for Linux build tools. Returns list of missing tools."""
-    missing: list[str] = []
-    for tool in ["dpkg-buildpackage", "rpmbuild", "appimagetool", "python3"]:
-        if not check_tool(tool):
-            missing.append(tool)
-    return missing
+    return [tool for tool in ["dpkg-buildpackage", "rpmbuild", "appimagetool", "python3"] if not check_tool(tool)]
 
 
 def check_macos_tools() -> list[str]:
     """Check for macOS build tools. Returns list of missing tools."""
-    missing: list[str] = []
-    for tool in ["iconutil", "hdiutil", "codesign", "productbuild"]:
-        if not check_tool(tool):
-            missing.append(tool)
-    return missing
+    return [tool for tool in ["iconutil", "hdiutil", "codesign", "productbuild"] if not check_tool(tool)]
 
 
 def check_windows_tools() -> list[str]:
     """Check for Windows build tools. Returns list of missing tools."""
-    missing: list[str] = []
-    for tool in ["makensis", "makepkg", "osslsigncode"]:
-        if not check_tool(tool):
-            missing.append(tool)
-    return missing
+    return [tool for tool in ["makensis", "makepkg", "osslsigncode"] if not check_tool(tool)]
 
 
 def build_linux_amd64() -> None:
@@ -107,8 +113,14 @@ def build_linux_amd64() -> None:
     # Build AppImage
     print("\n[2/2] Building AppImage...")
     run([
-        "python3", "utils/build_appimage.py",
-        "--linux", "ubuntu", "--arch", "amd64", "--python", "3.12",
+        "python3",
+        "utils/build_appimage.py",
+        "--linux",
+        "ubuntu",
+        "--arch",
+        "amd64",
+        "--python",
+        "3.12",
     ])
 
     print("\nLinux AMD64 build complete.")
@@ -135,8 +147,14 @@ def build_linux_arm64() -> None:
     # Build AppImage
     print("\n[2/2] Building AppImage (arm64)...")
     run([
-        "python3", "utils/build_appimage.py",
-        "--linux", "ubuntu", "--arch", "arm64", "--python", "3.12",
+        "python3",
+        "utils/build_appimage.py",
+        "--linux",
+        "ubuntu",
+        "--arch",
+        "arm64",
+        "--python",
+        "3.12",
     ])
 
     print("\nLinux ARM64 build complete.")
@@ -259,9 +277,7 @@ def build_all_platforms() -> None:
 
 def main() -> None:
     """Entry point."""
-    parser = argparse.ArgumentParser(
-        description="Build UmbraEdit install packages for all platforms."
-    )
+    parser = argparse.ArgumentParser(description="Build UmbraEdit install packages for all platforms.")
     parser.add_argument(
         "--platform",
         choices=["all", "linux", "macos", "windows"],

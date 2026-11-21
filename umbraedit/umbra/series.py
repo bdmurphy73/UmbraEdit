@@ -146,6 +146,7 @@ def loadBibleEntities(biblePath: Path) -> list[EntityRow]:
 def loadBibleVoiceStore(biblePath: Path) -> VoiceStore:
     """Load the voice store from the bible project."""
     from umbraedit.umbra.voicestore import VoiceStore
+
     return VoiceStore(biblePath)
 
 
@@ -154,6 +155,7 @@ def loadBibleTones(biblePath: Path) -> list:
     tones_file = biblePath / "umbra" / "tones.json"
     if not tones_file.is_file():
         from umbraedit.umbra.sheet import DEFAULT_TONES
+
         return list(DEFAULT_TONES)
 
     try:
@@ -174,6 +176,7 @@ def loadBibleTones(biblePath: Path) -> list:
     except Exception:
         pass
     from umbraedit.umbra.sheet import DEFAULT_TONES
+
     return list(DEFAULT_TONES)
 
 

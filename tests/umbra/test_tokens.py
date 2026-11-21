@@ -55,10 +55,14 @@ def _makeSheetManager(tmp_path: Path) -> Any:
         fn_name = "Ana" if i == 0 else "Robert"
         ln_name = "Soler" if i == 0 else "Vega"
         slot = str(i + 1)
-        writeTextFile(docFile, f"+++\ntag: {handle}\nkind: character\n"
+        writeTextFile(
+            docFile,
+            f"+++\ntag: {handle}\nkind: character\n"
             f"+++\n@tag: {handle}\n@attr: slot | {slot}\n"
             f"@attr: fn | {fn_name}\n@attr: ln | {ln_name}\n"
-            f"@alias: {fn_name}\n\nScene text.\n", newline="\n")
+            f"@alias: {fn_name}\n\nScene text.\n",
+            newline="\n",
+        )
 
     project.session.startSession()
     project._valid = True
@@ -232,9 +236,13 @@ def test_tokens_R2_tokenizer_preprocess_hook(tmp_path: Path, mockRnd: Any, nwGUI
     contentPath = project.storage.contentPath
     assert contentPath is not None
     docFile = contentPath / "h000000000000e.md"
-    writeTextFile(docFile, "+++\ntag: h000000000000e\nkind: character\n"
+    writeTextFile(
+        docFile,
+        "+++\ntag: h000000000000e\nkind: character\n"
         "@attr: slot | 1\n@attr: fn | Ana\n@attr: ln | Soler\n"
-        "@alias: Ana\n+++\n\nScene text.\n", newline="\n")
+        "@alias: Ana\n+++\n\nScene text.\n",
+        newline="\n",
+    )
 
     text = "Hello {char1 fn}!"
     result, _unresolved = resolveTokens(text, project)
@@ -297,9 +305,13 @@ def test_tokens_A4_placeholder_creation(tmp_path: Path, mockRnd: Any, nwGUI: Any
     else:
         docFile = doc_files[2]  # Third document
 
-    writeTextFile(docFile, "+++\ntag: h0000000000003\nkind: character\n"
+    writeTextFile(
+        docFile,
+        "+++\ntag: h0000000000003\nkind: character\n"
         "@attr: slot | 3\n@attr: fn | Placeholder\n@attr: ln | Three\n"
-        "@alias: Placeholder 3\n+++\n\nPlaceholder text.\n", newline="\n")
+        "@alias: Placeholder 3\n+++\n\nPlaceholder text.\n",
+        newline="\n",
+    )
 
     text = "{char3 fn} is a placeholder."
     result, unresolved = resolveTokens(text, project)

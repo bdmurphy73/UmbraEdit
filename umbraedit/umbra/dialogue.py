@@ -122,7 +122,7 @@ def _findOpener(text: str, pos: int, openChar: str, altOpen: str, config: Dialog
     if config.dashStyle:
         # Dash dialogue: em-dash followed by space at start of a line
         for lineStart in _lineStarts(text, pos):
-            if lineStart + 1 < len(text) and text[lineStart:lineStart + 2] in ("\u2014 ", "\u2013 "):
+            if lineStart + 1 < len(text) and text[lineStart : lineStart + 2] in ("\u2014 ", "\u2013 "):
                 results.append(lineStart)
 
     if not results:

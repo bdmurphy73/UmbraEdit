@@ -456,9 +456,10 @@ def test_outbox_bind_unbind(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     assert outbox() is None
 
     bindOutbox(tmp_path, "dev-test", "usr-test")
-    assert outbox() is not None
-    assert outbox()._deviceId == "dev-test"
-    assert outbox()._actorId == "usr-test"
+    bound = outbox()
+    assert bound is not None
+    assert bound._deviceId == "dev-test"
+    assert bound._actorId == "usr-test"
 
     unbindOutbox()
     assert outbox() is None

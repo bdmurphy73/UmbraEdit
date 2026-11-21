@@ -21,13 +21,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import bisect
 import logging
 
 from enum import Enum, IntFlag
 from time import time
+from typing import Optional
 
 from PyQt6 import sip
 from PyQt6.QtCore import (
@@ -786,8 +786,7 @@ class GuiDocEditor(QTextEdit):
             saveOk = False
             if self._nwDocument.hashError and SHARED.question(
                 self.tr(
-                    "This document has been changed outside of UmbraEdit "
-                    "while it was open. Overwrite the file on disk?"
+                    "This document has been changed outside of UmbraEdit while it was open. Overwrite the file on disk?"
                 )
             ):
                 saveOk = self._nwDocument.writeDocument(text, forceWrite=True)
@@ -1683,7 +1682,10 @@ class GuiDocEditor(QTextEdit):
                                 self._buildSelections(block, self._spellErrFormat, data.spellErrors),
                             )
                             self._selCacheSpell[key] = cached
-                        for (start, end, _), selection in zip(data.spellErrors, cached[1], ):
+                        for (start, end, _), selection in zip(
+                            data.spellErrors,
+                            cached[1],
+                        ):
                             if position + start < cPos <= position + end:
                                 # Don't underline the word under the cursor
                                 suppressed = True
@@ -1698,7 +1700,10 @@ class GuiDocEditor(QTextEdit):
                                 self._buildSelections(block, self._formatErrFormat, data.formatErrors),
                             )
                             self._selCacheFormat[key] = cached
-                        for (start, end, kind), selection in zip(data.formatErrors, cached[1], ):
+                        for (start, end, kind), selection in zip(
+                            data.formatErrors,
+                            cached[1],
+                        ):
                             if kind == "trail" and position + start < cPos <= position + end:
                                 # Not yet a real trailing space, still being typed
                                 suppressed = True
@@ -2210,7 +2215,10 @@ class GuiDocEditor(QTextEdit):
     def highlightSearchSelections(self, resS: list[int], resE: list[int]) -> None:
         """Highlight all search results in the document."""
         selections = []
-        for start, end in zip(resS, resE, ):
+        for start, end in zip(
+            resS,
+            resE,
+        ):
             cursor = QTextCursor(self._qDocument)
             cursor.setPosition(start)
             cursor.setPosition(end, QtKeepAnchor)
@@ -2940,10 +2948,13 @@ class GuiDocEditor(QTextEdit):
             if follow and exist:
                 logger.debug("Attempting to follow tag '%s'", tag)
                 self.loadDocumentTagRequest.emit(tag, nwDocMode.EDIT if edit else nwDocMode.VIEW)
-            elif create and not exist:
-                if SHARED.question(self.tr("Do you want to create a new project note for the tag '{0}'?").format(tag)):
-                    itemClass = nwKeyWords.KEY_CLASS.get(tBits[0], nwItemClass.NO_CLASS)
-                    self.requestNewNoteCreation.emit(tag, itemClass)
+            elif (
+                create
+                and not exist
+                and SHARED.question(self.tr("Do you want to create a new project note for the tag '{0}'?").format(tag))
+            ):
+                itemClass = nwKeyWords.KEY_CLASS.get(tBits[0], nwItemClass.NO_CLASS)
+                self.requestNewNoteCreation.emit(tag, itemClass)
 
         return status
 

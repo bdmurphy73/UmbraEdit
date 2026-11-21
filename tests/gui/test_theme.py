@@ -23,12 +23,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import json
-import tomllib
 
 from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
 import pytest
+import tomllib
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QColor, QFont, QFontDatabase, QIcon, QPalette, QPixmap, QStyleHints

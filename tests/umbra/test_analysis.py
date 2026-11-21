@@ -303,4 +303,3 @@ def test_analysis_A5_allow_draft_setting(tmp_path: Path, mockRnd: Any, nwGUI: An
 @pytest.mark.umbra
 def test_analysis_A6_no_network_call(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     """A6: No network call leaves configured host."""
-

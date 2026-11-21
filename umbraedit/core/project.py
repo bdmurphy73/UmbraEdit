@@ -404,6 +404,7 @@ class NWProject:
         self.updateCounts()
         self._session.startSession()
         from umbraedit.umbra import hooks as _umbraHooks
+
         _umbraHooks.call(_umbraHooks.PROJECT_OPENED, self)
         self.setProjectChanged(False)
 
@@ -496,6 +497,7 @@ class NWProject:
 
         # Notify listeners that the project (tree) was saved
         from umbraedit.umbra import hooks as _umbraHooks
+
         _umbraHooks.call(_umbraHooks.PROJECT_SAVED, self)
 
         return True
@@ -523,7 +525,8 @@ class NWProject:
             doc = self._storage.getDocument(docHandle)
             if doc and doc.nwItem:
                 text = doc.readDocument()
-                doc.writeDocument(text)
+                if text is not None:
+                    doc.writeDocument(text)
 
         # Save old paths before creating new storage (createNewProject
         # overwrites _storagePath, _runtimePath, etc.)
@@ -535,9 +538,7 @@ class NWProject:
         status = self._storage.createNewProject(newPath)
         if status != ProjectStorageCreate.READY:
             if status == ProjectStorageCreate.NOT_EMPTY:
-                SHARED.error(
-                    self.tr("The target folder is not empty. Please choose another folder.")
-                )
+                SHARED.error(self.tr("The target folder is not empty. Please choose another folder."))
             else:
                 SHARED.error(self.tr("Failed to create project storage."))
             return False
@@ -554,12 +555,8 @@ class NWProject:
                 try:
                     shutil.copy2(mdFile, destFile)
                 except Exception as exc:
-                    logger.error(
-                        "Failed to copy document file %s: %s", mdFile.name, exc
-                    )
-                    SHARED.error(
-                        self.tr("Failed to copy document file: {0}").format(mdFile.name)
-                    )
+                    logger.error("Failed to copy document file %s: %s", mdFile.name, exc)
+                    SHARED.error(self.tr("Failed to copy document file: {0}").format(mdFile.name))
                     return False
 
         # Copy all meta files from old meta to new meta
@@ -572,21 +569,11 @@ class NWProject:
                     try:
                         shutil.copy2(metaFile, destFile)
                     except Exception as exc:
-                        logger.error(
-                            "Failed to copy meta file %s: %s", metaFile.name, exc
-                        )
+                        logger.error("Failed to copy meta file %s: %s", metaFile.name, exc)
 
         # Copy manifest.json if it exists
-        oldManifestPath = (
-            self._storage._runtimePath / nwFiles.MANIFEST_FILE
-            if oldRuntimePath
-            else None
-        )
-        newManifestPath = (
-            self._storage._runtimePath / nwFiles.MANIFEST_FILE
-            if self._storage._runtimePath
-            else None
-        )
+        oldManifestPath = oldRuntimePath / nwFiles.MANIFEST_FILE if oldRuntimePath else None
+        newManifestPath = self._storage._runtimePath / nwFiles.MANIFEST_FILE if self._storage._runtimePath else None
         if oldManifestPath and newManifestPath and oldManifestPath.exists():
             try:
                 shutil.copy2(oldManifestPath, newManifestPath)
@@ -632,6 +619,7 @@ class NWProject:
         self._session.appendSession(idleTime)
         self._storage.closeSession()
         from umbraedit.umbra import hooks as _umbraHooks
+
         _umbraHooks.call(_umbraHooks.PROJECT_CLOSING, self)
         self._reportErrors(self.tr("Issues encountered when closing project:"))
 

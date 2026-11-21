@@ -28,12 +28,7 @@ import random
 import uuid
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple, Union, Optional
-
-try:
-    from typing import Self
-except ImportError:
-    Self = Any  # type: ignore
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, TypeVar, Union
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
@@ -52,6 +47,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 T_ViewValue = Union[str, int, float, bool]
+T_StoryViewSettings = TypeVar("T_StoryViewSettings", bound="StoryViewSettings")
 
 # Runtime counterpart of T_ViewValue. Python 3.9 does not allow isinstance
 # checks against a subscripted typing generic, so the concrete types are
@@ -217,7 +213,7 @@ class StoryViewSettings:
         """Set the story view display name."""
         self._name = str(name)
 
-    def setViewID(self, value: str | uuid.UUID) -> None:
+    def setViewID(self, value: Union[str, uuid.UUID]) -> None:
         """Set a UUID view ID, or generate one if invalid."""
         self._uuid = checkUuid(value, "") or str(uuid.uuid4())
 
@@ -281,7 +277,7 @@ class StoryViewSettings:
         self._name = source.name
         self._settings = source._settings.copy()
 
-    def copy(self) -> Self:
+    def copy(self: T_StoryViewSettings) -> T_StoryViewSettings:
         """Return an identical copy of the settings."""
         new = type(self)()
         new.unpack(self.pack())
@@ -311,8 +307,7 @@ class StoryViewSettings:
         self._settings = {k: v[1] for k, v in SETTINGS_TEMPLATE.items() if k.startswith(self._prefix)}
         if isinstance(settings, dict):
             for key, value in settings.items():
-                if (isinstance(key, str) and key.startswith(self._prefix)
-                        and isinstance(value, VIEW_VALUE_TYPES)):
+                if isinstance(key, str) and key.startswith(self._prefix) and isinstance(value, VIEW_VALUE_TYPES):
                     self.setValue(key, value)
 
         self._state = state.copy() if isinstance(state, dict) else {}

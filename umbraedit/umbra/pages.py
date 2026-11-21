@@ -172,10 +172,12 @@ class PageType:
     def getEffectiveBuild(self, format_: str) -> PageBuildConfig:
         """Get the effective build config for a format."""
         variant = self.getVariant(format_)
-        if variant and (variant.build.newPageBefore != PageBuildConfig().newPageBefore
-                        or variant.build.headingStyle != PageBuildConfig().headingStyle
-                        or variant.build.generated != PageBuildConfig().generated
-                        or variant.build.spoken != PageBuildConfig().spoken):
+        if variant and (
+            variant.build.newPageBefore != PageBuildConfig().newPageBefore
+            or variant.build.headingStyle != PageBuildConfig().headingStyle
+            or variant.build.generated != PageBuildConfig().generated
+            or variant.build.spoken != PageBuildConfig().spoken
+        ):
             return variant.build
         return self.build
 
@@ -247,17 +249,21 @@ def _parsePageType(data: dict[str, Any]) -> PageType:
             generated=variantData.get("build", {}).get("generated", False),
             spoken=variantData.get("build", {}).get("spoken", False),
         )
-        variantFields = [
-            PageField(
-                key=f["key"],
-                label=f["label"],
-                type=f["type"],
-                from_=f.get("from", ""),
-                optional=f.get("optional", False),
-                help=f.get("help", ""),
-            )
-            for f in variantData.get("fields", [])
-        ] if "fields" in variantData else []
+        variantFields = (
+            [
+                PageField(
+                    key=f["key"],
+                    label=f["label"],
+                    type=f["type"],
+                    from_=f.get("from", ""),
+                    optional=f.get("optional", False),
+                    help=f.get("help", ""),
+                )
+                for f in variantData.get("fields", [])
+            ]
+            if "fields" in variantData
+            else []
+        )
 
         variants[fmt] = PageTypeVariant(
             enabled=variantData.get("enabled", True),
@@ -373,7 +379,9 @@ class PageManager:
         """Get a page by handle."""
         return self._pages.get(handle)
 
-    def renderPage(self, handle: str, format_: str, metadata: Union[Metadata, dict[str, Any]], edition: Optional[str] = None) -> str:
+    def renderPage(
+        self, handle: str, format_: str, metadata: Union[Metadata, dict[str, Any]], edition: Optional[str] = None
+    ) -> str:
         """Render a page for a specific format."""
         page = self._pages.get(handle)
         if not page:
@@ -445,7 +453,6 @@ class PageManager:
         # Full implementation would use Jinja2
 
 
-
 def createDefaultPages(projectPath: Path, metadata: dict[str, Any]) -> dict[str, Any]:
     """Create the default page set for a new project."""
     manager = PageManager(projectPath)
@@ -470,7 +477,6 @@ def createDefaultPages(projectPath: Path, metadata: dict[str, Any]) -> dict[str,
         pageType = pageTypes.get(pageTypeId)
         if not pageType:
             continue
-
 
         # Create page with default field values
         fields = {}

@@ -31,7 +31,7 @@ except ModuleNotFoundError:
 
 from enum import Enum
 from pathlib import Path
-from typing import TypeVar, Union, cast, Optional
+from typing import Optional, TypeVar, Union, cast
 
 from PyQt6.QtGui import QFont
 
@@ -44,7 +44,7 @@ _T_Enum = TypeVar("_T_Enum", bound=Enum)
 T_TomlValue = Union[str, int, float, bool, Path, list[str], list[int], Enum, QFont]
 T_TomlObject = dict[str, T_TomlValue]
 T_TomlConfig = dict[str, T_TomlObject]
-T_ConfigMap = Union[dict[tuple[str, None], str], tuple[str, str]]
+T_ConfigMap = dict[tuple[str, str], tuple[str, str]]
 
 
 class NTomlParser:
@@ -159,7 +159,7 @@ class NTomlParser:
     def _value(self, section: Optional[str], option: str) -> Optional[T_TomlValue]:
         """Look up a raw value, or None if the section or option is unset."""
         value = (self._data.get(section, {}) if section else self._root).get(option)
-        if value is None and self._map and (moved := self._map.get((section, option))):
+        if value is None and self._map and section is not None and (moved := self._map.get((section, option))):
             return self._data.get(moved[0], {}).get(moved[1])
         return value
 

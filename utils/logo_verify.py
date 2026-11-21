@@ -1,10 +1,29 @@
 #!/usr/bin/env python3
-"""UmbraEdit Logo Verification Tool.
+"""
+UmbraEdit Logo Verification Tool
 ================================
+
+This file is a part of UmbraEdit.
+
+Copyright (C) 2024 Veronica Berglyd Olsen and UmbraEdit contributors.
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 Analyzes the UmbraEdit.jpg reference logo and compares it against all other
 logo/icon images in the project. Shows a GUI for the user to confirm or
 flag images that don't match the UmbraEdit branding.
-"""
+"""  # noqa
 
 from __future__ import annotations
 
@@ -204,10 +223,7 @@ def main() -> None:
     scrollbar = ttk.Scrollbar(mainFrame, orient=tk.VERTICAL, command=canvas.yview)
     scrollFrame = ttk.Frame(canvas)
 
-    scrollFrame.bind(
-        "<Configure>",
-        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-    )
+    scrollFrame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
     canvas.create_window((0, 0), window=scrollFrame, anchor=tk.NW)
     canvas.configure(yscrollcommand=scrollbar.set)
     canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -217,9 +233,7 @@ def main() -> None:
     header = ttk.Frame(scrollFrame, padding=5)
     header.pack(fill=tk.X)
     for col, text in enumerate(["File", "Preview", "Avg RGB", "Size", "Similarity", "Action"]):
-        ttk.Label(header, text=text, font=("Helvetica", 10, "bold")).grid(
-            row=0, column=col, padx=5, sticky=tk.W
-        )
+        ttk.Label(header, text=text, font=("Helvetica", 10, "bold")).grid(row=0, column=col, padx=5, sticky=tk.W)
 
     # Results
     row = 1

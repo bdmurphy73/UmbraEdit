@@ -5,6 +5,10 @@ UmbraStore - Server API tests
 
 from __future__ import annotations
 
+import argparse
+
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 # ---------------------------------------------------------------------------
@@ -480,7 +484,7 @@ def test_server_A2_verify_detects_corruption(tmp_path: Path) -> None:
     blobPath.write_bytes(b"corrupted!")
 
     # Verify should detect it
-    result = cmdVerify(type("Args", (), {"data": str(tmp_path)})())
+    result = cmdVerify(argparse.Namespace(data=str(tmp_path)))
     assert result == 1
 
 

@@ -24,11 +24,10 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox, QWidget
 
-from umbraedit import SHARED
 from umbraedit.umbra.ingest.commit import undo_import_plan
 from umbraedit.umbra.ingest.ingest_runs import _load_runs
 
@@ -38,15 +37,20 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def undoImport(project: NWProject, parent: Any) -> None:
+def undoImport(project: NWProject, parent: QWidget) -> None:
     """Undo the most recent import."""
+    project_path = project.storage.storagePath
+    if project_path is None:
+        logger.error("Cannot undo import: project storage path is not set")
+        return
+
     # Find the most recent completed import
-    runs = _load_runs(SHARED.project.storage.storagePath)
+    runs = _load_runs(project_path)
     completed_runs = [r for r in runs if r.status == "completed"]
 
     if not completed_runs:
         QMessageBox.information(
-            SHARED.mainGui,
+            parent,
             "Undo Import",
             "No completed imports to undo.",
         )
@@ -57,29 +61,29 @@ def undoImport(project: NWProject, parent: Any) -> None:
 
     # Confirm with user
     reply = QMessageBox.question(
-        SHARED.mainGui,
+        parent,
         "Undo Import",
         f"Undo import of {latest_run.file_path} (run {latest_run.run_id})?\n"
         f"This will remove all documents, notes, and metadata created by this import.",
-        QMessageBox.Yes | QMessageBox.No,
-        QMessageBox.No,
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        QMessageBox.StandardButton.No,
     )
 
-    if reply != QMessageBox.Yes:
+    if reply != QMessageBox.StandardButton.Yes:
         return
 
     # Perform undo
-    success = undo_import_plan(SHARED.project, latest_run.run_id)
+    success = undo_import_plan(project, latest_run.run_id)
 
     if success:
         QMessageBox.information(
-            SHARED.mainGui,
+            parent,
             "Undo Complete",
             "Import has been undone successfully.",
         )
     else:
         QMessageBox.critical(
-            SHARED.mainGui,
+            parent,
             "Undo Failed",
             "Failed to undo import. Check logs for details.",
         )

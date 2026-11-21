@@ -153,10 +153,18 @@ def test_entityindex_R1_getEntity_kinds(idx: EntityIndex):
     idx.scanStarted("h2", "# P\n\n@tag: Ohio\n")
     idx.scanStarted("h3", "# T\n\n@tag: Lamp\n")
     idx.scanStarted("h4", "# O\n\n@tag: Guild\n")
-    assert idx.getEntity(project, "Ana").kind == "character"
-    assert idx.getEntity(project, "Ohio").kind == "place"
-    assert idx.getEntity(project, "Lamp").kind == "thing"
-    assert idx.getEntity(project, "Guild").kind == "organisation"
+    ana = idx.getEntity(project, "Ana")
+    ohio = idx.getEntity(project, "Ohio")
+    lamp = idx.getEntity(project, "Lamp")
+    guild = idx.getEntity(project, "Guild")
+    assert ana is not None
+    assert ohio is not None
+    assert lamp is not None
+    assert guild is not None
+    assert ana.kind == "character"
+    assert ohio.kind == "place"
+    assert lamp.kind == "thing"
+    assert guild.kind == "organisation"
 
 
 @pytest.mark.umbra

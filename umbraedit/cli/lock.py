@@ -29,17 +29,13 @@ import logging
 import os
 
 from dataclasses import dataclass
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
-from typing import TYPE_CHECKING, Any, Optional, Union
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +201,7 @@ class ProjectLock:
         self.release()
 
 
-def check_write_access(project_path: Path) -> Optional[tuple[bool, dict[str, Any]]]:
+def check_write_access(project_path: Path) -> tuple[bool, Optional[dict[str, Any]]]:
     """Check if write access is available for a project.
 
     Returns:

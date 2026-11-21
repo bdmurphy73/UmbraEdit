@@ -281,6 +281,7 @@ class TestLock:
 
         # Now lock it and check again
         from umbraedit.cli.lock import ProjectLock
+
         lock = ProjectLock(tmp_path)
         lock.acquire(kind="cli")
         available, info = check_write_access(tmp_path)

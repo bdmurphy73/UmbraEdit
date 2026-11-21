@@ -53,9 +53,7 @@ def _reviewOpenFindings(scope: Any) -> Iterable[Finding]:
         yield Finding(
             ruleId="reviewOpen",
             severity=severity,
-            message=(
-                f"Open review annotation '{ann.id}' in document {ann.handle}"
-            ),
+            message=(f"Open review annotation '{ann.id}' in document {ann.handle}"),
             fix="Resolve or delete the annotation in the Review dock",
             handle=ann.handle,
             detail={

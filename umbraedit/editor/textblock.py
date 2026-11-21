@@ -21,9 +21,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import re
+
+from typing import Optional
 
 from PyQt6.QtGui import QTextBlockUserData
 
@@ -113,7 +114,7 @@ class TextBlockData(QTextBlockUserData):
         self._spellErrors = []
         self._formatErrors = []
 
-    def checkData(self) -> Optional[tuple[str, str, int, list[int]]]:
+    def checkData(self) -> tuple[str, str, int, Optional[list[int]]]:
         """Return a snapshot of the text for external spell and format
         checking. The spell text has shortcodes, URLs and Markdown link
         syntax stripped, while the format text is the raw, unmodified

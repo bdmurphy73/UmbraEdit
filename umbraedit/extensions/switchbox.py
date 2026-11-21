@@ -21,9 +21,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
-from typing import Optional, Union
 
 from dataclasses import dataclass
+from typing import Optional
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QFrame, QGridLayout, QLabel, QScrollArea, QWidget

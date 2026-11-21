@@ -90,6 +90,7 @@ def test_umbra_settings_R5_projectPersistence(tmp_path, settings):
     settings.saveProject()
 
     from umbraedit.umbra.paths import settingsFile
+
     assert settingsFile(tmp_path).is_file()
 
     fresh = UmbraSettings()
@@ -107,5 +108,6 @@ def test_umbra_settings_A6_persistsValue(tmp_path, settings):
     settings.saveProject()
 
     from umbraedit.umbra.paths import settingsFile
+
     data = json.loads(settingsFile(tmp_path).read_text(encoding="utf-8"))
     assert data.get("persist.test") is True

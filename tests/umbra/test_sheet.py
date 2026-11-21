@@ -252,7 +252,10 @@ def test_sheet_R5_loadTones_unknownKept(tmp_path: Path):
     from umbraedit.umbra.jsonio import readJson, writeJson
 
     data = readJson(tonesFile(tmp_path))
-    data["tones"].append({"key": "wistful", "label": "Wistful", "appliesTo": "both", "audioHint": "", "order": 99})
+    assert isinstance(data, dict)
+    tones = data.get("tones")
+    assert isinstance(tones, list)
+    tones.append({"key": "wistful", "label": "Wistful", "appliesTo": "both", "audioHint": "", "order": 99})
     writeJson(tonesFile(tmp_path), data)
     tones = SheetManager(tmp_path).loadTones()
     keys = [t.key for t in tones]
@@ -310,7 +313,9 @@ def test_sheet_R9_resolveSpeaker_performance():
             attrs={"slot": str(i + 1), "fn": f"First{i}", "ln": f"Last{i}"},
         )
     # Warm up and measure
-    mgr.resolveSpeaker("alias_2_for_250")
+    hits = mgr.resolveSpeaker("alias_2_for_250")
+    hits2 = mgr.resolveSpeaker("Ent0250")
+    hits3 = mgr.resolveSpeaker("first250")
     start = time.perf_counter()
     for _ in range(20):
         hits = mgr.resolveSpeaker("alias_2_for_250")

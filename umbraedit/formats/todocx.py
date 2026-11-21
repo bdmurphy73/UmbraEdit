@@ -27,7 +27,7 @@ import re
 import xml.etree.ElementTree as ET
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Literal, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, Literal, NamedTuple, Optional
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from PyQt6.QtCore import QMargins, QSize
@@ -569,7 +569,7 @@ class ToDocX(Tokenizer):
     #  DocX Content
     ##
 
-    def _generateFootnote(self, key: str) -> ET.Optional[Element]:
+    def _generateFootnote(self, key: str) -> Optional[ET.Element]:
         """Generate a footnote XML object."""
         if key in self._footnotes:
             idx = len(self._usedNotes) + 1
@@ -581,7 +581,7 @@ class ToDocX(Tokenizer):
             return xR
         return None
 
-    def _generateField(self, key: str, fmt: int) -> ET.Optional[Element]:
+    def _generateField(self, key: str, fmt: int) -> Optional[ET.Element]:
         """Generate a data field XML object."""
         if key and (field := key.partition(":")[2]):
             xR = self._textRunToXml(None, fmt, "", "")
@@ -1045,7 +1045,9 @@ class ToDocX(Tokenizer):
 
         return rId
 
-    def _sectionXml(self, first: bool, hFirst: Optional[str], hDefault: Optional[str], hEven: Optional[str]) -> ET.Element:
+    def _sectionXml(
+        self, first: bool, hFirst: Optional[str], hDefault: Optional[str], hEven: Optional[str]
+    ) -> ET.Element:
         """Generate section properties. Sections after the first start on odd pages."""
         xSect = xmlElement(_wTag("sectPr"))
         if hFirst and hDefault:
@@ -1289,7 +1291,7 @@ class DocXParagraph:
         self._breakBefore = False
         self._breakAfter = False
         self._oddPage = False
-        self._sectPr: ET.Optional[Element] = None
+        self._sectPr: Optional[ET.Element] = None
         self._footnoteRef = False
         self._numbering: Optional[tuple[int, int]] = None
         self._borders: dict[str, DocXBorder] = {}

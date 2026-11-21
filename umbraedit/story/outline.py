@@ -26,7 +26,7 @@ import logging
 import math
 import time
 
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import QEvent, QModelIndex, QPoint, QPointF, QRect, QSize, Qt, pyqtSlot
 from PyQt6.QtGui import (
@@ -101,7 +101,10 @@ logger = logging.getLogger(__name__)
 
 
 COLUMN_FLAGS = (
-    Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDropEnabled
+    Qt.ItemFlag.ItemIsEnabled
+    | Qt.ItemFlag.ItemIsSelectable
+    | Qt.ItemFlag.ItemIsEditable
+    | Qt.ItemFlag.ItemIsDropEnabled
 )
 ENTRY_FLAGS = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsDragEnabled
 
@@ -1034,7 +1037,11 @@ class _OutlineDelegate(QStyledItemDelegate):
         painter.restore()
 
     def helpEvent(
-        self, event: Optional[QHelpEvent], view: Optional[QAbstractItemView], option: QStyleOptionViewItem, index: QModelIndex
+        self,
+        event: Optional[QHelpEvent],
+        view: Optional[QAbstractItemView],
+        option: QStyleOptionViewItem,
+        index: QModelIndex,
     ) -> bool:
         """Show the full label of an entry icon as a tooltip."""
         if event and event.type() == QEvent.Type.ToolTip:

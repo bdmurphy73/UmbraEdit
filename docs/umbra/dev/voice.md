@@ -10,7 +10,7 @@ attribution picker, editor cues) are deferred to GAPS.md (G66–G76).
 ```python
 @dataclass(frozen=True)
 class ToneRef:
-    key: str          # e.g. "happy", "neutral", "tense"
+    key: str  # e.g. "happy", "neutral", "tense"
     intensity: int = 2  # 1 light, 2 default, 3 strong
 ```
 
@@ -22,9 +22,9 @@ Rendered as ``key`` when intensity is 2, else ``key:intensity``.
 ```python
 @dataclass
 class UnitVoice:
-    tone: ToneRef | None = None      # dialogue tone on the paragraph
-    ntone: ToneRef | None = None     # narration tone on the paragraph
-    sceneTone: ToneRef | None = None # scene default narration tone
+    tone: ToneRef | None = None  # dialogue tone on the paragraph
+    ntone: ToneRef | None = None  # narration tone on the paragraph
+    sceneTone: ToneRef | None = None  # scene default narration tone
 ```
 
 `parseUnitVoice(text) -> UnitVoice` extracts these from a paragraph's

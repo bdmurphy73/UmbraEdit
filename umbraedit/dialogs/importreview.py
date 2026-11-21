@@ -25,8 +25,8 @@ from __future__ import annotations
 import json
 import logging
 
-from dataclasses import dataclass
-from typing import Any, Optional, Union
+from dataclasses import dataclass, replace
+from typing import TYPE_CHECKING, Any, Optional
 
 from PyQt6.QtCore import (
     QSortFilterProxyModel,
@@ -36,9 +36,12 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import (
     QColor,
     QFont,
+    QStandardItem,
+    QStandardItemModel,
 )
 from PyQt6.QtWidgets import (
     QAbstractItemView,
+    QDialog,
     QDialogButtonBox,
     QLabel,
     QListWidget,
@@ -54,12 +57,15 @@ from PyQt6.QtWidgets import (
 )
 
 from umbraedit.types import QtAccepted, QtRoleAccept, QtRoleReject, QtUserRole
-from umbraedit.umbra.gates import OP_IMPORT_COMMIT, requireGates
+from umbraedit.umbra.gates import OP_IMPORT_COMMIT, GateScope, runGates
 from umbraedit.umbra.ingest import (
     ImportPlan,
     record_ingest_run,
 )
 from umbraedit.umbra.paths import cacheDir
+
+if TYPE_CHECKING:
+    from umbraedit.core.project import NWProject
 
 logger = logging.getLogger(__name__)
 
@@ -115,11 +121,13 @@ class ImportReviewModel:
         """Load proposals from the import plan."""
         # Load characters
         for char in self.plan.characters:
-            self.characters.append(CharacterProposal(
-                name=char.get("name", ""),
-                count=char.get("count", 0),
-                examples=char.get("examples", []),
-            ))
+            self.characters.append(
+                CharacterProposal(
+                    name=char.get("name", ""),
+                    count=char.get("count", 0),
+                    examples=char.get("examples", []),
+                )
+            )
 
         # Load metadata proposals
         for key, value in self.plan.metadata.items():
@@ -128,10 +136,12 @@ class ImportReviewModel:
         # Load page types
         for doc in self.plan.documents:
             if doc.get("pageType"):
-                self.page_types.append(PageTypeProposal(
-                    plan_id=doc["planId"],
-                    page_type=doc["pageType"],
-                ))
+                self.page_types.append(
+                    PageTypeProposal(
+                        plan_id=doc["planId"],
+                        page_type=doc["pageType"],
+                    )
+                )
 
         # Load findings
         self.findings = self.plan.findings.copy()
@@ -140,7 +150,13 @@ class ImportReviewModel:
         """Get findings that block commit."""
         blocking = []
         for f in self.findings:
-            if f.startswith(("ingestNoHeadings:", "ingestEmptyScene:", "ingestLostFeature:", "ingestImageFailed:", "ingestFootnoteUnmapped:")):
+            if f.startswith((
+                "ingestNoHeadings:",
+                "ingestEmptyScene:",
+                "ingestLostFeature:",
+                "ingestImageFailed:",
+                "ingestFootnoteUnmapped:",
+            )):
                 blocking.append(f)
         return blocking
 
@@ -148,35 +164,60 @@ class ImportReviewModel:
         return len(self.get_blocking_findings()) > 0
 
 
-class ImportTreeModel:
+class ImportTreeModel(QStandardItemModel):
     """Tree model for the document tree view."""
 
     def __init__(self, documents: list[dict[str, Any]]) -> None:
+        super().__init__()
         self.documents = documents
+        self._items: dict[str, QStandardItem] = {}
+        self.rebuild()
 
     def get_documents(self) -> list[dict[str, Any]]:
         return self.documents
+
+    def rebuild(self) -> None:
+        """Rebuild the model from the current document list."""
+        self.clear()
+        self._items.clear()
+        for document in self.documents:
+            plan_id = str(document.get("planId", ""))
+            title = str(document.get("title") or plan_id)
+            item = QStandardItem(title)
+            item.setData(plan_id, DOC_PLAN_ID_ROLE)
+            self._items[plan_id] = item
+
+            parent_id = document.get("parentPlanId")
+            parent = self._items.get(parent_id) if isinstance(parent_id, str) else None
+            if parent is None:
+                self.appendRow(item)
+            else:
+                parent.appendRow(item)
 
     def move_document(self, from_index: int, to_index: int) -> None:
         """Move a document from one index to another."""
         if 0 <= from_index < len(self.documents) and 0 <= to_index < len(self.documents):
             doc = self.documents.pop(from_index)
             self.documents.insert(to_index, doc)
+            self.rebuild()
 
     def add_document(self, index: int, document: dict[str, Any]) -> None:
         self.documents.insert(index, document)
+        self.rebuild()
 
     def remove_document(self, index: int) -> Optional[dict[str, Any]]:
         if 0 <= index < len(self.documents):
-            return self.documents.pop(index)
+            document = self.documents.pop(index)
+            self.rebuild()
+            return document
         return None
 
 
-class GuiImportReview:
+class GuiImportReview(QDialog):
     """Import Review Dialog."""
 
-    def __init__(self, parent: Any, project: Any, plan: ImportPlan) -> None:
-        self.parent = parent
+    def __init__(self, parent: Optional[QWidget], project: NWProject, plan: ImportPlan) -> None:
+        super().__init__(parent)
         self.project = project
         self.plan = plan
         self.model = ImportReviewModel(plan)
@@ -187,12 +228,13 @@ class GuiImportReview:
         self._modified = False
 
         # UI Components
-        self.tree_view: Any = None
-        self.text_edit: Any = None
-        self.findings_list: Any = None
-        self.characters_list: Any = None
-        self.metadata_list: Any = None
-        self.page_types_list: Any = None
+        self.tree_view: QTreeView
+        self.text_edit: QPlainTextEdit
+        self.findings_list: QListWidget
+        self.characters_list: QListWidget
+        self.metadata_list: QListWidget
+        self.page_types_list: QListWidget
+        self.outerBox = QVBoxLayout()
 
         self._setup_ui()
         self._load_plan()
@@ -201,7 +243,7 @@ class GuiImportReview:
         """Set up the dialog UI."""
         # Main splitter
         self.splitter = QSplitter()
-        self.splitter.setOrientation(Qt.Horizontal)
+        self.splitter.setOrientation(Qt.Orientation.Horizontal)
 
         # Left: Document Tree
         left_widget = QWidget()
@@ -210,14 +252,17 @@ class GuiImportReview:
         QLabel(self.tr("Planned Documents"))
         self.tree_view = QTreeView()
         self.tree_view.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
-        self.tree_view.setDefaultDropAction(Qt.MoveAction)
-        self.tree_view.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.tree_view.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.tree_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.tree_view.setDragEnabled(True)
         self.tree_view.setAcceptDrops(True)
         self.tree_view.setDropIndicatorShown(True)
         self.tree_view.setHeaderHidden(False)
-        self.tree_view.setModel(ImportTreeModelProxy(self.tree_model))
-        self.tree_view.selectionModel().selectionChanged.connect(self._on_tree_selection_changed)
+        self.tree_proxy = ImportTreeModelProxy(self.tree_model)
+        self.tree_view.setModel(self.tree_proxy)
+        selection_model = self.tree_view.selectionModel()
+        if selection_model is not None:
+            selection_model.selectionChanged.connect(self._on_tree_selection_changed)
 
         left_layout.addWidget(QLabel(self.tr("Planned Documents")))
         left_layout.addWidget(self.tree_view)
@@ -248,12 +293,8 @@ class GuiImportReview:
         self.splitter.addWidget(right_widget)
         self.splitter.setSizes([300, 500, 300])
 
-        # Main layout
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.splitter)
-
         # Buttons
-        button_box = QDialogButtonBox()
+        button_box = QDialogButtonBox(self)
         self.btn_commit = QPushButton(self.tr("Commit Import"))
         self.btn_commit.setEnabled(False)
         self.btn_commit.clicked.connect(self._on_commit)
@@ -268,7 +309,6 @@ class GuiImportReview:
         self.btn_cancel.clicked.connect(self.reject)
         button_box.addButton(self.btn_cancel, QtRoleReject)
 
-        self.addLayout(self.outerBox)
         self.outerBox.addWidget(self.splitter)
         self.outerBox.addWidget(button_box)
 
@@ -278,7 +318,7 @@ class GuiImportReview:
         widget = QWidget()
         layout = QVBoxLayout(widget)
         self.findings_list = QListWidget()
-        self.findings_list.setSelectionMode(QAbstractItemView.NoSelection)
+        self.findings_list.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         layout.addWidget(self.findings_list)
         return widget
 
@@ -286,7 +326,7 @@ class GuiImportReview:
         widget = QWidget()
         layout = QVBoxLayout(widget)
         self.characters_list = QListWidget()
-        self.characters_list.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.characters_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         layout.addWidget(self.characters_list)
         return widget
 
@@ -294,7 +334,7 @@ class GuiImportReview:
         widget = QWidget()
         layout = QVBoxLayout(widget)
         self.metadata_list = QListWidget()
-        self.metadata_list.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.metadata_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         layout.addWidget(self.metadata_list)
         return widget
 
@@ -302,7 +342,7 @@ class GuiImportReview:
         widget = QWidget()
         layout = QVBoxLayout(widget)
         self.page_types_list = QListWidget()
-        self.page_types_list.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.page_types_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         layout.addWidget(self.page_types_list)
         return widget
 
@@ -330,15 +370,19 @@ class GuiImportReview:
 
     def _rebuild_tree(self) -> None:
         """Rebuild the tree view from the model."""
-        # Implementation would build QStandardItemModel or similar
+        self.tree_model.rebuild()
 
     def _refresh_findings(self) -> None:
         self.findings_list.clear()
         for finding in self.model.findings:
             item = QListWidgetItem(finding)
-            if finding.startswith(("ingestNoHeadings:", "ingestEmptyScene:",
-                                   "ingestLostFeature:", "ingestImageFailed:",
-                                   "ingestFootnoteUnmapped:")):
+            if finding.startswith((
+                "ingestNoHeadings:",
+                "ingestEmptyScene:",
+                "ingestLostFeature:",
+                "ingestImageFailed:",
+                "ingestFootnoteUnmapped:",
+            )):
                 item.setForeground(QColor("red"))
             elif finding.startswith("ingestUnknownStyle:"):
                 item.setForeground(QColor("orange"))
@@ -351,26 +395,29 @@ class GuiImportReview:
             if char.examples:
                 text += f" — {', '.join(char.examples[:2])}"
             item = QListWidgetItem(text)
-            item.setData(Qt.UserRole, char)
+            item.setData(QtUserRole, char)
             self.characters_list.addItem(item)
 
     def _refresh_metadata(self) -> None:
         self.metadata_list.clear()
         for meta in self.model.metadata:
             item = QListWidgetItem(f"{meta.key}: {meta.value}")
-            item.setData(Qt.UserRole, meta)
+            item.setData(QtUserRole, meta)
             self.metadata_list.addItem(item)
 
     def _refresh_page_types(self) -> None:
         self.page_types_list.clear()
         for pt in self.model.page_types:
             item = QListWidgetItem(f"{pt.plan_id}: {pt.page_type}")
-            item.setData(Qt.UserRole, pt)
+            item.setData(QtUserRole, pt)
             self.page_types_list.addItem(item)
 
     def _on_tree_selection_changed(self) -> None:
         """Handle tree selection change."""
-        indexes = self.tree_view.selectionModel().selectedIndexes()
+        selection_model = self.tree_view.selectionModel()
+        if selection_model is None:
+            return
+        indexes = selection_model.selectedIndexes()
         if indexes:
             index = indexes[0]
             plan_id = index.data(DOC_PLAN_ID_ROLE)
@@ -408,13 +455,16 @@ class GuiImportReview:
     def _on_commit(self) -> None:
         """Commit the import."""
         # Check gates
-        scope = ...  # Would need proper gate scope
-        report = requireGates(OP_IMPORT_COMMIT, scope)
+        scope = GateScope(project=self.project, options={"importPlan": self.plan.to_dict()})
+        report = runGates(OP_IMPORT_COMMIT, scope)
         if report.blocked:
-            QMessageBox.warning(self, self.tr("Commit Blocked"),
-                                self.tr("Cannot commit: {0}").format("; ".join(
-                                    [f.message for f in report.findings if f.severity == "block"]
-                                )))
+            QMessageBox.warning(
+                self,
+                self.tr("Commit Blocked"),
+                self.tr("Cannot commit: {0}").format(
+                    "; ".join([f.message for f in report.findings if f.severity == "block"])
+                ),
+            )
             return
 
         # Perform commit
@@ -439,23 +489,28 @@ class GuiImportReview:
             "createdNotes": [],
         }
 
+        project_path = self.project.storage.storagePath
+        if project_path is None:
+            logger.error("Cannot commit import: project storage path is not set")
+            return
+
         # Write undo record
-        undo_file = cacheDir(self.project.storage.storagePath) / "import" / f"{self.plan.run_id}.undo.json"
+        undo_file = cacheDir(project_path) / "import" / f"{self.plan.run_id}.undo.json"
         undo_file.parent.mkdir(parents=True, exist_ok=True)
         with open(undo_file, "w", encoding="utf-8") as f:
             json.dump(undo_record, f, separators=(",", ":"), sort_keys=True)
             f.write("\n")
 
         # Update plan status
-        self.plan.status = "committed"
+        self.plan = replace(self.plan, status="committed")
 
         # Record ingest run
         record_ingest_run(
-            self.project.storage.storagePath,
+            project_path,
             self.plan.run_id,
             str(self.plan.source["file"]),
-            self.plan.source["sha256"],
-            self.plan.source["pandoc"],
+            str(self.plan.source["sha256"]),
+            str(self.plan.source["pandoc"]),
             self.plan.run_id,
         )
 
@@ -465,10 +520,13 @@ class GuiImportReview:
     def _on_undo(self) -> None:
         """Undo the import."""
         # Read undo record and remove created items
-        undo_file = cacheDir(self.project.storage.storagePath) / "import" / f"{self.plan.run_id}.undo.json"
+        project_path = self.project.storage.storagePath
+        if project_path is None:
+            logger.error("Cannot undo import: project storage path is not set")
+            return
+        undo_file = cacheDir(project_path) / "import" / f"{self.plan.run_id}.undo.json"
         if not undo_file.is_file():
-            QMessageBox.warning(self, self.tr("Undo Failed"),
-                                self.tr("No undo record found."))
+            QMessageBox.warning(self, self.tr("Undo Failed"), self.tr("No undo record found."))
             return
 
         with open(undo_file, encoding="utf-8") as f:
@@ -478,12 +536,12 @@ class GuiImportReview:
         # If any changed, warn and list what changed
         # Remove created items
 
-        self.plan.status = "rolled_back"
+        self.plan = replace(self.plan, status="rolled_back")
         self.accept()
 
     def reject(self) -> None:
         """Cancel the import."""
-        self.plan.status = "cancelled"
+        self.plan = replace(self.plan, status="cancelled")
         super().reject()
 
     def data(self) -> tuple[ImportPlan, bool]:
@@ -491,7 +549,7 @@ class GuiImportReview:
         return self.plan, self.result() == QtAccepted
 
     @classmethod
-    def getPlan(cls, parent: Any, project: Any, plan: ImportPlan) -> tuple[ImportPlan, bool]:
+    def getPlan(cls, parent: Optional[QWidget], project: NWProject, plan: ImportPlan) -> tuple[ImportPlan, bool]:
         """Show the dialog and return the plan."""
         dialog = cls(parent, project, plan)
         dialog.exec()
@@ -506,12 +564,12 @@ class ImportTreeModelProxy(QSortFilterProxyModel):
     def __init__(self, source_model: ImportTreeModel) -> None:
         super().__init__()
         self.setSourceModel(source_model)
-        self.setSortRole(Qt.DisplayRole)
+        self.setSortRole(Qt.ItemDataRole.DisplayRole)
         self.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
 
 
 # Factory function
-def importReviewDialog(parent: Any, project: Any, plan: ImportPlan) -> tuple[ImportPlan, bool]:
+def importReviewDialog(parent: Optional[QWidget], project: NWProject, plan: ImportPlan) -> tuple[ImportPlan, bool]:
     """Show the import review dialog and return the plan and acceptance status."""
     dialog = GuiImportReview(parent, project, plan)
     dialog.exec()

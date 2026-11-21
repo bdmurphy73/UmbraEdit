@@ -62,7 +62,7 @@ SMART_QUOTES = {
 # Non-breaking space and soft hyphen
 SPECIAL_CHARS = {
     "\u00a0": " ",  # Non-breaking space
-    "\u00ad": "",   # Soft hyphen
+    "\u00ad": "",  # Soft hyphen
 }
 
 
@@ -94,6 +94,7 @@ def _convert_formatting(text: str) -> str:
 
 def _convert_footnotes(text: str, footnotes: dict[str, str]) -> str:
     """Convert [FOOTNOTE:id] markers to novelWriter footnote syntax."""
+
     def replace_fn(match: re.Match) -> str:
         fn_id = match.group(1)
         fn_text = footnotes.get(fn_id, f"[footnote {fn_id} not found]")
@@ -105,6 +106,7 @@ def _convert_footnotes(text: str, footnotes: dict[str, str]) -> str:
 
 def _convert_comments(text: str, comments: dict[str, dict[str, Any]]) -> str:
     """Convert [COMMENT:id] markers to comment lines."""
+
     def replace_cmt(match: re.Match) -> str:
         cmt_id = match.group(1)
         cmt = comments.get(cmt_id, {})
@@ -117,6 +119,7 @@ def _convert_comments(text: str, comments: dict[str, dict[str, Any]]) -> str:
 
 def _convert_images(text: str, images: list[dict[str, Any]]) -> str:
     """Convert [IMAGE:rid] markers to [image:...] lines."""
+
     def replace_img(match: re.Match) -> str:
         rid = match.group(1)
         # Find image info

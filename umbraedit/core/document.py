@@ -29,7 +29,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, TextIO, Optional, Union
+from typing import TYPE_CHECKING, Optional, TextIO, Union
 
 from umbraedit import CONFIG
 from umbraedit.common import formatTimeStamp, isHandle, safeExists, safeIsFile, stripUnsafe
@@ -227,6 +227,7 @@ class ProjectDocument:
         self._lastHash = hashlib.sha1(text.encode()).hexdigest()
 
         from umbraedit.umbra import hooks as _umbraHooks
+
         _umbraHooks.call(_umbraHooks.DOCUMENT_LOADING, self._handle, text)
         return stripUnsafe(text)
 
@@ -308,6 +309,7 @@ class ProjectDocument:
         # If we're here, the file was successfully saved, so we can
         # notify listeners before replacing the temp file with the actual file
         from umbraedit.umbra import hooks as _umbraHooks
+
         _umbraHooks.call(_umbraHooks.DOCUMENT_PRE_SAVE, self._handle, str(docPath))
 
         try:

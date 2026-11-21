@@ -9,22 +9,22 @@ Status: core logic implemented (Qt-free). GUI pieces (export dialog, editor cues
 ```python
 @dataclass
 class Utterance:
-    id: str              # u-<handle>-<para 4 digits>-<k>
-    handle: str          # document handle
-    para: int            # zero-based paragraph index
-    kind: str            # "dialogue", "narration", "attribution", "thought"
-    speaker: str         # tag, "narrator", "~label", or "unknown"
-    text: str            # utterance text (shortcodes stripped)
-    joinAfter: str       # trailing whitespace + next segment's leading whitespace
-    tone: str            # tone key ("neutral" if none)
-    toneI: int           # intensity (1-3, default 2)
-    lang: str            # BCP 47 language code, "" if none
-    src: str             # "author" or "machine"
-    skip: str | None     # None or "attribution"
-    attribution: bool    # True if this is an attribution span
-    voice: str | None    # voice matrix code, or None
-    pron: list[dict]     # pronunciation spans from P07
-    hash: str            # SHA-256 of kind|speaker|text|tone|toneI|lang|voice|pron
+    id: str  # u-<handle>-<para 4 digits>-<k>
+    handle: str  # document handle
+    para: int  # zero-based paragraph index
+    kind: str  # "dialogue", "narration", "attribution", "thought"
+    speaker: str  # tag, "narrator", "~label", or "unknown"
+    text: str  # utterance text (shortcodes stripped)
+    joinAfter: str  # trailing whitespace + next segment's leading whitespace
+    tone: str  # tone key ("neutral" if none)
+    toneI: int  # intensity (1-3, default 2)
+    lang: str  # BCP 47 language code, "" if none
+    src: str  # "author" or "machine"
+    skip: str | None  # None or "attribution"
+    attribution: bool  # True if this is an attribution span
+    voice: str | None  # voice matrix code, or None
+    pron: list[dict]  # pronunciation spans from P07
+    hash: str  # SHA-256 of kind|speaker|text|tone|toneI|lang|voice|pron
 ```
 
 ### Public Functions

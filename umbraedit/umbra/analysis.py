@@ -33,6 +33,7 @@ from typing import Any, Optional, Union
 import httpx
 import jsonschema
 
+from umbraedit.umbra.guide import chapterOf
 from umbraedit.umbra.metadata import Metadata, loadMetadata
 from umbraedit.umbra.paths import promptsDir
 from umbraedit.umbra.settings import umbraSettings
@@ -183,12 +184,13 @@ class AnalysisGenerator:
         """Build chapter text with paragraph numbering and voice data."""
         # Get chapter documents
 
-        chapter_ref = self.chapterOf(chapter_handle)
-        if not chapter_ref:
+        chapter_ref = chapterOf(chapter_handle, self.project)
+        handles = chapter_ref.handles if chapter_ref is not None else [chapter_handle]
+        if not self.content_path:
             return "", []
 
         paragraphs = []
-        for handle in chapter_ref.handles:
+        for handle in handles:
             doc_file = self.content_path / f"{handle}.md"
             if not doc_file.is_file():
                 continue
@@ -198,8 +200,8 @@ class AnalysisGenerator:
                 if unit.kind == UnitKind.PARAGRAPH:
                     voice_info = ""
                     if unit.voice:
-                        voice_info = f" (speaker: {unit.voice.speaker}, tone: {unit.voice.tone}:{unit.voice.intensity})"
-                    paragraphs.append((len(paragraphs), unit.text, voice_info))
+                        voice_info = f" (speaker: {unit.voice.spk or ''}, tone: {unit.voice.tone or ''})"
+                    paragraphs.append((len(paragraphs), "\n".join(unit.lines), voice_info))
 
         # Build text with numbered paragraphs
         text_parts = []
@@ -297,7 +299,7 @@ class AnalysisGenerator:
         self._get_settings()
 
         # Load metadata
-        loadMetadata(self.storage_path)
+        metadata = loadMetadata(self.storage_path)
 
         # Check if endpoint is configured
         if not umbraSettings.getStr("analysis.endpoint"):
@@ -316,19 +318,19 @@ class AnalysisGenerator:
         umbraSettings.getInt("analysis.contextTokens")
 
         # Chunk if needed
-        chunks = self._chunk_chapter("", [], umbraSettings.getInt("analysis.contextTokens"))
+        chunks = self._chunk_chapter(chapter_text, _para_data, umbraSettings.getInt("analysis.contextTokens"))
         if len(chunks) > 1:
             logger.info("Chapter split into %d chunks", len(chunks))
 
         # Build prompt
-        style_guide = self._get_style_guide({})
-        characters = self._get_characters(chapter_handle, {})
-        previous_summary = self._get_previous_summary(chapter_handle, {})
+        style_guide = self._get_style_guide(metadata)
+        characters = self._get_characters(chapter_handle, metadata)
+        previous_summary = self._get_previous_summary(chapter_handle, metadata)
 
         prompt = self._build_prompt(
             chapter_title=chapter_title,
             chapter_text=chapter_text,
-            metadata={},
+            metadata=metadata,
             previous_summary=previous_summary,
             style_guide=style_guide,
             characters=characters,
@@ -346,6 +348,7 @@ class AnalysisGenerator:
         )
 
         # Try up to 2 times
+        response_text: Optional[str] = None
         for attempt in range(2):
             response_text = self._call_endpoint(
                 prompt,

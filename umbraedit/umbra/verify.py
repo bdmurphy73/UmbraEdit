@@ -27,18 +27,15 @@ import hashlib
 import logging
 
 from dataclasses import dataclass
+from datetime import timezone
 from pathlib import Path  # noqa: TC003
 from typing import Optional, Union
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
 
 from umbraedit.common import writeTextFile
 from umbraedit.umbra.paths import historyDir, lostFoundDir
 from umbraedit.umbra.voiceline import parseVoiceLine
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 

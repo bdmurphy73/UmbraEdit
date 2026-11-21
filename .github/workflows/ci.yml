@@ -18,23 +18,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install UV and Python
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.11"
+          enable-cache: true
 
-      - name: Install ruff and pyright
+      - name: Install Dependencies
+        # The lock file is the single source of truth for the versions of
+        # ruff and pyright, so that this job and the Syntax workflow always
+        # agree on the formatting and the type checking rules.
         run: |
-          pip install ruff pyright
+          uv sync --no-dev --group lint --group test
 
       - name: Run ruff check
-        run: ruff check .
+        run: uv run --no-sync ruff check .
 
       - name: Run ruff format check
-        run: ruff format --check .
+        run: uv run --no-sync ruff format --check .
 
       - name: Run pyright
-        run: pyright
+        run: uv run --no-sync pyright
 
   test:
     name: Test (${{ matrix.os }} / Python ${{ matrix.python-version }})
@@ -67,8 +71,9 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install pyqt6>=6.4 pyenchant>=3.3.0 jsonschema>=4.26.0 python-docx>=1.1.0 lxml>=5.0.0 httpx>=0.28.0 pillow>=13.0.0
-          pip install pytest>=6.0.0 pytest-qt pytest-timeout coverage tzdata
+          pip install "pyqt6>=6.4,!=6.12.1" "pyenchant>=3.3.0" "jsonschema>=4.26.0" "python-docx>=1.1.0" "lxml>=5.0.0" "httpx>=0.28.0" "pillow>=13.0.0"
+          pip install "fastapi>=0.115" "uvicorn>=0.34"
+          pip install "pytest>=6.0.0" pytest-qt pytest-timeout coverage tzdata
 
       - name: Run tests
         env:
@@ -102,8 +107,9 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install pyqt6>=6.4 pyenchant>=3.3.0 jsonschema>=4.26.0 python-docx>=1.1.0 lxml>=5.0.0 httpx>=0.28.0 pillow>=13.0.0
-          pip install pytest>=6.0.0 pytest-qt pytest-timeout coverage tzdata
+          pip install "pyqt6>=6.4,!=6.12.1" "pyenchant>=3.3.0" "jsonschema>=4.26.0" "python-docx>=1.1.0" "lxml>=5.0.0" "httpx>=0.28.0" "pillow>=13.0.0"
+          pip install "fastapi>=0.115" "uvicorn>=0.34"
+          pip install "pytest>=6.0.0" pytest-qt pytest-timeout coverage tzdata
 
       - name: Run tests with coverage
         env:

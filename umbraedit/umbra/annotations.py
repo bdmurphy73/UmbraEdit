@@ -29,13 +29,7 @@ import os
 import time
 
 from dataclasses import dataclass, field
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.paths import cacheDir
@@ -43,6 +37,8 @@ from umbraedit.umbra.paths import cacheDir
 if TYPE_CHECKING:  # pragma: no cover
     from collections.abc import Iterable
     from pathlib import Path
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 

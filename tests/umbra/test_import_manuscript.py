@@ -111,7 +111,9 @@ class TestProjectLifecycle:
         nrHandle = project.newRoot(nwItemClass.NOVEL)
 
         chHandle = project.newFile("Chapter 1", nrHandle)
+        assert chHandle is not None
         scHandle = project.newFile("Scene 1.1", chHandle)
+        assert scHandle is not None
 
         assert chHandle != ""
         assert scHandle != ""
@@ -130,6 +132,7 @@ class TestProjectLifecycle:
 
         nrHandle = project.newRoot(nwItemClass.NOVEL)
         chHandle = project.newFile("Chapter 1", nrHandle)
+        assert chHandle is not None
 
         doc = project.storage.getDocument(chHandle)
         doc.writeDocument("## Chapter 1\n\nThis is test content.\n")
@@ -166,7 +169,9 @@ class TestProjectLifecycle:
 
         crHandle = project.newRoot(nwItemClass.CHARACTER)
         cfHandle = project.newFolder("Characters", crHandle)
+        assert cfHandle is not None
         chHandle = project.newFile("Jane Smith", cfHandle)
+        assert chHandle is not None
 
         assert chHandle != ""
 
@@ -188,6 +193,7 @@ class TestProjectLifecycle:
 
         wrHandle = project.newRoot(nwItemClass.WORLD)
         wHandle = project.newFile("Earth", wrHandle)
+        assert wHandle is not None
 
         assert wHandle != ""
 
@@ -208,7 +214,9 @@ class TestProjectLifecycle:
 
         nrHandle = project.newRoot(nwItemClass.NOVEL)
         chHandle = project.newFile("Chapter 1", nrHandle)
+        assert chHandle is not None
         scHandle = project.newFile("Scene 1", chHandle)
+        assert scHandle is not None
 
         doc = project.storage.getDocument(scHandle)
         doc.writeDocument(

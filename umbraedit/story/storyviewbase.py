@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from enum import Enum
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import QEvent, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (

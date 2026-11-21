@@ -21,12 +21,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import logging
 
 from enum import Enum
 from time import time
+from typing import Optional
 
 from PyQt6.QtCore import QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QPalette

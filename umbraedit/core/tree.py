@@ -26,7 +26,7 @@ import logging
 import random
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, overload, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union, overload
 
 from PyQt6.QtCore import QModelIndex
 

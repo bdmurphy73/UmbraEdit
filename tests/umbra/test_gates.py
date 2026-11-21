@@ -31,6 +31,7 @@ from umbraedit.umbra.gates import (
 def _cleanGates():
     """Save and restore the gates registry around each test."""
     from umbraedit.umbra import gates as gatesMod
+
     saved = dict(gatesMod._gates)
     yield
     gatesMod._gates.clear()
@@ -51,18 +52,23 @@ def _makeRule(ruleId: str, severity: str, findings: list[Finding] | None = None,
 
 def _makeFinding(ruleId: str, severity: str) -> Finding:
     return Finding(
-        ruleId=ruleId, severity=severity,
-        message=f"Test {ruleId}", fix=f"Fix {ruleId}",
+        ruleId=ruleId,
+        severity=severity,
+        message=f"Test {ruleId}",
+        fix=f"Fix {ruleId}",
     )
 
 
 # R1: registerGate, runGates, requireGates
 
+
 def test_umbra_gates_R1_registerGate():
     """R1: registerGate accepts a new rule."""
     rule = _makeRule("test.rule", "advisory")
     registerGate(rule)
-    assert rule.ruleId in {r.ruleId for r in __import__("umbraedit.umbra.gates", fromlist=["registeredGates"]).registeredGates()}
+    assert rule.ruleId in {
+        r.ruleId for r in __import__("umbraedit.umbra.gates", fromlist=["registeredGates"]).registeredGates()
+    }
 
 
 def test_umbra_gates_A4_duplicateRuleId():
@@ -108,16 +114,23 @@ def test_umbra_gates_R1_requireGates_passes():
 
 # R2: Raising rule produces gateRuleFailed
 
+
 def test_umbra_gates_A2_raisingRule():
     """A2: A rule that raises produces a gateRuleFailed block finding."""
+
     def badCheck(scope):
         raise RuntimeError("Simulated bug in gate rule")
 
-    registerGate(GateRule(
-        ruleId="buggy.rule", title="Buggy",
-        operations=frozenset({OP_BUILD_RUN}),
-        defaultSeverity="advisory", relaxable=True, check=badCheck,
-    ))
+    registerGate(
+        GateRule(
+            ruleId="buggy.rule",
+            title="Buggy",
+            operations=frozenset({OP_BUILD_RUN}),
+            defaultSeverity="advisory",
+            relaxable=True,
+            check=badCheck,
+        )
+    )
     scope = GateScope(project=None)
     report = runGates(OP_BUILD_RUN, scope)
     assert report.blocked
@@ -125,6 +138,7 @@ def test_umbra_gates_A2_raisingRule():
 
 
 # R3: GateScope
+
 
 def test_umbra_gates_R3_gateScope():
     """R3: GateScope holds project, handles, edition, and options."""
@@ -136,12 +150,14 @@ def test_umbra_gates_R3_gateScope():
 
 # R4: Advisory rules can be relaxed
 
+
 def test_umbra_gates_A3_relaxAdvisory():
     """A3: An advisory rule listed as relaxed gives no finding."""
 
     class FakeSettings:
         def __init__(self, relaxMap):
             self._relax = relaxMap
+
         def getBool(self, key, default=False):
             return self._relax.get(key, default)
 
@@ -160,6 +176,7 @@ def test_umbra_gates_A3_blockCannotRelax():
     class FakeSettings:
         def __init__(self, relaxMap):
             self._relax = relaxMap
+
         def getBool(self, key, default=False):
             return self._relax.get(key, default)
 
@@ -173,14 +190,17 @@ def test_umbra_gates_A3_blockCannotRelax():
 
 # R7: Built-in rules
 
+
 def test_umbra_gates_R7_builtinRulesRegistered():
     """R7: Built-in rules emptyDocumentIncluded and unknownReferenceTag are registered."""
     from umbraedit.umbra.gates import getGate
+
     assert getGate("emptyDocumentIncluded") is not None
     assert getGate("unknownReferenceTag") is not None
 
 
 # R8: JSON report schema
+
 
 def test_umbra_gates_R8_reportSchema():
     """R8: Report JSON has the correct schema keys."""
@@ -201,6 +221,7 @@ def test_umbra_gates_R8_saveReport(tmp_path: Path):
     assert savedPath == tmp_path / "umbra" / "cache" / "gate-report.json"
     assert savedPath.is_file()
     import json
+
     data = json.loads(savedPath.read_text(encoding="utf-8"))
     assert data["v"] == 1
 

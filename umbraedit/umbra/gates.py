@@ -29,13 +29,7 @@ import json
 import logging
 
 from dataclasses import dataclass, field, replace
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.common import writeTextFile
@@ -61,9 +55,17 @@ OP_AUDIO_BOOK = "audio.book"
 OP_TRANSLATION_EXPORT = "translation.export"
 
 ALL_OPERATIONS = frozenset({
-    OP_EDIT_SAVE, OP_SYNC_PUSH, OP_BACKUP_ROTATE, OP_IMPORT_COMMIT,
-    OP_BUILD_RUN, OP_PREVIEW_BUILD, OP_PUBLISH_PACKAGE, OP_PUBLISH_HANDOFF,
-    OP_AUDIO_CHAPTER, OP_AUDIO_BOOK, OP_TRANSLATION_EXPORT,
+    OP_EDIT_SAVE,
+    OP_SYNC_PUSH,
+    OP_BACKUP_ROTATE,
+    OP_IMPORT_COMMIT,
+    OP_BUILD_RUN,
+    OP_PREVIEW_BUILD,
+    OP_PUBLISH_PACKAGE,
+    OP_PUBLISH_HANDOFF,
+    OP_AUDIO_CHAPTER,
+    OP_AUDIO_BOOK,
+    OP_TRANSLATION_EXPORT,
 })
 
 
@@ -149,8 +151,13 @@ def _runSingleRule(rule: GateRule, scope: GateScope, settings: Any) -> list[Find
         findings = list(rule.check(scope))
         return [
             Finding(
-                ruleId=f.ruleId, severity=severity, message=f.message,
-                fix=f.fix, handle=f.handle, line=f.line, detail=f.detail,
+                ruleId=f.ruleId,
+                severity=severity,
+                message=f.message,
+                fix=f.fix,
+                handle=f.handle,
+                line=f.line,
+                detail=f.detail,
             )
             for f in findings
         ]
@@ -158,10 +165,12 @@ def _runSingleRule(rule: GateRule, scope: GateScope, settings: Any) -> list[Find
         logger.exception("Gate rule '%s' raised an exception", rule.ruleId)
         return [
             Finding(
-                ruleId="gateRuleFailed", severity="block",
+                ruleId="gateRuleFailed",
+                severity="block",
                 message=f"Gate rule '{rule.ruleId}' failed: {exc}",
                 fix="Report this as a bug.",
-                handle=None, line=None,
+                handle=None,
+                line=None,
                 detail={"failedRule": rule.ruleId, "error": str(exc)},
             )
         ]
@@ -188,11 +197,20 @@ def requireGates(operation: str, scope: GateScope, settings: Optional[Any] = Non
 
 def reportToJson(report: GateReport) -> dict:
     return {
-        "v": 1, "operation": report.operation, "blocked": report.blocked,
+        "v": 1,
+        "operation": report.operation,
+        "blocked": report.blocked,
         "ranAt": report.ranAt,
         "findings": [
-            {"ruleId": f.ruleId, "severity": f.severity, "message": f.message,
-             "fix": f.fix, "handle": f.handle, "line": f.line, "detail": f.detail}
+            {
+                "ruleId": f.ruleId,
+                "severity": f.severity,
+                "message": f.message,
+                "fix": f.fix,
+                "handle": f.handle,
+                "line": f.line,
+                "detail": f.detail,
+            }
             for f in report.findings
         ],
     }
@@ -200,6 +218,7 @@ def reportToJson(report: GateReport) -> dict:
 
 def saveReport(report: GateReport, projectPath: Path) -> Path:
     from umbraedit.umbra.paths import cacheDir
+
     cachePath = cacheDir(projectPath)
     reportPath = cachePath / "gate-report.json"
     data = reportToJson(report)
@@ -228,10 +247,12 @@ def _checkEmptyDocumentIncluded(scope: GateScope) -> Iterable[Finding]:
             body = parts[2] if len(parts) >= 3 else content
             if not body.strip():
                 yield Finding(
-                    ruleId="emptyDocumentIncluded", severity="advisory",
+                    ruleId="emptyDocumentIncluded",
+                    severity="advisory",
                     message=f"Document '{item.itemName}' is included in the build but has no text.",
                     fix="Add text to the document or exclude it from the build.",
-                    handle=item.itemHandle, line=None,
+                    handle=item.itemHandle,
+                    line=None,
                     detail={"itemName": item.itemName},
                 )
 
@@ -257,25 +278,37 @@ def _checkUnknownReferenceTag(scope: GateScope) -> Iterable[Finding]:
                     itemName = item_.itemName if item_ else tHandle
                     keywords = ", ".join(keywordClasses)
                     yield Finding(
-                        ruleId="unknownReferenceTag", severity="block",
+                        ruleId="unknownReferenceTag",
+                        severity="block",
                         message=f"'{keywords}' in '{itemName}' references tag '{tagName}' which does not exist.",
                         fix="Create the referenced note or remove the reference.",
-                        handle=tHandle, line=heading.line,
+                        handle=tHandle,
+                        line=heading.line,
                         detail={"tagName": tagName, "keywords": list(keywordClasses)},
                     )
 
 
-registerGate(GateRule(
-    ruleId="emptyDocumentIncluded", title="Empty Document Included",
-    operations=frozenset({OP_BUILD_RUN, OP_PREVIEW_BUILD}),
-    defaultSeverity="advisory", relaxable=True, check=_checkEmptyDocumentIncluded,
-))
+registerGate(
+    GateRule(
+        ruleId="emptyDocumentIncluded",
+        title="Empty Document Included",
+        operations=frozenset({OP_BUILD_RUN, OP_PREVIEW_BUILD}),
+        defaultSeverity="advisory",
+        relaxable=True,
+        check=_checkEmptyDocumentIncluded,
+    )
+)
 
-registerGate(GateRule(
-    ruleId="unknownReferenceTag", title="Unknown Reference Tag",
-    operations=frozenset({OP_BUILD_RUN, OP_PREVIEW_BUILD}),
-    defaultSeverity="block", relaxable=False, check=_checkUnknownReferenceTag,
-))
+registerGate(
+    GateRule(
+        ruleId="unknownReferenceTag",
+        title="Unknown Reference Tag",
+        operations=frozenset({OP_BUILD_RUN, OP_PREVIEW_BUILD}),
+        defaultSeverity="block",
+        relaxable=False,
+        check=_checkUnknownReferenceTag,
+    )
+)
 
 # UmbraEdit (P06/P07/P08/P11/P14/P18/P19/P20/P21/P22/P23/P24/P25/P26/P27/P29/P30/P31/P32): feature gate rules. Imported last so the built-in
 # rules above are registered first; the feature modules import this one.
@@ -303,3 +336,5 @@ from umbraedit.umbra import (
     voicematrixgates,  # noqa: F401
 )
 from umbraedit.umbra.sync import gates as syncgates  # noqa: F401
+
+UTC = timezone.utc

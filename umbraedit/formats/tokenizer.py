@@ -27,7 +27,7 @@ import re
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import TYPE_CHECKING, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, NamedTuple, Optional
 
 from PyQt6.QtCore import QLocale
 from PyQt6.QtGui import QColor, QFont
@@ -51,7 +51,6 @@ from umbraedit.text.formats import processComment
 from umbraedit.text.patterns import REGEX_PATTERNS, DialogParser
 
 if TYPE_CHECKING:
-
     from pathlib import Path
 
     from umbraedit.core.project import NWProject
@@ -683,11 +682,11 @@ class Tokenizer(ABC):
         if self._keepRaw:
             self._raw.append(f"{self._text.rstrip()}\n\n")
         from umbraedit.umbra import hooks as _umbraHooks
-        self._text = "\n".join(
-            filter(None, _umbraHooks.call(
-                _umbraHooks.TOKENIZER_PREPROCESS, self._handle, self._text
-            ))
-        ) or self._text
+
+        self._text = (
+            "\n".join(filter(None, _umbraHooks.call(_umbraHooks.TOKENIZER_PREPROCESS, self._handle, self._text)))
+            or self._text
+        )
 
         # Strip review annotation marks for export (R1)
         # [mark:an-XXXXXX]...[/mark] -> keep text, drop tags

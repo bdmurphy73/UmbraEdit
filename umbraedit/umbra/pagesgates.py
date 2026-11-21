@@ -94,6 +94,7 @@ def _pageFieldEmptyFindings(scope: Any) -> Iterable[Finding]:
         return
 
     from umbraedit.umbra.metadata import loadMetadata
+
     metadata = loadMetadata(storagePath)
     enabled_formats = [fmt for fmt, config in metadata.formats.items() if config.get("enabled", False)]
 
@@ -178,6 +179,7 @@ def _pageVariantMissingFindings(scope: Any) -> Iterable[Finding]:
         return
 
     from umbraedit.umbra.metadata import loadMetadata
+
     metadata = loadMetadata(storagePath)
     enabled_formats = [fmt for fmt, config in metadata.formats.items() if config.get("enabled", False)]
 

@@ -26,7 +26,7 @@ import logging
 
 from configparser import ConfigParser
 from enum import Enum
-from typing import TYPE_CHECKING, TypeVar, Optional, Union
+from typing import TYPE_CHECKING, Optional, TypeVar
 
 from umbraedit.common import checkInt, checkPath
 

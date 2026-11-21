@@ -14,10 +14,13 @@ format `<feature>.<name>`.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import settingsFile
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 SettingType = Literal["bool", "str", "int"]
 
@@ -80,7 +83,10 @@ class UmbraSettings:
         """Get the raw value for a key, checking project first, then app."""
         if self._projectPath is not None and key in self._projValues:
             return self._projValues[key]
-        return self._appValues.get(key, self._declared.get(key).default if key in self._declared else None)
+        if key in self._appValues:
+            return self._appValues[key]
+        declared = self._declared.get(key)
+        return declared.default if declared is not None else None
 
     ##
     #  Setters
@@ -112,6 +118,7 @@ class UmbraSettings:
         if self._projectPath is not None:
             writeJson(settingsFile(self._projectPath), self._projValues)
             from umbraedit.umbra import hooks as _umbraHooks
+
             _umbraHooks.call(_umbraHooks.SIDECAR_WRITTEN, settingsFile(self._projectPath))
 
     ##
@@ -148,13 +155,17 @@ def _declareSyncSettings() -> None:
 # Declare token settings (P18)
 def _declareTokenSettings() -> None:
     """Declare token-related settings."""
-    umbraSettings.declare("tokens.createAutomatically", "bool", True, "Automatically create character notes for unresolved slots")
+    umbraSettings.declare(
+        "tokens.createAutomatically", "bool", True, "Automatically create character notes for unresolved slots"
+    )
 
 
 # Declare analysis settings (P23)
 def _declareAnalysisSettings() -> None:
     """Declare analysis-related settings."""
-    umbraSettings.declare("analysis.endpoint", "str", "http://127.0.0.1:11434", "Local model endpoint (Ollama/LM Studio)")
+    umbraSettings.declare(
+        "analysis.endpoint", "str", "http://127.0.0.1:11434", "Local model endpoint (Ollama/LM Studio)"
+    )
     umbraSettings.declare("analysis.model", "str", "", "Model name for analysis")
     umbraSettings.declare("analysis.temperature", "str", "0.2", "Temperature for generation")
     umbraSettings.declare("analysis.contextTokens", "int", 8192, "Context token budget")

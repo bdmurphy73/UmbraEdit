@@ -25,15 +25,9 @@ from __future__ import annotations
 import logging
 import xml.etree.ElementTree as ET
 
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Final, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, Final, NamedTuple, Optional
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from umbraedit.common import xmlElement, xmlIndent, xmlSubElem
@@ -46,6 +40,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from umbraedit.core.project import NWProject
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 

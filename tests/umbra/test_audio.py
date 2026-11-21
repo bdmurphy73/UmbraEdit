@@ -27,6 +27,15 @@ class TestAudioManifest:
 
     def test_audio_manifest_creation(self):
         """Test AudioManifest creation."""
+        voices = [
+            {
+                "code": "vm-abc123",
+                "label": "Test Voice",
+                "engine": "xtts-v2",
+                "languages": ["en"],
+                "used_by": [],
+            }
+        ]
         manifest = AudioManifest(
             book="Test Book",
             edition="ed-en",
@@ -45,13 +54,13 @@ class TestAudioManifest:
                 }
             ],
             matter={"opening": "matter/opening.jsonl", "closing": "matter/closing.jsonl"},
-            voices=["vm-abc123"],
+            voices=voices,
             lexicon="lexicon.en.pls",
         )
         assert manifest.book == "Test Book"
         assert manifest.edition == "ed-en"
         assert len(manifest.chapters) == 1
-        assert manifest.voices == ["vm-abc123"]
+        assert manifest.voices == voices
 
     def test_audio_manifest_to_dict(self):
         """Test AudioManifest to_dict conversion."""
@@ -151,6 +160,15 @@ class TestAudioManifestSchema:
 
     def test_manifest_json_structure(self, tmp_path: Path):
         """Test manifest JSON structure."""
+        voices = [
+            {
+                "code": "vm-abc123",
+                "label": "Test Voice",
+                "engine": "xtts-v2",
+                "languages": ["en"],
+                "used_by": [],
+            }
+        ]
         manifest = AudioManifest(
             v=1,
             book="Test Book",
@@ -173,7 +191,7 @@ class TestAudioManifestSchema:
                 "opening": "matter/opening.jsonl",
                 "closing": "matter/closing.jsonl",
             },
-            voices=["vm-abc123"],
+            voices=voices,
             lexicon="lexicon.en.pls",
         )
 
@@ -183,7 +201,7 @@ class TestAudioManifestSchema:
         assert data["edition"] == "ed-en"
         assert len(data["chapters"]) == 1
         assert data["chapters"][0]["status"] == "ready"
-        assert data["voices"] == ["vm-abc123"]
+        assert data["voices"] == voices
         assert data["lexicon"] == "lexicon.en.pls"
 
 

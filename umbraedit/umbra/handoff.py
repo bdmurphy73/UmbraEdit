@@ -28,22 +28,19 @@ import logging
 import uuid
 
 from dataclasses import dataclass
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from umbraedit.umbra.gates import OP_PUBLISH_HANDOFF, GateScope, requireGates
 from umbraedit.umbra.paths import jobsDir
+from umbraedit.umbra.settings import umbraSettings
 
 if TYPE_CHECKING:  # pragma: no cover
     from pathlib import Path
 
     from umbraedit.core.project import NWProject
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 
@@ -356,8 +353,7 @@ def run_handoff_gates(project: NWProject, edition_id: str) -> dict[str, Any]:
         edition=edition_id,
     )
     try:
-        settings = project.settings if hasattr(project, "settings") else None
-        requireGates(OP_PUBLISH_HANDOFF, scope, settings)
+        requireGates(OP_PUBLISH_HANDOFF, scope, umbraSettings)
         return {"success": True}
     except Exception as exc:
         return {"success": False, "error": str(exc)}

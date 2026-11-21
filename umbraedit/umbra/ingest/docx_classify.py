@@ -192,9 +192,7 @@ class DocxClassify:
                 continue
 
             # Check for chapter heading
-            is_chapter, level = _is_chapter_heading(
-                text, para.style_name, para.outline_level
-            )
+            is_chapter, level = _is_chapter_heading(text, para.style_name, para.outline_level)
 
             if is_chapter and in_front_matter:
                 # First chapter ends front matter
@@ -202,25 +200,29 @@ class DocxClassify:
 
             if is_chapter:
                 chapter_count += 1
-                blocks.append(DocumentBlock(
-                    kind=BlockKind.CHAPTER,
-                    level=level,
-                    title=text,
-                    text=text,
-                    source_paragraphs=[idx],
-                ))
+                blocks.append(
+                    DocumentBlock(
+                        kind=BlockKind.CHAPTER,
+                        level=level,
+                        title=text,
+                        text=text,
+                        source_paragraphs=[idx],
+                    )
+                )
                 continue
 
             # Check for scene break
             if self._is_scene_break(text, para):
                 scene_count += 1
-                blocks.append(DocumentBlock(
-                    kind=BlockKind.SCENE,
-                    level=level,
-                    title=f"Scene {scene_count}",
-                    text=text,
-                    source_paragraphs=[idx],
-                ))
+                blocks.append(
+                    DocumentBlock(
+                        kind=BlockKind.SCENE,
+                        level=level,
+                        title=f"Scene {scene_count}",
+                        text=text,
+                        source_paragraphs=[idx],
+                    )
+                )
                 continue
 
             # Check front matter
@@ -228,14 +230,16 @@ class DocxClassify:
                 page_type = _classify_front_matter(text, prepass.doc_props.get("title", ""))
                 if page_type:
                     front_matter_count += 1
-                    blocks.append(DocumentBlock(
-                        kind=BlockKind.FRONT_MATTER,
-                        level=0,
-                        title=page_type.replace("_", " ").title(),
-                        text=text,
-                        source_paragraphs=[idx],
-                        page_type=page_type,
-                    ))
+                    blocks.append(
+                        DocumentBlock(
+                            kind=BlockKind.FRONT_MATTER,
+                            level=0,
+                            title=page_type.replace("_", " ").title(),
+                            text=text,
+                            source_paragraphs=[idx],
+                            page_type=page_type,
+                        )
+                    )
                     continue
 
             # Check back matter
@@ -244,35 +248,41 @@ class DocxClassify:
                 if page_type:
                     in_back_matter = True
                     back_matter_count += 1
-                    blocks.append(DocumentBlock(
-                        kind=BlockKind.BACK_MATTER,
-                        level=0,
-                        title=page_type.replace("_", " ").title(),
-                        text=text,
-                        source_paragraphs=[idx],
-                        page_type=page_type,
-                    ))
+                    blocks.append(
+                        DocumentBlock(
+                            kind=BlockKind.BACK_MATTER,
+                            level=0,
+                            title=page_type.replace("_", " ").title(),
+                            text=text,
+                            source_paragraphs=[idx],
+                            page_type=page_type,
+                        )
+                    )
                     continue
 
             if in_back_matter:
                 back_matter_count += 1
-                blocks.append(DocumentBlock(
-                    kind=BlockKind.BACK_MATTER,
-                    level=0,
-                    title="Back Matter",
-                    text=text,
-                    source_paragraphs=[idx],
-                ))
+                blocks.append(
+                    DocumentBlock(
+                        kind=BlockKind.BACK_MATTER,
+                        level=0,
+                        title="Back Matter",
+                        text=text,
+                        source_paragraphs=[idx],
+                    )
+                )
                 continue
 
             # Default to body
-            blocks.append(DocumentBlock(
-                kind=BlockKind.BODY,
-                level=0,
-                title="",
-                text=text,
-                source_paragraphs=[idx],
-            ))
+            blocks.append(
+                DocumentBlock(
+                    kind=BlockKind.BODY,
+                    level=0,
+                    title="",
+                    text=text,
+                    source_paragraphs=[idx],
+                )
+            )
 
         # Check for no chapters
         if chapter_count == 0:

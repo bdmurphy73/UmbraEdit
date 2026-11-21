@@ -26,7 +26,7 @@ import logging
 import re
 
 from time import time
-from typing import TYPE_CHECKING, cast, Optional, Union
+from typing import TYPE_CHECKING, Optional, cast
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QBrush, QColor, QSyntaxHighlighter, QTextCharFormat, QTextDocument

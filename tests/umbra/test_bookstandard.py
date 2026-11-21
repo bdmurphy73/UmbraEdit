@@ -58,7 +58,9 @@ def _write_doc(content_path: Path, handle: str, body: str) -> None:
     (content_path / f"{handle}.md").write_text(f"+++\ntitle: T\n+++\n{body}", encoding="utf-8")
 
 
-def _write_guide(content_path: Path, handle: str, kind: str, chapter: str = "", status: str = "draft", body: str = "") -> None:
+def _write_guide(
+    content_path: Path, handle: str, kind: str, chapter: str = "", status: str = "draft", body: str = ""
+) -> None:
     guide = GuideDoc(kind=kind, chapter=chapter, status=status, body=body)
     _write_doc(content_path, handle, formatGuideDoc(guide))
 
@@ -85,13 +87,33 @@ def book_standard_project(tmp_path: Path):
 
     # Create book entities
     import json
-    (tmp_path / "project" / "umbra" / "sheet.json").write_text(json.dumps({
-        "v": 1,
-        "entities": [
-            {"tag": "John", "handle": "char-john", "kind": "character", "aliases": [], "attrs": {"kind": "character", "slot": "1"}},
-            {"tag": "Jane", "handle": "char-jane", "kind": "character", "aliases": [], "attrs": {"kind": "character", "slot": "2"}},
-        ]
-    }, separators=(",", ":")) + "\n", encoding="utf-8")
+
+    (tmp_path / "project" / "umbra" / "sheet.json").write_text(
+        json.dumps(
+            {
+                "v": 1,
+                "entities": [
+                    {
+                        "tag": "John",
+                        "handle": "char-john",
+                        "kind": "character",
+                        "aliases": [],
+                        "attrs": {"kind": "character", "slot": "1"},
+                    },
+                    {
+                        "tag": "Jane",
+                        "handle": "char-jane",
+                        "kind": "character",
+                        "aliases": [],
+                        "attrs": {"kind": "character", "slot": "2"},
+                    },
+                ],
+            },
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     # Create book entities (one shadows bible)
     _write_doc(content, "ch1", '# Chapter 1\n\nJohn said "hello" to Jane.')
@@ -99,23 +121,39 @@ def book_standard_project(tmp_path: Path):
     _write_doc(content, "ch3", "# Chapter 3\n\nEnd.")
 
     # Create book sheet
-    (tmp_path / "project" / "umbra" / "sheet.json").write_text(json.dumps({
-        "v": 1,
-        "entities": [
-            {"tag": "John", "handle": "char-john", "kind": "character", "aliases": [], "attrs": {"kind": "character", "slot": "1"}},
-        ]
-    }, separators=(",", ":")) + "\n", encoding="utf-8")
+    (tmp_path / "project" / "umbra" / "sheet.json").write_text(
+        json.dumps(
+            {
+                "v": 1,
+                "entities": [
+                    {
+                        "tag": "John",
+                        "handle": "char-john",
+                        "kind": "character",
+                        "aliases": [],
+                        "attrs": {"kind": "character", "slot": "1"},
+                    },
+                ],
+            },
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     # Create series.json
     from umbraedit.umbra.edition import EditionDoc, EditionInfo, saveEdition
+
     edition_info = EditionInfo(
         v=1,
         editionId="en",
         language="en",
         source={"path": "..", "editionId": "main", "projectId": ""},
-        docs={"ch1": EditionDoc(handle="ch1", baseTextHash="abc123", status="untranslated"),
-              "ch2": EditionDoc(handle="ch2", baseTextHash="def456", status="untranslated"),
-              "ch3": EditionDoc(handle="ch3", baseTextHash="ghi789", status="untranslated")},
+        docs={
+            "ch1": EditionDoc(handle="ch1", baseTextHash="abc123", status="untranslated"),
+            "ch2": EditionDoc(handle="ch2", baseTextHash="def456", status="untranslated"),
+            "ch3": EditionDoc(handle="ch3", baseTextHash="ghi789", status="untranslated"),
+        },
         titleTemplate={"chapter": "Chapter {n}"},
         translatable=["book.title", "book.subtitle"],
         pending=["book.title", "book.subtitle"],
@@ -134,10 +172,13 @@ def book_standard_project(tmp_path: Path):
     class _FakeTree:
         def __init__(self, items: list) -> None:
             self._items = items
+
         def __iter__(self):
             return iter(self._items)
+
         def __getitem__(self, handle: str):
             return next((item for item in self._items if item.itemHandle == handle), None)
+
         def checkExists(self, handle: str) -> bool:
             return any(item.itemHandle == handle for item in self._items)
 
@@ -152,13 +193,15 @@ def book_standard_project(tmp_path: Path):
             self.storage = type("FakeStorage", (), {"contentPath": root / "content", "storagePath": root})()
             self.docBuild = None
 
-    def _write_doc(content_path: Path, handle: str, body: str) -> None:
+    def _write_fixture_doc(content_path: Path, handle: str, body: str) -> None:
         content_path.mkdir(parents=True, exist_ok=True)
         (content_path / f"{handle}.md").write_text(f"+++\ntitle: T\n+++\n{body}", encoding="utf-8")
 
-    def _write_guide(content_path: Path, handle: str, kind: str, chapter: str = "", status: str = "draft", body: str = "") -> None:
+    def _write_guide(
+        content_path: Path, handle: str, kind: str, chapter: str = "", status: str = "draft", body: str = ""
+    ) -> None:
         guide = GuideDoc(kind=kind, chapter=chapter, status=status, body=body)
-        _write_doc(content_path, handle, formatGuideDoc(guide))
+        _write_fixture_doc(content_path, handle, formatGuideDoc(guide))
 
     # Create items
     items = [
@@ -167,16 +210,32 @@ def book_standard_project(tmp_path: Path):
         _FakeItem("ch3", "NOVEL", "Chapter 3"),
     ]
 
-    source_project = type("FakeProject", (), {
-        "tree": type("FakeTree", (), {"__iter__": lambda self: iter([])})(),
-        "storage": type("FakeStorage", (), {"contentPath": tmp_path / "project" / "content", "storagePath": tmp_path / "project"})(),
-    })()
+    source_project = type(
+        "FakeProject",
+        (),
+        {
+            "tree": type("FakeTree", (), {"__iter__": lambda self: iter([])})(),
+            "storage": type(
+                "FakeStorage",
+                (),
+                {"contentPath": tmp_path / "project" / "content", "storagePath": tmp_path / "project"},
+            )(),
+        },
+    )()
 
-    book_project = type("FakeProject", (), {
-        "tree": type("FakeTree", (), {"__iter__": lambda self: iter(items)})(),
-        "storage": type("FakeStorage", (), {"contentPath": tmp_path / "project" / "content", "storagePath": tmp_path / "project"})(),
-        "docBuild": type("DocBuild", (), {"getBool": lambda self, k: True, "_format": "PRINT_PDF"})()
-    })()
+    book_project = type(
+        "FakeProject",
+        (),
+        {
+            "tree": type("FakeTree", (), {"__iter__": lambda self: iter(items)})(),
+            "storage": type(
+                "FakeStorage",
+                (),
+                {"contentPath": tmp_path / "project" / "content", "storagePath": tmp_path / "project"},
+            )(),
+            "docBuild": type("DocBuild", (), {"getBool": lambda self, k: True, "_format": "PRINT_PDF"})(),
+        },
+    )()
 
     return tmp_path / "project", source_project, book_project
 
@@ -200,10 +259,13 @@ class TestBookStandardGates:
         class _FakeTree:
             def __init__(self, items: list) -> None:
                 self._items = items
+
             def __iter__(self):
                 return iter(self._items)
+
             def __getitem__(self, handle: str):
                 return next((item for item in self._items if item.itemHandle == handle), None)
+
             def checkExists(self, handle: str) -> bool:
                 return any(item.itemHandle == handle for item in self._items)
 
@@ -222,6 +284,7 @@ class TestBookStandardGates:
             def __init__(self, format: str = "PRINT_PDF") -> None:
                 self._format = format
                 self._settings = {"epub.nestedToc": True}
+
             def getBool(self, key: str) -> bool:
                 return self._settings.get(key, False)
 
@@ -232,6 +295,7 @@ class TestBookStandardGates:
 
         # Create metadata
         from umbraedit.umbra.metadata import Metadata, saveMetadata
+
         metadata = Metadata()
         metadata.book["title"] = "Test Book"
         metadata.book["author"] = "Test Author"
@@ -244,11 +308,15 @@ class TestBookStandardGates:
         # Create items
         items = [_FakeItem("ch4", "NOVEL", "Chapter 4")]
 
-        project = type("FakeProject", (), {
-            "tree": type("FakeTree", (), {"__iter__": lambda self: iter(items)})(),
-            "storage": type("FakeStorage", (), {"contentPath": root / "content", "storagePath": root})(),
-            "docBuild": type("DocBuild", (), {"getBool": lambda self, k: True, "_format": "PRINT_PDF"})()
-        })()
+        project = type(
+            "FakeProject",
+            (),
+            {
+                "tree": type("FakeTree", (), {"__iter__": lambda self: iter(items)})(),
+                "storage": type("FakeStorage", (), {"contentPath": root / "content", "storagePath": root})(),
+                "docBuild": type("DocBuild", (), {"getBool": lambda self, k: True, "_format": "PRINT_PDF"})(),
+            },
+        )()
 
         # Create GateScope
         # Create test project with simple classes
@@ -277,6 +345,7 @@ class TestBookStandardGates:
         class TestDocBuild:
             def getBool(self, key):
                 return True
+
             _format = "PRINT_PDF"
 
         class TestProject:

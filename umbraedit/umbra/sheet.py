@@ -493,6 +493,7 @@ class SheetManager:
         }
         writeJson(tonesFile(self._projectPath), data)
         from umbraedit.umbra import hooks as _umbraHooks
+
         _umbraHooks.call(_umbraHooks.SIDECAR_WRITTEN, tonesFile(self._projectPath))
 
     def save(self) -> None:
@@ -515,4 +516,5 @@ class SheetManager:
         }
         writeJson(sheetFile(self._projectPath), data)
         from umbraedit.umbra import hooks as _umbraHooks
+
         _umbraHooks.call(_umbraHooks.SIDECAR_WRITTEN, sheetFile(self._projectPath))

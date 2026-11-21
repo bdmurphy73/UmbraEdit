@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtGui import QFont
 
@@ -117,6 +117,7 @@ class DocumentBuilder:
     def queueAll(self) -> None:
         """Queue all document as defined by the build settings."""
         from umbraedit.umbra import hooks as _umbraHooks
+
         _umbraHooks.call(_umbraHooks.BUILD_STARTED, self._build)
         self._queue = []
         withRoots = self._build.getBool("text.addNoteHeadings")
@@ -203,9 +204,7 @@ class DocumentBuilder:
             makeObj.initDocument()
             yield from self._iterBuild(makeObj, filtered)
             makeObj.closeDocument()
-            success, result = build_epub_validated(
-                self._project, path, json_ast=makeObj.getJson()
-            )
+            success, result = build_epub_validated(self._project, path, json_ast=makeObj.getJson())
             if not success:
                 logger.error("EPUB validation failed: %s", result)
                 self._error = result

@@ -46,7 +46,7 @@ def stripFrontMatter(text: str) -> str:
     lines = text.split("\n")
     for i in range(1, len(lines)):
         if lines[i].strip() == "+++":
-            return "\n".join(lines[i + 1:])
+            return "\n".join(lines[i + 1 :])
     return text
 
 

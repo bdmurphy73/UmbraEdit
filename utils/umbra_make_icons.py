@@ -58,7 +58,7 @@ def renderPng(source: Path, size: int, output: Path) -> None:
     if source.suffix.lower() == ".svg":
         # Try QSvgRenderer via Qt
         try:
-            from PyQt6.QtCore import QByteArray, QSize
+            from PyQt6.QtCore import QSize
             from PyQt6.QtGui import QImage, QPainter
             from PyQt6.QtSvg import QSvgRenderer
 
@@ -129,8 +129,12 @@ def writeIcns(iconsetDir: Path, output: Path) -> None:
 
     # Pure-Python .icns writer (simplified: writes PNG-based icons)
     pngTypes = {
-        16: b"icp4", 32: b"icp5", 128: b"ic07", 256: b"ic08",
-        512: b"ic09", 1024: b"ic10",
+        16: b"icp4",
+        32: b"icp5",
+        128: b"ic07",
+        256: b"ic08",
+        512: b"ic09",
+        1024: b"ic10",
     }
 
     entries = b""
@@ -169,11 +173,14 @@ def main() -> None:
     """Generate all icon files from the source image."""
     parser = argparse.ArgumentParser(description="Generate all UmbraEdit icons from the source.")
     parser.add_argument(
-        "--source", type=str, default=None,
+        "--source",
+        type=str,
+        default=None,
         help="Path to the source SVG or PNG (default: branding/umbraedit-icon-source.svg)",
     )
     parser.add_argument(
-        "--doc-shape", action="store_true",
+        "--doc-shape",
+        action="store_true",
         help="Also generate the project-file document icon variant.",
     )
     args = parser.parse_args()

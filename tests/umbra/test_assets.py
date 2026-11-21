@@ -9,14 +9,13 @@ Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 
 from __future__ import annotations
 
+import importlib
 import json
 
 from io import BytesIO
 from pathlib import Path
 
 import pytest
-
-from PIL import Image
 
 from umbraedit.umbra.assets import (
     ROLE_COVER,
@@ -26,16 +25,18 @@ from umbraedit.umbra.assets import (
     _detectMime,
 )
 
+image_module = importlib.import_module("PIL.Image")
+
 
 def _makePng(width: int = 100, height: int = 50, color: tuple = (200, 100, 50)) -> bytes:
-    img = Image.new("RGB", (width, height), color)
+    img = image_module.new("RGB", (width, height), color)
     buf = BytesIO()
     img.save(buf, "PNG")
     return buf.getvalue()
 
 
 def _makeJpeg(width: int = 100, height: int = 50) -> bytes:
-    img = Image.new("RGB", (width, height), (50, 100, 200))
+    img = image_module.new("RGB", (width, height), (50, 100, 200))
     buf = BytesIO()
     img.save(buf, "JPEG")
     return buf.getvalue()
@@ -62,6 +63,7 @@ def test_umbra_assets_A1_mimeByContent(store: AssetStore):
     png = _makePng()
     assetId = store.addAsset(png, ROLE_FIGURE, name="renamed.jpg")
     entry = store.getAsset(assetId)
+    assert entry is not None
     assert entry["type"] == "image/png"
 
 
@@ -125,6 +127,7 @@ def test_umbra_assets_A5_removeImmutableRefused(store: AssetStore):
     """A5: Deleting an immutable asset is refused."""
     assetId = store.addAsset(_makePng(), ROLE_OTHER, name="test.dat")
     entry = store.getAsset(assetId)
+    assert entry is not None
     entry["immutable"] = True
     store._index[assetId] = entry
     with pytest.raises(PermissionError, match="immutable"):

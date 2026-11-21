@@ -53,9 +53,7 @@ def testToPandocJson_ConvertHeaders(mockGUI: MockGuiMain):
         pan._text = f"{marker}Title\n"
         pan.tokenizeText()
         pan.doConvert()
-        assert {
-            "t": "Header", "c": [level, ["", [], []], [{"t": "Str", "c": "Title"}]]
-        } in pan._pandocBlocks
+        assert {"t": "Header", "c": [level, ["", [], []], [{"t": "Str", "c": "Title"}]]} in pan._pandocBlocks
 
 
 @pytest.mark.core
@@ -70,11 +68,12 @@ def testToPandocJson_ConvertText(mockGUI: MockGuiMain):
     pan.tokenizeText()
     pan.doConvert()
     assert {
-        "t": "Para", "c": [
+        "t": "Para",
+        "c": [
             {"t": "Str", "c": "Hello "},
             {"t": "Strong", "c": [{"t": "Str", "c": "World"}]},
             {"t": "Str", "c": "."},
-        ]
+        ],
     } in pan._pandocBlocks
 
 

@@ -53,23 +53,23 @@ When launching a Python/PyQt6 script via a wrapper shell script or an improperly
   The PyInstaller `.spec` file must inject the following dictionary into `BUNDLE(..., info_plist={...})`:
   ```python
   info_plist = {
-      'CFBundleName': 'UmbraEdit',
-      'CFBundleDisplayName': 'UmbraEdit',
-      'CFBundleExecutable': 'UmbraEdit',
-      'CFBundleIdentifier': 'io.umbraedit.app',
-      'CFBundleVersion': VERSION,
-      'CFBundleShortVersionString': VERSION,
-      'CFBundlePackageType': 'APPL',
-      'LSMinimumSystemVersion': '12.0',
-      'NSHighResolutionCapable': True,
-      'NSSupportsAutomaticGraphicsSwitching': True,
-      'LSApplicationCategoryType': 'public.app-category.productivity',
-      'CFBundleDocumentTypes': [
+      "CFBundleName": "UmbraEdit",
+      "CFBundleDisplayName": "UmbraEdit",
+      "CFBundleExecutable": "UmbraEdit",
+      "CFBundleIdentifier": "io.umbraedit.app",
+      "CFBundleVersion": VERSION,
+      "CFBundleShortVersionString": VERSION,
+      "CFBundlePackageType": "APPL",
+      "LSMinimumSystemVersion": "12.0",
+      "NSHighResolutionCapable": True,
+      "NSSupportsAutomaticGraphicsSwitching": True,
+      "LSApplicationCategoryType": "public.app-category.productivity",
+      "CFBundleDocumentTypes": [
           {
-              'CFBundleTypeName': 'UmbraEdit Project',
-              'CFBundleTypeRole': 'Editor',
-              'LSHandlerRank': 'Owner',
-              'CFBundleTypeExtensions': ['nw', 'nwd', 'nwx'],
+              "CFBundleTypeName": "UmbraEdit Project",
+              "CFBundleTypeRole": "Editor",
+              "LSHandlerRank": "Owner",
+              "CFBundleTypeExtensions": ["nw", "nwd", "nwx"],
           }
       ],
   }

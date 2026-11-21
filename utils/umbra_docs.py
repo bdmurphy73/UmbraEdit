@@ -30,23 +30,44 @@ BUILD_DIR = DOCS_DIR / "build"
 def _run(cmd: list[str], cwd: Path | None = None) -> bool:
     """Run a command and return True on success."""
     print(f"  [run] {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=cwd)
+    result = subprocess.run(cmd, cwd=cwd, check=False)
     return result.returncode == 0
 
 
 def build_html() -> bool:
     """Build the HTML documentation."""
     print("[html] Building HTML...")
-    return _run([sys.executable, "-m", "sphinx", "-b", "html", "-W", "--keep-going",
-                 str(SOURCE_DIR), str(BUILD_DIR / "html")])
+    return _run([
+        sys.executable,
+        "-m",
+        "sphinx",
+        "-b",
+        "html",
+        "-W",
+        "--keep-going",
+        str(SOURCE_DIR),
+        str(BUILD_DIR / "html"),
+    ])
 
 
 def build_pdf(paper: str = "a4") -> bool:
     """Build the PDF documentation."""
     print(f"[pdf] Building PDF ({paper})...")
     {"PAPER": paper, **dict(__import__("os").environ.items())}
-    return _run([sys.executable, "-m", "sphinx", "-b", "latex", "-W", "--keep-going",
-                 str(SOURCE_DIR), str(BUILD_DIR / "latex")], cwd=ROOT_DIR)
+    return _run(
+        [
+            sys.executable,
+            "-m",
+            "sphinx",
+            "-b",
+            "latex",
+            "-W",
+            "--keep-going",
+            str(SOURCE_DIR),
+            str(BUILD_DIR / "latex"),
+        ],
+        cwd=ROOT_DIR,
+    )
 
 
 def build_check() -> bool:
@@ -68,6 +89,7 @@ def build_check() -> bool:
 
     # Check all pages referenced in the toctree exist
     import json
+
     ownership = json.loads(ownerFile.read_text(encoding="utf-8"))
     for page in ownership:
         rstPath = SOURCE_DIR / "umbra" / f"{page}.rst"

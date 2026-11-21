@@ -160,10 +160,10 @@ class ImportImage:
     filename: str
     data: bytes
     mime: str
-    img_id: str = ""       # Stable ID of the image, like "img_1a2b3c4d_001"
-    paragraph: int = -1    # Index of the paragraph the image is in
-    offset: int = 0        # Character offset of the image in the paragraph
-    context: str = ""      # Text surrounding the image in the paragraph
+    img_id: str = ""  # Stable ID of the image, like "img_1a2b3c4d_001"
+    paragraph: int = -1  # Index of the paragraph the image is in
+    offset: int = 0  # Character offset of the image in the paragraph
+    context: str = ""  # Text surrounding the image in the paragraph
 
 
 @dataclass
@@ -174,18 +174,18 @@ class ImportComment:
     author: str
     date: str
     text: str
-    paragraph: int = -1    # Index of the anchor paragraph, -1 if not anchored
+    paragraph: int = -1  # Index of the anchor paragraph, -1 if not anchored
 
 
 @dataclass
 class ImportNote:
     """A note capturing a non-translatable item from the Word document."""
 
-    note_type: str       # "header", "footer", "footnote"
-    source: str          # Where it came from (e.g., "header1.xml", "paragraph 42")
-    text: str            # Captured text description
+    note_type: str  # "header", "footer", "footnote"
+    source: str  # Where it came from (e.g., "header1.xml", "paragraph 42")
+    text: str  # Captured text description
     data: Optional[bytes] = None  # Raw image data, if applicable
-    mime: Optional[str] = None    # MIME type, if applicable
+    mime: Optional[str] = None  # MIME type, if applicable
 
 
 @dataclass
@@ -197,8 +197,8 @@ class ImportScene:
     text: str
     style: str
     is_chapter: bool = False  # True if this is a chapter heading
-    is_front: bool = False    # True if this is front matter
-    preamble: list[str] = field(default_factory=list)      # Lines before the heading
+    is_front: bool = False  # True if this is front matter
+    preamble: list[str] = field(default_factory=list)  # Lines before the heading
     images: list[ImportImage] = field(default_factory=list)  # Images in the document
     comments: list[ImportComment] = field(default_factory=list)  # Anchored comments
 
@@ -342,9 +342,7 @@ class FromDocxDocument:
                 try:
                     data = self._zip.read(target_path)  # type: ignore[union-attr]
                     mime = self._guess_mime(target)
-                    self._images[rid] = ImportImage(
-                        rid=rid, filename=target, data=data, mime=mime
-                    )
+                    self._images[rid] = ImportImage(rid=rid, filename=target, data=data, mime=mime)
                 except KeyError:
                     logger.warning("Could not read image: %s", target_path)
 
@@ -667,9 +665,7 @@ class FromDocxDocument:
         for image in para_result["images"]:
             context = _quoteText(image.context)
             lines.append(
-                f"{IMAGE_KEY} {image.img_id} "
-                f"paragraph={image.paragraph} offset={image.offset} "
-                f'context="{context}"'
+                f'{IMAGE_KEY} {image.img_id} paragraph={image.paragraph} offset={image.offset} context="{context}"'
             )
         return lines
 
@@ -725,9 +721,7 @@ class FromDocxDocument:
         """Extract the text of a comment element."""
         paras = element.findall(_wtag("p"))
         if paras:
-            return " ".join(
-                _flatten(self._extract_text_from_element(para)) for para in paras
-            ).strip()
+            return " ".join(_flatten(self._extract_text_from_element(para)) for para in paras).strip()
         return self._extract_text_from_element(element)
 
     def _parse_footnotes(self) -> None:

@@ -140,6 +140,7 @@ class DocxPrepass:
     def _guess_mime(filename: str) -> str:
         """Guess MIME type from filename extension."""
         from pathlib import Path
+
         ext = Path(filename).suffix.lower()
         mime_map = {
             ".jpeg": "image/jpeg",
@@ -151,6 +152,7 @@ class DocxPrepass:
             ".webp": "image/webp",
         }
         return mime_map.get(ext, "application/octet-stream")
+
     """Pre-pass stage: read DOCX XML and extract paragraph records."""
 
     def process(self, intake: IntakeResult) -> PrepassResult:
@@ -406,9 +408,20 @@ class DocxPrepass:
         for child in root:
             # Remove namespace
             tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
-            if tag in ("title", "subject", "creator", "keywords", "description",
-                       "lastModifiedBy", "revision", "created", "modified",
-                       "category", "contentStatus", "language"):
+            if tag in (
+                "title",
+                "subject",
+                "creator",
+                "keywords",
+                "description",
+                "lastModifiedBy",
+                "revision",
+                "created",
+                "modified",
+                "category",
+                "contentStatus",
+                "language",
+            ):
                 props[tag] = child.text
 
         return props

@@ -11,12 +11,12 @@ underlines, shortcuts) are deferred to GAPS.md (G54–G64).
 ```python
 @dataclass(frozen=True)
 class SpeakerChip:
-    kind: str            # "assigned" | "proposed" | "unassigned" |
-                         # "needs_review" | "none"
+    kind: str  # "assigned" | "proposed" | "unassigned" |
+    # "needs_review" | "none"
     tag: str | None = None
-    label: str = ""      # initials (assigned) or "?" (unassigned)
-    color: str = ""      # stable hex per tag (assigned)
-    dashed: bool = False # proposed only
+    label: str = ""  # initials (assigned) or "?" (unassigned)
+    color: str = ""  # stable hex per tag (assigned)
+    dashed: bool = False  # proposed only
 ```
 
 - `assigned`: solid chip with speaker initials + color stable per tag

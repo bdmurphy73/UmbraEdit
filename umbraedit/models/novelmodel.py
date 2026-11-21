@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING, Union, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PyQt6.QtGui import QIcon, QPixmap
@@ -51,7 +51,7 @@ R_HANDLE = 0xFF01
 R_KEY = 0xFF02
 R_STATS = 0xFF03
 
-T_NodeData = Union[str, tuple[int], int, QIcon, QPixmap, Qt.AlignmentFlag, None]
+T_NodeData = Union[str, tuple[int, int], int, QIcon, QPixmap, Qt.AlignmentFlag, None]
 
 
 class NovelModel(QAbstractTableModel):
@@ -213,7 +213,10 @@ class NovelModel(QAbstractTableModel):
                 for j in scopes:
                     totals[j] += count
                 scopes.append(i)
-            for row, total in zip(self._rows, totals, ):
+            for row, total in zip(
+                self._rows,
+                totals,
+            ):
                 self._setCount(row, total)
 
     ##

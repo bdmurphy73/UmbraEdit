@@ -72,16 +72,20 @@ class IngestWorker(QRunnable):
             pipeline = DocxIngestPipeline(self._projectPath())
             result = pipeline.process(self._file_path, self._output_dir)
 
-            self._emit(IngestJobResult(
-                success=True,
-                plan=result.plan,
-            ))
+            self._emit(
+                IngestJobResult(
+                    success=True,
+                    plan=result.plan,
+                )
+            )
         except Exception as e:
             logger.exception("Ingest pipeline failed")
-            self._emit(IngestJobResult(
-                success=False,
-                error=str(e),
-            ))
+            self._emit(
+                IngestJobResult(
+                    success=False,
+                    error=str(e),
+                )
+            )
 
     def _projectPath(self) -> Path:
         """Return the project folder path.
@@ -138,9 +142,7 @@ class IngestDispatcher(QObject):
         output_dir: Optional[Path] = None,
     ) -> None:
         """Dispatch an ingest job to the thread pool."""
-        SHARED.runInThreadPool(
-            IngestWorker(file_path, project, None, self)
-        )
+        SHARED.runInThreadPool(IngestWorker(file_path, project, None, self))
 
 
 def run_ingest_pipeline(

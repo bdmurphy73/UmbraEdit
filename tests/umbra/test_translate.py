@@ -39,7 +39,9 @@ def _write_doc(content_path: Path, handle: str, body: str) -> None:
     (content_path / f"{handle}.md").write_text(f"+++\ntitle: T\n+++\n{body}", encoding="utf-8")
 
 
-def _write_guide(content_path: Path, handle: str, kind: str, chapter: str = "", status: str = "draft", body: str = "", lang: str = "") -> None:
+def _write_guide(
+    content_path: Path, handle: str, kind: str, chapter: str = "", status: str = "draft", body: str = "", lang: str = ""
+) -> None:
     """Write a guide document."""
     guide = GuideDoc(kind=kind, chapter=chapter, status=status, body=body, lang=lang)
     content_path.mkdir(parents=True, exist_ok=True)
@@ -50,7 +52,10 @@ def _write_sheet(umbra_path: Path, entities: list[dict]) -> None:
     """Write a sheet.json file directly."""
     sheet_data = {"v": 1, "entities": entities}
     import json
-    (umbra_path / "sheet.json").write_text(json.dumps(sheet_data, separators=(",", ":"), sort_keys=True) + "\n", encoding="utf-8")
+
+    (umbra_path / "sheet.json").write_text(
+        json.dumps(sheet_data, separators=(",", ":"), sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 class _FakeItem:
@@ -100,6 +105,7 @@ class _FakeProject:
         if doc_file.is_file():
             text = doc_file.read_text(encoding="utf-8")
             import hashlib
+
             return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
         return ""
 
@@ -149,12 +155,22 @@ def translation_project(tmp_path: Path):
     saveEdition(edition_path, edition_info)
 
     # Create entity sheets (sheet.json directly)
-    _write_sheet(source_path / "umbra", [
-        {"tag": "bob", "handle": "char-bob", "kind": "character", "aliases": [], "attrs": {"name_target": "鲍勃"}}
-    ])
-    _write_sheet(edition_path / "umbra", [
-        {"tag": "bob", "handle": "char-bob", "kind": "character", "aliases": [], "attrs": {"name_target": "鲍勃", "pron_status": "todo"}}
-    ])
+    _write_sheet(
+        source_path / "umbra",
+        [{"tag": "bob", "handle": "char-bob", "kind": "character", "aliases": [], "attrs": {"name_target": "鲍勃"}}],
+    )
+    _write_sheet(
+        edition_path / "umbra",
+        [
+            {
+                "tag": "bob",
+                "handle": "char-bob",
+                "kind": "character",
+                "aliases": [],
+                "attrs": {"name_target": "鲍勃", "pron_status": "todo"},
+            }
+        ],
+    )
 
     # Create fake projects
     source_items = [
@@ -276,7 +292,9 @@ class TestHelperFunctions:
 
     def test_get_analysis_hash_with_approved_analysis(self, translation_project):
         source_path, _edition_path, source_project, _edition_project = translation_project
-        _write_guide(source_path / "content", "guide1", "analysis", chapter="ch1", status="approved", body="Analysis body")
+        _write_guide(
+            source_path / "content", "guide1", "analysis", chapter="ch1", status="approved", body="Analysis body"
+        )
         source_project.tree._items.append(_FakeItem("guide1", "GUIDE", "Guide 1"))
         hash_val = _get_analysis_hash(source_project, "ch1")
         assert len(hash_val) == 16
@@ -326,8 +344,14 @@ class TestHelperFunctions:
 
     def test_get_source_paragraphs(self, translation_project):
         source_path, edition_path, source_project, _edition_project = translation_project
-        _write_guide(source_path / "content", "guide1", "analysis", chapter="ch1", status="approved",
-                     body="%Para: 0 h=abc12345\nIntent: Test intent\nSubtext: Test subtext\nRegister: Formal\nDo not translate literally: hello\nCultural: None")
+        _write_guide(
+            source_path / "content",
+            "guide1",
+            "analysis",
+            chapter="ch1",
+            status="approved",
+            body="%Para: 0 h=abc12345\nIntent: Test intent\nSubtext: Test subtext\nRegister: Formal\nDo not translate literally: hello\nCultural: None",
+        )
         source_project.tree._items.append(_FakeItem("guide1", "GUIDE", "Guide 1"))
         paragraphs = _get_source_paragraphs(source_project, "ch1", edition_path)
         assert "[0]" in paragraphs
@@ -444,8 +468,14 @@ class TestBuildChapterPrompt:
     def test_build_chapter_prompt(self, translation_project):
         source_path, edition_path, source_project, _edition_project = translation_project
         _write_guide(source_path / "content", "guide1", "style", body="Be poetic")
-        _write_guide(source_path / "content", "guide2", "analysis", chapter="ch1", status="approved",
-                     body="%Para: 0 h=abc12345\nIntent: Greeting\nSubtext: Friendly\nRegister: Casual\nDo not translate literally: \nCultural: ")
+        _write_guide(
+            source_path / "content",
+            "guide2",
+            "analysis",
+            chapter="ch1",
+            status="approved",
+            body="%Para: 0 h=abc12345\nIntent: Greeting\nSubtext: Friendly\nRegister: Casual\nDo not translate literally: \nCultural: ",
+        )
         source_project.tree._items.append(_FakeItem("guide1", "GUIDE", "Guide 1"))
         source_project.tree._items.append(_FakeItem("guide2", "GUIDE", "Guide 2"))
 

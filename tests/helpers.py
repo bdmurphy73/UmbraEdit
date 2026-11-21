@@ -341,9 +341,7 @@ def makeDocxParagraph(
         parts.append(f'<w:r><w:t xml:space="preserve">{escape(text)}</w:t></w:r>')
     for cmtId in comments or []:
         parts.append(f'<w:commentRangeEnd w:id="{cmtId}" />')
-        parts.append(
-            f'<w:r><w:commentReference w:id="{cmtId}" /></w:r>'
-        )
+        parts.append(f'<w:r><w:commentReference w:id="{cmtId}" /></w:r>')
     parts.append("</w:p>")
 
     return "".join(parts)

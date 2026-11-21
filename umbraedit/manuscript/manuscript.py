@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 
 from time import time
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import Qt, QTimer, QUrl, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import (

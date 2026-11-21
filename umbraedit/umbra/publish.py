@@ -29,26 +29,24 @@ import os
 import shutil
 import subprocess
 
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.common import writeTextFile
+from umbraedit.enum import nwItemClass
 from umbraedit.umbra.covers import loadCovers
 from umbraedit.umbra.edition import EditionInfo, loadEdition
 from umbraedit.umbra.gates import OP_PUBLISH_PACKAGE, GateScope, reportToJson, requireGates, runGates
 from umbraedit.umbra.metadata import loadMetadata
 from umbraedit.umbra.pages import PageManager
 from umbraedit.umbra.paths import assetsDir
+from umbraedit.umbra.settings import umbraSettings
 
 if TYPE_CHECKING:  # pragma: no cover
     from umbraedit.core.project import NWProject
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +69,10 @@ class PublishPackageBuilder:
         self.project = project
         self.edition_id = edition_id
         self.retailer_id = retailer_id
-        self.project_path = Path(project.storage.storagePath)
+        storage_path = project.storage.storagePath
+        if storage_path is None:
+            raise ValueError("Project storage path is not available")
+        self.project_path = storage_path
         self.edition_path = self.project_path.parent / f"{self.project_path.name}-ed-{edition_id}"
         self.output_base = output_base or (self.edition_path / "publish")
         self.package_dir = self.output_base / edition_id
@@ -95,8 +96,7 @@ class PublishPackageBuilder:
             options=options or {"retailer": self.retailer_id},
         )
         try:
-            settings = self.project.settings if hasattr(self.project, "settings") else None
-            requireGates(OP_PUBLISH_PACKAGE, scope, settings)
+            requireGates(OP_PUBLISH_PACKAGE, scope, umbraSettings)
             return True
         except Exception as exc:
             logger.error("Publish gates blocked: %s", exc)
@@ -120,9 +120,18 @@ class PublishPackageBuilder:
 
         # Front matter
         front_types = (
-            "frontMatter", "copyright", "dedication", "alsoBy", "epigraph",
-            "map", "contents", "foreword", "preface", "acknowledgments",
-            "introduction", "prologue"
+            "frontMatter",
+            "copyright",
+            "dedication",
+            "alsoBy",
+            "epigraph",
+            "map",
+            "contents",
+            "foreword",
+            "preface",
+            "acknowledgments",
+            "introduction",
+            "prologue",
         )
         for page in all_pages:
             page_type = page.get("pageType", "")
@@ -134,15 +143,24 @@ class PublishPackageBuilder:
 
         # Body matter (chapters)
         for item in self.project.tree:
-            if item.isFileType() and item.itemClass == self.project.classes.NOVEL:
+            if item.isFileType() and item.itemClass == nwItemClass.NOVEL:
                 doc_file = self.edition_path / "content" / f"{item.itemHandle}.md"
                 if doc_file.exists():
                     docs.append((item.itemHandle, item.itemName, "body"))
 
         # Back matter
         back_types = (
-            "endMatter", "afterword", "epilogue", "appendix", "glossary",
-            "bibliography", "index", "colophon", "aboutAuthor", "ads", "teaser"
+            "endMatter",
+            "afterword",
+            "epilogue",
+            "appendix",
+            "glossary",
+            "bibliography",
+            "index",
+            "colophon",
+            "aboutAuthor",
+            "ads",
+            "teaser",
         )
         for page in all_pages:
             page_type = page.get("pageType", "")
@@ -345,8 +363,9 @@ class PublishPackageBuilder:
                 return False
             actual_sha = self._sha256_file(file_path)
             if actual_sha != file_entry["sha256"]:
-                logger.error("SHA-256 mismatch for %s: expected %s, got %s",
-                           file_entry["path"], file_entry["sha256"], actual_sha)
+                logger.error(
+                    "SHA-256 mismatch for %s: expected %s, got %s", file_entry["path"], file_entry["sha256"], actual_sha
+                )
                 return False
         return True
 
@@ -482,8 +501,7 @@ class PublishPackageBuilder:
             edition=self.edition_id,
             options={"retailer": self.retailer_id},
         )
-        settings = self.project.settings if hasattr(self.project, "settings") else None
-        report = runGates(OP_PUBLISH_PACKAGE, scope, settings)
+        report = runGates(OP_PUBLISH_PACKAGE, scope, umbraSettings)
         checks_path = self.package_dir / "checks.json"
         checks_path.write_text(
             json.dumps(reportToJson(report), sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n",

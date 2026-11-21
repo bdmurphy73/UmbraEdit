@@ -32,7 +32,7 @@ import tempfile
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from umbraedit.formats.toPandocJson import toPandocJson
 

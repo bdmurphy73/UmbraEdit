@@ -14,11 +14,11 @@ Qt-free.
 """  # noqa
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import difflib
 
 from dataclasses import dataclass
+from typing import Optional, Union
 
 from umbraedit.umbra.units import Unit, iterUnits
 

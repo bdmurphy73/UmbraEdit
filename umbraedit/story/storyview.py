@@ -26,7 +26,7 @@ import csv
 import logging
 
 from enum import Enum
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QComboBox, QCompleter, QFileDialog, QHBoxLayout, QVBoxLayout, QWidget

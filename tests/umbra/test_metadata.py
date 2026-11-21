@@ -204,7 +204,9 @@ def test_metadata_R2_resolveVariables(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     buildTestProject(project, tmp_path)
 
     meta = _makeMetadata(tmp_path)
-    saveMetadata(project.storage.storagePath, meta)
+    project_path = project.storage.storagePath
+    assert project_path is not None
+    saveMetadata(project_path, meta)
 
     text = (
         "Title: {{book.title}}, Author: {{book.author}}, ISBN: {{format.isbn}}, "
@@ -232,7 +234,9 @@ def test_metadata_R2_resolveVariables_unknown(tmp_path: Path, mockRnd: Any, nwGU
     buildTestProject(project, tmp_path)
 
     meta = _makeMetadata(tmp_path)
-    saveMetadata(project.storage.storagePath, meta)
+    project_path = project.storage.storagePath
+    assert project_path is not None
+    saveMetadata(project_path, meta)
 
     text = "{{book.title}} and {{book.unknown}}"
     resolved, unresolved = resolveVariables(text, project, "main", "paperback")
@@ -276,7 +280,9 @@ def test_metadata_A2_format_isbn_resolution(tmp_path: Path, mockRnd: Any, nwGUI:
     buildTestProject(project, tmp_path)
 
     meta = _makeMetadata(tmp_path)
-    saveMetadata(project.storage.storagePath, meta)
+    project_path = project.storage.storagePath
+    assert project_path is not None
+    saveMetadata(project_path, meta)
 
     # Paperback build
     text = "ISBN: {{format.isbn}}"

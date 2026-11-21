@@ -91,7 +91,6 @@ def test_cli_R2_verify_ok(tmp_path: Path) -> None:
 
     conn = connect(dataDir)
     db = Database(conn)
-    dataDir / "blobs"
 
     db.createProject("proj-1", "Verify Test", utcNow())
     blobs = BlobStore(dataDir)

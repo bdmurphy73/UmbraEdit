@@ -32,14 +32,15 @@ import logging
 import os
 import sys
 
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 from PyQt6.QtWidgets import QApplication, QErrorMessage
 
 try:
     import tomllib  # noqa: F401 - used as sys.modules alias fallback
 except ModuleNotFoundError:
-    import tomli
+    import tomli  # type: ignore[import-not-found]
+
     sys.modules["tomllib"] = tomli
 
 from umbraedit.config import Config
@@ -310,7 +311,8 @@ def _createApp() -> QApplication:
     """
     # Set process name so macOS menu bar shows "UmbraEdit" not "Python"
     try:
-        import setproctitle
+        import setproctitle  # type: ignore[import-not-found]
+
         setproctitle.setproctitle(CONFIG.appName)
     except Exception:
         pass

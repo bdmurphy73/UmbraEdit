@@ -9,6 +9,8 @@ Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 
 from __future__ import annotations
 
+import importlib
+
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +23,12 @@ from umbraedit.umbra.covers import (
     saveCovers,
 )
 from umbraedit.umbra.metadata import Metadata, saveMetadata
+
+
+def _newImage(mode: str, size: tuple[int, int], color: str) -> Any:
+    """Create a Pillow image without relying on static third-party stubs."""
+    image_module: Any = importlib.import_module("PIL.Image")
+    return image_module.new(mode, size, color=color)
 
 
 def _makeProjectWithMetadata(tmp_path: Path) -> tuple[Any, Metadata]:
@@ -97,10 +105,8 @@ def test_covers_R1_setCover(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     # Create a test image
     test_image = tmp_path / "test_cover.jpg"
-    from PIL import Image
-
     # EPUB aspect ratio 1:1.6 (e.g., 2560x1600)
-    img = Image.new("RGB", (2560, 1600), color="red")
+    img = _newImage("RGB", (2560, 1600), color="red")
     img.save(test_image, "JPEG")
 
     asset_id = store.setCover("epub", test_image)
@@ -126,10 +132,8 @@ def test_covers_R1_validateCover(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     # Add valid cover
     test_image = tmp_path / "test_cover.jpg"
-    from PIL import Image
-
     # EPUB aspect ratio 1:1.6 (e.g., 2560x1600)
-    img = Image.new("RGB", (2560, 1600), color="red")
+    img = _newImage("RGB", (2560, 1600), color="red")
     img.save(test_image, "JPEG")
 
     store.setCover("epub", test_image)
@@ -145,10 +149,8 @@ def test_covers_R1_clearCover(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     store = CoverStore(tmp_path)
 
     test_image = tmp_path / "test_cover.jpg"
-    from PIL import Image
-
     # EPUB aspect ratio 1:1.6 (e.g., 2560x1600)
-    img = Image.new("RGB", (2560, 1600), color="red")
+    img = _newImage("RGB", (2560, 1600), color="red")
     img.save(test_image, "JPEG")
 
     store.setCover("epub", test_image)
@@ -172,10 +174,8 @@ def test_covers_R1_getCover(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     assert store.getCover("epub") is None
 
     test_image = tmp_path / "test_cover.jpg"
-    from PIL import Image
-
     # EPUB aspect ratio 1:1.6 (e.g., 2560x1600)
-    img = Image.new("RGB", (2560, 1600), color="red")
+    img = _newImage("RGB", (2560, 1600), color="red")
     img.save(test_image, "JPEG")
 
     store.setCover("epub", test_image)
@@ -193,9 +193,7 @@ def test_covers_R2_epub_requirements(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     # Too small
     test_image = tmp_path / "small.jpg"
-    from PIL import Image
-
-    img = Image.new("RGB", (1000, 800), color="red")
+    img = _newImage("RGB", (1000, 800), color="red")
     img.save(test_image, "JPEG")
     store.setCover("epub", test_image)
 
@@ -204,7 +202,7 @@ def test_covers_R2_epub_requirements(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     # Wrong aspect ratio
     test_image2 = tmp_path / "wrong_aspect.jpg"
-    img2 = Image.new("RGB", (3000, 1000), color="blue")
+    img2 = _newImage("RGB", (3000, 1000), color="blue")
     img2.save(test_image2, "JPEG")
     store.setCover("epub", test_image2)
 
@@ -213,7 +211,7 @@ def test_covers_R2_epub_requirements(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     # Valid EPUB cover
     test_image3 = tmp_path / "valid.jpg"
-    img3 = Image.new("RGB", (2560, 1600), color="green")
+    img3 = _newImage("RGB", (2560, 1600), color="green")
     img3.save(test_image3, "JPEG")
     store.setCover("epub", test_image3)
 
@@ -229,9 +227,7 @@ def test_covers_R2_audiobook_requirements(tmp_path: Path, mockRnd: Any, nwGUI: A
 
     # Non-square
     test_image = tmp_path / "non_square.jpg"
-    from PIL import Image
-
-    img = Image.new("RGB", (3000, 2000), color="red")
+    img = _newImage("RGB", (3000, 2000), color="red")
     img.save(test_image, "JPEG")
     store.setCover("audiobook", test_image)
 
@@ -240,7 +236,7 @@ def test_covers_R2_audiobook_requirements(tmp_path: Path, mockRnd: Any, nwGUI: A
 
     # Too small
     test_image2 = tmp_path / "small_square.jpg"
-    img2 = Image.new("RGB", (1000, 1000), color="blue")
+    img2 = _newImage("RGB", (1000, 1000), color="blue")
     img2.save(test_image2, "JPEG")
     store.setCover("audiobook", test_image2)
 
@@ -249,7 +245,7 @@ def test_covers_R2_audiobook_requirements(tmp_path: Path, mockRnd: Any, nwGUI: A
 
     # Too large
     test_image3 = tmp_path / "large_square.jpg"
-    img3 = Image.new("RGB", (4000, 4000), color="green")
+    img3 = _newImage("RGB", (4000, 4000), color="green")
     img3.save(test_image3, "JPEG")
     store.setCover("audiobook", test_image3)
 
@@ -258,7 +254,7 @@ def test_covers_R2_audiobook_requirements(tmp_path: Path, mockRnd: Any, nwGUI: A
 
     # Valid square
     test_image4 = tmp_path / "valid_square.jpg"
-    img4 = Image.new("RGB", (3000, 3000), color="yellow")
+    img4 = _newImage("RGB", (3000, 3000), color="yellow")
     img4.save(test_image4, "JPEG")
     store.setCover("audiobook", test_image4)
 
@@ -326,13 +322,13 @@ def test_covers_R4_useSourceCover(tmp_path: Path, mockRnd: Any, nwGUI: Any):
         source_store = CoverStore(source_path)
 
         test_image = source_path / "source_cover.jpg"
-        from PIL import Image
-
-        img = Image.new("RGB", (3000, 2000), color="red")
+        img = _newImage("RGB", (3000, 2000), color="red")
         img.save(test_image, "JPEG")
 
         source_store.setCover("epub", test_image)
-        source_store.getCover("epub")["assetId"]
+        source_cover = source_store.getCover("epub")
+        assert source_cover is not None
+        assert source_cover["assetId"]
 
         # Create edition project
         edition_path = Path(tempfile.mkdtemp())
@@ -403,11 +399,9 @@ def test_covers_A3_audiobook_square(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     _project, _metadata = _makeProjectWithMetadata(tmp_path)
     store = CoverStore(tmp_path)
 
-    from PIL import Image
-
     # Non-square
     test_image = tmp_path / "test.jpg"
-    img = Image.new("RGB", (3000, 2000), color="red")
+    img = _newImage("RGB", (3000, 2000), color="red")
     img.save(test_image, "JPEG")
     store.setCover("audiobook", test_image)
 
@@ -416,7 +410,7 @@ def test_covers_A3_audiobook_square(tmp_path: Path, mockRnd: Any, nwGUI: Any):
 
     # Valid square
     test_image = tmp_path / "test.png"
-    img = Image.new("RGB", (3000, 3000), color="green")
+    img = _newImage("RGB", (3000, 3000), color="green")
     img.save(test_image, "PNG")
     store.setCover("audiobook", test_image)
 
@@ -443,9 +437,7 @@ def test_covers_A5_edition_cover_blocks(tmp_path: Path, mockRnd: Any, nwGUI: Any
         source_store = CoverStore(source_path)
 
         test_image = source_path / "cover.jpg"
-        from PIL import Image
-
-        img = Image.new("RGB", (3000, 2000), color="red")
+        img = _newImage("RGB", (3000, 2000), color="red")
         img.save(test_image, "JPEG")
         source_store.setCover("epub", test_image)
 
@@ -503,22 +495,24 @@ def test_covers_A6_replace_cover(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     _project, _metadata = _makeProjectWithMetadata(tmp_path)
     store = CoverStore(tmp_path)
 
-    from PIL import Image
-
     test_image1 = tmp_path / "cover1.jpg"
-    img1 = Image.new("RGB", (3000, 2000), color="red")
+    img1 = _newImage("RGB", (3000, 2000), color="red")
     img1.save(test_image1, "JPEG")
 
     store.setCover("epub", test_image1)
-    old_asset_id = store.getCover("epub")["assetId"]
+    old_cover = store.getCover("epub")
+    assert old_cover is not None
+    old_asset_id = old_cover["assetId"]
 
     # Replace with new cover
     test_image2 = tmp_path / "cover2.jpg"
-    img2 = Image.new("RGB", (3000, 2000), color="blue")
+    img2 = _newImage("RGB", (3000, 2000), color="blue")
     img2.save(test_image2, "JPEG")
     store.setCover("epub", test_image2)
 
-    new_asset_id = store.getCover("epub")["assetId"]
+    new_cover = store.getCover("epub")
+    assert new_cover is not None
+    new_asset_id = new_cover["assetId"]
     assert new_asset_id != old_asset_id
 
     # Old asset should still exist in asset store (unused)

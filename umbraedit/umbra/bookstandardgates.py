@@ -17,6 +17,8 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from umbraedit.formats.shared import BlockTyp
+from umbraedit.formats.tokenizer import Tokenizer
 from umbraedit.umbra.gates import (
     OP_BUILD_RUN,
     OP_PUBLISH_PACKAGE,
@@ -68,6 +70,19 @@ ADVISORY_RULES = {
     RULE_BS_TOC_MISSING,
     RULE_BS_ORPHAN_FOOTNOTE,
 }
+
+
+class _BookStandardTokenizer(Tokenizer):
+    """Minimal concrete tokenizer used by the gate checks."""
+
+    def doConvert(self) -> None:
+        """No output conversion is needed for gate inspection."""
+
+    def closeDocument(self) -> None:
+        """No document resources need to be closed."""
+
+    def saveDocument(self, path: Path) -> None:
+        """Gate inspection does not save tokenizer output."""
 
 
 def _bsHeadingSkipFindings(scope: Any) -> Iterable[Finding]:
@@ -139,7 +154,7 @@ def _bsDoubleSpaceFindings(scope: Any) -> Iterable[Any]:
 
         for match in rxDoubleSpace.finditer(text):
             line = text.count("\n", 0, match.start()) + 1
-            context = text[max(0, match.start() - 20):min(len(text), match.end() + 20)]
+            context = text[max(0, match.start() - 20) : min(len(text), match.end() + 20)]
             yield Finding(
                 ruleId="bsDoubleSpace",
                 severity="advisory",
@@ -185,7 +200,9 @@ def _bsStraightQuotesFindings(scope: Any) -> Iterable[Any]:
                 context_start = max(0, match.start() - 10)
                 context_end = min(len(text), match.end() + 10)
                 context = text[context_start:context_end]
-                if any(c in context for c in (curly_single_open, curly_single_close, curly_double_open, curly_double_close)):
+                if any(
+                    c in context for c in (curly_single_open, curly_single_close, curly_double_open, curly_double_close)
+                ):
                     continue  # Already using curly quotes nearby
 
                 yield Finding(
@@ -329,8 +346,6 @@ def _bsEmptyChapterFindings(scope: Any) -> Iterable[Any]:
     if not content_path:
         return
 
-    from umbraedit.formats.tokenizer import Tokenizer
-
     for item in scope.project.tree:
         if not item.isFileType() or not item.isDocumentLayout():
             continue
@@ -344,13 +359,13 @@ def _bsEmptyChapterFindings(scope: Any) -> Iterable[Any]:
             continue
 
         # Tokenize and check for content
-        tokenizer = Tokenizer(project)
-        tokenizer.setText(text)
+        tokenizer = _BookStandardTokenizer(project)
+        tokenizer.setText(item.itemHandle, text)
         tokenizer.tokenizeText()
 
         has_content = False
         for block in getattr(tokenizer, "_blocks", []):
-            if block[0] in {1, 2, 3, 4, 5, 6, 7}:  # Text content blocks
+            if block[0] in {BlockTyp.TEXT, BlockTyp.LIST_U, BlockTyp.LIST_O}:
                 if block[2].strip():
                     has_content = True
                     break
@@ -380,8 +395,6 @@ def _bsSceneBreakAtEdgeFindings(scope: Any) -> Iterable[Any]:
     if not content_path:
         return
 
-    from umbraedit.formats.tokenizer import BlockTyp, Tokenizer
-
     for item in scope.project.tree:
         if not item.isFileType() or not item.isDocumentLayout():
             continue
@@ -394,8 +407,8 @@ def _bsSceneBreakAtEdgeFindings(scope: Any) -> Iterable[Any]:
         except Exception:
             continue
 
-        tokenizer = Tokenizer(project)
-        tokenizer.setText(text)
+        tokenizer = _BookStandardTokenizer(project)
+        tokenizer.setText(item.itemHandle, text)
         tokenizer.tokenizeText()
 
         blocks = getattr(tokenizer, "_blocks", [])
@@ -403,7 +416,21 @@ def _bsSceneBreakAtEdgeFindings(scope: Any) -> Iterable[Any]:
             continue
 
         # Check first and last non-empty block
-        content_blocks = [b for b in blocks if b[0] in {BlockTyp.TEXT, BlockTyp.HEAD1, BlockTyp.HEAD2, BlockTyp.HEAD3, BlockTyp.HEAD4}]
+        content_blocks = [
+            b
+            for b in blocks
+            if b[0]
+            in {
+                BlockTyp.TEXT,
+                BlockTyp.LIST_U,
+                BlockTyp.LIST_O,
+                BlockTyp.SEP,
+                BlockTyp.HEAD1,
+                BlockTyp.HEAD2,
+                BlockTyp.HEAD3,
+                BlockTyp.HEAD4,
+            }
+        ]
         if not content_blocks:
             continue
 
@@ -411,7 +438,7 @@ def _bsSceneBreakAtEdgeFindings(scope: Any) -> Iterable[Any]:
         last = content_blocks[-1]
 
         # Check first block for scene break
-        if first[0] == BlockTyp.SCENE_SEP:
+        if first[0] == BlockTyp.SEP:
             yield Finding(
                 ruleId="bsSceneBreakAtEdge",
                 severity="block",
@@ -422,7 +449,7 @@ def _bsSceneBreakAtEdgeFindings(scope: Any) -> Iterable[Any]:
             )
 
         # Check last block for scene break
-        if last[0] == BlockTyp.SCENE_SEP:
+        if last[0] == BlockTyp.SEP:
             yield Finding(
                 ruleId="bsSceneBreakAtEdge",
                 severity="block",
@@ -452,8 +479,7 @@ def _bsFrontMatterOrderFindings(scope: Any) -> Iterable[Any]:
         pageManager = PageManager(editionPath)
         pageTypes = pageManager.getPageTypes()
         pages = [
-            page for page in pageManager.getAllPages()
-            if page.get("matter") == "front" and not page.get("variant")
+            page for page in pageManager.getAllPages() if page.get("matter") == "front" and not page.get("variant")
         ]
     except Exception:
         logger.exception("Could not read front matter pages")
@@ -473,8 +499,7 @@ def _bsFrontMatterOrderFindings(scope: Any) -> Iterable[Any]:
                 ruleId="bsFrontMatterOrder",
                 severity="block",
                 message=(
-                    f"Front matter is out of order: '{currTitle or currType}' "
-                    f"comes after '{prevTitle or prevType}'"
+                    f"Front matter is out of order: '{currTitle or currType}' comes after '{prevTitle or prevType}'"
                 ),
                 fix="Reorder the front matter pages so they follow the standard order",
                 handle=None,

@@ -182,6 +182,7 @@ def _editionSourceMissingFindings(scope: Any) -> Iterable[Finding]:
     if not edition.source.get("path"):
         return
 
+    editionPath = Path(storagePath)
     sourcePath = editionPath.parent / edition.source["path"]
     if not sourcePath.exists():
         yield Finding(

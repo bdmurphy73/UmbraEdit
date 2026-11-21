@@ -71,23 +71,17 @@ class AudioDock(QDockWidget):
 
         # Toolbar
         toolbar = QHBoxLayout()
-        self.btn_build_chapter = SHARED.theme.getStandardButton(
-            nwStandardButton.BUILD, self
-        )
+        self.btn_build_chapter = SHARED.theme.getStandardButton(nwStandardButton.BUILD, self)
         self.btn_build_chapter.setText(self.tr("Build Chapter"))
         self.btn_build_chapter.clicked.connect(self._build_chapter)
         toolbar.addWidget(self.btn_build_chapter)
 
-        self.btn_build_book = SHARED.theme.getStandardButton(
-            nwStandardButton.PRINT, self
-        )
+        self.btn_build_book = SHARED.theme.getStandardButton(nwStandardButton.PRINT, self)
         self.btn_build_book.setText(self.tr("Build Book"))
         self.btn_build_book.clicked.connect(self._build_book)
         toolbar.addWidget(self.btn_build_book)
 
-        self.btn_open_folder = SHARED.theme.getStandardButton(
-            nwStandardButton.BROWSE, self
-        )
+        self.btn_open_folder = SHARED.theme.getStandardButton(nwStandardButton.BROWSE, self)
         self.btn_open_folder.setText(self.tr("Open Folder"))
         self.btn_open_folder.clicked.connect(self._open_folder)
         toolbar.addWidget(self.btn_open_folder)
@@ -132,6 +126,7 @@ class AudioDock(QDockWidget):
 
         # Text tab
         from PyQt6.QtWidgets import QPlainTextEdit
+
         self.text_edit = QPlainTextEdit()
         self.text_edit.setReadOnly(True)
         font = self.text_edit.font()
@@ -250,6 +245,7 @@ class AudioDockManager:
     def create_dock(self) -> AudioDock:
         """Create the Audio dock."""
         from umbraedit.gui.audiobook import AudioDock
+
         self.dock = AudioDock(self.main_window)
         self.main_window.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
         return self.dock

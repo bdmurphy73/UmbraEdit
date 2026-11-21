@@ -33,7 +33,7 @@ from umbraedit.umbra.voiceline import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Sequence
     from pathlib import Path
 
 # Chip kinds
@@ -178,7 +178,7 @@ def chipForParagraph(
 
 
 def enterProposal(
-    previousVoices: list[Optional[VoiceData]],
+    previousVoices: Sequence[Optional[VoiceData]],
     lastParagraphEndsWithUnclosedQuote: bool,
 ) -> Optional[SpeakerProposal]:
     """Proposal for a new paragraph after Enter (R4).

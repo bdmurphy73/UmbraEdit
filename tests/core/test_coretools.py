@@ -1099,9 +1099,7 @@ def testCoreTools_DocxImporterCommentsAndImages(
     # The comment must be inserted in the text as a synopsis comment,
     # and must not be a document of its own
     assert "%Synopsis: Test Author: Check this" in text
-    assert not any(
-        node.item.itemName.startswith("Comment") for node in roots["Research"].children
-    )
+    assert not any(node.item.itemName.startswith("Comment") for node in roots["Research"].children)
 
     project.closeProject()
 

@@ -27,7 +27,7 @@ import logging
 
 from html import unescape
 from time import time
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 from umbraedit.common import formatTimeStamp, textDirection
 from umbraedit.constants import nwHtmlUnicode

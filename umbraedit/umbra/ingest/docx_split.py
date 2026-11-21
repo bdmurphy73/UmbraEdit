@@ -36,7 +36,9 @@ logger = logging.getLogger(__name__)
 class SceneSplitResult:
     """Result of the scene split stage."""
 
-    documents: list[dict[str, Any]]  # Each document has planId, kind, parentPlanId, title, level, text, sourceParagraphs, pageType
+    documents: list[
+        dict[str, Any]
+    ]  # Each document has planId, kind, parentPlanId, title, level, text, sourceParagraphs, pageType
     chapter_count: int = 0
     scene_count: int = 0
     warnings: list[str] = field(default_factory=list)

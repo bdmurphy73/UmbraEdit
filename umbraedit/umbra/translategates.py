@@ -71,4 +71,3 @@ registerGate(
         check=_translationGlossaryGapFindings,
     )
 )
-

@@ -30,7 +30,7 @@ import tempfile
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 from umbraedit.formats.shared import BlockFmt, BlockTyp, TextFmt
 from umbraedit.formats.tokenizer import Tokenizer
@@ -71,9 +71,7 @@ DEFAULT_TYPST_TEMPLATE = r"""
 # Template Syntax
 # ================
 
-RX_TEMPLATE_VAR = re.compile(
-    r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*\}\}"
-)
+RX_TEMPLATE_VAR = re.compile(r"\{\{\s*([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*\}\}")
 RX_TEMPLATE_LOOP = re.compile(
     r"\{%\s*for\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\s+([A-Za-z_][A-Za-z0-9_]*)\s*%\}"
     r"(.*?)"
@@ -118,10 +116,8 @@ def renderTemplate(template: str, values: dict[str, Any]) -> str:
         for item in items:
             scope = dict(values)
             scope[varName] = item
-            parts.append(RX_TEMPLATE_VAR.sub(
-                lambda m, s=scope: _lookupValue(m.group(1), s), body
-            ))
-        text = f"{text[:match.start()]}{''.join(parts)}{text[match.end():]}"
+            parts.append(RX_TEMPLATE_VAR.sub(lambda m, s=scope: _lookupValue(m.group(1), s), body))
+        text = f"{text[: match.start()]}{''.join(parts)}{text[match.end() :]}"
     return RX_TEMPLATE_VAR.sub(lambda m: _lookupValue(m.group(1), values), text)
 
 
@@ -350,18 +346,23 @@ class ToTypst(Tokenizer):
         printer = QPrinter(QPrinter.PrinterMode.HighResolution)
         printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
         printer.setOutputFileName(str(path))
-        printer.setPageSize(QPageSize(
-            QSizeF(width, height),
-            QPageSize.Unit.Millimeter,
-            "Trim",
-            QPageSize.SizeMatchPolicy.ExactMatch,
-        ))
-        printer.setPageMargins(QMarginsF(
-            self._parseLength(config["margin_top"]),
-            self._parseLength(config["margin_inner"]),
-            self._parseLength(config["margin_bottom"]),
-            self._parseLength(config["margin_outer"]),
-        ), QPageLayout.Unit.Millimeter)
+        printer.setPageSize(
+            QPageSize(
+                QSizeF(width, height),
+                QPageSize.Unit.Millimeter,
+                "Trim",
+                QPageSize.SizeMatchPolicy.ExactMatch,
+            )
+        )
+        printer.setPageMargins(
+            QMarginsF(
+                self._parseLength(config["margin_top"]),
+                self._parseLength(config["margin_inner"]),
+                self._parseLength(config["margin_bottom"]),
+                self._parseLength(config["margin_outer"]),
+            ),
+            QPageLayout.Unit.Millimeter,
+        )
         printer.setDocName(self._project.data.name)
 
         document = QTextDocument()
@@ -387,7 +388,6 @@ class ToTypst(Tokenizer):
         nItem = 0
 
         for tType, _, tText, tFormat, tStyle in self._blocks:
-
             if tType in (BlockTyp.LIST_U, BlockTyp.LIST_O):
                 if tType == BlockTyp.LIST_O:
                     nItem = 1 if tStyle & BlockFmt.LIST_S else nItem + 1

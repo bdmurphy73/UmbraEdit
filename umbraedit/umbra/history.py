@@ -25,6 +25,7 @@ Changes: Added snapshotDocument function for CLI document snapshots.
 
 from __future__ import annotations
 
+import contextlib
 import gzip
 import hashlib
 import json
@@ -35,15 +36,7 @@ import tempfile
 import uuid
 
 from dataclasses import dataclass
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
-import contextlib
-
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.common import writeTextFile
@@ -53,6 +46,8 @@ from umbraedit.umbra.paths import deviceFile, historyDir, journalFile
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 
@@ -135,10 +130,11 @@ def _deviceInfo(projectPath: Path) -> tuple[str, str]:
     if devPath.is_file():
         try:
             data = readJson(devPath)
-            deviceId = data.get("deviceId", "")
-            actorId = data.get("actorId", "")
-            if deviceId and actorId:
-                return deviceId, actorId
+            if isinstance(data, dict):
+                deviceId = data.get("deviceId", "")
+                actorId = data.get("actorId", "")
+                if isinstance(deviceId, str) and isinstance(actorId, str) and deviceId and actorId:
+                    return deviceId, actorId
         except Exception:
             logger.exception("Could not read device.json, recreating")
     deviceId = f"dev-{uuid.uuid4().hex[:16]}"
@@ -203,7 +199,13 @@ class RevisionStore:
             return
         if self._indexPath.is_file():
             try:
-                self._index = readJson(self._indexPath)
+                data = readJson(self._indexPath)
+                if isinstance(data, dict):
+                    self._index = {str(key): value for key, value in data.items()}
+                    if not isinstance(self._index.get("revisions"), list):
+                        self._index["revisions"] = []
+                else:
+                    self._index = {"v": 1, "handle": self._index.get("handle", ""), "revisions": []}
             except Exception:
                 logger.exception("Could not read index.json, starting fresh")
                 self._index = {"v": 1, "handle": self._index.get("handle", ""), "revisions": []}
@@ -247,7 +249,7 @@ class RevisionStore:
                     logger.error("Revision file missing: %s", filePath)
                     return None
                 try:
-                    with gzip.open(filePath, "rb") as f:
+                    with gzip.GzipFile(filename=filePath, mode="rb") as f:
                         content = f.read().decode("utf-8")
                         print(f"DEBUG readRevision: read content: {content!r}")
                         return content
@@ -469,10 +471,16 @@ class HistoryManager:
             existing: dict[str, Any] = {}
             if draftsPath.is_file():
                 try:
-                    existing = readJson(draftsPath)
+                    data = readJson(draftsPath)
+                    if isinstance(data, dict):
+                        existing = {str(key): value for key, value in data.items()}
                 except Exception:
                     logger.exception("Could not read drafts.json")
-            existing.setdefault("drafts", []).append(draft)
+            drafts = existing.setdefault("drafts", [])
+            if not isinstance(drafts, list):
+                drafts = []
+                existing["drafts"] = drafts
+            drafts.append(draft)
             writeJson(draftsPath, existing)
         except Exception:
             logger.exception("Could not save draft to drafts.json")
@@ -498,11 +506,19 @@ class HistoryManager:
             logger.exception("Could not read drafts.json")
             return False, []
 
+        if not isinstance(data, dict):
+            logger.error("Drafts file does not contain a JSON object")
+            return False, []
+
         drafts = data.get("drafts", [])
+        if not isinstance(drafts, list):
+            logger.error("Drafts file does not contain a draft list")
+            return False, []
+
         draft: Optional[dict[str, Any]] = None
-        for d in drafts:
-            if d.get("id") == draftId:
-                draft = d
+        for entry in drafts:
+            if isinstance(entry, dict) and entry.get("id") == draftId:
+                draft = {str(key): value for key, value in entry.items()}
                 break
 
         if draft is None:
@@ -510,9 +526,15 @@ class HistoryManager:
             return False, []
 
         members = draft.get("members", {})
+        if not isinstance(members, dict):
+            logger.error("Draft %s has invalid members", draftId)
+            return False, []
+
         restored: list[str] = []
 
         for handle, revId in members.items():
+            if not isinstance(handle, str) or not isinstance(revId, str):
+                continue
             self.snapshot(handle, "pre_restore", f"Pre-restore of draft {draftId}")
             if self.restore(handle, revId):
                 restored.append(handle)

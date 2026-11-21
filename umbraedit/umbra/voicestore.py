@@ -90,6 +90,7 @@ class VoiceStore:
         ]
         writeJson(self._registryPath, {"v": 1, "voices": entries})
         from umbraedit.umbra import hooks as _umbraHooks
+
         _umbraHooks.call(_umbraHooks.SIDECAR_WRITTEN, self._registryPath)
 
     def listVoices(self, includeRetired: bool = False) -> list[VoiceEntry]:
@@ -144,13 +145,9 @@ class VoiceStore:
             name=f"{code}.uvmx",
         )
 
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        try:
-            from datetime import UTC
-        except ImportError:
-            from datetime import timezone
-            UTC = timezone.utc
+        UTC = timezone.utc
 
         createdAt = matrix.created if matrix and matrix.created else datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         languages = matrix.languages.split(",") if matrix and matrix.languages else []

@@ -569,7 +569,6 @@ class ProjectBuilder:
             project.closeProject()
 
 
-
 class DocxImporter:
     """Tool: Import a Word DOCX/DOCM file into a new UmbraEdit project.
 
@@ -649,9 +648,7 @@ class DocxImporter:
             logger.error(self._error)
             return False
 
-        if safeExists(outPath) and (
-            not safeIsDir(outPath) or len(list(safeIterDir(outPath))) > 0
-        ):
+        if safeExists(outPath) and (not safeIsDir(outPath) or len(list(safeIterDir(outPath))) > 0):
             # The target folder must be empty, or not exist at all
             self._error = self.tr("The target folder is not empty.")
             logger.error(self._error)
@@ -914,9 +911,7 @@ class DocxImporter:
         aDoc = project.storage.getDocument(tHandle)
         aDoc.writeDocument(text)
 
-    def _addIssues(
-        self, project: NWProject, notesRoot: str, result: ImportResult, inPath: Path
-    ) -> None:
+    def _addIssues(self, project: NWProject, notesRoot: str, result: ImportResult, inPath: Path) -> None:
         """Add a document listing the items that could not be translated."""
         tHandle = project.newFile("Import Issues", notesRoot)
         if not tHandle:

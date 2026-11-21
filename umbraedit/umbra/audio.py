@@ -28,13 +28,7 @@ import logging
 import shutil
 
 from dataclasses import dataclass, field
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union
 
@@ -48,8 +42,9 @@ from umbraedit.umbra.utterances import (
 from umbraedit.umbra.voicestore import VoiceStore
 
 if TYPE_CHECKING:  # pragma: no cover
-
     from umbraedit.core.project import NWProject
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 
@@ -235,6 +230,7 @@ class AudioPackageBuilder:
         edition = loadMetadata(self.edition_path)
         lang = edition.book.get("language", "en")
         from umbraedit.umbra.sheet import SheetManager
+
         sheet = SheetManager(self.edition_path / "umbra")
         sheet.buildFromProject(str(self.edition_path))
         rows = sheet.iterEntities()
@@ -318,11 +314,7 @@ class AudioPackageBuilder:
                 entry = self._get_source_voice_store().getVoiceEntry(code)
             if entry:
                 # Find which characters use this voice
-                used_by = [
-                    entity.tag
-                    for entity in sheet.iterEntities()
-                    if entity.attrs.get("voice_matrix") == code
-                ]
+                used_by = [entity.tag for entity in sheet.iterEntities() if entity.attrs.get("voice_matrix") == code]
                 entries.append({
                     "code": entry.code,
                     "label": entry.label,
@@ -390,12 +382,14 @@ class AudioPackageBuilder:
 
         # Get project index
         from umbraedit.umbra.sheet import SheetManager
+
         sheet = SheetManager(self.edition_path / "umbra")
         sheet.buildFromProject(str(self.edition_path))
         index = sheet
 
         # Get voice store
         from umbraedit.umbra.voicestore import VoiceStore
+
         store = VoiceStore(self.edition_path)
 
         # Derive utterances

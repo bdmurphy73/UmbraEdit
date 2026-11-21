@@ -744,7 +744,9 @@ class Config:
     #  Config Actions
     ##
 
-    def initConfig(self, confPath: Union[str, Optional[Path]] = None, dataPath: Union[str, Optional[Path]] = None) -> None:
+    def initConfig(
+        self, confPath: Union[str, Optional[Path]] = None, dataPath: Union[str, Optional[Path]] = None
+    ) -> None:
         """Initialise the config class. The manual setting of confPath
         and dataPath is mainly intended for the test suite.
         """

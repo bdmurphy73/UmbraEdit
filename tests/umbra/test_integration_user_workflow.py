@@ -53,7 +53,7 @@ class TestCompleteUserWorkflow:
 
         # Now simulate the welcome dialog creating a sample project
         # This mimics what happens when user clicks "Create an example project"
-        {"name": "Test Sample", "path": projPath / "TestSample", "sample": True}
+        sample_data = {"name": "Test Sample", "path": projPath / "TestSample", "sample": True}
 
         # The actual welcome dialog uses ProjectBuilder
         # We'll mock the sample extraction since sample.zip isn't in test asset path
@@ -76,7 +76,7 @@ class TestCompleteUserWorkflow:
 
         # The actual welcome dialog uses ProjectBuilder
         builder = ProjectBuilder()
-        result = builder.buildProject({"name": "Test Sample", "path": projPath / "TestSample", "sample": True})
+        result = builder.buildProject(sample_data)
 
         # Verify project was created successfully
         assert result is True
@@ -95,6 +95,7 @@ class TestCompleteUserWorkflow:
     def test_welcome_dialog_sample_name(self, mockGUI: Any, projPath: Path) -> None:
         """Test that sample project gets the correct name."""
         from umbraedit.tools.welcome import SAMPLE_NAME
+
         assert SAMPLE_NAME == "UmbraEdit_Sample"
 
     def test_sample_project_loads_without_lock_error(self, mockGUI: Any, projPath: Path) -> None:
@@ -142,7 +143,6 @@ class TestCompleteUserWorkflow:
         # Create fake DOCX
         fake_docx = projPath / "test.docx"
         fake_docx.write_text("fake")
-
 
         monkeypatch.setattr(
             "umbraedit.gui.importmanuscript.QFileDialog.getOpenFileName",
@@ -208,10 +208,11 @@ class TestCompleteUserWorkflow:
         project.storage.createNewProject(projPath)
         project.setDefaultStatusImport()
 
-
         nrHandle = project.newRoot(nwItemClass.NOVEL)
         chHandle = project.newFile("Chapter 1", nrHandle)
+        assert chHandle is not None
         scHandle = project.newFile("Scene 1", chHandle)
+        assert scHandle is not None
 
         assert chHandle != ""
         assert scHandle != ""
@@ -227,10 +228,11 @@ class TestCompleteUserWorkflow:
         project.storage.createNewProject(projPath)
         project.setDefaultStatusImport()
 
-
         nrHandle = project.newRoot(nwItemClass.NOVEL)
         chHandle = project.newFile("Chapter 1", nrHandle)
-        project.newFile("Scene 1", chHandle)
+        assert chHandle is not None
+        sceneHandle = project.newFile("Scene 1", chHandle)
+        assert sceneHandle is not None
 
         doc = project.storage.getDocument(chHandle)
         doc.writeDocument("## Chapter 1\n\nTest content.")

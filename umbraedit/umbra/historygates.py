@@ -15,19 +15,15 @@ from __future__ import annotations
 
 import logging
 
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.gates import OP_BACKUP_ROTATE, OP_SYNC_PUSH, Finding, GateRule, registerGate
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 

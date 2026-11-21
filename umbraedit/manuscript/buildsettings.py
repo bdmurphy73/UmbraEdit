@@ -28,7 +28,7 @@ import uuid
 
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Union, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 

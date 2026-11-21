@@ -281,9 +281,7 @@ def _bookAudioIncompleteFindings(scope: Any) -> Iterable[Finding]:
 
     # Check all chapters are ready
     incomplete = [
-        chapter.get("handle", "")
-        for chapter in manifest.get("chapters", [])
-        if chapter.get("status") != "ready"
+        chapter.get("handle", "") for chapter in manifest.get("chapters", []) if chapter.get("status") != "ready"
     ]
 
     if incomplete:
@@ -523,4 +521,3 @@ registerGate(
         check=_audiobookNarratorMissingAudioFindings,
     )
 )
-

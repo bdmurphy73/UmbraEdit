@@ -25,6 +25,7 @@ def getChangedFiles(base: str) -> list[str]:
         capture_output=True,
         text=True,
         timeout=30,
+        check=False,
     )
     if result.returncode != 0:
         print(f"ERROR: git diff failed: {result.stderr}", file=sys.stderr)

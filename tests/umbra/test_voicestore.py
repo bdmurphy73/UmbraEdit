@@ -40,7 +40,9 @@ def voiceStore(
     project = NWProject()
     mockRnd.reset()
     buildTestProject(project, fncPath)
-    return VoiceStore(project.storage.storagePath)
+    project_path = project.storage.storagePath
+    assert project_path is not None
+    return VoiceStore(project_path)
 
 
 @pytest.mark.umbra
@@ -90,6 +92,7 @@ def test_voicestore_R2_immutableAsset(voiceStore: VoiceStore) -> None:
     entry = voiceStore.getVoiceEntry(code)
     assert entry is not None
     asset = voiceStore._assets.getAsset(entry.assetId)
+    assert asset is not None
     assert asset["attrs"].get("immutable") is True
 
 
@@ -101,6 +104,7 @@ def test_voicestore_R2_getVoiceMatrix(voiceStore: VoiceStore) -> None:
     data = buildVoiceMatrix("e", "m", "en", "l")
     code = voiceStore.importVoiceMatrix(data)
     back = voiceStore.getVoiceMatrix(code)
+    assert back is not None
     assert back == data
     assert parseVoiceMatrix(back).code == code
 
@@ -129,7 +133,9 @@ def test_voicestore_R3_getVoice(
     project = NWProject()
     mockRnd.reset()
     buildTestProject(project, fncPath)
-    store = VoiceStore(project.storage.storagePath)
+    project_path = project.storage.storagePath
+    assert project_path is not None
+    store = VoiceStore(project_path)
 
     cHandle = project.newFile("Bob Vega", C.hCharRoot)
     assert isinstance(cHandle, str)
@@ -143,7 +149,9 @@ def test_voicestore_R3_getVoice(
     # Import a matrix and assign it to Bob
     data = buildVoiceMatrix("xtts-v2", "bob", "en", "Bob", created="2026-11-06T21:02:11Z")
     code = store.importVoiceMatrix(data)
-    docFile = project.storage.contentPath / f"{cHandle}.md"
+    content_path = project.storage.contentPath
+    assert content_path is not None
+    docFile = content_path / f"{cHandle}.md"
     text = docFile.read_text(encoding="utf-8")
     edit = parseSheetNote(text)
     edit.attrs["voice_matrix"] = code

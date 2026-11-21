@@ -11,22 +11,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-      - run: pip install ruff
-      - run: ruff check .
-      - run: ruff format --check .
+          enable-cache: true
+      # The lock file is the single source of truth for the version of ruff,
+      # so that this job and the Syntax workflow always agree on the rules.
+      - run: uv sync --no-dev --group lint --group test
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync ruff format --check .
 
   typecheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-      - run: pip install pyright
-      - run: pyright umbraedit/ tests/
+          enable-cache: true
+      # Pyright needs the runtime and test dependencies to be able to
+      # resolve the imports of the code base.
+      - run: uv sync --no-dev --group lint --group test
+      - run: uv run --no-sync pyright umbraedit/ tests/
 
   test:
     strategy:
@@ -43,7 +49,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pyqt6 libenchant-2-dev
-      - run: pip install pyqt6 pyenchant pytest pytest-qt pytest-timeout
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install "pyqt6>=6.4,!=6.12.1" "pyenchant>=3.3.0" "jsonschema>=4.26.0" "python-docx>=1.1.0" "lxml>=5.0.0" "httpx>=0.28.0" "pillow>=13.0.0"
+          pip install "fastapi>=0.115" "uvicorn>=0.34"
+          pip install pytest pytest-qt pytest-timeout
       - name: Run tests (offscreen)
         env:
           QT_QPA_PLATFORM: offscreen

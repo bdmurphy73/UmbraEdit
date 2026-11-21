@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING, Union, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtCore import QAbstractItemModel, QMimeData, QModelIndex, Qt
 from PyQt6.QtGui import QFont, QIcon

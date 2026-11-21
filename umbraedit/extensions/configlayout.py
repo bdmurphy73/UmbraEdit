@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
+
 from typing import Optional, Union
 
 from PyQt6.QtCore import Qt
@@ -191,7 +192,7 @@ class NScrollableForm(QScrollArea):
     def addRow(
         self,
         label: Optional[str],
-        widget: Union[QWidget, Union[list[QWidget], int]],
+        widget: Union[QWidget, list[Union[QWidget, int]]],
         helpText: str = "",
         unit: Optional[str] = None,
         button: Optional[QWidget] = None,

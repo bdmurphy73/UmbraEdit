@@ -28,13 +28,7 @@ import logging
 import uuid
 
 from dataclasses import dataclass, field
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union
 
@@ -44,6 +38,8 @@ from umbraedit.umbra.voiceline import VoiceData, formatVoiceLine, parseVoiceLine
 
 if TYPE_CHECKING:
     from umbraedit.core.project import NWProject
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +149,7 @@ def _atomic_write_json(path: Path, data: dict[str, Any]) -> None:
     tmp.replace(path)
 
 
-def _read_document_paragraphs(project_path: Path | str, handle: str) -> list[str]:
+def _read_document_paragraphs(project_path: Union[Path, str], handle: str) -> list[str]:
     """Read all paragraph texts from a document.
 
     Returns the text of each PARAGRAPH unit (voice lines excluded).

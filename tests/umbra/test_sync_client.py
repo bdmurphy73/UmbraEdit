@@ -474,13 +474,9 @@ def test_sync_gates_R8_sync_stale_advisory(tmp_path: Path, mockRnd: Any, nwGUI: 
     buildTestProject(project, tmp_path)
 
     # Write old state
-    from datetime import datetime
+    from datetime import datetime, timezone
 
-    try:
-        from datetime import UTC
-    except ImportError:
-        from datetime import timezone
-        UTC = timezone.utc
+    UTC = timezone.utc
 
     from umbraedit.umbra.jsonio import writeJson
     from umbraedit.umbra.paths import stateFile
@@ -540,13 +536,9 @@ def test_sync_client_R10_soft_notice(tmp_path: Path, mockRnd: Any, nwGUI: Any) -
 
     # Changes show same doc edited by another device recently
     def handler(request: httpx.Request) -> httpx.Response:
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        try:
-            from datetime import UTC
-        except ImportError:
-            from datetime import timezone
-            UTC = timezone.utc
+        UTC = timezone.utc
 
         recentTime = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         return httpx.Response(

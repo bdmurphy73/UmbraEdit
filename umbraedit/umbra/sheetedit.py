@@ -13,9 +13,9 @@ document when the note is open so undo works.
 """  # noqa
 
 from __future__ import annotations
-from typing import Optional, Union
 
 from dataclasses import dataclass, field
+from typing import Optional, Union
 
 from umbraedit.umbra.sheet import CHARACTER_COLUMNS
 

@@ -39,10 +39,13 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Optional, TypeVar, Union
 
-try:
+if TYPE_CHECKING:
     from typing import TypeGuard
-except ImportError:
-    TypeGuard = type  # type: ignore
+else:
+    try:
+        from typing import TypeGuard
+    except ImportError:
+        TypeGuard = type  # type: ignore
 
 from urllib.parse import urljoin
 from urllib.request import pathname2url
@@ -167,7 +170,7 @@ def checkDateNone(value: Any, default: Optional[date]) -> Optional[date]:
 def isHandle(value: Any) -> TypeGuard[str]:
     """Check if a string is a valid UmbraEdit handle.
     Note: This is case sensitive. Must be lower case.
-    
+
     Handles can be either 13-char hex (legacy) or 36-char UUID (current format).
     """
     if not isinstance(value, str):
@@ -176,7 +179,7 @@ def isHandle(value: Any) -> TypeGuard[str]:
     if len(value) == 13:
         return all(c in "0123456789abcdef" for c in value)
     # 36-char UUID: lowercase hex with 4 dashes at positions 8, 13, 18, 23
-    if len(value) == 36 and value[8] == '-' and value[13] == '-' and value[18] == '-' and value[23] == '-':
+    if len(value) == 36 and value[8] == "-" and value[13] == "-" and value[18] == "-" and value[23] == "-":
         return all(c in "0123456789abcdef-" for c in value)
     return False
 

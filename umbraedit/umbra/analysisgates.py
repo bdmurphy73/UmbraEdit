@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any
 
 from umbraedit.umbra.gates import (
     OP_TRANSLATION_EXPORT,
+    Finding,
     GateRule,
     registerGate,
 )
@@ -28,14 +29,14 @@ if TYPE_CHECKING:  # pragma: no cover
 logger = logging.getLogger(__name__)
 
 
-def _analysisMissingFindings(scope: Any) -> Iterable[Any]:
+def _analysisMissingFindings(scope: Any) -> Iterable[Finding]:
     """Block translation.export: chapter missing analysis document."""
     project = scope.project
     if not project:
-        return
+        return []
     storagePath = project.storage.storagePath
     if not storagePath:
-        return
+        return []
 
     # Find all chapter handles
     for item in project.tree:
@@ -48,31 +49,34 @@ def _analysisMissingFindings(scope: Any) -> Iterable[Any]:
     # 1. Find all chapter handles in the project
     # 2. Check if each has an approved analysis document
     # 3. Report missing ones
+    return []
 
 
-def _analysisUnapprovedFindings(scope: Any) -> Iterable[Any]:
+def _analysisUnapprovedFindings(scope: Any) -> Iterable[Finding]:
     """Block translation.export: analysis status is draft."""
     project = scope.project
     if not project:
-        return
+        return []
     storagePath = project.storage.storagePath
     if not storagePath:
-        return
+        return []
 
     # Check if translation.allowDraftAnalysis setting is enabled
     # If not, block on draft status
+    return []
 
 
-def _analysisStaleFindings(scope: Any) -> Iterable[Any]:
+def _analysisStaleFindings(scope: Any) -> Iterable[Finding]:
     """Block translation.export: chapter changed since analysis."""
     project = scope.project
     if not project:
-        return
+        return []
     storagePath = project.storage.storagePath
     if not storagePath:
-        return
+        return []
 
     # Check if chapter text hash differs from analysis @srchash
+    return []
 
 
 registerGate(

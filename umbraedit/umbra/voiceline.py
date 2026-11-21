@@ -13,11 +13,11 @@ skip them.
 """  # noqa
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import re
 
 from dataclasses import dataclass, field
+from typing import Optional, Union
 
 VOICE_PREFIX = "%Voice:"
 
@@ -73,7 +73,7 @@ def parseVoiceLine(line: str) -> Optional[VoiceData]:
     if not match:
         return None
 
-    remainder = line[match.end():].strip()
+    remainder = line[match.end() :].strip()
     data = VoiceData()
     unknown: dict[str, str] = {}
 

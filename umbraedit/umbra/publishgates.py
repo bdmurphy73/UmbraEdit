@@ -15,12 +15,13 @@ retailer field missing, retailer limit.
 
 from __future__ import annotations
 
+import importlib
 import json
 import logging
 import re
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
 from umbraedit.umbra.covers import DEFAULT_REQUIREMENTS, loadCovers
 from umbraedit.umbra.edition import EditionInfo, loadEdition
@@ -248,17 +249,19 @@ def _check_cover_missing(scope: Any) -> Iterable[Finding]:
 
     formats = source_meta.formats.get("formats", {}) if source_meta.formats else {}
     for fmt in formats:
-        if (fmt in DEFAULT_REQUIREMENTS
-                and DEFAULT_REQUIREMENTS[fmt].get("required", False)
-                and (fmt not in covers or not covers[fmt].get("file"))):
-                yield Finding(
-                    ruleId=RULE_PUBLISH_COVER_MISSING,
-                    severity="block",
-                    message=f"Cover is required for format '{fmt}' but is missing",
-                    fix=f"Add a cover for '{fmt}' in Cover Manager",
-                    handle=None,
-                    detail={"format": fmt},
-                )
+        if (
+            fmt in DEFAULT_REQUIREMENTS
+            and DEFAULT_REQUIREMENTS[fmt].get("required", False)
+            and (fmt not in covers or not covers[fmt].get("file"))
+        ):
+            yield Finding(
+                ruleId=RULE_PUBLISH_COVER_MISSING,
+                severity="block",
+                message=f"Cover is required for format '{fmt}' but is missing",
+                fix=f"Add a cover for '{fmt}' in Cover Manager",
+                handle=None,
+                detail={"format": fmt},
+            )
 
 
 def _check_cover_invalid(scope: Any) -> Iterable[Finding]:
@@ -480,6 +483,7 @@ def _check_voice_matrix_missing(scope: Any) -> Iterable[Finding]:
             if voice_matrix:
                 # Check if voice matrix file exists
                 from umbraedit.umbra.voicestore import VoiceStore
+
                 voice_store = VoiceStore(edition_path)
                 if not voice_store.getVoiceMatrix(voice_matrix):
                     yield Finding(
@@ -530,12 +534,20 @@ def _check_review_open(scope: Any) -> Iterable[Finding]:
 
     # Check if review comments exist
     try:
-        from umbraedit.umbra.review import loadReviewComments
+        review_module = importlib.import_module("umbraedit.umbra.review")
     except ImportError:
         return  # Review feature not available
 
+    load_review_comments = getattr(review_module, "loadReviewComments", None)
+    if not callable(load_review_comments):
+        return
+
+    review_loader = cast(
+        "Callable[[Optional[Path]], list[dict[str, Any]]]",
+        load_review_comments,
+    )
     try:
-        comments = loadReviewComments(project.storage.storagePath)
+        comments = review_loader(project.storage.storagePath)
         open_count = sum(1 for c in comments if not c.get("resolved", False))
         if open_count > 0:
             yield Finding(
@@ -557,6 +569,7 @@ def _check_sync_conflict_open(scope: Any) -> Iterable[Finding]:
         return
 
     from umbraedit.umbra.sync.conflicts import ConflictsStore
+
     store = ConflictsStore(project.storage.storagePath)
     count = store.open_count()
     if count > 0:
@@ -627,9 +640,7 @@ def _check_book_audio_incomplete(scope: Any) -> Iterable[Finding]:
         return
 
     incomplete = [
-        chapter.get("handle", "")
-        for chapter in manifest.get("chapters", [])
-        if chapter.get("status") != "ready"
+        chapter.get("handle", "") for chapter in manifest.get("chapters", []) if chapter.get("status") != "ready"
     ]
 
     if incomplete:
@@ -714,8 +725,10 @@ def _check_retailer_limit(scope: Any) -> Iterable[Finding]:
         if field == "book.description":
             value = source_meta.book.get("description", "")
             if len(value) > limit:
-                msg = (f"Book description exceeds {limit} character limit "
-                       f"for retailer '{retailer['name']}' ({len(value)} chars)")
+                msg = (
+                    f"Book description exceeds {limit} character limit "
+                    f"for retailer '{retailer['name']}' ({len(value)} chars)"
+                )
                 yield Finding(
                     ruleId=RULE_PUBLISH_RETAILER_LIMIT,
                     severity="block",
@@ -729,8 +742,7 @@ def _check_retailer_limit(scope: Any) -> Iterable[Finding]:
             # Keywords are comma-separated
             count = len([k.strip() for k in value.split(",") if k.strip()])
             if count > limit:
-                msg = (f"Book keywords count ({count}) exceeds limit ({limit}) "
-                       f"for retailer '{retailer['name']}'")
+                msg = f"Book keywords count ({count}) exceeds limit ({limit}) for retailer '{retailer['name']}'"
                 yield Finding(
                     ruleId=RULE_PUBLISH_RETAILER_LIMIT,
                     severity="block",
@@ -742,8 +754,7 @@ def _check_retailer_limit(scope: Any) -> Iterable[Finding]:
         elif field == "book.title":
             value = source_meta.book.get("title", "")
             if len(value) > limit:
-                msg = (f"Book title exceeds {limit} character limit "
-                       f"for retailer '{retailer['name']}'")
+                msg = f"Book title exceeds {limit} character limit for retailer '{retailer['name']}'"
                 yield Finding(
                     ruleId=RULE_PUBLISH_RETAILER_LIMIT,
                     severity="block",
@@ -755,8 +766,7 @@ def _check_retailer_limit(scope: Any) -> Iterable[Finding]:
         elif field == "book.subtitle":
             value = source_meta.book.get("subtitle", "")
             if len(value) > limit:
-                msg = (f"Book subtitle exceeds {limit} character limit "
-                       f"for retailer '{retailer['name']}'")
+                msg = f"Book subtitle exceeds {limit} character limit for retailer '{retailer['name']}'"
                 yield Finding(
                     ruleId=RULE_PUBLISH_RETAILER_LIMIT,
                     severity="block",
@@ -954,4 +964,3 @@ registerGate(
         check=_check_retailer_limit,
     )
 )
-

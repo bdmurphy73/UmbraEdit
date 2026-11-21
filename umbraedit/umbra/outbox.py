@@ -30,13 +30,7 @@ import os
 import tempfile
 import zlib
 
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.hooks import (
@@ -55,6 +49,8 @@ from umbraedit.umbra.paths import (
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 

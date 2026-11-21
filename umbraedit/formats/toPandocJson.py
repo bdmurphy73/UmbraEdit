@@ -27,7 +27,7 @@ import logging
 import subprocess
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 from umbraedit.formats.shared import BlockTyp, TextFmt
 from umbraedit.formats.tokenizer import Tokenizer
@@ -167,8 +167,7 @@ class ToPandocJson(Tokenizer):
         if meta.book.get("author"):
             authors = meta.book["author"].split(",")
             pandoc_meta["author"] = [
-                {"t": "MetaInlines", "c": [{"t": "Str", "c": a.strip()}]}
-                for a in authors if a.strip()
+                {"t": "MetaInlines", "c": [{"t": "Str", "c": a.strip()}]} for a in authors if a.strip()
             ]
 
         # Language
@@ -183,9 +182,7 @@ class ToPandocJson(Tokenizer):
         if meta.book.get("keywords"):
             keywords = [k.strip() for k in meta.book["keywords"].split(",") if k.strip()]
             if keywords:
-                pandoc_meta["subject"] = [
-                    {"t": "MetaInlines", "c": [{"t": "Str", "c": k}]} for k in keywords
-                ]
+                pandoc_meta["subject"] = [{"t": "MetaInlines", "c": [{"t": "Str", "c": k}]} for k in keywords]
 
         # Description
         if meta.book.get("description"):
@@ -251,7 +248,6 @@ class ToPandocJson(Tokenizer):
         ordered = False
 
         for tType, _, tText, tFormat, _tStyle in self._blocks:
-
             if tType in (BlockTyp.LIST_U, BlockTyp.LIST_O):
                 isOrdered = tType == BlockTyp.LIST_O
                 if items and ordered != isOrdered:
@@ -343,9 +339,7 @@ class ToPandocJson(Tokenizer):
                     blocks = [{"t": "Para", "c": self._inline_to_pandoc(note[0], note[1])}]
                     stack[-1]["items"].append({"t": "Note", "c": blocks})
                 else:
-                    stack[-1]["items"].append({
-                        "t": "Note", "c": [{"t": "Para", "c": [{"t": "Str", "c": "ERR"}]}]
-                    })
+                    stack[-1]["items"].append({"t": "Note", "c": [{"t": "Para", "c": [{"t": "Str", "c": "ERR"}]}]})
                 continue
 
             if fmt == TextFmt.FIELD:

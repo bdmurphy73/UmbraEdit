@@ -25,12 +25,12 @@ from __future__ import annotations
 import datetime
 import json
 import sys
-import tomllib
 
 from pathlib import Path
 from shutil import copyfile
 
 import pytest
+import tomllib
 
 from PyQt6.QtCore import QRect, Qt
 from PyQt6.QtGui import QFont, QFontDatabase

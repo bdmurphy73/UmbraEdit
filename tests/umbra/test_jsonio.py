@@ -87,6 +87,7 @@ def test_umbra_jsonio_A4_atomicWrite(tmp_path: Path):
     # Simulate crash during write by patching os.rename
     originalRename = os.rename
     with pytest.raises(FakeCrash):
+
         def crashRename(src: str, dst: str) -> None:
             raise FakeCrash("Simulated crash between temp write and rename")
 

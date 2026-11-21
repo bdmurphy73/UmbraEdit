@@ -22,7 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-from typing import ClassVar, Optional, Union
+from typing import ClassVar
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 

@@ -237,8 +237,8 @@ def test_verify_A4_problem_dataclass_immutable():
     from dataclasses import FrozenInstanceError
 
     p = Problem(ruleId="test", severity="block", message="msg", fix="fix")
-    with pytest.raises(FrozenInstanceError, match=""):
-        p.ruleId = "changed"
+    with pytest.raises(FrozenInstanceError):
+        p.ruleId = "changed"  # type: ignore[reportAttributeAccessIssue]
 
 
 @pytest.mark.umbra

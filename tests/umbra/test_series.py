@@ -143,51 +143,126 @@ def series_projects(tmp_path: Path):
     (book_path / "umbra").mkdir(parents=True)
 
     # Create bible entities
-    _write_doc(bible_content, "char-katniss", "# Katniss Everdeen\n\n@tag: Katniss | Katniss Everdeen\n@attr: kind | character\n@attr: slot | 1\n@attr: voice_matrix | vm-abc123")
-    _write_doc(bible_content, "char-peeta", "# Peeta Mellark\n\n@tag: Peeta | Peeta Mellark\n@attr: kind | character\n@attr: slot | 2")
+    _write_doc(
+        bible_content,
+        "char-katniss",
+        "# Katniss Everdeen\n\n@tag: Katniss | Katniss Everdeen\n@attr: kind | character\n@attr: slot | 1\n@attr: voice_matrix | vm-abc123",
+    )
+    _write_doc(
+        bible_content,
+        "char-peeta",
+        "# Peeta Mellark\n\n@tag: Peeta | Peeta Mellark\n@attr: kind | character\n@attr: slot | 2",
+    )
     _write_doc(bible_content, "place-arena", "# The Arena\n\n@tag: Arena | The Arena\n@attr: kind | place")
 
     # Create bible voice store
-    (bible_path / "umbra" / "voices.json").write_text(json.dumps({
-        "v": 1,
-        "voices": [{"code": "vm-abc123", "label": "Katniss Voice", "kind": "character", "engine": "piper", "languages": ["en"], "assetId": "abc123", "createdAt": "2026-01-01T00:00:00Z", "retired": False}]
-    }, separators=(",", ":")) + "\n", encoding="utf-8")
+    (bible_path / "umbra" / "voices.json").write_text(
+        json.dumps(
+            {
+                "v": 1,
+                "voices": [
+                    {
+                        "code": "vm-abc123",
+                        "label": "Katniss Voice",
+                        "kind": "character",
+                        "engine": "piper",
+                        "languages": ["en"],
+                        "assetId": "abc123",
+                        "createdAt": "2026-01-01T00:00:00Z",
+                        "retired": False,
+                    }
+                ],
+            },
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     # Create bible tones
-    (bible_path / "umbra" / "tones.json").write_text(json.dumps({
-        "v": 1,
-        "tones": [{"key": "neutral", "label": "Neutral", "appliesTo": "both", "audioHint": "", "order": 1}]
-    }, separators=(",", ":")) + "\n", encoding="utf-8")
+    (bible_path / "umbra" / "tones.json").write_text(
+        json.dumps(
+            {
+                "v": 1,
+                "tones": [{"key": "neutral", "label": "Neutral", "appliesTo": "both", "audioHint": "", "order": 1}],
+            },
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     # Create bible sheet
-    (bible_path / "umbra" / "sheet.json").write_text(json.dumps({
-        "v": 1,
-        "entities": [
-            {"tag": "Katniss", "handle": "char-katniss", "kind": "character", "aliases": [], "attrs": {"kind": "character", "slot": "1", "voice_matrix": "vm-abc123"}},
-            {"tag": "Peeta", "handle": "char-peeta", "kind": "character", "aliases": [], "attrs": {"kind": "character", "slot": "2"}},
-            {"tag": "Arena", "handle": "place-arena", "kind": "place", "aliases": [], "attrs": {"kind": "place"}},
-        ]
-    }, separators=(",", ":")) + "\n", encoding="utf-8")
+    (bible_path / "umbra" / "sheet.json").write_text(
+        json.dumps(
+            {
+                "v": 1,
+                "entities": [
+                    {
+                        "tag": "Katniss",
+                        "handle": "char-katniss",
+                        "kind": "character",
+                        "aliases": [],
+                        "attrs": {"kind": "character", "slot": "1", "voice_matrix": "vm-abc123"},
+                    },
+                    {
+                        "tag": "Peeta",
+                        "handle": "char-peeta",
+                        "kind": "character",
+                        "aliases": [],
+                        "attrs": {"kind": "character", "slot": "2"},
+                    },
+                    {
+                        "tag": "Arena",
+                        "handle": "place-arena",
+                        "kind": "place",
+                        "aliases": [],
+                        "attrs": {"kind": "place"},
+                    },
+                ],
+            },
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     # Create bible journal for change counter
     (bible_path / "umbra" / "journal.jsonl").write_text(
         '{"v":1,"at":"2026-01-01T00:00:00Z","kind":"create","message":"Created Katniss"}\n'
         '{"v":1,"at":"2026-01-01T00:00:01Z","kind":"create","message":"Created Peeta"}\n'
         '{"v":1,"at":"2026-01-01T00:00:02Z","kind":"create","message":"Created Arena"}\n',
-        encoding="utf-8"
+        encoding="utf-8",
     )
 
     # Create book entities (one shadows bible)
     _write_doc(book_content, "ch1", "# Chapter 1\n\nKatniss drew her bow.")
-    _write_doc(book_content, "char-peeta", "# Peeta Mellark\n\n@tag: Peeta | Peeta Mellark\n@attr: kind | character\n@attr: slot | 2\n@attr: note | Book-specific note")
+    _write_doc(
+        book_content,
+        "char-peeta",
+        "# Peeta Mellark\n\n@tag: Peeta | Peeta Mellark\n@attr: kind | character\n@attr: slot | 2\n@attr: note | Book-specific note",
+    )
 
     # Create book sheet
-    (book_path / "umbra" / "sheet.json").write_text(json.dumps({
-        "v": 1,
-        "entities": [
-            {"tag": "Peeta", "handle": "char-peeta", "kind": "character", "aliases": [], "attrs": {"kind": "character", "slot": "2"}},
-        ]
-    }, separators=(",", ":")) + "\n", encoding="utf-8")
+    (book_path / "umbra" / "sheet.json").write_text(
+        json.dumps(
+            {
+                "v": 1,
+                "entities": [
+                    {
+                        "tag": "Peeta",
+                        "handle": "char-peeta",
+                        "kind": "character",
+                        "aliases": [],
+                        "attrs": {"kind": "character", "slot": "2"},
+                    },
+                ],
+            },
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
     # Create series.json in book
     series_info = SeriesInfo(
@@ -263,6 +338,7 @@ class TestBiblePath:
         bible_path, book_path = series_projects
         series = loadSeries(book_path)
         resolved = getBiblePath(book_path, series)
+        assert resolved is not None
         assert resolved == bible_path
         assert resolved.exists()
 
@@ -275,6 +351,7 @@ class TestBiblePath:
         saveSeries(book_path, series)
 
         resolved = getBiblePath(book_path, series)
+        assert resolved is not None
         assert not resolved.exists()
 
 
@@ -329,27 +406,36 @@ class TestTagShadow:
 
     def test_check_tag_shadow_shadowed(self, series_projects):
         _bible_path, book_path = series_projects
-        book_project = _FakeProject(book_path, [
-            _FakeItem("ch1", "NOVEL", "Chapter 1"),
-            _FakeItem("char-peeta", "CHARACTER", "Peeta"),
-        ])
+        book_project = _FakeProject(
+            book_path,
+            [
+                _FakeItem("ch1", "NOVEL", "Chapter 1"),
+                _FakeItem("char-peeta", "CHARACTER", "Peeta"),
+            ],
+        )
         # Peeta is in both bible and book
         assert checkTagShadow(book_project, "Peeta")
 
     def test_check_tag_shadow_not_shadowed(self, series_projects):
         _bible_path, book_path = series_projects
-        book_project = _FakeProject(book_path, [
-            _FakeItem("ch1", "NOVEL", "Chapter 1"),
-            _FakeItem("char-peeta", "CHARACTER", "Peeta"),
-        ])
+        book_project = _FakeProject(
+            book_path,
+            [
+                _FakeItem("ch1", "NOVEL", "Chapter 1"),
+                _FakeItem("char-peeta", "CHARACTER", "Peeta"),
+            ],
+        )
         # Katniss is only in bible
         assert not checkTagShadow(book_project, "Katniss")
 
     def test_check_tag_shadow_no_series(self, series_projects):
         _bible_path, book_path = series_projects
-        book_project = _FakeProject(book_path, [
-            _FakeItem("ch1", "NOVEL", "Chapter 1"),
-        ])
+        book_project = _FakeProject(
+            book_path,
+            [
+                _FakeItem("ch1", "NOVEL", "Chapter 1"),
+            ],
+        )
         # Remove series.json
         (book_path / "umbra" / "series.json").unlink()
         assert not checkTagShadow(book_project, "Peeta")
@@ -453,6 +539,7 @@ class TestSheetBibleIntegration:
 
         # Bible entities should be marked
         katniss = book_sheet.getEntity("Katniss")
+        assert katniss is not None
         assert katniss.origin == "bible"
 
     def test_is_bible_entity(self, series_projects):

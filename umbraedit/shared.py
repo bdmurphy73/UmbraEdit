@@ -28,7 +28,7 @@ import re
 from enum import Enum
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, TypeVar, Union, Optional
+from typing import TYPE_CHECKING, Optional, TypeVar, Union
 
 from PyQt6.QtCore import QObject, QRunnable, QThreadPool, QTimer, QUrl, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QDesktopServices, QFont, QScreen
@@ -318,7 +318,9 @@ class SharedData(QObject):
         if pool := QThreadPool.globalInstance():
             pool.start(runnable, priority=priority)
 
-    def getProjectPath(self, parent: QWidget, path: Union[str, Optional[Path]] = None, allowZip: bool = False) -> Optional[Path]:
+    def getProjectPath(
+        self, parent: QWidget, path: Union[str, Optional[Path]] = None, allowZip: bool = False
+    ) -> Optional[Path]:
         """Open the file dialog and select a UmbraEdit project file."""
         label = self.tr("UmbraEdit Project File or Zip File") if allowZip else self.tr("UmbraEdit Project File")
         ext = f"{nwFiles.PROJ_FILE} *.zip" if allowZip else nwFiles.PROJ_FILE

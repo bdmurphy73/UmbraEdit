@@ -48,6 +48,7 @@ from PyQt6.QtWidgets import (
 
 from umbraedit import SHARED
 from umbraedit.enum import nwStandardButton
+from umbraedit.extensions.modified import NComboBox
 
 if TYPE_CHECKING:  # pragma: no cover
     from umbraedit.guimain import GuiMain
@@ -76,35 +77,29 @@ class PublishDock(QDockWidget):
         # Toolbar
         toolbar = QHBoxLayout()
 
-        self.cmb_edition = SHARED.theme.getStandardComboBox(self)
+        self.cmb_edition = NComboBox(self)
         self.cmb_edition.setMinimumWidth(200)
         toolbar.addWidget(QLabel(self.tr("Edition:")))
         toolbar.addWidget(self.cmb_edition)
 
-        self.cmb_retailer = SHARED.theme.getStandardComboBox(self)
+        self.cmb_retailer = NComboBox(self)
         self.cmb_retailer.setMinimumWidth(200)
         toolbar.addWidget(QLabel(self.tr("Retailer:")))
         toolbar.addWidget(self.cmb_retailer)
 
         toolbar.addStretch()
 
-        self.btn_publish = SHARED.theme.getStandardButton(
-            nwStandardButton.BUILD, self
-        )
+        self.btn_publish = SHARED.theme.getStandardButton(nwStandardButton.BUILD, self)
         self.btn_publish.setText(self.tr("Publish"))
         self.btn_publish.clicked.connect(self._on_publish)
         toolbar.addWidget(self.btn_publish)
 
-        self.btn_handoff = SHARED.theme.getStandardButton(
-            nwStandardButton.INSERT, self
-        )
+        self.btn_handoff = SHARED.theme.getStandardButton(nwStandardButton.INSERT, self)
         self.btn_handoff.setText(self.tr("Handoff"))
         self.btn_handoff.clicked.connect(self._on_handoff)
         toolbar.addWidget(self.btn_handoff)
 
-        self.btn_open_folder = SHARED.theme.getStandardButton(
-            nwStandardButton.BROWSE, self
-        )
+        self.btn_open_folder = SHARED.theme.getStandardButton(nwStandardButton.BROWSE, self)
         self.btn_open_folder.setText(self.tr("Open Folder"))
         self.btn_open_folder.clicked.connect(self._open_folder)
         toolbar.addWidget(self.btn_open_folder)
@@ -147,7 +142,7 @@ class PublishDock(QDockWidget):
         # Job actions
         job_actions = QHBoxLayout()
         self.btn_refresh_jobs = QPushButton(self.tr("Refresh Jobs"))
-        self.btn_refresh_jobs.clicked.connect(self._refresh_jobs)
+        self.btn_refresh_jobs.clicked.connect(self.refresh_jobs)
         job_actions.addWidget(self.btn_refresh_jobs)
 
         self.btn_open_job_folder = QPushButton(self.tr("Open Job Folder"))
@@ -199,7 +194,6 @@ class PublishDock(QDockWidget):
         self.cmb_edition.currentTextChanged.connect(self._on_edition_changed)
         self.cmb_retailer.currentTextChanged.connect(self._on_retailer_changed)
         self.jobs_list.itemClicked.connect(self._on_job_clicked)
-        self.btn_refresh_jobs.clicked.connect(self._refresh_jobs)
 
     def refresh_editions(self) -> None:
         """Refresh the edition dropdown."""
@@ -292,6 +286,7 @@ class PublishDockManager:
     def create_dock(self) -> PublishDock:
         """Create the Publish dock."""
         from umbraedit.gui.publish import PublishDock
+
         self.dock = PublishDock(self.main_window)
         self.main_window.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
         return self.dock

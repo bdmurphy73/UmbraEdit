@@ -29,13 +29,7 @@ import os
 import tempfile
 import uuid
 
-from datetime import datetime
-
-try:
-    from datetime import UTC
-except ImportError:
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.umbra.jsonio import readJson
@@ -43,6 +37,8 @@ from umbraedit.umbra.paths import conflictsFile
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+UTC = timezone.utc
 
 logger = logging.getLogger(__name__)
 

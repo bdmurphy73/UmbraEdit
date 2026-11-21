@@ -46,7 +46,6 @@ from umbraedit.constants import (
 )
 from umbraedit.enum import nwDocAction, nwDocInsert, nwFocus, nwView
 from umbraedit.extensions.eventfilters import StatusTipFilter
-
 from umbraedit.types import QtWidgetShortcut
 
 if TYPE_CHECKING:

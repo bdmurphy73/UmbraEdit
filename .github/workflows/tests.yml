@@ -259,6 +259,19 @@ jobs:
             python3-pytest-timeout \
             qt6-image-formats-plugins
 
+      - name: Install Python Dependencies
+        # The remaining dependencies of the test suite are not available
+        # as Ubuntu packages, or are too old there, so they are installed
+        # from PyPI on top of the system packages.
+        run: |
+          python3 -m pip install --break-system-packages \
+            "httpx>=0.28.0" \
+            "jsonschema>=4.26.0" \
+            "lxml>=5.0.0" \
+            "pillow>=13.0.0" \
+            "fastapi>=0.115" \
+            "uvicorn>=0.34"
+
       - name: Build Assets
         run: |
           python3 pkgutils.py sample
@@ -283,6 +296,7 @@ jobs:
           dnf -y install \
             git \
             python3-enchant \
+            python3-pip \
             python3-pyqt6 \
             python3-pytest \
             python3-pytest-qt \
@@ -292,6 +306,19 @@ jobs:
 
       - name: Checkout Source
         uses: actions/checkout@v4
+
+      - name: Install Python Dependencies
+        # The remaining dependencies of the test suite are not available
+        # as Fedora packages, or are too old there, so they are installed
+        # from PyPI on top of the system packages.
+        run: |
+          python3 -m pip install --break-system-packages \
+            "httpx>=0.28.0" \
+            "jsonschema>=4.26.0" \
+            "lxml>=5.0.0" \
+            "pillow>=13.0.0" \
+            "fastapi>=0.115" \
+            "uvicorn>=0.34"
 
       - name: Run Build Commands
         run: |

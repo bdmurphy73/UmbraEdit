@@ -21,7 +21,7 @@ fi
 
 if ! "$PYTHON_CMD" -c "import PyQt6.QtWidgets" 2>/dev/null; then
     osascript -e 'tell app "System Events" to display dialog "UmbraEdit is installing required components (PyQt6). This may take a few minutes..." buttons {"OK"} default button "OK" with icon note'
-    if ! "$PYTHON_CMD" -m pip install PyQt6 PyEnchant tomli jsonschema attrs "referencing==0.35.1" rpds-py uri-template "idna==2.10" jsonschema_specifications httpx httpcore anyio sniffio lxml setproctitle 2>/dev/null; then
+    if ! "$PYTHON_CMD" -m pip install "PyQt6!=6.12.1" PyEnchant tomli jsonschema attrs "referencing==0.35.1" rpds-py uri-template "idna==2.10" jsonschema_specifications httpx httpcore anyio sniffio lxml setproctitle 2>/dev/null; then
         osascript -e 'tell app "System Events" to display dialog "UmbraEdit failed to install PyQt6. Please install it manually: pip3 install PyQt6 PyEnchant" buttons {"OK"} default button "OK" with icon caution'
         exit 1
     fi

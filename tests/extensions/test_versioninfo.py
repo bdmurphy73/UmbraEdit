@@ -163,9 +163,7 @@ def testVersionInfoWidget_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, mo
     version._processLink("#unknown")
 
     version._updateReleaseInfo("v2.0", "")
-    assert version._lblRelease.text() == (
-        "Latest Version: 2.0 \u2013 Download from <a href='#website'>UmbraEdit</a>"
-    )
+    assert version._lblRelease.text() == ("Latest Version: 2.0 \u2013 Download from <a href='#website'>UmbraEdit</a>")
 
     version._updateReleaseInfo("", "")
     assert version._lblRelease.text() == "Latest Version: Failed"

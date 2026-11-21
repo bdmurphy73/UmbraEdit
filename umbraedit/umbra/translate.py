@@ -22,21 +22,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import json
 import logging
 import uuid
 
-from dataclasses import dataclass, field
-
-with contextlib.suppress(ImportError):
-    pass
+from dataclasses import dataclass, field, replace
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional
+
+import httpx
+import jsonschema
 
 from umbraedit.umbra.edition import loadEdition, saveEdition
 from umbraedit.umbra.guide import parseGuideDoc
+from umbraedit.umbra.metadata import loadMetadata
 from umbraedit.umbra.paths import jobsDir, promptsDir
 from umbraedit.umbra.settings import umbraSettings
 from umbraedit.umbra.units import UnitKind, iterUnits
@@ -94,7 +95,7 @@ TRANSLATION_INSTRUCTIONS = (
 )
 
 
-@dataclass(frozen=True)
+@dataclass
 class TranslationJob:
     """A translation job for a chapter or metadata."""
 
@@ -358,9 +359,8 @@ def _get_source_paragraphs(
             if unit.voice:
                 spk = unit.voice.spk or ""
                 tone = unit.voice.tone or ""
-                intensity = unit.voice.intensity if hasattr(unit.voice, "intensity") else ""
                 if spk or tone:
-                    voice_info = f" (speaker: {spk}, tone: {tone}:{intensity})".strip()
+                    voice_info = f" (speaker: {spk}, tone: {tone})"
                 else:
                     voice_info = ""
 
@@ -436,7 +436,11 @@ def _build_chapter_prompt(
     source_hash = _get_source_hash(source_project, chapter_handle)
     analysis_hash = _get_analysis_hash(source_project, chapter_handle)
 
-    metadata = source_project.metadata if hasattr(source_project, "metadata") else loadMetadata(source_project.storage.storagePath)
+    metadata = (
+        source_project.metadata
+        if hasattr(source_project, "metadata")
+        else loadMetadata(source_project.storage.storagePath)
+    )
 
     template = _load_prompt_template(edition_path)
 
@@ -465,7 +469,11 @@ def _build_metadata_prompt(
 ) -> tuple[str, str]:
     """Build the translation prompt for metadata. Returns (prompt, source_hash)."""
     # For metadata, we hash the pending fields
-    metadata = source_project.metadata if hasattr(source_project, "metadata") else loadMetadata(source_project.storage.storagePath)
+    metadata = (
+        source_project.metadata
+        if hasattr(source_project, "metadata")
+        else loadMetadata(source_project.storage.storagePath)
+    )
     pending = edition_info.pending
 
     source_data = {}
@@ -557,6 +565,51 @@ def _count_source_paragraphs(source_project: Any, chapter_handle: str) -> int:
             if unit.kind == UnitKind.PARAGRAPH:
                 count += 1
     return count
+
+
+def buildTranslationJob(edition_project: Any, chapter_handle: str) -> Optional[TranslationJob]:
+    """Create and persist a translation job for a chapter.
+
+    The prompt and job metadata are written to the edition project's jobs
+    directory so the job can be run locally or exported to an external tool.
+    """
+    edition_path = Path(edition_project.storage.storagePath)
+    edition_info = loadEdition(edition_path)
+
+    try:
+        prompt, source_hash, analysis_hash = _build_chapter_prompt(
+            edition_path,
+            edition_project,
+            chapter_handle,
+            edition_info,
+        )
+    except Exception:
+        logger.exception("Failed to build translation prompt for chapter: %s", chapter_handle)
+        return None
+
+    job_id = _generate_ulid()
+    jobs_dir = jobsDir(edition_path)
+    prompt_path = jobs_dir / f"tj-{job_id}.prompt.md"
+    job_path = jobs_dir / f"tj-{job_id}.json"
+    job = TranslationJob(
+        id=job_id,
+        edition=edition_info.editionId,
+        chapter=chapter_handle,
+        status="ready",
+        prompt_file=str(prompt_path.relative_to(edition_path)),
+        analysis_hash=analysis_hash,
+        source_hash=source_hash,
+        created_at=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    )
+
+    try:
+        _atomic_write_text(prompt_path, prompt)
+        _atomic_write_json(job_path, job.to_dict())
+    except Exception:
+        logger.exception("Failed to save translation job: %s", job_id)
+        return None
+
+    return job
 
 
 def importTranslationResult(edition_project: Any, job_id: str) -> tuple[bool, Optional[str]]:
@@ -651,6 +704,9 @@ def _apply_translation_draft(edition_project: Any, job: TranslationJob) -> bool:
     [u for u in units if u.kind == UnitKind.PARAGRAPH]
 
     # Build new text with translated paragraphs
+    if job.result is None:
+        logger.error("Translation job has no result: %s", job.id)
+        return False
     result_paragraphs = {p["index"]: p for p in job.result.get("paragraphs", [])}
 
     new_lines = []
@@ -681,7 +737,7 @@ def _apply_translation_draft(edition_project: Any, job: TranslationJob) -> bool:
 
     # Update edition status to "translated draft"
     if chapter_handle in edition_info.docs:
-        edition_info.docs[chapter_handle].status = "translated draft"
+        edition_info.docs[chapter_handle] = replace(edition_info.docs[chapter_handle], status="translated draft")
         saveEdition(edition_path, edition_info)
 
     # Check for attribution loss

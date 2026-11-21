@@ -31,7 +31,7 @@ class UmbraSchemaNewerError(Exception):
     """The file's schema version is newer than this code supports."""
 
 
-def readJson(path: Path, default: Union[dict, Optional[list]] = None) -> dict | list:
+def readJson(path: Path, default: Union[dict, Optional[list]] = None) -> Union[dict, list]:
     """Read a JSON file. Returns `default` if the file doesn't exist.
 
     Raises `UmbraSchemaNewerError` if the schema version is newer than
@@ -54,7 +54,7 @@ def readJson(path: Path, default: Union[dict, Optional[list]] = None) -> dict | 
     return data
 
 
-def writeJson(path: Path, data: dict | list) -> None:
+def writeJson(path: Path, data: Union[dict, list]) -> None:
     """Write a JSON file atomically with canonical formatting.
 
     Uses a temp file in the same folder, then renames. Adds the schema

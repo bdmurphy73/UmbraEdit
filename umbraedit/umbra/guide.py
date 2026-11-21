@@ -222,9 +222,7 @@ def parseParaNotes(text: str) -> list[ParaNote]:
     return GuideParser._parse_para_notes(text)
 
 
-def analysisStatus(
-    chapterHandle: str, project: Any
-) -> str:
+def analysisStatus(chapterHandle: str, project: Any) -> str:
     """Determine the status of an analysis for a chapter.
 
     Returns one of: missing, draft, stale, approved

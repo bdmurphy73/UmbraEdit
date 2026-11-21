@@ -28,7 +28,7 @@ import logging
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from umbraedit.common import writeTextFile
 
@@ -45,13 +45,9 @@ TOKEN_FILE = Path.home() / ".umbraedit" / "api-token"
 
 def _utc_now_iso() -> str:
     """Return the current UTC time as an ISO-8601 string."""
-    from datetime import datetime
+    from datetime import datetime, timezone
 
-    try:
-        from datetime import UTC
-    except ImportError:
-        from datetime import timezone
-        UTC = timezone.utc
+    UTC = timezone.utc
 
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -67,7 +63,7 @@ def _load_token() -> Optional[str]:
         return None
 
 
-def _check_token(headers: dict[str, str]) -> Optional[tuple[bool, dict[str, Any]]]:
+def _check_token(headers: dict[str, str]) -> tuple[bool, Optional[dict[str, Any]]]:
     """Check the bearer token from request headers.
 
     Returns (authorized, error_response).

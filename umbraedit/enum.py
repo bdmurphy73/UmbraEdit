@@ -20,14 +20,16 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
+import sys
+
 from enum import Enum
 
-try:
+if sys.version_info >= (3, 11):
     from enum import StrEnum
-except ImportError:
+else:
+
     class StrEnum(str, Enum):
         """StrEnum shim for Python < 3.11."""
-
 
 
 class nwItemType(Enum):

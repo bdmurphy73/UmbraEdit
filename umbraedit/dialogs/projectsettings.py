@@ -21,13 +21,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import csv
 import logging
 
 from datetime import date
 from pathlib import Path
+from typing import TYPE_CHECKING, Optional, cast
 
 from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QCloseEvent, QColor
@@ -59,6 +59,9 @@ from umbraedit.extensions.modified import NComboBox, NDialog, NIconButton, NSpin
 from umbraedit.extensions.pagedsidebar import NPagedSideBar
 from umbraedit.extensions.switch import NSwitch
 from umbraedit.types import QtRoleAccept, QtRoleReject, QtSizeMinimum, QtSizeMinimumExpanding, QtUserRole
+
+if TYPE_CHECKING:
+    from umbraedit.core.status import T_UpdateEntry
 
 logger = logging.getLogger(__name__)
 
@@ -226,11 +229,12 @@ class GuiProjectSettings(NDialog):
 
         if self.statusPage.changed:
             logger.debug("Updating status labels")
-            project.updateStatus("s", self.statusPage.getNewList())
+            # Newly-created entries have no key until the status store assigns one.
+            project.updateStatus("s", cast("T_UpdateEntry", self.statusPage.getNewList()))
 
         if self.importPage.changed:
             logger.debug("Updating importance labels")
-            project.updateStatus("i", self.importPage.getNewList())
+            project.updateStatus("i", cast("T_UpdateEntry", self.importPage.getNewList()))
 
         autoReplaceIgnoreCase = self.replacePage.swtIgnoreCase.isChecked()
 

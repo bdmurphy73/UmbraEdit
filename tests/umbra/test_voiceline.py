@@ -42,6 +42,7 @@ def test_umbra_voiceline_R1_allKeys():
     """R1: All keys are parsed correctly."""
     line = "%Voice: spk=Bob src=machine tone=calm ntone=neutral lang=en-GB scope=scene"
     data = parseVoiceLine(line)
+    assert data is not None
     assert data.spk == "Bob"
     assert data.src == "machine"
     assert data.tone == "calm"
@@ -54,6 +55,7 @@ def test_umbra_voiceline_R1_allKeys():
 def test_umbra_voiceline_R1_unknownKeys():
     """R1: Unknown keys are preserved in extra."""
     data = parseVoiceLine("%Voice: spk=Bob custom_key=value")
+    assert data is not None
     assert data.spk == "Bob"
     assert data.extra == {"custom_key": "value"}
 
@@ -63,6 +65,7 @@ def test_umbra_voiceline_A1_roundTripCanonical():
     """A1: parse then format returns the same line for canonical input."""
     canonical = "%Voice: spk=Bob tone=excited:3"
     data = parseVoiceLine(canonical)
+    assert data is not None
     result = formatVoiceLine(data)
     assert result == canonical
 
@@ -72,6 +75,7 @@ def test_umbra_voiceline_A1_roundTripAllKeys():
     """A1: Round trip with all keys."""
     canonical = "%Voice: spk=Ana src=machine tone=calm:2 ntone=neutral lang=en-GB scope=scene"
     data = parseVoiceLine(canonical)
+    assert data is not None
     result = formatVoiceLine(data)
     assert result == canonical
 
@@ -92,6 +96,7 @@ def test_umbra_voiceline_A1_roundTrip200Lines():
 
     for line in lines:
         data = parseVoiceLine(line)
+        assert data is not None
         result = formatVoiceLine(data)
         assert result == line, f"Round trip failed for: {line}"
 
@@ -109,6 +114,7 @@ def test_umbra_voiceline_R1_formatCanonicalOrder():
 def test_umbra_voiceline_R1_nonCanonicalNormalised():
     """R1: Non-canonical input is normalised on format."""
     data = parseVoiceLine("%Voice: lang=en spk=Bob")
+    assert data is not None
     result = formatVoiceLine(data)
     assert result == "%Voice: spk=Bob lang=en"
 
@@ -127,6 +133,7 @@ def test_umbra_voiceline_R1_emptyVoice():
 def test_umbra_voiceline_R1_narratorSpeaker():
     """R1: narrator as a speaker value."""
     data = parseVoiceLine("%Voice: spk=narrator")
+    assert data is not None
     assert data.spk == "narrator"
 
 
@@ -134,4 +141,5 @@ def test_umbra_voiceline_R1_narratorSpeaker():
 def test_umbra_voiceline_R1_oneOffSpeaker():
     """R1: One-off speaker with ~label."""
     data = parseVoiceLine("%Voice: spk=~some_one_off")
+    assert data is not None
     assert data.spk == "~some_one_off"

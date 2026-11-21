@@ -27,7 +27,7 @@ import xml.etree.ElementTree as ET
 
 from datetime import datetime
 from hashlib import sha256
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple, Optional
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from PyQt6.QtGui import QColor, QFont
@@ -762,7 +762,7 @@ class ToOdt(Tokenizer):
 
         return style.name
 
-    def _generateFootnote(self, key: str) -> ET.Optional[Element]:
+    def _generateFootnote(self, key: str) -> Optional[ET.Element]:
         """Generate a footnote XML object."""
         if content := self._footnotes.get(key):
             self._nNote += 1
@@ -782,7 +782,7 @@ class ToOdt(Tokenizer):
             return xNote
         return None
 
-    def _generateField(self, key: str, fmt: int) -> ET.Optional[Element]:
+    def _generateField(self, key: str, fmt: int) -> Optional[ET.Element]:
         """Generate a data field XML object."""
         if key and (field := key.partition(":")[2]):
             xField = xmlElement(
@@ -1831,7 +1831,7 @@ class XMLParagraph:
         self.appendText(text)
         self._nState = X_ROOT_TAIL
 
-    def appendNode(self, xNode: ET.Optional[Element]) -> None:
+    def appendNode(self, xNode: Optional[ET.Element]) -> None:
         """Append an XML node to the paragraph. We only check for the
         X_ROOT_TEXT and X_ROOT_TAIL states. X_SPAN_TEXT is not possible
         at all, and X_SPAN_SING only happens internally in an appendSpan

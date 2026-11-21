@@ -84,12 +84,15 @@ class TestIntake:
         docx_path = tmp_path / "test.docx"
         with zipfile.ZipFile(docx_path, "w") as zf:
             zf.writestr("[Content_Types].xml", '<?xml version="1.0"?>')
-            zf.writestr("word/document.xml", """<?xml version="1.0"?>
+            zf.writestr(
+                "word/document.xml",
+                """<?xml version="1.0"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
     <w:p><w:r><w:t>Test</w:t></w:r></w:p>
   </w:body>
-</w:document>""")
+</w:document>""",
+            )
 
         intake = DocxIntake()
         result = intake.process(docx_path)
@@ -123,6 +126,7 @@ class TestIntake:
         result = intake.process(docx_path)
 
         assert not result.valid
+        assert result.error is not None
         assert "word/document.xml" in result.error
 
     def test_intake_rejects_docm(self, tmp_path: Path):
@@ -132,16 +136,20 @@ class TestIntake:
         docx_path = tmp_path / "test.docm"
         with zipfile.ZipFile(docx_path, "w") as zf:
             zf.writestr("[Content_Types].xml", '<?xml version="1.0"?>')
-            zf.writestr("word/document.xml", """<?xml version="1.0"?>
+            zf.writestr(
+                "word/document.xml",
+                """<?xml version="1.0"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body><w:p><w:r><w:t>Test</w:t></w:r></w:p></w:body>
-</w:document>""")
+</w:document>""",
+            )
             zf.writestr("vbaProject.bin", "macro data")
 
         intake = DocxIntake()
         result = intake.process(docx_path)
 
         assert not result.valid
+        assert result.error is not None
         assert "Macro-enabled" in result.error
 
 
@@ -155,7 +163,9 @@ class TestPrepass:
         docx_path = tmp_path / "test.docx"
         with zipfile.ZipFile(docx_path, "w") as zf:
             zf.writestr("[Content_Types].xml", '<?xml version="1.0"?>')
-            zf.writestr("word/document.xml", """<?xml version="1.0"?>
+            zf.writestr(
+                "word/document.xml",
+                """<?xml version="1.0"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
     <w:p>
@@ -166,8 +176,11 @@ class TestPrepass:
       <w:r><w:t>Hello world.</w:t></w:r>
     </w:p>
   </w:body>
-</w:document>""")
-            zf.writestr("word/styles.xml", """<?xml version="1.0"?>
+</w:document>""",
+            )
+            zf.writestr(
+                "word/styles.xml",
+                """<?xml version="1.0"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:style w:type="paragraph" w:styleId="Heading1">
     <w:name w:val="Heading 1"/>
@@ -177,15 +190,22 @@ class TestPrepass:
   <w:style w:type="paragraph" w:styleId="Normal">
     <w:name w:val="Normal"/>
   </w:style>
-</w:styles>""")
-            zf.writestr("word/_rels/document.xml.rels", """<?xml version="1.0"?>
+</w:styles>""",
+            )
+            zf.writestr(
+                "word/_rels/document.xml.rels",
+                """<?xml version="1.0"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-</Relationships>""")
-            zf.writestr("docProps/core.xml", """<?xml version="1.0"?>
+</Relationships>""",
+            )
+            zf.writestr(
+                "docProps/core.xml",
+                """<?xml version="1.0"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties">
   <dc:title>Test Book</dc:title>
   <dc:creator>Author Name</dc:creator>
-</cp:coreProperties>""")
+</cp:coreProperties>""",
+            )
 
         DocxIntake()
         intake_result = DocxIntake().process(Path(docx_path))
@@ -207,13 +227,18 @@ class TestPrepass:
         docx_path = tmp_path / "test.docx"
         with zipfile.ZipFile(docx_path, "w") as zf:
             zf.writestr("[Content_Types].xml", '<?xml version="1.0"?>')
-            zf.writestr("word/document.xml", """<?xml version="1.0"?>
+            zf.writestr(
+                "word/document.xml",
+                """<?xml version="1.0"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
     <w:p><w:pPr><w:pStyle w:val="CustomStyle"/></w:pPr><w:r><w:t>Test</w:t></w:r></w:p>
   </w:body>
-</w:document>""")
-            zf.writestr("word/styles.xml", """<?xml version="1.0"?>
+</w:document>""",
+            )
+            zf.writestr(
+                "word/styles.xml",
+                """<?xml version="1.0"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:style w:type="paragraph" w:styleId="CustomStyle">
     <w:name w:val="My Custom Style"/>
@@ -225,10 +250,14 @@ class TestPrepass:
     <w:pPr><w:jc w:val="center"/><w:outlineLvl w:val="2"/></w:pPr>
     <w:rPr><w:b/><w:i/><w:sz w:val="28"/></w:rPr>
   </w:style>
-</w:styles>""")
-            zf.writestr("word/_rels/document.xml.rels", """<?xml version="1.0"?>
+</w:styles>""",
+            )
+            zf.writestr(
+                "word/_rels/document.xml.rels",
+                """<?xml version="1.0"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-</Relationships>""")
+</Relationships>""",
+            )
             zf.writestr("docProps/core.xml", "<cp:coreProperties/>")
 
         intake = DocxIntake().process(tmp_path / "test.docx")
@@ -259,7 +288,9 @@ class TestClassify:
         docx_path = tmp_path / "test.docx"
         with zipfile.ZipFile(docx_path, "w") as zf:
             zf.writestr("[Content_Types].xml", '<?xml version="1.0"?>')
-            zf.writestr("word/document.xml", """<?xml version="1.0"?>
+            zf.writestr(
+                "word/document.xml",
+                """<?xml version="1.0"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
     <w:p>
@@ -268,22 +299,32 @@ class TestClassify:
     </w:p>
     <w:p><w:r><w:t>Content here.</w:t></w:r></w:p>
   </w:body>
-</w:document>""")
-            zf.writestr("word/styles.xml", """<?xml version="1.0"?>
+</w:document>""",
+            )
+            zf.writestr(
+                "word/styles.xml",
+                """<?xml version="1.0"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:style w:type="paragraph" w:styleId="Heading1">
     <w:name w:val="Heading 1"/>
     <w:pPr><w:outlineLvl w:val="0"/></w:pPr>
   </w:style>
-</w:styles>""")
-            zf.writestr("word/_rels/document.xml.rels", """<?xml version="1.0"?>
+</w:styles>""",
+            )
+            zf.writestr(
+                "word/_rels/document.xml.rels",
+                """<?xml version="1.0"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-</Relationships>""")
+</Relationships>""",
+            )
             zf.writestr("docProps/core.xml", "<cp:coreProperties/>")
 
         intake = DocxIntake().process(tmp_path / "test.docx")
         prepass = DocxPrepass().process(intake)
-        classify = DocxClassify().process(prepass, None)
+        from umbraedit.umbra.ingest.docx_convert import ConvertResult
+
+        convert = ConvertResult(markdown="", pandoc_paragraphs=[])
+        classify = DocxClassify().process(prepass, convert)
 
         chapter_blocks = [b for b in classify.blocks if b.kind.name == "CHAPTER"]
         assert len(chapter_blocks) == 1
@@ -394,14 +435,16 @@ class TestOutput:
         )
 
         SceneSplitResult(documents=[{"planId": "ch1", "kind": "chapter", "title": "Chapter 1", "text": "Content"}])
-        SyntaxResult(documents=[{"planId": "ch1", "kind": "chapter", "title": "Chapter 1", "text": "Converted content"}])
+        SyntaxResult(
+            documents=[{"planId": "ch1", "kind": "chapter", "title": "Chapter 1", "text": "Converted content"}]
+        )
         ProposeResult(characters=[], metadata={}, page_types={})
 
         plan_file = DocxOutput(project_path).write(
             IntakeResult(file_path=Path("test.docx"), sha256="abc", file_size=100, pandoc_version="3.1", valid=True),
             SceneSplitResult(documents=[{"planId": "ch1", "kind": "chapter", "title": "Ch1", "text": "Content"}]),
             SyntaxResult(documents=[{"planId": "ch1", "kind": "chapter", "title": "Ch1", "text": "Content"}]),
-            ProposeResult(characters=[], metadata={}, page_types={})
+            ProposeResult(characters=[], metadata={}, page_types={}),
         )
 
         assert plan_file.exists()

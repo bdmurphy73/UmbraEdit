@@ -823,7 +823,7 @@ class GuiTheme:
                     lookup = f"{prefix}{name} {key}"
                     keys.append(lookup)
                     data[lookup] = (file.stem, name, mode == "dark", file)
-            except Exception:
+            except Exception:  # noqa: PERF203
                 logger.error("Could not read file: %s", file)
                 logException()
 
@@ -1121,7 +1121,9 @@ class GuiIcons:
         """
         # If we just want the app icons, return right away
         if name == "umbraedit":
-            return QIcon(str(CONFIG.assetPath("icons") / "UmbraEdit.jpg"))  # Changed by B.D. Murphy 2026: was umbraedit.svg
+            return QIcon(
+                str(CONFIG.assetPath("icons") / "UmbraEdit.jpg")
+            )  # Changed by B.D. Murphy 2026: was umbraedit.svg
         elif name == "proj_nwx":
             return QIcon(str(CONFIG.assetPath("icons") / "x-umbraedit-project.svg"))
 

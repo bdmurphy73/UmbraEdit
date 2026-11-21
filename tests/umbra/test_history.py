@@ -138,6 +138,7 @@ def test_history_R1_restore(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     docFile.write_text("# Test\n\nOriginal.\n", encoding="utf-8")
 
     rev1 = mgr.snapshot(handle, "manual", "Original")
+    assert rev1 is not None
 
     # Change the document
     docFile.write_text("# Test\n\nModified.\n", encoding="utf-8")

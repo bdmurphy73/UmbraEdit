@@ -389,7 +389,9 @@ class ProjectData:
             self._doBackup = checkBool(value, False)
             self._project.setProjectChanged(True)
 
-    def setProjectTarget(self, count: Union[str, Optional[int]], deadline: Union[str, Optional[date]], countChars: bool) -> None:
+    def setProjectTarget(
+        self, count: Union[str, Optional[int]], deadline: Union[str, Optional[date]], countChars: bool
+    ) -> None:
         """Set the project goal."""
         if (
             (updateCounts := countChars != self._targetCountChars)

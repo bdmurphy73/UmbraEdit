@@ -104,13 +104,9 @@ def _checkSyncStale(scope: Any) -> Iterable[Finding]:
         return
 
     try:
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        try:
-            from datetime import UTC
-        except ImportError:
-            from datetime import timezone
-            UTC = timezone.utc
+        UTC = timezone.utc
 
         lastTime = datetime.strptime(lastSuccess, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
         now = datetime.now(UTC)

@@ -25,17 +25,17 @@ from __future__ import annotations
 import logging
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 from PyQt6.QtCore import QObject, Qt
 from PyQt6.QtWidgets import QFileDialog, QMessageBox, QProgressDialog
 
 from umbraedit import SHARED
 from umbraedit.dialogs.importreview import importReviewDialog
-from umbraedit.umbra.gates import OP_IMPORT_COMMIT, requireGates
+from umbraedit.umbra.gates import OP_IMPORT_COMMIT, GateScope, runGates
 from umbraedit.umbra.ingest import DocxIngestPipeline, ImportPlan
 from umbraedit.umbra.ingest.ingest_runs import find_existing_import
-from umbraedit.umbra.ingest.worker import IngestDispatcher
+from umbraedit.umbra.ingest.worker import IngestDispatcher, IngestJobResult
 
 if TYPE_CHECKING:
     from umbraedit.core.project import NWProject
@@ -66,36 +66,40 @@ class ImportManuscriptCommand(QObject):
         if not file_path:
             return
 
-        Path(file_path)
+        source_path = Path(file_path)
+        project_path = self._project.storage.storagePath
+        if project_path is None:
+            logger.error("Cannot import manuscript: project storage path is not set")
+            return
 
         # Check if file was already imported
-        pipeline = DocxIngestPipeline(self._project.storage.storagePath)
-        intake = pipeline._intake.process(Path(file_path))
+        pipeline = DocxIngestPipeline(project_path)
+        intake = pipeline._intake.process(source_path)
 
         if intake.valid:
             existing = find_existing_import(
-                self._project.storage.storagePath,
+                project_path,
                 intake.sha256,
             )
             if existing:
                 reply = QMessageBox.question(
                     SHARED.mainGui,
                     self.tr("Already Imported"),
-                    self.tr(
-                        "This file was already imported on {0} (run {1}).\n"
-                        "Import again?"
-                    ).format(existing.imported_at, existing.run_id),
-                    QMessageBox.Yes | QMessageBox.No,
-                    QMessageBox.No,
+                    self.tr("This file was already imported on {0} (run {1}).\nImport again?").format(
+                        existing.imported_at, existing.run_id
+                    ),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
                 )
-                if reply != QMessageBox.Yes:
+                if reply != QMessageBox.StandardButton.Yes:
                     return
 
         # Show progress dialog
         self._progress = QProgressDialog(
             self.tr("Analyzing manuscript..."),
             self.tr("Cancel"),
-            0, 0,
+            0,
+            0,
             SHARED.mainGui,
         )
         self._progress.setWindowModality(Qt.WindowModality.WindowModal)
@@ -105,7 +109,7 @@ class ImportManuscriptCommand(QObject):
 
         # Create dispatcher
         self._dispatcher = IngestDispatcher(SHARED.mainGui, self._on_ingest_complete)
-        self._dispatcher.run_ingest(Path(file_path), self._project)
+        self._dispatcher.run_ingest(source_path, self._project)
 
     def _cancel(self) -> None:
         """Cancel the import."""
@@ -114,7 +118,7 @@ class ImportManuscriptCommand(QObject):
             self._progress = None
         self._dispatcher = None
 
-    def _on_ingest_complete(self, result: Any) -> None:
+    def _on_ingest_complete(self, result: IngestJobResult) -> None:
         """Handle completion of the ingest pipeline."""
         if self._progress:
             self._progress.close()
@@ -129,7 +133,7 @@ class ImportManuscriptCommand(QObject):
             return
 
         plan = result.plan
-        if not plan:
+        if plan is None:
             QMessageBox.critical(
                 SHARED.mainGui,
                 self.tr("Import Failed"),
@@ -137,23 +141,27 @@ class ImportManuscriptCommand(QObject):
             )
             return
 
+        project_path = self._project.storage.storagePath
+        if project_path is None:
+            logger.error("Cannot import manuscript: project storage path is not set")
+            return
+
         # Check for existing import warning
         existing = find_existing_import(
-            self._project.storage.storagePath,
-            result.plan.source.sha256 if result.plan else "",
+            project_path,
+            str(plan.source.get("sha256", "")),
         )
         if existing and existing.status == "completed":
             reply = QMessageBox.question(
                 SHARED.mainGui,
                 self.tr("Already Imported"),
-                self.tr(
-                    "This file was already imported on {0} (run {1}).\n"
-                    "Import again?"
-                ).format(existing.imported_at, existing.run_id),
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
+                self.tr("This file was already imported on {0} (run {1}).\nImport again?").format(
+                    existing.imported_at, existing.run_id
+                ),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
             )
-            if reply != QMessageBox.Yes:
+            if reply != QMessageBox.StandardButton.Yes:
                 return
 
         # Show review dialog
@@ -165,31 +173,29 @@ class ImportManuscriptCommand(QObject):
     def _commit_import(self, plan: ImportPlan) -> None:
         """Commit the import plan."""
         # Check gates
-        from umbraedit.umbra.gates import GateScope
         scope = GateScope(project=self._project, options={"importPlan": plan.to_dict()})
-        report = requireGates(OP_IMPORT_COMMIT, scope)
+        report = runGates(OP_IMPORT_COMMIT, scope)
 
         if report.blocked:
             QMessageBox.warning(
                 SHARED.mainGui,
                 self.tr("Commit Blocked"),
-                self.tr("Cannot commit import:\n{0}").format("\n".join(
-                    f"{f.ruleId}: {f.message}" for f in report.findings if f.severity == "block"
-                )),
+                self.tr("Cannot commit import:\n{0}").format(
+                    "\n".join(f"{f.ruleId}: {f.message}" for f in report.findings if f.severity == "block")
+                ),
             )
             return
 
         # Commit the import
         from umbraedit.umbra.ingest.commit import commit_import_plan
+
         result = commit_import_plan(self._project, plan)
 
         if result.success:
             QMessageBox.information(
                 SHARED.mainGui,
                 self.tr("Import Complete"),
-                self.tr("Successfully imported manuscript as {0} documents.").format(
-                    len(plan.documents)
-                ),
+                self.tr("Successfully imported manuscript as {0} documents.").format(len(plan.documents)),
             )
         else:
             QMessageBox.critical(

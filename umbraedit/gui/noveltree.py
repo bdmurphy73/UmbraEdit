@@ -21,11 +21,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
 from __future__ import annotations
-from typing import Optional, Union
 
 import logging
 
 from enum import Enum
+from typing import Optional, Union
 
 from PyQt6.QtCore import QModelIndex, QPoint, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QActionGroup, QPainter, QPalette, QResizeEvent, QShortcut

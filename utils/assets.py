@@ -383,6 +383,11 @@ def getLReleaseExec() -> str | None:
     for entry in ["lrelease-qt6", "lrelease"]:
         if subprocess.call(f"type {entry}", shell=True) == 0:
             return entry
+    # On Debian and Ubuntu, the Qt tools are installed in a versioned
+    # directory that is not always in the PATH
+    for path in ("/usr/lib/qt6/bin/lrelease", "/usr/lib/qt5/bin/lrelease"):
+        if Path(path).is_file():
+            return path
     return None
 
 
@@ -416,7 +421,7 @@ def buildTranslationAssets(args: argparse.Namespace | None = None) -> None:
             raise FileNotFoundError("No lrelease executable found")
     except Exception as exc:
         log("[cy]Qt Linguist tools seem to be missing[e]")
-        log("[cy]On Debian/Ubuntu, install: qttools5-dev-tools[e]")
+        log("[cy]On Debian/Ubuntu, install: qt6-l10n-tools or qttools5-dev-tools[e]")
         log(exc)
         sys.exit(1)
 

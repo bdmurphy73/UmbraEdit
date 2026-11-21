@@ -38,7 +38,7 @@ jobs:
           # couple of dictionaries is needed for the spell checker.
           sudo apt install \
             python3-pyqt6 \
-            qt6-tools-dev-tools \
+            qt6-l10n-tools \
             libenchant-2-dev \
             hunspell-en-us \
             hunspell-en-gb

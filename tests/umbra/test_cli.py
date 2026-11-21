@@ -271,6 +271,28 @@ class TestLock:
         assert info["pid"] > 0
         lock.release()
 
+    def test_lock_info_readable_while_held(self, tmp_path: Path):
+        """The holder's information must be readable while the lock is
+        held. On Windows, the operating system lock is a byte range
+        lock, which blocks reads of the locked file, so the information
+        is kept in a separate file.
+        """
+        from umbraedit.cli.lock import ProjectLock
+
+        lock = ProjectLock(tmp_path)
+        assert lock.acquire(kind="gui", process="test-gui") is True
+
+        # The information must be readable from another instance too
+        other = ProjectLock(tmp_path)
+        assert other.is_locked() is True
+        info = other.lock_info()
+        assert info is not None
+        assert info["kind"] == "gui"
+        assert info["process"] == "test-gui"
+
+        lock.release()
+        assert other.is_locked() is False
+
     def test_check_write_access(self, tmp_path: Path):
         """Test check_write_access."""
         from umbraedit.cli.lock import check_write_access

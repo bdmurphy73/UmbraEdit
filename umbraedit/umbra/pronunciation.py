@@ -409,7 +409,15 @@ def runPronPreview(command: list[str], text: str, ipa: str) -> tuple[bool, str]:
         return False, "No preview command configured (setting pron.previewCommand)."
     args = [arg.replace("{text}", text).replace("{ipa}", ipa) for arg in command]
     try:
-        result = subprocess.run(args, capture_output=True, text=True, timeout=30, check=False)
+        result = subprocess.run(
+            args,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
+        )
     except FileNotFoundError:
         return False, f"Preview command not found: {args[0]}"
     except subprocess.TimeoutExpired:

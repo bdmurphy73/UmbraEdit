@@ -230,7 +230,7 @@ def test_pronunciation_R5_runPronPreview():
     command = [
         sys.executable,
         "-c",
-        "import sys; print('|'.join(sys.argv[1:]))",
+        "import sys; sys.stdout.reconfigure(encoding='utf-8'); print('|'.join(sys.argv[1:]))",
         "{text}",
         "{ipa}",
     ]

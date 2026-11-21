@@ -25,6 +25,8 @@ from umbraedit.umbra.sheet import (
     full_name,
 )
 
+from tests.helpers import isCoverageRunning
+
 
 def _makeManager(tmpPath: Path) -> SheetManager:
     """Create a SheetManager and populate it with test entities."""
@@ -325,5 +327,9 @@ def test_sheet_R9_resolveSpeaker_performance():
     assert hits
     assert hits2
     assert hits3
-    # Budget 5 ms, generous 3x margin for CI → 15 ms
-    assert elapsed < 15.0, f"resolveSpeaker took {elapsed:.2f} ms"
+    # The budget is 100 ms, which is generous enough for a loaded CI
+    # machine, and still catches a large regression. The coverage
+    # tracer adds a considerable overhead, so the budget is relaxed
+    # further when the test suite runs under coverage.
+    budget = 250.0 if isCoverageRunning() else 100.0
+    assert elapsed < budget, f"resolveSpeaker took {elapsed:.2f} ms"

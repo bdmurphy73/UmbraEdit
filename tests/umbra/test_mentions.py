@@ -28,6 +28,8 @@ from umbraedit.umbra.mentions import (
 )
 from umbraedit.umbra.sheet import EntityRow
 
+from tests.helpers import isCoverageRunning
+
 
 def _rows() -> list[EntityRow]:
     """Standard entity set for mention tests."""
@@ -220,9 +222,12 @@ def test_mentions_R10_projectScan(tmp_path: Path):
     findMentionsProject(changedTexts, entities, cache)
     elapsedCached = time.perf_counter() - start
 
-    # Budgets with the CI margin already included by the feature
-    assert elapsedFirst < 20.0, f"first scan took {elapsedFirst:.2f} s"
-    assert elapsedCached < 1.0, f"cached scan took {elapsedCached:.2f} s"
+    # Budgets with the CI margin already included by the feature. The
+    # coverage tracer adds a considerable overhead, so the budgets are
+    # relaxed further when the test suite runs under coverage.
+    margin = 5.0 if isCoverageRunning() else 1.0
+    assert elapsedFirst < 20.0 * margin, f"first scan took {elapsedFirst:.2f} s"
+    assert elapsedCached < 1.0 * margin, f"cached scan took {elapsedCached:.2f} s"
 
 
 @pytest.mark.umbra

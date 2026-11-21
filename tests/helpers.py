@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import difflib
 import gc
+import os
+import sys
 import weakref
 import xml.etree.ElementTree as ET
 
@@ -64,6 +66,18 @@ def hasEnchantLibrary() -> bool:
     except Exception:
         return False
     return True
+
+
+def isCoverageRunning() -> bool:
+    """Check if the test suite is running under coverage.
+
+    The coverage tracer adds a significant overhead to the code it
+    traces, so the performance tests need a larger budget when the
+    suite is run with coverage.
+    """
+    if os.environ.get("COVERAGE_RUN") == "true":
+        return True
+    return sys.gettrace() is not None
 
 
 #: True if the enchant C library is available on the system.

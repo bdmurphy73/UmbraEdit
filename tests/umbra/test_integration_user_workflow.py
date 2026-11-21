@@ -14,7 +14,9 @@ from typing import Any
 
 import pytest
 
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6 import sip
+from PyQt6.QtWidgets import QMessageBox, QWidget
+from pytestqt.qtbot import QtBot
 
 from umbraedit import CONFIG
 from umbraedit.core.coretools import ProjectBuilder
@@ -132,7 +134,7 @@ class TestCompleteUserWorkflow:
         # This should not raise AttributeError
         command.execute()
 
-    def test_import_manuscript_with_file(self, mockGUI: Any, projPath: Path, monkeypatch: Any) -> None:
+    def test_import_manuscript_with_file(self, mockGUI: Any, projPath: Path, monkeypatch: Any, qtbot: QtBot) -> None:
         """Test import with a fake file."""
         project = NWProject()
         project.storage.createNewProject(projPath)
@@ -153,8 +155,61 @@ class TestCompleteUserWorkflow:
             lambda *a, **k: QMessageBox.StandardButton.No,
         )
 
+        # Collect the error message instead of showing a modal dialog.
+        # A modal dialog would block the event loop, and the dialog
+        # would still be open when the test ends.
+        errors: list[str] = []
+
+        def mockCritical(*args: Any, **kwargs: Any) -> None:
+            errors.append(str(args[2]) if len(args) > 2 else "")
+
+        monkeypatch.setattr(
+            "umbraedit.gui.importmanuscript.QMessageBox.critical",
+            mockCritical,
+        )
+
         command = ImportManuscriptCommand(project, None)
         command.execute()  # Should not crash
+
+        # The import runs in the background. Wait for the result to be
+        # delivered, so that it is handled inside the test, and not
+        # during the teardown of the test.
+        qtbot.waitUntil(lambda: bool(errors), timeout=10000)
+
+        assert len(errors) == 1
+        assert "Failed to import manuscript" in errors[0]
+
+    def test_import_manuscript_no_dialog_without_gui(self, mockGUI: Any, projPath: Path, monkeypatch: Any) -> None:
+        """The import result must not open a dialog if the main window
+        has been closed while the import was running.
+        """
+        from umbraedit import SHARED
+        from umbraedit.gui.importmanuscript import _dialogParent
+        from umbraedit.umbra.ingest.worker import IngestJobResult
+
+        project = NWProject()
+        project.storage.createNewProject(projPath)
+        project.setDefaultStatusImport()
+
+        command = ImportManuscriptCommand(project, None)
+
+        # There is no main window at all
+        monkeypatch.setattr(SHARED, "_gui", None)
+        assert _dialogParent() is None
+
+        # The result must be handled without opening a dialog
+        command._on_ingest_complete(IngestJobResult(success=False, error="Test error"))
+
+        # The main window was closed, and the widget was deleted
+        gui = QWidget()
+        monkeypatch.setattr(SHARED, "_gui", gui)
+        gui.close()
+        sip.delete(gui)
+
+        assert _dialogParent() is None
+
+        # The result must be handled without opening a dialog
+        command._on_ingest_complete(IngestJobResult(success=False, error="Test error"))
 
     def test_welcome_dialog_ui_elements(self, mockGUI: Any) -> None:
         """Test that welcome dialog has the expected UI elements."""

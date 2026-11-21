@@ -27,8 +27,9 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
+from PyQt6 import sip
 from PyQt6.QtCore import QObject, Qt
-from PyQt6.QtWidgets import QFileDialog, QMessageBox, QProgressDialog
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMessageBox, QProgressDialog, QWidget
 
 from umbraedit import SHARED
 from umbraedit.dialogs.importreview import importReviewDialog
@@ -43,6 +44,30 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _dialogParent() -> Optional[QWidget]:
+    """Return a valid parent widget for the import dialogs.
+
+    The main window can be closed while an import is running, and the
+    application can be shutting down when the result comes back. Using
+    a deleted widget, or no widget at all, as the parent of a modal
+    dialog is not allowed, and makes Qt abort the process. In that
+    case, None is returned, and the caller must not open a dialog.
+
+    Returns:
+        The main GUI widget if it can be used, otherwise None.
+
+    """
+    if QApplication.instance() is None or QApplication.closingDown():
+        return None
+    try:
+        gui = SHARED.mainGui
+    except RuntimeError:
+        return None
+    if sip.isdeleted(gui):
+        return None
+    return gui
+
+
 class ImportManuscriptCommand(QObject):
     """Command to import a manuscript from a DOCX file."""
 
@@ -55,9 +80,14 @@ class ImportManuscriptCommand(QObject):
 
     def execute(self) -> None:
         """Execute the import manuscript command."""
+        parent = _dialogParent()
+        if parent is None:
+            logger.error("Cannot import manuscript: the main window is not available")
+            return
+
         # Open file dialog
         file_path, _ = QFileDialog.getOpenFileName(
-            SHARED.mainGui,
+            parent,
             self.tr("Select DOCX Manuscript"),
             "",
             self.tr("Word Documents (*.docx *.docm)"),
@@ -83,7 +113,7 @@ class ImportManuscriptCommand(QObject):
             )
             if existing:
                 reply = QMessageBox.question(
-                    SHARED.mainGui,
+                    parent,
                     self.tr("Already Imported"),
                     self.tr("This file was already imported on {0} (run {1}).\nImport again?").format(
                         existing.imported_at, existing.run_id
@@ -100,7 +130,7 @@ class ImportManuscriptCommand(QObject):
             self.tr("Cancel"),
             0,
             0,
-            SHARED.mainGui,
+            parent,
         )
         self._progress.setWindowModality(Qt.WindowModality.WindowModal)
         self._progress.setMinimumDuration(0)
@@ -108,7 +138,7 @@ class ImportManuscriptCommand(QObject):
         self._progress.canceled.connect(self._cancel)
 
         # Create dispatcher
-        self._dispatcher = IngestDispatcher(SHARED.mainGui, self._on_ingest_complete)
+        self._dispatcher = IngestDispatcher(parent, self._on_ingest_complete)
         self._dispatcher.run_ingest(source_path, self._project)
 
     def _cancel(self) -> None:
@@ -124,9 +154,19 @@ class ImportManuscriptCommand(QObject):
             self._progress.close()
             self._progress = None
 
+        # The main window may have been closed while the import was
+        # running. If so, there is nobody left to tell about the result.
+        parent = _dialogParent()
+        if parent is None:
+            if not result.success:
+                logger.error("Import failed: %s", result.error)
+            else:
+                logger.error("The main window was closed before the import could be reviewed")
+            return
+
         if not result.success:
             QMessageBox.critical(
-                SHARED.mainGui,
+                parent,
                 self.tr("Import Failed"),
                 self.tr("Failed to import manuscript: {0}").format(result.error),
             )
@@ -135,7 +175,7 @@ class ImportManuscriptCommand(QObject):
         plan = result.plan
         if plan is None:
             QMessageBox.critical(
-                SHARED.mainGui,
+                parent,
                 self.tr("Import Failed"),
                 self.tr("Import pipeline returned no plan."),
             )
@@ -153,7 +193,7 @@ class ImportManuscriptCommand(QObject):
         )
         if existing and existing.status == "completed":
             reply = QMessageBox.question(
-                SHARED.mainGui,
+                parent,
                 self.tr("Already Imported"),
                 self.tr("This file was already imported on {0} (run {1}).\nImport again?").format(
                     existing.imported_at, existing.run_id
@@ -165,7 +205,7 @@ class ImportManuscriptCommand(QObject):
                 return
 
         # Show review dialog
-        plan, accepted = importReviewDialog(SHARED.mainGui, self._project, plan)
+        plan, accepted = importReviewDialog(parent, self._project, plan)
         if accepted:
             # Commit the import
             self._commit_import(plan)

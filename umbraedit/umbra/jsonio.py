@@ -74,7 +74,7 @@ def writeJson(path: Path, data: Union[dict, list]) -> None:
             fObj.write(text)
             fObj.flush()
             os.fsync(fObj.fileno())
-        os.rename(tempPath, str(path))
+        os.replace(tempPath, str(path))
     except Exception:
         with contextlib.suppress(OSError):
             os.unlink(tempPath)

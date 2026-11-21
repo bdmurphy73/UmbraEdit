@@ -582,7 +582,15 @@ def describeFont(font: QFont) -> str:
         info = QFontInfo(font)
         family = info.family()
         styles = [v for v in info.styleName().split() if v not in family]
-        return " ".join([f"{info.pointSize()} pt", family, *styles])
+        # The resolved font info does not always have a point size, for
+        # instance when the font is defined by a pixel size, so the size
+        # requested by the user is preferred when it is available.
+        size = font.pointSize()
+        if size < 0:
+            size = info.pointSize()
+        if size < 0:
+            size = font.pixelSize()
+        return " ".join([f"{size} pt", family, *styles])
     return "Error"
 
 

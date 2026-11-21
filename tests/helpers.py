@@ -191,8 +191,14 @@ def readFile(file: Path) -> str:
 
 
 def writeFile(file: Path, data: str) -> None:
-    """Write the contents of a string to a file."""
-    file.write_text(data, encoding="utf-8")
+    """Write the contents of a string to a file.
+
+    The line endings are forced to Unix style, since that is what the
+    application itself writes, and the tests compare file contents
+    byte for byte.
+    """
+    with open(file, mode="w", encoding="utf-8", newline="\n") as outFile:
+        outFile.write(data)
 
 
 def clearLogHandlers() -> None:

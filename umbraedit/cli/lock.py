@@ -23,7 +23,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import contextlib
-import fcntl
 import json
 import logging
 import os
@@ -40,6 +39,79 @@ UTC = timezone.utc
 logger = logging.getLogger(__name__)
 
 LOCK_FILE_NAME = "umbra.lock"
+
+# Placeholder written to an empty lock file before the lock is taken.
+# The Windows locking mechanism locks a byte range, so the file must not
+# be empty. The placeholder is valid JSON so that a lock file left
+# behind by an interrupted process is not mistaken for a live lock.
+LOCK_PLACEHOLDER = '{"pid":0}'
+
+
+def _lockExclusive(fd: int) -> bool:
+    """Take an exclusive, non-blocking lock on a file descriptor.
+
+    The POSIX implementation uses ``fcntl.flock()``, and the Windows
+    implementation uses ``msvcrt.locking()``. The latter locks a byte
+    range, so the file position is reset to the start of the file
+    first.
+
+    Returns:
+        True if the lock was acquired, False otherwise.
+
+    """
+    if os.name == "nt":
+        import msvcrt
+
+        os.lseek(fd, 0, os.SEEK_SET)
+        try:
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+        except OSError:
+            return False
+        return True
+
+    import fcntl
+
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False
+    return True
+
+
+def _unlockFile(fd: int) -> None:
+    """Release an exclusive lock on a file descriptor."""
+    if os.name == "nt":
+        import msvcrt
+
+        os.lseek(fd, 0, os.SEEK_SET)
+        with contextlib.suppress(OSError):
+            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+        return
+
+    import fcntl
+
+    with contextlib.suppress(OSError):
+        fcntl.flock(fd, fcntl.LOCK_UN)
+
+
+def _processExists(pid: int) -> bool:
+    """Check whether a process with the given PID is running.
+
+    On Windows, ``os.kill()`` raises a generic ``OSError`` for a PID
+    that does not exist, rather than a ``ProcessLookupError``, so the
+    error is checked explicitly there.
+    """
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
 
 
 @dataclass
@@ -81,16 +153,12 @@ class ProjectLock:
         try:
             data = json.loads(self._lock_path.read_text(encoding="utf-8"))
             holder_pid = data.get("pid", 0)
+            # A lock file without a valid process id cannot be held by a
+            # running process, so it is a stale lock
+            if not isinstance(holder_pid, int) or holder_pid <= 0:
+                return False
             # Check if the process is still running
-            if holder_pid > 0:
-                try:
-                    os.kill(holder_pid, 0)
-                    return True  # Process exists, lock is held
-                except ProcessLookupError:
-                    return False  # Process gone, stale lock
-                except PermissionError:
-                    return True  # Process exists but we can't signal it
-            return True
+            return _processExists(holder_pid)
         except Exception:
             return True  # Can't read lock, assume locked
 
@@ -123,16 +191,18 @@ class ProjectLock:
 
         try:
             self._lock_path.parent.mkdir(parents=True, exist_ok=True)
-            # Open for read/write, create if needed
+            # Open for read/write, create if needed. The file is not
+            # truncated here since its content is rewritten below, and
+            # the Windows locking mechanism needs a byte to lock on.
             self._fd = os.open(
                 str(self._lock_path),
-                os.O_RDWR | os.O_CREAT | os.O_TRUNC,
+                os.O_RDWR | os.O_CREAT,
                 0o644,
             )
+            if os.fstat(self._fd).st_size == 0:
+                os.write(self._fd, LOCK_PLACEHOLDER.encode("utf-8"))
             # Try non-blocking exclusive lock
-            try:
-                fcntl.flock(self._fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except (OSError, BlockingIOError):
+            if not _lockExclusive(self._fd):
                 os.close(self._fd)
                 self._fd = None
                 return False
@@ -159,7 +229,9 @@ class ProjectLock:
                 )
                 + "\n"
             )
+            os.lseek(self._fd, 0, os.SEEK_SET)
             os.write(self._fd, text.encode("utf-8"))
+            os.ftruncate(self._fd, os.lseek(self._fd, 0, os.SEEK_CUR))
             os.fsync(self._fd)
             self._held = True
             self._kind = kind
@@ -177,7 +249,7 @@ class ProjectLock:
         """Release the lock if held."""
         if self._fd is not None:
             with contextlib.suppress(OSError):
-                fcntl.flock(self._fd, fcntl.LOCK_UN)
+                _unlockFile(self._fd)
             with contextlib.suppress(OSError):
                 os.close(self._fd)
             self._fd = None

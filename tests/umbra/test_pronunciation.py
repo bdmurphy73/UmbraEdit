@@ -9,6 +9,8 @@ Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 
 from __future__ import annotations
 
+import sys
+
 from pathlib import Path
 
 import pytest
@@ -225,7 +227,14 @@ def test_pronunciation_R2_pronClasses():
 @pytest.mark.umbra
 def test_pronunciation_R5_runPronPreview():
     """R5: the preview command runs without a shell, placeholders filled."""
-    ok, output = runPronPreview(["/bin/echo", "{text}|{ipa}"], "KAT-niss", "\u02c8k\u00e6t")
+    command = [
+        sys.executable,
+        "-c",
+        "import sys; print('|'.join(sys.argv[1:]))",
+        "{text}",
+        "{ipa}",
+    ]
+    ok, output = runPronPreview(command, "KAT-niss", "\u02c8k\u00e6t")
     assert ok
     assert "KAT-niss|\u02c8k\u00e6t" in output
 

@@ -19,6 +19,8 @@ from umbraedit.umbra.history import (
     _sha256Text,
 )
 
+from tests.helpers import writeFile
+
 
 def _makeHistoryManager(tmp_path: Path, mockRnd, nwGUI):
     """Create a HistoryManager bound to a test project."""
@@ -43,7 +45,7 @@ def test_history_R1_snapshot_creates_revision(tmp_path: Path, mockRnd: Any, nwGU
     if contentPath is None:
         pytest.fail("contentPath is None")
     docFile = contentPath / f"{handle}.md"
-    docFile.write_text("# Test\n\nHello world.\n", encoding="utf-8")
+    writeFile(docFile, "# Test\n\nHello world.\n")
 
     rev = mgr.snapshot(handle, "manual", "Test snapshot")
     assert rev is not None
@@ -71,7 +73,7 @@ def test_history_R1_snapshot_no_change_returns_none(tmp_path: Path, mockRnd: Any
     if contentPath is None:
         pytest.fail("contentPath is None")
     docFile = contentPath / f"{handle}.md"
-    docFile.write_text("# Test\n\nHello world.\n", encoding="utf-8")
+    writeFile(docFile, "# Test\n\nHello world.\n")
 
     rev1 = mgr.snapshot(handle, "manual", "First")
     assert rev1 is not None
@@ -113,7 +115,7 @@ def test_history_R1_readRevision(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     if contentPath is None:
         pytest.fail("contentPath is None")
     docFile = contentPath / f"{handle}.md"
-    docFile.write_text("# Test\n\nOriginal content.\n", encoding="utf-8")
+    writeFile(docFile, "# Test\n\nOriginal content.\n")
 
     rev = mgr.snapshot(handle, "manual", "Original")
     assert rev is not None
@@ -135,13 +137,13 @@ def test_history_R1_restore(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     if contentPath is None:
         pytest.fail("contentPath is None")
     docFile = contentPath / f"{handle}.md"
-    docFile.write_text("# Test\n\nOriginal.\n", encoding="utf-8")
+    writeFile(docFile, "# Test\n\nOriginal.\n")
 
     rev1 = mgr.snapshot(handle, "manual", "Original")
     assert rev1 is not None
 
     # Change the document
-    docFile.write_text("# Test\n\nModified.\n", encoding="utf-8")
+    writeFile(docFile, "# Test\n\nModified.\n")
     mgr.snapshot(handle, "manual", "Modified")
 
     # Restore the original
@@ -170,7 +172,7 @@ def test_history_R2_autoSnapshot_meta(tmp_path: Path, mockRnd: Any, nwGUI: Any):
     docFile = contentPath / f"{handle}.md"
 
     # Initial save
-    docFile.write_text("# Test\n\nContent.\n", encoding="utf-8")
+    writeFile(docFile, "# Test\n\nContent.\n")
     mgr.autoSnapshot(handle, "# Test\n\nContent.\n")
     revs = mgr.listRevisions(handle)
     assert len(revs) == 1
@@ -200,11 +202,11 @@ def test_history_R2_autoSnapshot_throttling(tmp_path: Path, mockRnd: Any, nwGUI:
     docFile = contentPath / f"{handle}.md"
 
     # First snapshot
-    docFile.write_text("# Test\n\nVersion 1.\n", encoding="utf-8")
+    writeFile(docFile, "# Test\n\nVersion 1.\n")
     mgr.autoSnapshot(handle, "# Test\n\nVersion 1.\n")
 
     # Immediate second snapshot with different content - should be throttled
-    docFile.write_text("# Test\n\nVersion 2.\n", encoding="utf-8")
+    writeFile(docFile, "# Test\n\nVersion 2.\n")
     mgr.autoSnapshot(handle, "# Test\n\nVersion 2.\n")
 
     revs = mgr.listRevisions(handle)

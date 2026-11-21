@@ -258,7 +258,7 @@ def test_verify_R2_sha256_file_hash(tmp_path: Path):
     from umbraedit.umbra.verify import _sha256File
 
     docFile = tmp_path / "test.md"
-    docFile.write_text("hello\n", encoding="utf-8")
+    writeTextFile(docFile, "hello\n", newline="\n")
     h = _sha256File(docFile)
     assert len(h) == 64
     assert h == "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"

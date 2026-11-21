@@ -31,7 +31,7 @@ from time import time
 import pytest
 
 from PyQt6.QtCore import QModelIndex, QRect, Qt
-from PyQt6.QtGui import QAction, QPainter, QPixmap
+from PyQt6.QtGui import QAction, QFontMetrics, QPainter, QPixmap
 from PyQt6.QtWidgets import QStyleOptionViewItem
 from pytestqt.qtbot import QtBot
 
@@ -512,5 +512,6 @@ def testGuiProjectSearch_DelegatePaint(nwGUI: GuiMain, fncPath: Path, mockRnd: M
 
     # The first word of RTL text is drawn on the right of the text
     word = "متن"
-    aL, _ = matchSpan(f"{word} {word}", ltr)
-    assert aL > 20
+    if QFontMetrics(option.font).inFont(word[0]):
+        aL, _ = matchSpan(f"{word} {word}", ltr)
+        assert aL > 20

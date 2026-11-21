@@ -217,7 +217,9 @@ def testStoryOutline_ColumnState(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     assert [header.logicalIndex(i) for i in range(6)] == [0, 5, 2, 3, 4, 1]
     assert header.sectionSize(5) == 250
     assert header.sectionSize(2) == 180
-    assert header.sectionSize(1) == 160
+    # The new column is the last visible one, so it is stretched to fill
+    # the remaining space, and is at least the default section size
+    assert header.sectionSize(1) >= 160
 
     # Title stays first, unknown keys and invalid widths are skipped, and
     # missing columns are kept after the known ones

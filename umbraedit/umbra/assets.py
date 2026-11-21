@@ -205,7 +205,7 @@ class AssetStore:
                                 dst.write(chunk)
                             dst.flush()
                             os.fsync(dst.fileno())
-                        os.rename(tmp, str(absFile))
+                        os.replace(tmp, str(absFile))
                     except Exception:
                         with contextlib.suppress(OSError):
                             os.unlink(tmp)
@@ -217,7 +217,7 @@ class AssetStore:
                         dst.write(source)
                         dst.flush()
                         os.fsync(dst.fileno())
-                    os.rename(tmp, str(absFile))
+                    os.replace(tmp, str(absFile))
                 except Exception:
                     with contextlib.suppress(OSError):
                         os.unlink(tmp)
@@ -360,7 +360,7 @@ class AssetStore:
                 f.write(text)
                 f.flush()
                 os.fsync(f.fileno())
-            os.rename(tmp, str(self._indexPath))
+            os.replace(tmp, str(self._indexPath))
         except Exception:
             with contextlib.suppress(OSError):
                 os.unlink(tmp)

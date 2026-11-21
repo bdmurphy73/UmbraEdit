@@ -73,7 +73,7 @@ def test_umbra_jsonio_R2_missingFileEmptyDict(tmp_path: Path):
 
 
 @pytest.mark.umbra
-def test_umbra_jsonio_A4_atomicWrite(tmp_path: Path):
+def test_umbra_jsonio_A4_atomicWrite(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """A4: Write is atomic (no partial file on crash)."""
     filePath = tmp_path / "atomic.json"
 
@@ -84,18 +84,13 @@ def test_umbra_jsonio_A4_atomicWrite(tmp_path: Path):
     writeJson(filePath, {"key": "value"})
     original = filePath.read_bytes()
 
-    # Simulate crash during write by patching os.rename
-    originalRename = os.rename
+    # Simulate crash during write by patching os.replace
+    def crashReplace(src: str, dst: str) -> None:
+        raise FakeCrash("Simulated crash between temp write and rename")
+
+    monkeypatch.setattr(os, "replace", crashReplace)
     with pytest.raises(FakeCrash):
-
-        def crashRename(src: str, dst: str) -> None:
-            raise FakeCrash("Simulated crash between temp write and rename")
-
-        os.rename = crashRename
-        try:
-            writeJson(filePath, {"key": "changed"})
-        finally:
-            os.rename = originalRename
+        writeJson(filePath, {"key": "changed"})
 
     # Original file should be intact
     assert filePath.read_bytes() == original

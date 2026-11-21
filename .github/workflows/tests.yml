@@ -33,7 +33,11 @@ jobs:
         timeout-minutes: 5
         run: |
           sudo apt update
+          # The system PyQt6 package pulls in the Qt 6 runtime libraries
+          # that the PyQt6 wheel needs, and the enchant library with a
+          # couple of dictionaries is needed for the spell checker.
           sudo apt install \
+            python3-pyqt6 \
             qt6-tools-dev-tools \
             libenchant-2-dev \
             hunspell-en-us \

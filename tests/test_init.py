@@ -34,7 +34,23 @@ import pytest
 
 from PyQt6.QtWidgets import QApplication
 
-from umbraedit import BLUE, CONFIG, END, FILE, LINE, LVLC, LVLP, TEXT, TIME, WHITE, _createApp, logger, main
+from umbraedit import (
+    BLUE,
+    CONFIG,
+    END,
+    FILE,
+    LINE,
+    LVLC,
+    LVLP,
+    TEXT,
+    TIME,
+    WHITE,
+    _createApp,
+    inAppBundle,
+    logger,
+    main,
+    setProcessTitle,
+)
 from umbraedit.splash import NSplashScreen
 
 from tests.helpers import clearLogHandlers
@@ -106,6 +122,67 @@ def testInit_CreateApp(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.Mon
 
     app = _createApp()
     assert isinstance(app, QApplication)
+
+
+@pytest.mark.base
+def testInit_ProcessTitle(monkeypatch: pytest.MonkeyPatch):
+    """Check that the process title is only set outside of macOS bundles.
+
+    On macOS, calling setproctitle from within an application bundle makes
+    the operating system lose track of the bundle the process belongs to.
+    The app then shows up as an unnamed application, which means a menu bar
+    without an application name and no icon in the Dock.
+    """
+    mockTitle = Mock()
+    mockModule = ModuleType("setproctitle")
+    mockModule.setproctitle = mockTitle  # type: ignore
+
+    # Outside of a bundle, the process title is set
+    with monkeypatch.context() as mp:
+        mp.setitem(sys.modules, "setproctitle", mockModule)
+        mp.setattr(sys, "platform", "linux")
+        setProcessTitle()
+    mockTitle.assert_called_once_with(CONFIG.appName)
+
+    # Inside a macOS app bundle, the process title is left alone
+    mockTitle.reset_mock()
+    with monkeypatch.context() as mp:
+        mp.setitem(sys.modules, "setproctitle", mockModule)
+        mp.setattr(sys, "platform", "darwin")
+        mp.setattr(sys, "executable", "/Applications/UmbraEdit.app/Contents/Resources/python/bin/python3.12")
+        setProcessTitle()
+    mockTitle.assert_not_called()
+
+    # On macOS outside of a bundle, the process title is set
+    mockTitle.reset_mock()
+    with monkeypatch.context() as mp:
+        mp.setitem(sys.modules, "setproctitle", mockModule)
+        mp.setattr(sys, "platform", "darwin")
+        mp.setattr(sys, "executable", "/usr/local/bin/python3")
+        setProcessTitle()
+    mockTitle.assert_called_once_with(CONFIG.appName)
+
+    # If setproctitle is not installed, it is silently ignored
+    with monkeypatch.context() as mp:
+        mp.setitem(sys.modules, "setproctitle", None)
+        mp.setattr(sys, "platform", "linux")
+        setProcessTitle()
+
+
+@pytest.mark.base
+def testInit_InAppBundle(monkeypatch: pytest.MonkeyPatch):
+    """Check that macOS application bundles are detected."""
+    with monkeypatch.context() as mp:
+        mp.setattr(sys, "executable", "/Applications/UmbraEdit.app/Contents/Resources/python/bin/python3.12")
+        assert inAppBundle() is True
+
+    with monkeypatch.context() as mp:
+        mp.setattr(sys, "executable", "/usr/local/bin/python3")
+        assert inAppBundle() is False
+
+    with monkeypatch.context() as mp:
+        mp.setattr(sys, "executable", "/Users/user/venv/bin/python")
+        assert inAppBundle() is False
 
 
 @pytest.mark.base

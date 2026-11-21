@@ -305,17 +305,37 @@ def main(sysArgs: Optional[list] = None) -> Optional[GuiMain]:
     sys.exit(code)
 
 
-def _createApp() -> QApplication:
-    """Create the app. This is done in a function to make it easier to
-    block app creation during testing.
+def setProcessTitle() -> None:
+    """Set the process title so that the operating system shows "UmbraEdit"
+    in task lists and process monitors.
+
+    On macOS this is skipped when the app runs from an application bundle.
+    The setproctitle call rewrites the process arguments, and the operating
+    system then loses track of the application bundle the process belongs
+    to. The app is then registered as an unnamed application, which means a
+    menu bar without an application name and no icon in the Dock. The macOS
+    launcher sets the process title itself instead.
     """
-    # Set process name so macOS menu bar shows "UmbraEdit" not "Python"
+    if sys.platform == "darwin" and inAppBundle():
+        return
     try:
         import setproctitle  # type: ignore[import-not-found]
 
         setproctitle.setproctitle(CONFIG.appName)
     except Exception:
         pass
+
+
+def inAppBundle() -> bool:
+    """Check if the app runs from inside a macOS application bundle."""
+    return any(part.endswith(".app") for part in sys.executable.split("/"))
+
+
+def _createApp() -> QApplication:
+    """Create the app. This is done in a function to make it easier to
+    block app creation during testing.
+    """
+    setProcessTitle()
 
     app = QApplication([CONFIG.appName])
     app.setStyle("Fusion")

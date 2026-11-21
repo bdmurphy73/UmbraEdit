@@ -25,6 +25,11 @@ Development release following the 2026.11 release cycle.
 * Fixed chapter text content to be written as scene documents inside chapter folders
   during DOCX/DOCM import, instead of being lost. By B.D. Murphy.
 
+* Fixed the macOS application showing "Python" in the menu bar and a second Python rocket
+  icon in the Dock next to the UmbraEdit icon. The application bundle now ships its own
+  self-contained Python runtime, and the process title is no longer rewritten when the app
+  runs from a bundle. By B.D. Murphy.
+
 **Features**
 
 * Added "Save Project As" (Ctrl+Alt+S) to the Project menu. Saves the current project

@@ -1,41 +1,56 @@
 #!/bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-RESOURCES_DIR="$DIR/../Resources/UmbraEdit"
+# UmbraEdit launcher for the macOS application bundle.
+# =================================================
+#
+# The bundle ships a self-contained, relocatable Python runtime in
+# Contents/Resources/python together with all of its dependencies.
+#
+# It is critical that we always exec the *bundled* interpreter and never a
+# Python installed somewhere else on the system. macOS LaunchServices derives
+# the identity of a running application from the path of the executable that
+# was launched. If that executable lives inside another application bundle
+# (for instance the Python.app that ships with the Xcode command line tools),
+# the running process is registered under that other bundle instead. The
+# result is a menu bar that says "Python" and an extra Python rocket icon in
+# the Dock next to the UmbraEdit icon.
+#
+# The "exec -a" call sets argv[0] so that "ps" shows the process as
+# "UmbraEdit" rather than "python3".
 
-# Find Python
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+RESOURCES_DIR="$DIR/../Resources"
+APP_DIR="$RESOURCES_DIR/UmbraEdit"
+PYTHON_DIR="$RESOURCES_DIR/python"
+
+# Locate the bundled Python runtime.
 PYTHON_CMD=""
-for cmd in python3 python3.12 python3.11 python3.10 python; do
-    if command -v "$cmd" &>/dev/null; then
-        PYTHON_CMD="$cmd"
+for candidate in "$PYTHON_DIR"/bin/python3.*; do
+    if [ -f "$candidate" ] && [ -x "$candidate" ]; then
+        PYTHON_CMD="$candidate"
         break
     fi
 done
 
 if [ -z "$PYTHON_CMD" ]; then
-    osascript -e 'tell app "System Events" to display dialog "UmbraEdit requires Python 3.10 or newer but Python was not found. Please install Python from python.org or via Homebrew: brew install python" buttons {"OK"} default button "OK" with icon caution'
+    osascript -e 'tell app "System Events" to display dialog "UmbraEdit could not find its bundled Python runtime. The application bundle is incomplete. Please download and install the latest UmbraEdit release." buttons {"OK"} default button "OK" with icon caution' 2>/dev/null
     exit 1
 fi
 
-# Install required components if missing
-"$PYTHON_CMD" -m pip install --no-deps "tomli==1.2.3" jsonschema attrs "referencing==0.35.1" rpds-py uri-template "idna==2.10" jsonschema_specifications httpx httpcore anyio sniffio lxml setproctitle 2>/dev/null || true
-
-if ! "$PYTHON_CMD" -c "import PyQt6.QtWidgets" 2>/dev/null; then
-    osascript -e 'tell app "System Events" to display dialog "UmbraEdit is installing required components (PyQt6). This may take a few minutes..." buttons {"OK"} default button "OK" with icon note'
-    if ! "$PYTHON_CMD" -m pip install "PyQt6!=6.12.1" PyEnchant tomli jsonschema attrs "referencing==0.35.1" rpds-py uri-template "idna==2.10" jsonschema_specifications httpx httpcore anyio sniffio lxml setproctitle 2>/dev/null; then
-        osascript -e 'tell app "System Events" to display dialog "UmbraEdit failed to install PyQt6. Please install it manually: pip3 install PyQt6 PyEnchant" buttons {"OK"} default button "OK" with icon caution'
-        exit 1
-    fi
+if [ ! -f "$APP_DIR/UmbraEdit.py" ]; then
+    osascript -e 'tell app "System Events" to display dialog "UmbraEdit could not find the application files. The application bundle is incomplete. Please download and install the latest UmbraEdit release." buttons {"OK"} default button "OK" with icon caution' 2>/dev/null
+    exit 1
 fi
 
-cd "$RESOURCES_DIR"
-
-# Run UmbraEdit with error capture
+# Log any start-up errors to a file in the user's log directory.
 ERROR_LOG="$HOME/Library/Logs/UmbraEdit/error.log"
-mkdir -p "$(dirname "$ERROR_LOG")"
+mkdir -p "$(dirname "$ERROR_LOG")" 2>/dev/null
+: > "$ERROR_LOG" 2>/dev/null || true
 
-exec -a "UmbraEdit" "$PYTHON_CMD" UmbraEdit.py "$@" 2>"$ERROR_LOG"
+cd "$APP_DIR" || exit 1
 
-# If we get here, the app crashed - show the error
-ERROR_CONTENT=$(cat "$ERROR_LOG" 2>/dev/null || echo "Unknown error")
-osascript -e "tell app \"System Events\" to display dialog \"UmbraEdit crashed:\\n\\n$ERROR_CONTENT\" buttons {\"OK\"} default button \"OK\" with icon caution"
-exit 1
+# Run UmbraEdit.
+#
+# The -s flag disables the user site-packages directory and the -E flag makes
+# Python ignore PYTHON* environment variables. Together they ensure that the
+# bundle only ever uses the packages it ships with.
+exec -a "UmbraEdit" "$PYTHON_CMD" -sE "$APP_DIR/UmbraEdit.py" "$@" 2>>"$ERROR_LOG"

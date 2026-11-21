@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction, QCloseEvent, QKeyEvent, QKeySequence
@@ -51,6 +51,9 @@ from umbraedit.extensions.modified import NComboBox, NDialog, NDoubleSpinBox, NI
 from umbraedit.extensions.pagedsidebar import NPagedSideBar
 from umbraedit.extensions.switch import NSwitch
 from umbraedit.types import QtAlignCenter, QtRoleAccept, QtRoleReject
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -459,6 +462,26 @@ class GuiPreferences(NDialog):
             self.tr("Centre window on startup"),
             self.moveMainWin,
             self.tr("Applies to main window and welcome dialog."),
+        )
+
+        # Project Storage
+        # ===============
+
+        title = self.tr("Project Storage")
+        section += 1
+        self.sidebar.addButton(title, section)
+        self.mainForm.addGroupLabel(title, section)
+
+        # Project Folder
+        self.projectPath = CONFIG.projectFolder()
+        self.projectGetPath = QPushButton(SHARED.theme.getIcon("browse:system"), self.tr("Browse"), self)
+        self.projectGetPath.setIconSize(iSz)
+        self.projectGetPath.clicked.connect(self._projectFolder)
+        self.mainForm.addRow(
+            self.tr("Project storage location"),
+            self.projectGetPath,
+            self._projectFolderText(self.projectPath),
+            editable="projectFolder",
         )
 
         # Project Backup
@@ -1109,6 +1132,24 @@ class GuiPreferences(NDialog):
             self._textFont = font
 
     @pyqtSlot()
+    def _projectFolder(self) -> None:
+        """Open a dialog to select the project folder."""
+        if path := QFileDialog.getExistingDirectory(
+            self,
+            self.tr("Project Directory"),
+            str(self.projectPath) or "",
+            options=QFileDialog.Option.ShowDirsOnly,
+        ):
+            self.projectPath = path
+            self.mainForm.setHelpText("projectFolder", self._projectFolderText(path))
+
+    def _projectFolderText(self, path: str | Path) -> str:
+        """Return the help text for the project folder setting."""
+        return self.tr("Path: {0}. New projects are created here, and it is searched for projects to open.").format(
+            path
+        )
+
+    @pyqtSlot()
     def _backupFolder(self) -> None:
         """Open a dialog to select the backup folder."""
         if path := QFileDialog.getExistingDirectory(
@@ -1253,6 +1294,9 @@ class GuiPreferences(NDialog):
         CONFIG.autoSaveProj = self.autoSaveProj.value()
         CONFIG.askBeforeExit = self.askBeforeExit.isChecked()
         CONFIG.moveMainWin = self.moveMainWin.isChecked()
+
+        # Project Storage
+        CONFIG.setProjectFolder(self.projectPath)
 
         # Project Backup
         CONFIG.setBackupPath(self.backupPath)

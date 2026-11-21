@@ -121,6 +121,8 @@ class Config:
         "_homePath",
         "_lastAuthor",
         "_manuals",
+        "_projPath",
+        "_projectFolder",
         "_qLocale",
         "_qtLangPath",
         "_qtTrans",
@@ -275,6 +277,7 @@ class Config:
         self._dataPath = dataRoot.absolute() / self.appHandle  # The user data location
         self._homePath = Path.home().absolute()  # The user's home directory
         self._backPath = self._homePath / "Backups"
+        self._projPath = self._homePath / "UE_Projects"  # The default project folder
 
         self._appPath = Path(__file__).parent.absolute()
         self._appRoot = self._appPath.parent
@@ -315,6 +318,7 @@ class Config:
         self._recentProjects = RecentProjects(self)
         self._recentPaths = RecentPaths(self)
         self._lastAuthor = ""
+        self._projectFolder = self._projPath
 
         # General GUI Settings
         self.guiLocale = self._qLocale.name()
@@ -586,6 +590,13 @@ class Config:
         """Set the current backup path."""
         self._backupPath = checkPath(path, self._backPath)
 
+    def setProjectFolder(self, path: Path | str) -> None:
+        """Set the folder where projects are stored by default."""
+        folder = checkPath(path, self._projPath)
+        if not folder.parts:
+            folder = self._projPath
+        self._projectFolder = folder.expanduser().absolute()
+
     def setGuiFont(self, value: Union[QFont, Optional[str]]) -> None:
         """Update the GUI's font style from settings."""
         if isinstance(value, QFont):
@@ -678,6 +689,17 @@ class Config:
         if isinstance(self._backupPath, Path) and safeIsDir(self._backupPath):
             return self._backupPath
         return self._backPath
+
+    def projectFolder(self) -> Path:
+        """Return the folder where projects are stored by default.
+
+        This is the folder that is searched for projects when the user
+        opens the Welcome dialog, and the folder new projects are
+        created in by default.
+        """
+        if isinstance(self._projectFolder, Path):
+            return self._projectFolder
+        return self._projPath
 
     def errorText(self) -> str:
         """Compile and return error messages from the initialisation of
@@ -886,6 +908,7 @@ class Config:
         self.autoSaveDoc = parser.getInt(sec, "autoSaveDoc", self.autoSaveDoc)
         self.emphLabels = parser.getBool(sec, "emphLabels", self.emphLabels)
         self._backupPath = parser.getPath(sec, "backupPath", self._backupPath)
+        self._projectFolder = parser.getPath(sec, "projectFolder", self._projectFolder).expanduser().absolute()
         self.backupOnClose = parser.getBool(sec, "backupOnClose", self.backupOnClose)
         self.backupInterval = parser.getStr(sec, "backupInterval", self.backupInterval)
         self.askBeforeBackup = parser.getBool(sec, "askBeforeBackup", self.askBeforeBackup)
@@ -1036,6 +1059,7 @@ class Config:
             "autoSaveDoc": self.autoSaveDoc,
             "emphLabels": self.emphLabels,
             "backupPath": self._backupPath,
+            "projectFolder": self._projectFolder,
             "backupOnClose": self.backupOnClose,
             "backupInterval": self.backupInterval,
             "askBeforeBackup": self.askBeforeBackup,
@@ -1263,6 +1287,34 @@ class RecentProjects:
         if self._data.pop(str(path), None) is not None:
             logger.debug("Removed recent: %s", path)
             self.saveCache()
+
+    def move(self, source: str | Path, target: str | Path) -> bool:
+        """Move a recent-project entry to a new path.
+
+        Args:
+            source: The existing path in the recent-project cache.
+            target: The new path for the cached entry.
+
+        Returns:
+            True if an entry was moved, otherwise False.
+
+        """
+        sourcePath = str(source)
+        targetPath = str(target)
+        if sourcePath == targetPath:
+            return False
+        entry = self._data.pop(sourcePath, None)
+        if entry is None:
+            return False
+        oldUuid = str((self._data.get(targetPath) or {}).get("uuid", ""))
+        if oldUuid and self._map.get(oldUuid) == targetPath:
+            self._map.pop(oldUuid, None)
+        self._data[targetPath] = entry
+        if puuid := str(entry.get("uuid", "")):
+            self._map[puuid] = targetPath
+        self.saveCache()
+        logger.debug("Moved recent: %s to %s", sourcePath, targetPath)
+        return True
 
     ##
     #  Internal Functions

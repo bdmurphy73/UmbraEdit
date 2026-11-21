@@ -23,6 +23,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import logging
+import shutil
+import tempfile
 
 from datetime import datetime
 from pathlib import Path
@@ -36,6 +38,7 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QFrame,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QListView,
@@ -52,7 +55,14 @@ from PyQt6.QtWidgets import (
 from umbraedit import CONFIG, SHARED
 from umbraedit.common import formatInt, makeFileNameSafe, qtAddAction, safeIsFile
 from umbraedit.constants import nwFiles
-from umbraedit.core.coretools import ProjectBuilder
+from umbraedit.core.coretools import (
+    ProjectBuilder,
+    containsProjectLock,
+    isValidProjectFolder,
+    replacePath,
+    scanProjectFolder,
+)
+from umbraedit.dialogs.projectconflict import GuiProjectConflict, ProjectConflictAction
 from umbraedit.enum import nwItemClass, nwStandardButton
 from umbraedit.extensions.configlayout import NColorLabel, NWrappedWidgetBox
 from umbraedit.extensions.modified import NDialog, NIconButton, NSpinBox
@@ -220,7 +230,7 @@ class GuiWelcome(NDialog):
     @pyqtSlot()
     def _browseForProject(self) -> None:
         """Browse for a project to open."""
-        if path := SHARED.getProjectFolder(self, CONFIG.homePath()):
+        if path := SHARED.getProjectFolder(self, CONFIG.projectFolder()):
             self._openProjectPath(path)
 
     @pyqtSlot()
@@ -375,6 +385,10 @@ class _OpenProjectPage(QWidget):
     def _deleteSelectedItem(self) -> None:
         """Delete the currently selected project item."""
         if (sel := self.listWidget.selectedIndexes()) and (entry := self.listModel.entry(sel[0])):
+            if not entry.recent:
+                # The project is listed because it is in the project folder,
+                # so there is nothing to remove from the recent list.
+                return
             text = self.tr("Remove '{0}' from the recent projects list? The project files will not be deleted.").format(
                 entry.title
             )
@@ -389,8 +403,11 @@ class _OpenProjectPage(QWidget):
         ctxMenu.setObjectName("ContextMenu")  # Used for testing
         action = qtAddAction(ctxMenu, self.tr("Open Project"))
         action.triggered.connect(self.openSelectedItem)
-        action = qtAddAction(ctxMenu, self.tr("Remove Project"))
-        action.triggered.connect(self._deleteSelectedItem)
+        if sel := self.listWidget.selectedIndexes():
+            entry = self.listModel.entry(sel[0])
+            if entry and entry.recent:
+                action = qtAddAction(ctxMenu, self.tr("Remove Project"))
+                action.triggered.connect(self._deleteSelectedItem)
         ctxMenu.exec(self.mapToGlobal(pos))
         ctxMenu.setParent(None)
 
@@ -476,6 +493,17 @@ class _ProjectListEntry(NamedTuple):
     path: str
     details: str
     accessible: str
+    recent: bool = True
+    scanned: bool = False
+    projectName: str = ""
+
+
+def _projectPathKey(path: str | Path) -> str:
+    """Return a canonical key for comparing project paths."""
+    try:
+        return str(Path(path).expanduser().resolve())
+    except Exception:  # pragma: no cover
+        return str(path)
 
 
 class _ProjectListModel(QAbstractListModel):
@@ -488,22 +516,79 @@ class _ProjectListModel(QAbstractListModel):
 
         words = self.tr("Word Count")
         opened = self.tr("Last Opened")
-        records = sorted(CONFIG.recentProjects.listEntries(), key=lambda x: x[3], reverse=True)
-        for path, title, count, time in records:
+        modified = self.tr("Last Modified")
+
+        recent = {
+            _projectPathKey(path): (path, title, count, time)
+            for path, title, count, time in CONFIG.recentProjects.listEntries()
+        }
+
+        # Collect the projects, and the time stamp to sort them by
+        records: list[tuple[float, _ProjectListEntry]] = []
+        scanned: set[str] = set()
+
+        # Projects in the project folder
+        for project in scanProjectFolder(CONFIG.projectFolder()):
+            path = str(project.path)
+            key = _projectPathKey(path)
+            if key in scanned:
+                continue
+            scanned.add(key)
+            name = project.name or project.path.name
+            if info := recent.get(key):
+                _, title, count, time = info
+                when = CONFIG.localDate(datetime.fromtimestamp(time))
+                details = f"{opened}: {when}, {words}: {formatInt(count)}"
+                accessible = f"{title}, {opened} {when}, {words} {formatInt(count)}"
+                stamp = time
+            else:
+                when = CONFIG.localDate(datetime.fromtimestamp(project.time))
+                details = f"{modified}: {when}"
+                accessible = f"{name}, {modified} {when}"
+                title = name
+                stamp = project.time
+            records.append((
+                stamp,
+                _ProjectListEntry(
+                    title=title,
+                    path=path,
+                    details=details,
+                    accessible=accessible,
+                    recent=key in recent,
+                    scanned=True,
+                    projectName=name,
+                ),
+            ))
+
+        # Recent projects that are not in the project folder
+        for key, (path, title, count, time) in recent.items():
+            if key in scanned:
+                continue
             when = CONFIG.localDate(datetime.fromtimestamp(time))
-            self._data.append(
+            records.append((
+                time,
                 _ProjectListEntry(
                     title=title,
                     path=path,
                     details=f"{opened}: {when}, {words}: {formatInt(count)}",
                     accessible=f"{title}, {opened} {when}, {words} {formatInt(count)}",
-                )
-            )
+                    recent=True,
+                ),
+            ))
+
+        for _, entry in sorted(records, key=lambda x: x[0], reverse=True):
+            self._data.append(entry)
 
         if not self._data:
             details = self.tr("Select to create an example project")
             self._data.append(
-                _ProjectListEntry(title=SAMPLE_NAME, path=SAMPLE_KEY, details=details, accessible=details)
+                _ProjectListEntry(
+                    title=SAMPLE_NAME,
+                    path=SAMPLE_KEY,
+                    details=details,
+                    accessible=details,
+                    recent=False,
+                )
             )
 
     def rowCount(self, parent: Optional[QModelIndex] = None) -> int:
@@ -526,12 +611,36 @@ class _ProjectListModel(QAbstractListModel):
         return None
 
     def removeEntry(self, index: QModelIndex) -> bool:
-        """Remove an entry in the model."""
+        """Remove an entry from the recent projects list."""
         if entry := self.entry(index):
-            self.beginRemoveRows(index.parent(), index.row(), index.row())
-            self._data.pop(index.row())
-            self.endRemoveRows()
-            CONFIG.recentProjects.remove(entry.path)
+            if not entry.recent:
+                return False
+
+            pathKey = _projectPathKey(entry.path)
+            for path, _, _, _ in CONFIG.recentProjects.listEntries():
+                if _projectPathKey(path) == pathKey:
+                    CONFIG.recentProjects.remove(path)
+
+            if entry.scanned:
+                # The project is still in the project folder, so keep it in
+                # the list and show its folder details instead
+                try:
+                    stamp = (Path(entry.path) / nwFiles.PROJ_FILE).stat().st_mtime
+                except OSError:  # pragma: no cover
+                    stamp = 0.0
+                when = CONFIG.localDate(datetime.fromtimestamp(stamp))
+                modified = self.tr("Last Modified")
+                title = entry.projectName or Path(entry.path).name
+                self._data[index.row()] = entry._replace(
+                    recent=False,
+                    details=f"{modified}: {when}",
+                    accessible=f"{title}, {modified} {when}",
+                )
+                self.dataChanged.emit(index, index)
+            else:
+                self.beginRemoveRows(index.parent(), index.row(), index.row())
+                self._data.pop(index.row())
+                self.endRemoveRows()
             return True
         return False
 
@@ -590,15 +699,64 @@ class _NewProjectPage(QWidget):
             SHARED.error(self.tr("A project name is required."))
             return
 
-        if importPath := data.get("import"):
-            # Create the project from the Word document
-            path = self.projectForm.importDocument(importPath, data)
-        else:
-            builder = ProjectBuilder()
-            path = builder.projPath if builder.buildProject(data) else None
+        # Check if the target location is already in use, and if so, let the
+        # user decide what to do about it
+        overwrite = False
+        while True:
+            rawPath = str(data.get("path") or "")
+            if not rawPath:
+                break
+            path = Path(rawPath)
+            if not self.projectForm.isSafeProjectPath(path):
+                SHARED.error(self.tr("The project path must be a direct sub-folder of the selected location."))
+                return
+            if not self.projectForm.isPathBlocked(path):
+                break
+            action = GuiProjectConflict.ask(self, path)
+            if action is ProjectConflictAction.CANCEL:
+                return
+            elif action is ProjectConflictAction.RENAME:
+                if not self.projectForm.renameProject(path):
+                    return
+                data = self.projectForm.getProjectData()
+                continue
+            # Erase and replace
+            if self.projectForm.isOpenProject(path):
+                SHARED.error(self.tr("The open project must be closed before it can be replaced."))
+                return
+            if self.projectForm.isLockedProject(path):
+                SHARED.error(self.tr("The project is open and cannot be replaced."))
+                return
+            if data.get("import"):
+                # The importer replaces the existing project only after the
+                # new project has been built successfully
+                overwrite = True
+            else:
+                if self.projectForm.isCopySource(path, data):
+                    SHARED.error(self.tr("The source project cannot be replaced by a copy of self."))
+                    return
+                overwrite = True
+            break
 
-        if path:
-            self.openProjectRequest.emit(path)
+        # Create the project. A replacement is built in a temporary sibling
+        # folder first, so the existing project remains intact if the build
+        # fails.
+        newPath: Optional[Path] = None
+        try:
+            if importPath := data.get("import"):
+                # Create the project from the Word document
+                newPath = self.projectForm.importDocument(
+                    importPath,
+                    data,
+                    overwrite=overwrite,
+                )
+            else:
+                newPath = self.projectForm.buildProject(data, replace=overwrite)
+        except Exception as exc:
+            SHARED.error(self.tr("Could not create the project."), exc=exc)
+
+        if newPath:
+            self.openProjectRequest.emit(newPath)
         return
 
 
@@ -616,7 +774,7 @@ class _NewProjectForm(QWidget):
         # return _NewProjectPage)
         self._page = parent
 
-        self._basePath = CONFIG.lastPath("project")
+        self._basePath = CONFIG.projectFolder()
         self._fillMode = self.FILL_BLANK
         self._copyPath = None
         self._importPath = None
@@ -820,7 +978,208 @@ class _NewProjectForm(QWidget):
             "notes": self.addNotes.isChecked(),
         }
 
-    def importDocument(self, importPath: Path, data: dict) -> Optional[Path]:
+    def buildProject(
+        self,
+        data: dict,
+        replace: bool = False,
+    ) -> Optional[Path]:
+        """Create a project, optionally replacing an existing location.
+
+        A replacement is first built in a temporary sibling folder. The
+        existing location is only moved aside after the new project has
+        been completed successfully, and is restored if the replacement
+        cannot be installed.
+
+        Args:
+            data: The project data collected from the form.
+            replace: Whether an existing target location should be
+                replaced by the new project.
+
+        Returns:
+            The path of the new project, or None if it could not be built.
+
+        """
+        rawPath = str(data.get("path") or "")
+        if not rawPath:
+            SHARED.error(self.tr("A project path is required."))
+            return None
+
+        target = Path(rawPath).expanduser().absolute()
+        if not self.isSafeProjectPath(target):
+            SHARED.error(self.tr("The project path must be a direct sub-folder of the selected location."))
+            return None
+
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            SHARED.error(self.tr("Could not create the project folder."), exc=exc)
+            return None
+
+        if not replace:
+            buildData = dict(data)
+            buildData["path"] = target
+            builder = ProjectBuilder()
+            if not builder.buildProject(buildData):
+                return None
+            if builder.projPath is None or containsProjectLock(builder.projPath):
+                SHARED.error(self.tr("The new project could not be validated."))
+                return None
+            return builder.projPath
+
+        tempRoot: Optional[Path] = None
+        builder: Optional[ProjectBuilder] = None
+        try:
+            tempRoot = Path(tempfile.mkdtemp(prefix=".umbraedit-project-", dir=str(target.parent)))
+            stagedPath = tempRoot / target.name
+            stagedData = dict(data)
+            stagedData["path"] = stagedPath
+
+            builder = ProjectBuilder()
+            if not builder.buildProject(stagedData):
+                return None
+            if not isValidProjectFolder(stagedPath):
+                SHARED.error(self.tr("The new project could not be validated."))
+                return None
+
+            # Check again after the potentially lengthy build, in case the
+            # project was opened by another process in the meantime.
+            if self.isOpenProject(target):
+                SHARED.error(self.tr("The open project must be closed before it can be replaced."))
+                return None
+            if containsProjectLock(target):
+                SHARED.error(self.tr("The project became locked and cannot be replaced."))
+                return None
+
+            replacePath(stagedPath, target)
+            # Move the staged project's recent-project metadata to its
+            # final path. This also replaces any stale metadata for the
+            # project that was overwritten.
+            resolvedTarget = target.resolve()
+            if str(target) != str(resolvedTarget):
+                CONFIG.recentProjects.remove(target)
+            if builder.projPath is None or not CONFIG.recentProjects.move(builder.projPath, resolvedTarget):
+                CONFIG.recentProjects.remove(resolvedTarget)
+            return target
+        except Exception as exc:
+            SHARED.error(self.tr("Could not replace the existing project."), exc=exc)
+            return None
+        finally:
+            if builder is not None and builder.projPath is not None:
+                # Saving a staged project adds its temporary path to the
+                # recent-project cache. Remove that transient entry.
+                CONFIG.recentProjects.remove(builder.projPath)
+            if tempRoot is not None:
+                shutil.rmtree(tempRoot, ignore_errors=True)
+
+    def isSafeProjectPath(self, path: Path) -> bool:
+        """Check that a path is a direct child of the selected location.
+
+        This prevents a project name such as ``..`` from resolving to the
+        project folder itself, or to one of its parent folders.
+        """
+        if not path or not path.is_absolute():
+            return False
+        try:
+            base = self._basePath.resolve()
+            parent = path.parent.resolve()
+            home = Path.home().resolve()
+        except Exception:  # pragma: no cover
+            return False
+        if path.name in ("", ".", "..") or parent != base or path.is_symlink():
+            return False
+        target = parent / path.name
+        return target != home and target not in home.parents
+
+    def isPathBlocked(self, path: Path) -> bool:
+        """Check if a path is blocked by an existing file or folder."""
+        if not path or not path.is_absolute():
+            return False
+        try:
+            return path.exists() or path.is_symlink()
+        except OSError:  # pragma: no cover
+            return False
+
+    def isCopySource(self, path: Path, data: dict) -> bool:
+        """Check if a target path is also the source of a project copy."""
+        source = data.get("template")
+        if not isinstance(source, Path):
+            return False
+        try:
+            sourcePath = source.parent.resolve()
+            targetPath = path.resolve()
+        except Exception:  # pragma: no cover
+            return False
+        if sourcePath == targetPath:
+            return True
+        try:
+            if sourcePath.samefile(targetPath):
+                return True
+        except OSError:  # pragma: no cover
+            pass
+        if source.name == nwFiles.PROJ_FILE:
+            # A project file identifies a project folder. Do not allow a
+            # replacement target to contain the source project itself.
+            return targetPath in sourcePath.parents
+        return False
+
+    def isOpenProject(self, path: Path) -> bool:
+        """Check if a target path contains the currently open project."""
+        if not SHARED.hasProject:
+            return False
+        current = SHARED.project.storage.storagePath
+        if not isinstance(current, Path):
+            return False
+        try:
+            currentPath = current.resolve()
+            targetPath = path.resolve()
+        except Exception:  # pragma: no cover
+            return False
+        if currentPath == targetPath:
+            return True
+        try:
+            if currentPath.samefile(targetPath):
+                return True
+        except OSError:  # pragma: no cover
+            pass
+        return targetPath in currentPath.parents or currentPath in targetPath.parents
+
+    def isLockedProject(self, path: Path) -> bool:
+        """Check if a target path contains an active project lock."""
+        return containsProjectLock(path)
+
+    def renameProject(self, path: Path) -> bool:
+        """Ask the user for a new project name, and update the form.
+
+        The new project is created in the same folder as the project
+        that is being replaced. Returns True if the form was updated.
+        """
+        name, ok = QInputDialog.getText(
+            self,
+            self.tr("Change Project Name"),
+            self.tr("New project name:"),
+            text=self.projName.text() or path.name,
+        )
+        if not ok:
+            return False
+        newName = name.strip()
+        if not newName:
+            SHARED.error(self.tr("A project name is required."))
+            return False
+        if makeFileNameSafe(newName) in ("", ".", ".."):
+            SHARED.error(self.tr("The project name is not valid."))
+            return False
+        self.projName.setText(newName)
+        self._updateProjPath()
+        self.projName.setFocus()
+        self.projName.selectAll()
+        return True
+
+    def importDocument(
+        self,
+        importPath: Path,
+        data: dict,
+        overwrite: bool = False,
+    ) -> Optional[Path]:
         """Create a new project from a Word document.
 
         The project is created in the location selected in the form, and
@@ -830,9 +1189,13 @@ class _NewProjectForm(QWidget):
         """
         from umbraedit.core.coretools import DocxImporter
 
-        path = Path(data.get("path") or "").expanduser()
-        if not str(path):
+        rawPath = str(data.get("path") or "")
+        if not rawPath:
             SHARED.error(self.tr("A project path is required."))
+            return None
+        path = Path(rawPath).expanduser().absolute()
+        if not self.isSafeProjectPath(path):
+            SHARED.error(self.tr("The project path must be a direct sub-folder of the selected location."))
             return None
 
         SHARED.newStatusMessage(self.tr("Importing Word document..."))
@@ -842,6 +1205,7 @@ class _NewProjectForm(QWidget):
             path,
             name=data.get("name") or None,
             author=data.get("author") or None,
+            overwrite=overwrite,
         ):
             SHARED.error(
                 self.tr("Failed to import the Word document."),

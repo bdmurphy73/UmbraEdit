@@ -24,13 +24,17 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import shutil
+import stat
 import tempfile
 import time as time_module
+import uuid
+import xml.etree.ElementTree as ET
 
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, NamedTuple, Optional, Union
 from zipfile import ZipFile, is_zipfile
 
 from PyQt6.QtCore import QCoreApplication
@@ -64,6 +68,320 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class ScannedProject(NamedTuple):
+    """A project found in the project folder."""
+
+    path: Path
+    name: str
+    time: float
+
+
+def scanProjectFolder(root: str | Path) -> list[ScannedProject]:
+    """Scan a folder for UmbraEdit projects.
+
+    All direct sub-folders of the given folder that contain a project file
+    are returned. The name of the project is read from the project file when
+    possible, and the folder name is used as a fallback. The time stamp
+    is the time the project file was last modified.
+
+    Args:
+        root: The folder to scan.
+
+    Returns:
+        A list of the projects found in the folder.
+
+    """
+    result: list[ScannedProject] = []
+    try:
+        base = Path(root).expanduser()
+    except (TypeError, ValueError):  # pragma: no cover
+        return result
+    if not base.parts or not safeIsDir(base):
+        return result
+
+    for item in sorted(safeIterDir(base)):
+        try:
+            if (
+                item.name.startswith((".umbraedit-import-", ".umbraedit-project-"))
+                or ".umbraedit-backup-" in item.name
+                or ".umbraedit-failed-" in item.name
+                or item.is_symlink()
+                or not safeIsDir(item)
+            ):
+                continue
+        except OSError:  # pragma: no cover
+            continue
+        projFile = item / nwFiles.PROJ_FILE
+        try:
+            if projFile.is_symlink() or not safeIsFile(projFile):
+                continue
+        except OSError:  # pragma: no cover
+            continue
+        try:
+            stamp = projFile.stat().st_mtime
+        except OSError:  # pragma: no cover
+            stamp = 0.0
+        result.append(ScannedProject(path=item, name=readProjectName(projFile) or item.name, time=stamp))
+
+    return result
+
+
+def readProjectName(projFile: str | Path) -> str:
+    """Read the name of a project from its project file.
+
+    Args:
+        projFile: The path to the project file.
+
+    Returns:
+        The name of the project, or an empty string if it cannot be read.
+
+    """
+    try:
+        with open(projFile, mode="rb") as inFile:
+            for _, elem in ET.iterparse(inFile, events=("end",)):
+                if elem.tag == "project":
+                    for item in elem:
+                        if item.tag == "name":
+                            return simplified(item.text or "")
+                    break
+    except Exception:
+        logger.debug("Could not read project name from %s", projFile)
+    return ""
+
+
+def isValidProjectFolder(path: str | Path) -> bool:
+    """Check that a folder contains a valid UmbraEdit project file.
+
+    Args:
+        path: The project folder to validate.
+
+    Returns:
+        True if the project XML can be parsed and contains project data.
+
+    """
+    projFile = Path(path) / nwFiles.PROJ_FILE
+    try:
+        if projFile.is_symlink() or not safeIsFile(projFile):
+            return False
+    except OSError:  # pragma: no cover
+        return False
+    try:
+        root = ET.parse(projFile).getroot()
+    except (ET.ParseError, OSError):
+        logger.debug("Could not validate project file: %s", projFile)
+        return False
+    return root.tag == "UmbraEditXML" and root.find("project") is not None
+
+
+def readProjectLock(path: str | Path) -> Optional[str]:
+    """Read the lock token for a project folder.
+
+    Args:
+        path: The project folder to inspect.
+
+    Returns:
+        The lock token, or None if the project is not locked. An invalid or
+        unreadable lock file is returned as a non-empty placeholder so it
+        is still treated as locked.
+
+    """
+    lockFile = Path(path) / nwFiles.PROJ_LOCK
+    try:
+        lockStat = os.lstat(lockFile)
+    except FileNotFoundError:
+        return None
+    except NotADirectoryError:
+        # The target itself is a file, so it cannot contain a lock file.
+        return None
+    except OSError:
+        logger.error("Failed to inspect project lockfile: %s", lockFile)
+        return "<unreadable>"
+
+    if not stat.S_ISREG(lockStat.st_mode):
+        logger.error("Invalid project lockfile: %s", lockFile)
+        return "<invalid>"
+
+    try:
+        return lockFile.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeError):
+        logger.error("Failed to read project lockfile: %s", lockFile)
+        return "<unreadable>"
+
+
+def containsProjectLock(path: str | Path) -> bool:
+    """Check a path for project locks.
+
+    The path itself and all of its descendant folders are checked. Symlinked
+    folders are not followed, since replacing the containing path does not
+    delete the contents of the link target. An unreadable folder is treated
+    as locked so that an unknown state cannot lead to data loss.
+
+    Args:
+        path: The path to inspect.
+
+    Returns:
+        True if the path contains a project lock, otherwise False.
+
+    """
+    target = Path(path)
+    if readProjectLock(target) is not None:
+        return True
+
+    try:
+        if target.is_symlink() or not target.is_dir():
+            return False
+    except OSError:  # pragma: no cover
+        return True
+
+    folders = [target]
+    while folders:
+        folder = folders.pop()
+        try:
+            with os.scandir(folder) as entries:
+                for entry in entries:
+                    if entry.name == nwFiles.PROJ_LOCK:
+                        return True
+                    try:
+                        if entry.is_dir(follow_symlinks=False):
+                            folders.append(Path(entry.path))
+                    except OSError:  # pragma: no cover
+                        return True
+        except OSError:
+            logger.error("Failed to inspect project folder for locks: %s", folder)
+            return True
+
+    return False
+
+
+def replacePath(source: Path, target: Path) -> None:
+    """Replace a path with a prepared path, with rollback on failure.
+
+    The existing target is first moved to a uniquely named sibling backup.
+    The prepared path is then moved into place. If that fails, the backup is
+    restored so the original target is not lost. Project locks are checked
+    before and after the move, and a lock appearing during the replacement
+    aborts the operation.
+
+    Args:
+        source: The prepared path to move into place.
+        target: The path to replace.
+
+    Raises:
+        OSError: If the paths could not be moved.
+        RuntimeError: If the replacement failed and the original could not
+            be restored automatically.
+
+    """
+    backup: Optional[Path] = None
+
+    def removePath(path: Path) -> None:
+        """Remove a path, whether it is a file, folder, or link."""
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
+        else:
+            path.unlink(missing_ok=True)
+
+    def restoreBackup() -> None:
+        """Restore the backup, preserving it if the target is occupied."""
+        if backup is None:
+            return
+        if target.exists() or target.is_symlink():
+            raise RuntimeError(f"Could not install the replacement, and the original is preserved at: {backup}")
+        try:
+            backup.rename(target)
+        except Exception as rollbackExc:
+            raise RuntimeError(
+                f"Could not install the replacement, and the original could not be restored: {backup}"
+            ) from rollbackExc
+
+    def preserveLockedTarget() -> None:
+        """Preserve a locked replacement and restore the original target."""
+        if backup is None:  # pragma: no cover
+            raise RuntimeError("The project became locked and cannot be replaced.")
+
+        failed = target.parent / f".{target.name}.umbraedit-failed-{uuid.uuid4().hex}"
+        try:
+            target.rename(failed)
+            restoreBackup()
+        except Exception as rollbackExc:
+            raise RuntimeError(
+                f"The project became locked, and the original could not be restored: {backup}"
+            ) from rollbackExc
+        raise RuntimeError(
+            f"The project became locked. The original was restored, and the replacement was preserved at: {failed}"
+        )
+
+    # A prepared project must not carry a lock into its final location.
+    # This also catches a lock that could not be removed when a staged copy
+    # was closed.
+    if containsProjectLock(source):
+        raise RuntimeError("The replacement project is locked and cannot be installed.")
+
+    if target.exists() or target.is_symlink():
+        # Check the lock before moving anything. This avoids needlessly
+        # making an active project disappear while the replacement is being
+        # prepared. Descendant projects are checked as well, since replacing
+        # a containing folder would otherwise delete them.
+        if containsProjectLock(target):
+            raise RuntimeError("The project is locked and cannot be replaced.")
+
+        backup = target.parent / f".{target.name}.umbraedit-backup-{uuid.uuid4().hex}"
+        target.rename(backup)
+
+        # Check the moved target as well. A lock may have been written while
+        # the target was being moved, and it must not be silently discarded.
+        if containsProjectLock(backup):
+            try:
+                backup.rename(target)
+            except Exception as rollbackExc:
+                raise RuntimeError(
+                    f"The project is locked, and the original could not be restored: {backup}"
+                ) from rollbackExc
+            raise RuntimeError("The project is locked and cannot be replaced.")
+
+    try:
+        source.rename(target)
+    except Exception:
+        if backup is not None:
+            restoreBackup()
+        raise
+
+    # A concurrent opener can write its lock after the source has been
+    # installed. Check the installed target, not the backup, before the old
+    # project is discarded.
+    if containsProjectLock(target):
+        if backup is None:
+            raise RuntimeError("The project became locked and cannot be replaced.")
+        preserveLockedTarget()
+
+    if backup is not None:
+        # A lock can also appear in the moved target while the replacement
+        # is being installed. In that case, remove the unlocked replacement
+        # and restore the original.
+        if containsProjectLock(backup):
+            if containsProjectLock(target):
+                preserveLockedTarget()
+            try:
+                removePath(target)
+                restoreBackup()
+            except Exception as rollbackExc:
+                raise RuntimeError(
+                    f"The project became locked, and the original could not be restored: {backup}"
+                ) from rollbackExc
+            raise RuntimeError("The project became locked and cannot be replaced.")
+
+        # Check the installed target once more immediately before the old
+        # project is discarded. This narrows the window in which a competing
+        # opener could claim the replacement.
+        if containsProjectLock(target):
+            preserveLockedTarget()
+
+        try:
+            removePath(backup)
+        except OSError:
+            logger.warning("Could not remove the project backup: %s", backup)
 
 
 class DocMerger:
@@ -322,11 +640,18 @@ class ProjectBuilder:
             if isinstance(path, (str, Path)):
                 self._path = Path(path).resolve()
                 if data.get("sample"):
-                    return self._extractSampleProject(self._path, data)
+                    built = self._extractSampleProject(self._path, data)
                 elif data.get("template"):
-                    return self._copyProject(self._path, data)
+                    built = self._copyProject(self._path, data)
                 else:
-                    return self._buildAndPopulate(self._path, data)
+                    built = self._buildAndPopulate(self._path, data)
+                if built and not isValidProjectFolder(self._path):
+                    SHARED.error(self.tr("The new project could not be validated."))
+                    return False
+                if built and containsProjectLock(self._path):
+                    SHARED.error(self.tr("The new project could not be closed cleanly."))
+                    return False
+                return built
             SHARED.error("A project path is required.")
         return False
 
@@ -448,7 +773,10 @@ class ProjectBuilder:
         _ = project.tree.trash  # Triggers the creation of Trash
 
         project.index.rebuild()
-        project.saveProject()
+        if not project.saveProject():
+            SHARED.error(self.tr("The new project could not be saved."))
+            project.closeProject()
+            return False
         project.closeProject()
 
         return True
@@ -492,9 +820,7 @@ class ProjectBuilder:
             return False
 
         # Open the copied project and update settings
-        self._resetProject(dstPath, data)
-
-        return True
+        return self._resetProject(dstPath, data)
 
     def _extractSampleProject(self, path: Path, data: dict) -> bool:
         """Make a copy of the sample project by extracting the
@@ -517,7 +843,8 @@ class ProjectBuilder:
                     path.mkdir(parents=True, exist_ok=True)
                     for item in src.iterdir():
                         shutil.move(str(item), str(path / item.name))
-                self._resetProject(path, data)
+                if not self._resetProject(path, data):
+                    return False
             except Exception as exc:
                 SHARED.error(self.tr("Failed to create a new example project."), exc=exc)
                 return False
@@ -533,11 +860,16 @@ class ProjectBuilder:
 
         return True
 
-    def _resetProject(self, path: Path, data: dict) -> None:
+    def _resetProject(self, path: Path, data: dict) -> bool:
         """Open a project and reset/update its settings."""
         project = NWProject()
-        project.openProject(path)
+        opened = False
         try:
+            if not project.openProject(path):
+                SHARED.error(self.tr("The copied project could not be opened."))
+                return False
+            opened = True
+
             isSample = project.data.uuid == "e2be99af-f9bf-4403-857a-c3d1ac25abea"
 
             # Project Data
@@ -564,9 +896,14 @@ class ProjectBuilder:
             project.data.setEditTime(0)
 
             project.index.rebuild()
-            project.saveProject()
+            if not project.saveProject():
+                SHARED.error(self.tr("The copied project could not be saved."))
+                return False
         finally:
-            project.closeProject()
+            if opened:
+                project.closeProject()
+
+        return True
 
 
 class DocxImporter:
@@ -619,6 +956,7 @@ class DocxImporter:
         project_path: str | Path,
         name: Optional[str] = None,
         author: Optional[str] = None,
+        overwrite: bool = False,
     ) -> bool:
         """Import a Word DOCX/DOCM file into a new UmbraEdit project.
 
@@ -627,6 +965,10 @@ class DocxImporter:
             project_path: Path where the new project folder will be created.
             name: Optional project name, overriding the document title.
             author: Optional author name, overriding the document author.
+            overwrite: If True, an existing project folder at the target
+                location is replaced by the imported project. The old
+                project is only removed after the new project has been
+                built successfully.
 
         Returns:
             True if the import was successful, False otherwise.
@@ -637,7 +979,10 @@ class DocxImporter:
 
         try:
             inPath = Path(file_path).expanduser().resolve()
-            outPath = Path(project_path).expanduser().resolve()
+            rawOutPath = Path(project_path).expanduser()
+            if not rawOutPath.parts:
+                raise ValueError("A project path is required")
+            outPath = Path(os.path.abspath(rawOutPath))
         except Exception as exc:
             self._error = self.tr("Invalid path: {0}").format(str(exc))
             logger.error(self._error)
@@ -648,7 +993,23 @@ class DocxImporter:
             logger.error(self._error)
             return False
 
-        if safeExists(outPath) and (not safeIsDir(outPath) or len(list(safeIterDir(outPath))) > 0):
+        home = Path.home().resolve()
+        if outPath == Path(outPath.anchor) or outPath == home or outPath in home.parents:
+            self._error = self.tr("The target path is not a valid project location.")
+            logger.error(self._error)
+            return False
+
+        if outPath.is_symlink():
+            self._error = self.tr("The target path cannot be a symbolic link.")
+            logger.error(self._error)
+            return False
+
+        if overwrite and containsProjectLock(outPath):
+            self._error = self.tr("The project is open and cannot be replaced.")
+            logger.error(self._error)
+            return False
+
+        if not overwrite and safeExists(outPath) and (not safeIsDir(outPath) or len(list(safeIterDir(outPath))) > 0):
             # The target folder must be empty, or not exist at all
             self._error = self.tr("The target folder is not empty.")
             logger.error(self._error)
@@ -674,18 +1035,35 @@ class DocxImporter:
             outPath.parent.mkdir(parents=True, exist_ok=True)
             tmpPath = Path(tempfile.mkdtemp(prefix=".umbraedit-import-", dir=str(outPath.parent)))
             if not self._buildProject(result, inPath, tmpPath, name, author):
-                shutil.rmtree(tmpPath, ignore_errors=True)
                 return False
-            if outPath.exists():
-                # The target is an empty folder, so it can be replaced
-                outPath.rmdir()
-            tmpPath.rename(outPath)
+            if not isValidProjectFolder(tmpPath):
+                self._error = self.tr("The imported project could not be validated.")
+                logger.error(self._error)
+                return False
+            if overwrite and containsProjectLock(outPath):
+                self._error = self.tr("The project is open and cannot be replaced.")
+                logger.error(self._error)
+                return False
+            replacePath(tmpPath, outPath)
+            # Move the staged project's recent-project metadata to its
+            # final path. This also replaces any stale metadata for the
+            # project that was overwritten.
+            resolvedOut = outPath.resolve()
+            if str(outPath) != str(resolvedOut):
+                CONFIG.recentProjects.remove(outPath)
+            if not CONFIG.recentProjects.move(tmpPath.resolve(), resolvedOut):
+                CONFIG.recentProjects.remove(resolvedOut)
         except Exception as exc:
-            if tmpPath is not None:
-                shutil.rmtree(tmpPath, ignore_errors=True)
             self._error = self.tr("Failed to create the project: {0}").format(str(exc))
             logger.error(self._error, exc_info=exc)
             return False
+        finally:
+            if tmpPath is not None:
+                # Saving a staged project adds its temporary path to the
+                # recent-project cache. Remove that transient entry.
+                CONFIG.recentProjects.remove(tmpPath.resolve())
+                if tmpPath.exists():
+                    shutil.rmtree(tmpPath, ignore_errors=True)
 
         try:
             outPath.chmod(0o755)
@@ -762,7 +1140,10 @@ class DocxImporter:
             self._writeProvenance(path, inPath)
 
             project.index.rebuild()
-            project.saveProject()
+            if not project.saveProject():
+                self._error = self.tr("The imported project could not be saved.")
+                logger.error(self._error)
+                return False
         except Exception as exc:
             self._error = self.tr("Failed to build the project: {0}").format(str(exc))
             logger.error(self._error, exc_info=exc)

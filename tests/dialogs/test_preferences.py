@@ -255,6 +255,18 @@ def testGuiPreferences_Settings(
     assert CONFIG.askBeforeExit is True
     assert CONFIG.moveMainWin is True
 
+    # Project Storage
+    with monkeypatch.context() as mp:
+        mp.setattr(QFileDialog, "getExistingDirectory", lambda *a, **k: "")
+        prefs.projectGetPath.click()  # Cancelled, so no change
+
+    with monkeypatch.context() as mp:
+        mp.setattr(QFileDialog, "getExistingDirectory", lambda *a, **k: str(tstPaths.testDir))
+        prefs.projectGetPath.click()
+        assert prefs.projectPath == str(tstPaths.testDir)
+
+    assert CONFIG.projectFolder() != tstPaths.testDir
+
     # Project Backup
     with monkeypatch.context() as mp:
         mp.setattr(QFileDialog, "getExistingDirectory", lambda *a, **k: "")
@@ -464,6 +476,9 @@ def testGuiPreferences_Settings(
     assert CONFIG.autoSaveProj == 61
     assert CONFIG.askBeforeExit is False
     assert CONFIG.moveMainWin is False
+
+    # Project Storage
+    assert CONFIG.projectFolder() == tstPaths.testDir
 
     # Project Backup
     assert CONFIG._backupPath == tstPaths.testDir

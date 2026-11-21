@@ -111,6 +111,8 @@ def functionFixture(qtbot: QtBot) -> None:
     * Ensures that the main Qt thread is always available
     * Resets the config object for each function and redirect its
       storage paths to temporary test folders.
+    * Redirects the project folder to a temporary test folder so the
+      tests never read the user's home folder.
     """
     if _TMP_CONF.exists():
         shutil.rmtree(_TMP_CONF)
@@ -118,6 +120,7 @@ def functionFixture(qtbot: QtBot) -> None:
 
     CONFIG.__init__()
     CONFIG.initConfig(confPath=_TMP_CONF, dataPath=_TMP_CONF)
+    CONFIG.setProjectFolder(_TMP_ROOT / "projects")
     resetConfigVars()
     logging.getLogger("umbraedit").setLevel(logging.INFO)
 

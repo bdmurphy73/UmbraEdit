@@ -30,7 +30,7 @@ import pytest
 
 from PyQt6.QtCore import QPoint
 from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QFileDialog, QMenu
+from PyQt6.QtWidgets import QFileDialog, QInputDialog, QMenu
 from pytestqt.qtbot import QtBot
 
 from umbraedit import CONFIG, SHARED
@@ -38,6 +38,7 @@ from umbraedit.constants import nwFiles
 from umbraedit.core.coretools import ProjectBuilder
 from umbraedit.core.project import NWProject
 from umbraedit.core.projectdata import ProjectData
+from umbraedit.dialogs.projectconflict import GuiProjectConflict, ProjectConflictAction
 from umbraedit.enum import nwItemClass
 from umbraedit.guimain import GuiMain
 from umbraedit.shared import _GuiAlert
@@ -530,4 +531,676 @@ def testGuiWelcome_NewImportError(
         mp.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(emptyPath), ""))
         newForm.fillImport.trigger()
     assert newForm._fillMode == newForm.FILL_BLANK
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_ProjectFolder(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that projects in the project folder are listed."""
+    projRoot = fncPath / "projects"
+    projRoot.mkdir()
+
+    # Create two projects in the project folder
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(projRoot / "Project One"), "name": "Project One", "author": ""})
+    assert builder.buildProject({"path": str(projRoot / "Project Two"), "name": "Project Two", "author": ""})
+
+    # A folder that is not a project is ignored
+    (projRoot / "Not A Project").mkdir()
+    (projRoot / "Not A Project" / "readme.txt").write_text("Nope", encoding="utf-8")
+
+    CONFIG.setProjectFolder(projRoot)
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    listModel = welcome.tabOpen.listModel
+    assert listModel.rowCount() == 2
+
+    entries = [listModel.data(listModel.index(i, 0), QtDisplayRole) for i in range(2)]
+    assert all(isinstance(e, _ProjectListEntry) for e in entries)
+    assert {e.title for e in entries} == {"Project One", "Project Two"}  # type: ignore[union-attr]
+    assert {e.path for e in entries} == {  # type: ignore[union-attr]
+        str(projRoot / "Project One"),
+        str(projRoot / "Project Two"),
+    }
+
+    # The projects were just created, so they are also in the recent list
+    assert all(e.recent is True for e in entries)  # type: ignore[union-attr]
+    assert all("Word Count" in e.details for e in entries)  # type: ignore[union-attr]
+
+    # Open a project from the list must work
+    welcome.tabOpen.listWidget.setCurrentIndex(listModel.index(0, 0))
+    with monkeypatch.context() as mp:
+        mp.setattr(welcome, "close", lambda *a: None)
+        with qtbot.waitSignal(welcome.openProjectRequest, timeout=5000) as signal:
+            welcome.btnOpen.click()
+        assert signal.args
+        assert Path(signal.args[0]).parent == projRoot
+
+    # Remove the projects from the recent list, and check the list again
+    CONFIG.recentProjects.remove(str(projRoot / "Project One"))
+    CONFIG.recentProjects.remove(str(projRoot / "Project Two"))
+
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    listModel = welcome.tabOpen.listModel
+    assert listModel.rowCount() == 2
+
+    entries = [listModel.data(listModel.index(i, 0), QtDisplayRole) for i in range(2)]
+    assert all(isinstance(e, _ProjectListEntry) for e in entries)
+
+    # They are not in the recent list, so they cannot be removed from it
+    assert all(e.recent is False for e in entries)  # type: ignore[union-attr]
+
+    # The details must show when the project was last modified
+    assert all("Last Modified" in e.details for e in entries)  # type: ignore[union-attr]
+
+    # The context menu has no remove option for these entries
+    with monkeypatch.context() as mp:
+        mp.setattr(QMenu, "exec", lambda *a: None)
+        mp.setattr(QMenu, "setParent", lambda *a: None)
+        welcome.tabOpen._openContextMenu(QPoint(0, 0))
+        for obj in welcome.children():
+            if isinstance(obj, QMenu) and obj.objectName() == "ContextMenu":
+                assert [a.text() for a in obj.actions()] == ["Open Project"]
+                obj.setObjectName("")
+                obj.deleteLater()
+
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_RemoveMergedRecent(
+    qtbot: QtBot,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that removing a recent project keeps it in the folder list."""
+    projRoot = fncPath / "projects"
+    projRoot.mkdir()
+    target = projRoot / "Project"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Project", "author": ""})
+    CONFIG.setProjectFolder(projRoot)
+
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    listModel = welcome.tabOpen.listModel
+    assert listModel.rowCount() == 1
+    entry = listModel.entry(listModel.index(0, 0))
+    assert entry is not None
+    assert entry.recent is True
+    assert entry.scanned is True
+
+    assert listModel.removeEntry(listModel.index(0, 0)) is True
+    assert listModel.rowCount() == 1
+    entry = listModel.entry(listModel.index(0, 0))
+    assert entry is not None
+    assert entry.recent is False
+    assert entry.scanned is True
+    assert "Last Modified" in entry.details
+    assert all(Path(path) != target for path, _, _, _ in CONFIG.recentProjects.listEntries())
+
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_NewProjectFolder(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that the project folder is created when it doesn't exist."""
+    projRoot = fncPath / "projects" / "nested"
+    assert not projRoot.exists()
+
+    CONFIG.setProjectFolder(projRoot)
+
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+
+    # The new project page must default to the project folder
+    assert newForm.projPath.text() == str(projRoot)
+
+    newForm.projName.setText("A Project")
+    assert newForm.projPath.text() == str(projRoot / "A Project")
+
+    with qtbot.waitSignal(welcome.openProjectRequest, timeout=5000) as signal:
+        welcome.btnCreate.click()
+    assert signal.args
+    assert signal.args[0] == projRoot / "A Project"
+
+    # The project folder must have been created
+    assert projRoot.is_dir()
+    assert (projRoot / "A Project" / nwFiles.PROJ_FILE).is_file()
+
+    # The default author must remain empty
+    project = NWProject()
+    assert project.openProject(projRoot / "A Project") is True
+    assert project.data.author == ""
+    project.closeProject()
+
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_ConflictCancel(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that a project conflict can be cancelled."""
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+
+    # Create a project that blocks the target path
+    target = fncPath / "Blocked"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Blocked", "author": ""})
+
+    newForm.projName.setText("Blocked")
+    newForm._basePath = fncPath
+    newForm._updateProjPath()
+    assert newForm.projPath.text() == str(target)
+
+    # Cancelling the dialog stops the operation
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.CANCEL)
+        with qtbot.assertNotEmitted(welcome.openProjectRequest, wait=100):
+            welcome.btnCreate.click()
+
+    # The existing project must still be there
+    assert (target / nwFiles.PROJ_FILE).is_file()
+
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_ConflictSafety(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that a project conflict cannot erase an unsafe path."""
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+
+    # A project name that resolves to the parent folder must be rejected
+    protected = fncPath / "keep.txt"
+    protected.write_text("Keep me", encoding="utf-8")
+    newForm._basePath = fncPath / "projects"
+    newForm._basePath.mkdir()
+    newForm.projName.setText("..")
+
+    with monkeypatch.context() as mp:
+        mp.setattr(
+            GuiProjectConflict,
+            "ask",
+            lambda *a, **k: pytest.fail("The conflict dialog must not be opened for an unsafe path"),
+        )
+        with qtbot.assertNotEmitted(welcome.openProjectRequest, wait=100):
+            welcome.btnCreate.click()
+
+    assert protected.is_file()
+    assert newForm.isSafeProjectPath(fncPath / "projects" / "Safe Project") is True
+    assert newForm.isSafeProjectPath(fncPath / "projects" / "..") is False
+    newForm._basePath = Path.home().parent
+    assert newForm.isSafeProjectPath(Path.home()) is False
+    newForm._basePath = Path.home() / "UE_Projects"
+    assert newForm.isSafeProjectPath(Path.home() / "UE_Projects" / "Project") is True
+    assert (fncPath / "projects").is_dir()
+
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_ConflictOpenProject(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that the currently open project cannot be erased."""
+    target = fncPath / "Open Project"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Open Project", "author": ""})
+    assert SHARED.project.openProject(target) is True
+
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+    newForm._basePath = fncPath
+    newForm.projName.setText("Open Project")
+    newForm._updateProjPath()
+
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.ERASE)
+        with qtbot.assertNotEmitted(welcome.openProjectRequest, wait=100):
+            welcome.btnCreate.click()
+
+    assert (target / nwFiles.PROJ_FILE).is_file()
+    assert SHARED.project.storage.storagePath == target
+
+    SHARED.project.closeProject()
+    welcome.close()
+
+
+@pytest.mark.gui
+@pytest.mark.parametrize("fillMode", ["blank", "copy"])
+def testGuiWelcome_ConflictBuildFailure(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+    fillMode: str,
+):
+    """Test that a failed replacement build preserves the old project."""
+    target = fncPath / "Target"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Old Project", "author": ""})
+    oldFile = target / nwFiles.PROJ_FILE
+    assert oldFile.is_file()
+
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+    newForm._basePath = fncPath
+    newForm.projName.setText("Target")
+    newForm._updateProjPath()
+
+    if fillMode == "copy":
+        source = fncPath / "Source"
+        assert builder.buildProject({"path": str(source), "name": "Source", "author": ""})
+        newForm._copyPath = source / nwFiles.PROJ_FILE
+        newForm._fillMode = newForm.FILL_COPY
+
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.ERASE)
+        mp.setattr(ProjectBuilder, "buildProject", lambda *a, **k: False)
+        with qtbot.assertNotEmitted(welcome.openProjectRequest, wait=100):
+            welcome.btnCreate.click()
+
+    assert oldFile.is_file()
+    project = NWProject()
+    assert project.openProject(target) is True
+    assert project.data.name == "Old Project"
+    project.closeProject()
+
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_ConflictLockedProject(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that a project with a lock file cannot be replaced."""
+    target = fncPath / "Target"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Old Project", "author": ""})
+    oldFile = target / nwFiles.PROJ_FILE
+    (target / nwFiles.PROJ_LOCK).write_text("locked", encoding="utf-8")
+
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+    newForm._basePath = fncPath
+    newForm.projName.setText("Target")
+    newForm._updateProjPath()
+
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.ERASE)
+        mp.setattr(SHARED, "question", lambda *a, **k: False)
+        with qtbot.assertNotEmitted(welcome.openProjectRequest, wait=100):
+            welcome.btnCreate.click()
+
+    assert oldFile.is_file()
+    assert (target / nwFiles.PROJ_LOCK).is_file()
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_ConflictNestedLockedProject(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that a container with a locked project cannot be replaced."""
+    target = fncPath / "Target"
+    target.mkdir()
+    active = target / "Active Project"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(active), "name": "Active Project", "author": ""})
+    (active / nwFiles.PROJ_LOCK).write_text("locked", encoding="utf-8")
+
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+    newForm._basePath = fncPath
+    newForm.projName.setText("Target")
+    newForm._updateProjPath()
+
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.ERASE)
+        with qtbot.assertNotEmitted(welcome.openProjectRequest, wait=100):
+            welcome.btnCreate.click()
+
+    assert (active / nwFiles.PROJ_LOCK).is_file()
+    welcome.close()
+
+
+@pytest.mark.gui
+@pytest.mark.parametrize("targetType", ["folder", "file"])
+def testGuiWelcome_ConflictExistingPath(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+    targetType: str,
+):
+    """Test that an empty folder or file can be replaced by a project."""
+    target = fncPath / "Target"
+    if targetType == "folder":
+        target.mkdir()
+    else:
+        target.write_text("Existing file", encoding="utf-8")
+
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+    newForm._basePath = fncPath
+    newForm.projName.setText("Target")
+    newForm._updateProjPath()
+
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.ERASE)
+        with qtbot.waitSignal(welcome.openProjectRequest, timeout=5000) as signal:
+            welcome.btnCreate.click()
+        assert signal.args
+        assert signal.args[0] == target
+
+    assert (target / nwFiles.PROJ_FILE).is_file()
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_ConflictErase(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that a project conflict can be resolved by erasing the folder."""
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+
+    # Create a project that blocks the target path
+    target = fncPath / "Blocked"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Blocked", "author": ""})
+    oldFile = target / nwFiles.PROJ_FILE
+    assert oldFile.is_file()
+
+    newForm.projName.setText("Blocked")
+    newForm._basePath = fncPath
+    newForm._updateProjPath()
+
+    # Erasing the folder replaces the project
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.ERASE)
+        with qtbot.waitSignal(welcome.openProjectRequest, timeout=5000) as signal:
+            welcome.btnCreate.click()
+        assert signal.args
+        assert signal.args[0] == target
+
+    # The project must have been replaced
+    assert (target / nwFiles.PROJ_FILE).is_file()
+
+    project = NWProject()
+    assert project.openProject(target) is True
+    assert project.data.name == "Blocked"
+    project.closeProject()
+
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_ConflictCopy(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that a copied project can replace an existing project."""
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+
+    # Create a source project and an existing target project
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(fncPath / "Source"), "name": "Source", "author": ""})
+    assert builder.buildProject({"path": str(fncPath / "Target"), "name": "Target", "author": ""})
+
+    newForm._copyPath = fncPath / "Source" / nwFiles.PROJ_FILE
+    newForm._fillMode = newForm.FILL_COPY
+    newForm._basePath = fncPath
+    newForm.projName.setText("Target")
+    newForm._updateProjPath()
+
+    # Erasing the target lets the copy replace the project
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.ERASE)
+        with qtbot.waitSignal(welcome.openProjectRequest, timeout=5000) as signal:
+            welcome.btnCreate.click()
+        assert signal.args
+        assert signal.args[0] == fncPath / "Target"
+
+    project = NWProject()
+    assert project.openProject(fncPath / "Target") is True
+    assert project.data.name == "Target"
+    project.closeProject()
+
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_ConflictCopySelf(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that a project cannot be replaced by a copy of itself."""
+    target = fncPath / "Source"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Source", "author": ""})
+    oldFile = target / nwFiles.PROJ_FILE
+
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+    newForm._copyPath = target / nwFiles.PROJ_FILE
+    newForm._fillMode = newForm.FILL_COPY
+    newForm._basePath = fncPath
+    newForm.projName.setText("Source")
+    newForm._updateProjPath()
+
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.ERASE)
+        with qtbot.assertNotEmitted(welcome.openProjectRequest, wait=100):
+            welcome.btnCreate.click()
+
+    assert oldFile.is_file()
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_ConflictRename(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that a project conflict can be resolved by changing the name."""
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+
+    # Create a project that blocks the target path
+    target = fncPath / "Blocked"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Blocked", "author": ""})
+
+    newForm.projName.setText("Blocked")
+    newForm._basePath = fncPath
+    newForm._updateProjPath()
+
+    # Cancelling the name prompt stops the operation
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.RENAME)
+        mp.setattr(QInputDialog, "getText", lambda *a, **k: ("", False))
+        with qtbot.assertNotEmitted(welcome.openProjectRequest, wait=100):
+            welcome.btnCreate.click()
+
+    assert (target / nwFiles.PROJ_FILE).is_file()
+
+    # Changing the name creates the project in a new folder
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.RENAME)
+        mp.setattr(QInputDialog, "getText", lambda *a, **k: ("Renamed Project", True))
+        with qtbot.waitSignal(welcome.openProjectRequest, timeout=5000) as signal:
+            welcome.btnCreate.click()
+        assert signal.args
+        assert signal.args[0] == fncPath / "Renamed Project"
+
+    # The new project must exist, and the old one must be untouched
+    assert (fncPath / "Renamed Project" / nwFiles.PROJ_FILE).is_file()
+    assert (target / nwFiles.PROJ_FILE).is_file()
+
+    welcome.close()
+
+
+@pytest.mark.gui
+def testGuiWelcome_ImportConflict(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
+    """Test that a Word document import can replace an existing project."""
+    welcome = GuiWelcome(nwGUI)
+    with qtbot.waitExposed(welcome):
+        welcome.show()
+
+    welcome.btnNew.click()
+    newForm = welcome.tabNew.projectForm
+
+    docxPath = makeDocx(
+        fncPath / "novel.docx",
+        [
+            ("Chapter One", "Heading1"),
+            ("The first paragraph of the chapter.", None),
+        ],
+        title="My Novel",
+        author="Jane Doe",
+    )
+
+    with monkeypatch.context() as mp:
+        mp.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(docxPath), ""))
+        newForm.fillImport.trigger()
+
+    newForm.projName.setText("My Novel")
+    newForm._basePath = fncPath
+    newForm._updateProjPath()
+
+    # Create an existing project with the same name
+    target = fncPath / "My Novel"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Old Novel", "author": "John Doe"})
+    oldFile = target / nwFiles.PROJ_FILE
+    assert oldFile.is_file()
+
+    # The import must fail when the folder is in use
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.CANCEL)
+        with qtbot.assertNotEmitted(welcome.openProjectRequest, wait=100):
+            welcome.btnCreate.click()
+    assert oldFile.is_file()
+
+    # Erasing the folder lets the import replace the project
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectConflict, "ask", lambda *a, **k: ProjectConflictAction.ERASE)
+        with qtbot.waitSignal(welcome.openProjectRequest, timeout=5000) as signal:
+            welcome.btnCreate.click()
+        assert signal.args
+        assert signal.args[0] == target
+
+    # The staged import must not leave a transient recent-project entry
+    recentEntries = CONFIG.recentProjects.listEntries()
+    assert all(".umbraedit-import-" not in entry[0] for entry in recentEntries)
+    targetEntry = next(entry for entry in recentEntries if entry[0] == str(target))
+    assert targetEntry[1] == "My Novel"
+
+    project = NWProject()
+    assert project.openProject(target) is True
+    assert project.data.name == "My Novel"
+    assert project.data.author == "Jane Doe"
+    project.closeProject()
+
     welcome.close()

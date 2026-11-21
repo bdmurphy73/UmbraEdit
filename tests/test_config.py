@@ -175,6 +175,7 @@ def testConfig_InitLoadSave(monkeypatch: pytest.MonkeyPatch, fncPath: Path, tstP
         "lastNotes",
         "textFont",
         "backupPath",
+        "projectFolder",
     )
     assert cmpFiles(testFile, compFile, ignStart=ignore)
     conf.errorText()  # This clears the error cache
@@ -196,6 +197,7 @@ def testConfig_InitLoadSave(monkeypatch: pytest.MonkeyPatch, fncPath: Path, tstP
     # Change a few settings, save, reset, and reload
     conf.lightTheme = "foo"
     conf.darkTheme = "bar"
+    conf.setProjectFolder(fncPath / "projects")
     assert conf.saveConfig() is True
 
     newConf = Config()
@@ -203,6 +205,7 @@ def testConfig_InitLoadSave(monkeypatch: pytest.MonkeyPatch, fncPath: Path, tstP
     newConf.loadConfig()
     assert newConf.lightTheme == "foo"
     assert newConf.darkTheme == "bar"
+    assert newConf.projectFolder() == fncPath / "projects"
 
     # If the data path doesn't materialise as a folder, sub-folders are skipped
     with monkeypatch.context() as mp:
@@ -324,6 +327,26 @@ def testConfig_Methods(fncPath: Path):
     assert conf.backupPath() == conf._backPath
     conf.setBackupPath(fncPath)
     assert conf.backupPath() == fncPath
+
+    # Project Folder
+    # The default is a folder called UE_Projects in the user's home folder
+    conf = Config()
+    assert conf.projectFolder() == conf._homePath / "UE_Projects"
+    assert conf.projectFolder() == Path.home().absolute() / "UE_Projects"
+
+    # The folder can be changed
+    conf.setProjectFolder(fncPath)
+    assert conf.projectFolder() == fncPath
+
+    # It is always an absolute path
+    conf.setProjectFolder("~/projects")
+    assert conf.projectFolder() == Path.home().absolute() / "projects"
+
+    # An invalid value resets it to the default
+    conf.setProjectFolder("")
+    assert conf.projectFolder() == conf._projPath
+    conf.setProjectFolder(Path())
+    assert conf.projectFolder() == conf._projPath
 
     # Recent Projects
     assert isinstance(conf.recentProjects, RecentProjects)
@@ -564,6 +587,13 @@ def testConfig_RecentCache(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths, 
     recent.update(pathNew, prjOne.data, 1600005600)
     assert recent.findCopy(pathOld, oldUuid) is None
     assert len(recent.listEntries()) == 2
+
+    # An entry can be moved to a new path
+    movedPath = tstPaths.cnfDir / "projPathMoved" / nwFiles.PROJ_FILE
+    assert recent.move(pathOld, movedPath) is True
+    assert recent.move(pathOld, movedPath) is False
+    assert str(movedPath) in [entry[0] for entry in recent.listEntries()]
+    assert str(pathOld) not in [entry[0] for entry in recent.listEntries()]
 
 
 @pytest.mark.base

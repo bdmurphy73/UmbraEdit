@@ -39,6 +39,12 @@ from umbraedit.core.coretools import (
     DocSplitter,
     DocxImporter,
     ProjectBuilder,
+    containsProjectLock,
+    isValidProjectFolder,
+    readProjectLock,
+    readProjectName,
+    replacePath,
+    scanProjectFolder,
 )
 from umbraedit.core.item import ProjectItem
 from umbraedit.core.project import NWProject
@@ -1146,11 +1152,25 @@ def testCoreTools_DocxImporterErrors(
     assert importer.importFile(badPath, fncPath / "imported") is False
     assert importer.error != ""
 
-    # A target folder that is not empty
+    # A valid Word document is needed for the remaining path checks
     docxPath = makeDocx(
         fncPath / "novel.docx",
         [("Chapter One", "Heading1"), ("Some text.", None)],
     )
+
+    # An empty target path must not resolve to the current working directory
+    assert importer.importFile(docxPath, "", overwrite=True) is False
+    assert importer.error != ""
+
+    # The home directory and filesystem root are not valid replacement targets
+    assert importer.importFile(docxPath, Path.home(), overwrite=True) is False
+    assert importer.error != ""
+    assert importer.importFile(docxPath, Path.home().parent, overwrite=True) is False
+    assert importer.error != ""
+    assert importer.importFile(docxPath, Path(Path.home().anchor), overwrite=True) is False
+    assert importer.error != ""
+
+    # A target folder that is not empty
     target = fncPath / "notempty"
     target.mkdir(parents=True)
     (target / "stuff.txt").write_text("Stuff", encoding="utf-8")
@@ -1163,3 +1183,444 @@ def testCoreTools_DocxImporterErrors(
     assert importer.importFile(emptyPath, fncPath / "imported") is False
     assert importer.error != ""
     assert not (fncPath / "imported").exists()
+
+
+@pytest.mark.core
+def testCoreTools_ReplacePathRollback(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+):
+    """Test that a failed replacement restores the original path."""
+    source = fncPath / "replacement"
+    source.mkdir()
+    (source / "new.txt").write_text("New", encoding="utf-8")
+
+    target = fncPath / "existing"
+    target.mkdir()
+    (target / "old.txt").write_text("Old", encoding="utf-8")
+
+    originalRename = Path.rename
+
+    def failReplacement(self: Path, path: str | Path) -> Path:
+        if self == source:
+            raise OSError("Replacement failed")
+        return originalRename(self, path)
+
+    monkeypatch.setattr(Path, "rename", failReplacement)
+    with pytest.raises(OSError, match="Replacement failed"):
+        replacePath(source, target)
+
+    assert (target / "old.txt").read_text(encoding="utf-8") == "Old"
+    assert not (target / "new.txt").exists()
+    assert (source / "new.txt").is_file()
+
+
+@pytest.mark.core
+def testCoreTools_ReplacePathLocked(
+    fncPath: Path,
+):
+    """Test that a locked project is not moved or replaced."""
+    source = fncPath / "replacement"
+    source.mkdir()
+    (source / "new.txt").write_text("New", encoding="utf-8")
+
+    target = fncPath / "existing"
+    target.mkdir()
+    (target / "old.txt").write_text("Old", encoding="utf-8")
+    (target / nwFiles.PROJ_LOCK).write_text("locked", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="locked"):
+        replacePath(source, target)
+
+    assert (target / "old.txt").read_text(encoding="utf-8") == "Old"
+    assert (source / "new.txt").is_file()
+
+
+@pytest.mark.core
+def testCoreTools_ReplacePathLockRace(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+):
+    """Test that a lock appearing during replacement restores the target."""
+    source = fncPath / "replacement"
+    source.mkdir()
+    (source / "new.txt").write_text("New", encoding="utf-8")
+
+    target = fncPath / "existing"
+    target.mkdir()
+    (target / "old.txt").write_text("Old", encoding="utf-8")
+
+    originalRename = Path.rename
+
+    def addLock(self: Path, path: str | Path) -> Path:
+        if self == source:
+            for backup in target.parent.glob(f".{target.name}.umbraedit-backup-*"):
+                (backup / nwFiles.PROJ_LOCK).write_text("late lock", encoding="utf-8")
+        return originalRename(self, path)
+
+    monkeypatch.setattr(Path, "rename", addLock)
+    with pytest.raises(RuntimeError, match="locked"):
+        replacePath(source, target)
+
+    assert (target / "old.txt").read_text(encoding="utf-8") == "Old"
+    assert not (target / "new.txt").exists()
+
+
+@pytest.mark.core
+def testCoreTools_ReplacePathTargetLockRace(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+):
+    """Test that a lock written to the installed target restores the original."""
+    source = fncPath / "replacement"
+    source.mkdir()
+    (source / "new.txt").write_text("New", encoding="utf-8")
+
+    target = fncPath / "existing"
+    target.mkdir()
+    (target / "old.txt").write_text("Old", encoding="utf-8")
+
+    originalRename = Path.rename
+
+    def addLock(self: Path, path: str | Path) -> Path:
+        result = originalRename(self, path)
+        if self == source:
+            (target / nwFiles.PROJ_LOCK).write_text("late lock", encoding="utf-8")
+        return result
+
+    monkeypatch.setattr(Path, "rename", addLock)
+    with pytest.raises(RuntimeError, match="became locked"):
+        replacePath(source, target)
+
+    assert (target / "old.txt").read_text(encoding="utf-8") == "Old"
+    assert not (target / "new.txt").exists()
+
+    # The competing project and its lock are preserved, not deleted.
+    failed = list(fncPath.glob(".existing.umbraedit-failed-*"))
+    assert len(failed) == 1
+    assert (failed[0] / nwFiles.PROJ_LOCK).is_file()
+
+
+@pytest.mark.core
+def testCoreTools_ReplacePathSourceLocked(fncPath: Path):
+    """Test that a locked replacement is not installed."""
+    source = fncPath / "replacement"
+    source.mkdir()
+    (source / "new.txt").write_text("New", encoding="utf-8")
+    (source / nwFiles.PROJ_LOCK).write_text("locked", encoding="utf-8")
+
+    target = fncPath / "existing"
+    target.mkdir()
+    (target / "old.txt").write_text("Old", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="locked"):
+        replacePath(source, target)
+
+    assert (target / "old.txt").read_text(encoding="utf-8") == "Old"
+    assert (source / "new.txt").is_file()
+
+
+@pytest.mark.core
+def testCoreTools_ReplacePathDescendantLocked(fncPath: Path):
+    """Test that a container with a locked descendant is not replaced."""
+    source = fncPath / "replacement"
+    source.mkdir()
+    (source / "new.txt").write_text("New", encoding="utf-8")
+
+    target = fncPath / "existing"
+    active = target / "Active Project"
+    active.mkdir(parents=True)
+    (active / nwFiles.PROJ_LOCK).write_text("locked", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="locked"):
+        replacePath(source, target)
+
+    assert (active / nwFiles.PROJ_LOCK).is_file()
+    assert (source / "new.txt").is_file()
+
+
+@pytest.mark.core
+def testCoreTools_ProjectBuilderSaveFailure(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """Test that a failed project save is reported as a build failure."""
+    monkeypatch.setattr(NWProject, "saveProject", lambda *a, **k: False)
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(fncPath / "new"), "name": "New Project", "author": ""}) is False
+
+
+@pytest.mark.core
+def testCoreTools_ProjectBuilderStaleLock(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """Test that a project with a stale lock is not accepted as built."""
+    originalClose = NWProject.closeProject
+
+    def leaveLock(project: NWProject) -> None:
+        path = project.storage.storagePath
+        originalClose(project)
+        if path:
+            (path / nwFiles.PROJ_LOCK).write_text("stale lock", encoding="utf-8")
+
+    monkeypatch.setattr(NWProject, "closeProject", leaveLock)
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(fncPath / "new"), "name": "New Project", "author": ""}) is False
+    assert (fncPath / "new" / nwFiles.PROJ_LOCK).is_file()
+
+
+@pytest.mark.core
+def testCoreTools_ResetProjectKeepsLock(
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """Test that a failed open does not remove another instance's lock."""
+    source = fncPath / "source"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(source), "name": "Source", "author": ""})
+    lockFile = source / nwFiles.PROJ_LOCK
+    lockFile.write_text("locked", encoding="utf-8")
+
+    builder = ProjectBuilder()
+    assert builder._resetProject(source, {"name": "Copy", "author": ""}) is False
+    assert lockFile.is_file()
+
+
+@pytest.mark.core
+def testCoreTools_DocxImporterOverwrite(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """Test that an existing project can be replaced by an import."""
+    docxPath = makeDocx(
+        fncPath / "novel.docx",
+        [("Chapter One", "Heading1"), ("Some text.", None)],
+        title="New Novel",
+        author="Jane Doe",
+    )
+
+    # Create an existing project in the target folder
+    target = fncPath / "existing"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Old Novel", "author": "John Doe"})
+    oldFile = target / nwFiles.PROJ_FILE
+    assert oldFile.is_file()
+
+    # Without the overwrite flag, the import must fail
+    importer = DocxImporter()
+    assert importer.importFile(docxPath, target) is False
+    assert importer.error != ""
+    assert oldFile.is_file()
+
+    # If building the replacement fails, the old project must be preserved
+    importer = DocxImporter()
+    monkeypatch.setattr(importer, "_buildProject", lambda *a: False)
+    assert importer.importFile(docxPath, target, overwrite=True) is False
+    assert oldFile.is_file()
+
+    # With the overwrite flag, the project must be replaced
+    importer = DocxImporter()
+    assert importer.importFile(docxPath, target, overwrite=True) is True
+    assert importer.error == ""
+    assert importer.projectPath == target
+    assert (target / nwFiles.PROJ_FILE).is_file()
+
+    # The recent-project entry must point to the final path and contain the
+    # new project's metadata, not the temporary build path.
+    recentEntries = CONFIG.recentProjects.listEntries()
+    assert str(target) in [entry[0] for entry in recentEntries]
+    assert all(".umbraedit-import-" not in entry[0] for entry in recentEntries)
+    targetEntry = next(entry for entry in recentEntries if entry[0] == str(target))
+    assert targetEntry[1] == "New Novel"
+
+    # The new project must have replaced the old one
+    project = NWProject()
+    assert project.openProject(target) is True
+    assert project.data.name == "New Novel"
+    assert project.data.author == "Jane Doe"
+    project.closeProject()
+
+
+@pytest.mark.core
+def testCoreTools_DocxImporterOverwriteRollback(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """Test that a failed import replacement preserves the old project."""
+    docxPath = makeDocx(
+        fncPath / "novel.docx",
+        [("Chapter One", "Heading1"), ("Some text.", None)],
+        title="New Novel",
+    )
+
+    target = fncPath / "existing"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Old Novel", "author": ""})
+    oldFile = target / nwFiles.PROJ_FILE
+    assert oldFile.is_file()
+
+    originalRename = Path.rename
+
+    def failReplacement(self: Path, path: str | Path) -> Path:
+        if self.name.startswith(".umbraedit-import-"):
+            raise OSError("Replacement failed")
+        return originalRename(self, path)
+
+    monkeypatch.setattr(Path, "rename", failReplacement)
+    importer = DocxImporter()
+    assert importer.importFile(docxPath, target, overwrite=True) is False
+    assert importer.error != ""
+    assert oldFile.is_file()
+
+    project = NWProject()
+    assert project.openProject(target) is True
+    assert project.data.name == "Old Novel"
+    project.closeProject()
+
+
+@pytest.mark.core
+def testCoreTools_DocxImporterOverwriteSymlink(
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """Test that an import cannot replace the target of a symbolic link."""
+    docxPath = makeDocx(
+        fncPath / "novel.docx",
+        [("Chapter One", "Heading1"), ("Some text.", None)],
+    )
+
+    referent = fncPath / "referent"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(referent), "name": "Referent", "author": ""})
+    referentFile = referent / nwFiles.PROJ_FILE
+
+    link = fncPath / "link"
+    try:
+        link.symlink_to(referent, target_is_directory=True)
+    except OSError:  # pragma: no cover
+        pytest.skip("Symbolic links are not supported on this platform")
+
+    importer = DocxImporter()
+    assert importer.importFile(docxPath, link, overwrite=True) is False
+    assert importer.error != ""
+    assert referentFile.is_file()
+    assert link.is_symlink()
+
+
+@pytest.mark.core
+def testCoreTools_DocxImporterOverwriteLocked(
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """Test that a locked project cannot be replaced by an import."""
+    docxPath = makeDocx(
+        fncPath / "novel.docx",
+        [("Chapter One", "Heading1"), ("Some text.", None)],
+    )
+
+    target = fncPath / "existing"
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(target), "name": "Old Novel", "author": ""})
+    oldFile = target / nwFiles.PROJ_FILE
+    (target / nwFiles.PROJ_LOCK).write_text("locked", encoding="utf-8")
+
+    importer = DocxImporter()
+    assert importer.importFile(docxPath, target, overwrite=True) is False
+    assert importer.error != ""
+    assert oldFile.is_file()
+
+
+@pytest.mark.core
+def testCoreTools_ScanProjectFolder(
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """Test scanning a folder for UmbraEdit projects."""
+    root = fncPath / "projects"
+    root.mkdir()
+
+    # A folder that does not exist has no projects
+    assert scanProjectFolder(fncPath / "missing") == []
+
+    # An empty path must not scan the current working directory
+    assert scanProjectFolder("") == []
+    assert scanProjectFolder(Path()) == []
+
+    # An empty folder has no projects
+    assert scanProjectFolder(root) == []
+
+    # A folder with a project
+    builder = ProjectBuilder()
+    assert builder.buildProject({"path": str(root / "Project One"), "name": "Project One", "author": ""})
+    assert builder.buildProject({"path": str(root / "Project Two"), "name": "Project Two", "author": ""})
+
+    # A folder that is not a project is ignored
+    (root / "Not A Project").mkdir()
+    (root / "Not A Project" / "readme.txt").write_text("Nope", encoding="utf-8")
+
+    # A file is ignored
+    (root / "notes.txt").write_text("Nope", encoding="utf-8")
+
+    # A symbolic link to a project is ignored
+    outside = fncPath / "outside"
+    assert builder.buildProject({"path": str(outside), "name": "Outside", "author": ""})
+    try:
+        (root / "Linked Project").symlink_to(outside, target_is_directory=True)
+        linkedFile = root / "Linked File Project"
+        linkedFile.mkdir()
+        (linkedFile / nwFiles.PROJ_FILE).symlink_to(outside / nwFiles.PROJ_FILE)
+    except OSError:  # pragma: no cover
+        pytest.skip("Symbolic links are not supported on this platform")
+
+    # A folder with only a symbolic link to a project file is ignored
+    assert not isValidProjectFolder(root / "Linked File Project")
+
+    projects = scanProjectFolder(root)
+    assert len(projects) == 2
+    assert [p.path.name for p in projects] == ["Project One", "Project Two"]
+    assert [p.name for p in projects] == ["Project One", "Project Two"]
+    assert all(p.time > 0 for p in projects)
+
+    # The project name is read from the project file
+    assert readProjectName(root / "Project One" / nwFiles.PROJ_FILE) == "Project One"
+
+    # A file that is not a project file has no name
+    assert readProjectName(root / "notes.txt") == ""
+    assert readProjectName(root / "missing" / nwFiles.PROJ_FILE) == ""
+
+    # A project with an unreadable project file falls back to the folder name
+    brokenRoot = fncPath / "broken"
+    brokenRoot.mkdir()
+    broken = brokenRoot / "Broken Project"
+    broken.mkdir()
+    (broken / nwFiles.PROJ_FILE).write_text("Not a project file", encoding="utf-8")
+    brokenProjects = scanProjectFolder(brokenRoot)
+    assert len(brokenProjects) == 1
+    assert brokenProjects[0].name == "Broken Project"
+
+
+@pytest.mark.core
+def testCoreTools_ProjectLockDetection(fncPath: Path):
+    """Test that malformed and descendant locks are treated as locked."""
+    target = fncPath / "target"
+    target.mkdir()
+    assert readProjectLock(target) is None
+    assert containsProjectLock(target) is False
+
+    # A lock path with the wrong type is malformed and must block replacement
+    (target / nwFiles.PROJ_LOCK).mkdir()
+    assert readProjectLock(target) is not None
+    assert containsProjectLock(target) is True
+
+    # A lock in a descendant project also blocks replacement of its parent
+    nested = fncPath / "nested"
+    nested.mkdir()
+    child = nested / "child"
+    child.mkdir()
+    (child / nwFiles.PROJ_LOCK).write_text("locked", encoding="utf-8")
+    assert containsProjectLock(nested) is True

@@ -27,6 +27,11 @@ A list of recently opened projects is maintained, and displayed in the **Welcome
 project can be removed from this list by selecting it and pressing the :kbd:`Del` key or by
 right-clicking it and selecting the **Remove Project** option.
 
+The **Welcome** dialog also lists the projects found in the top level of your project folder.
+The project folder is set in **Preferences**, under **Project Storage**, and defaults to a folder
+called "UE_Projects" in your home directory. New projects are created in this folder as well,
+unless you pick a different location with the **Browse** button on the **New Project** form.
+
 .. figure:: images/fig_welcome.jpg
 
    The project list (left) and new project form (right) of the **Welcome** dialog.
@@ -35,6 +40,24 @@ Project-specific settings are available in **Project Settings** in the **Project
 further details below in the :ref:`docs_ui_projects_settings` section.
 
 Statistics about the project are available in the **Manuscript Build** tool.
+
+
+Existing Project Folders
+------------------------
+
+If a file or folder with the same name as the new project already exists, UmbraEdit will ask you
+how to proceed. You can choose **Erase and Replace**, **Change Name**, or **Cancel**. This applies
+to blank projects, copied projects, and projects imported from a Word document.
+
+The replacement project is built successfully before the existing location is changed. If the
+build fails, the existing location is left untouched. A project that is currently open, or a
+location that contains an active project lock, cannot be replaced.
+
+.. warning::
+
+   Erasing and replacing a location permanently deletes everything stored there. This cannot be
+   undone. If you are not sure the location holds a project you no longer need, cancel the
+   operation and check the location first.
 
 
 Template Projects

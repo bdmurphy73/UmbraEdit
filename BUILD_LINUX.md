@@ -136,7 +136,7 @@ umbraedit  # Opens the welcome dialog
 
 ## Version
 
-Current development version: **2026.11.0004**
+Current development version: **2026.11.0006**
 
 ## License
 

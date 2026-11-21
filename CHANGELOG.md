@@ -5,7 +5,7 @@ Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io)
 and is licenced under the same GPL v3.0 license.
 
-## Version 2026.11.0001 [2026-11-05] (Development)
+## Version 2026.11.0006 [2026-11-21] (Development)
 
 ### Release Notes
 
@@ -14,6 +14,17 @@ Development release following the 2026.11 release cycle.
 ### Detailed Changelog
 
 **Features**
+
+* Added a "Project storage location" setting to Preferences. It points to the folder where
+  new projects are created, and which is searched for projects when the Welcome dialog is
+  opened. The default is a "UE_Projects" folder in the user's home folder. By B.D. Murphy.
+
+* Added a project location conflict dialog. When a project cannot be created because a file
+  or folder with the same name already exists, the user is now offered the choice of erasing
+  and replacing the existing location, changing the project name, or cancelling the operation.
+  This applies to new projects, copied projects, and Word document imports. Replacement
+  projects are built successfully before the existing location is changed, and an open or
+  locked project cannot be replaced. By B.D. Murphy.
 
 * Added Word DOCX/DOCM import capability (FromDocxDocument, DocxImporter) for migrating
   Word documents into UmbraEdit projects. Non-translatable items (images, headers,
@@ -24,6 +35,9 @@ Development release following the 2026.11 release cycle.
 
 * Fixed chapter text content to be written as scene documents inside chapter folders
   during DOCX/DOCM import, instead of being lost. By B.D. Murphy.
+
+* Fixed projects in the project folder not being listed on the Welcome dialog. Only
+  projects that had been opened recently were shown before. By B.D. Murphy.
 
 * Fixed the macOS application showing "Python" in the menu bar and a second Python rocket
   icon in the Dock next to the UmbraEdit icon. The application bundle now ships its own

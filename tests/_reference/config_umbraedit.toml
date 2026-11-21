@@ -37,6 +37,7 @@ autoSaveProject = 60
 autoSaveDoc = 30
 emphLabels = false
 backupPath = ""
+projectFolder = ""
 backupOnClose = true
 backupInterval = "session"
 askBeforeBackup = true

@@ -110,3 +110,47 @@ jobs:
           git add ci-logs
           git commit -m "CI diagnostics for windows coverage" || true
           git push --force origin "HEAD:refs/heads/ci-diagnostics/windows-coverage" || true
+
+  test-pip:
+    # Same setup as the Windows job in the CI workflow, which installs
+    # the dependencies with pip instead of uv.
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install "pyqt6>=6.4,!=6.12.1" "pyenchant>=3.3.0" "jsonschema>=4.26.0" "python-docx>=1.1.0" "lxml>=5.0.0" "httpx>=0.28.0" "pillow>=13.0.0"
+          pip install "fastapi>=0.115" "uvicorn>=0.34"
+          pip install "pytest>=6.0.0" pytest-qt pytest-timeout coverage tzdata
+
+      - name: Run tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          python -m pytest tests/ -vv --tb=short 2>&1 | tee test-output.log
+
+      - name: Save diagnostics
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p ci-logs
+          cp test-output.log "ci-logs/windows-pip-${{ matrix.python-version }}.log" || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ci-logs
+          git commit -m "CI diagnostics for windows pip ${{ matrix.python-version }}" || true
+          git push --force origin "HEAD:refs/heads/ci-diagnostics/windows-pip-${{ matrix.python-version }}" || true

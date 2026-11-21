@@ -55,6 +55,11 @@ _SRC_ROOT = _TST_ROOT.parent
 _TMP_ROOT = _TST_ROOT / "_temp"
 _TMP_CONF = _TMP_ROOT / "conf"
 
+# The UmbraStore package requires Python 3.11 or later, so its test suite
+# must not be collected on the older versions that UmbraEdit supports.
+if sys.version_info < (3, 11):
+    collect_ignore_glob = ["umbrastore/*"]
+
 
 ##
 #  Helper Functions

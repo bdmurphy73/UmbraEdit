@@ -44,7 +44,7 @@ from umbraedit.formats.configparser import NConfigParser
 from umbraedit.formats.tomlparser import NTomlParser, T_TomlConfig
 from umbraedit.guimain import GuiMain
 
-from tests.helpers import TstPaths, cmpFiles, writeFile
+from tests.helpers import HAS_ENCHANT, TstPaths, cmpFiles, writeFile
 from tests.mocked import MockApp, causeOSError
 
 
@@ -429,9 +429,10 @@ def testConfig_Internal(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     assert conf._packList(["A", 1, 2.0, None, False]) == "A, 1, 2.0, None, False"
 
     # Function _checkOptionalPackages
-    # (Assumes enchant package exists and is importable)
+    # The enchant C library is an optional system dependency, so the
+    # result depends on whether it is installed on the system.
     conf._checkOptionalPackages()
-    assert conf.hasEnchant is True
+    assert conf.hasEnchant is HAS_ENCHANT
 
     with monkeypatch.context() as mp:
         mp.setitem(sys.modules, "enchant", None)

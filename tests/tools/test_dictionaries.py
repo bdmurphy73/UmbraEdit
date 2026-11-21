@@ -25,7 +25,6 @@ from __future__ import annotations
 from pathlib import Path
 from zipfile import ZipFile
 
-import enchant
 import pytest
 
 from PyQt6.QtGui import QDesktopServices
@@ -37,6 +36,13 @@ from umbraedit.guimain import GuiMain
 from umbraedit.tools.dictionaries import GuiDictionaries
 
 from tests.mocked import causeException, causeOSError
+
+try:
+    # The enchant C library is an optional system dependency. The pyenchant
+    # package cannot even be imported when it is not installed.
+    import enchant
+except Exception:  # pragma: no cover
+    pytest.skip("The enchant C library is not available", allow_module_level=True)
 
 
 @pytest.mark.gui

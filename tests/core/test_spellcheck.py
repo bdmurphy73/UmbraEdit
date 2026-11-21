@@ -32,7 +32,7 @@ from umbraedit.constants import nwFiles
 from umbraedit.core.project import NWProject
 from umbraedit.core.spellcheck import FakeEnchant, SpellEnchant, UserDictionary
 
-from tests.helpers import buildTestProject
+from tests.helpers import HAS_ENCHANT, buildTestProject
 from tests.mocked import MockGuiMain, causeOSError
 
 
@@ -175,6 +175,14 @@ def testSpellEnchant_Main(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain,
     assert "\n\t " not in spChk._userDict
 
     assert spChk.describeDict() == ("", "")
+
+
+@pytest.mark.core
+@pytest.mark.skipif(not HAS_ENCHANT, reason="The enchant C library is not available")
+def testSpellEnchant_MockDict(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, fncPath: Path):
+    """Test the pyenchant spell checker with a mocked dictionary."""
+    project = NWProject()
+    buildTestProject(project, fncPath)
 
     # Stand-in for a real enchant.Dict, so the rest of this test does not
     # depend on a dictionary actually being installed on the system.

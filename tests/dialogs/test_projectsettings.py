@@ -41,7 +41,7 @@ from umbraedit.enum import nwItemType, nwStatusShape
 from umbraedit.guimain import GuiMain
 from umbraedit.types import QtAccepted, QtMouseLeft
 
-from tests.helpers import C, MockRnd, buildTestProject, checkDialogFreedOnClose
+from tests.helpers import HAS_ENCHANT, C, MockRnd, buildTestProject, checkDialogFreedOnClose
 from tests.mocked import causeOSError
 
 KEY_DELAY = 1
@@ -103,6 +103,7 @@ def testGuiProjectSettings_Dialog(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch,
 
 
 @pytest.mark.gui
+@pytest.mark.skipif(not HAS_ENCHANT, reason="The enchant C library is not available")
 def testGuiProjectSettings_SettingsPage(
     qtbot: QtBot,
     monkeypatch: pytest.MonkeyPatch,

@@ -84,7 +84,7 @@ from umbraedit.types import (
     QtSelectWord,
 )
 
-from tests.helpers import C, MockRnd, buildTestProject, writeFile
+from tests.helpers import HAS_ENCHANT, C, MockRnd, buildTestProject, writeFile
 from tests.mocked import causeOSError
 
 KEY_DELAY = 1
@@ -698,6 +698,7 @@ def testGuiDocEditor_ContextMenu(
 
 
 @pytest.mark.gui
+@pytest.mark.skipif(not HAS_ENCHANT, reason="The enchant C library is not available")
 def testGuiDocEditor_SpellChecking(
     qtbot: QtBot,
     monkeypatch: pytest.MonkeyPatch,

@@ -52,6 +52,24 @@ DOCX_IGNORE = ("<dcterms:created", "<dcterms:modified", "<ns0:Application")
 MOCK_TIME = datetime(2019, 5, 10, 18, 52, 0).timestamp()
 
 
+def hasEnchantLibrary() -> bool:
+    """Check if the enchant C library is available.
+
+    The pyenchant package cannot be imported without the enchant C
+    library, which is an optional system dependency. The tests that
+    exercise spell checking must be skipped when it is not installed.
+    """
+    try:
+        import enchant  # noqa: F401
+    except Exception:
+        return False
+    return True
+
+
+#: True if the enchant C library is available on the system.
+HAS_ENCHANT = hasEnchantLibrary()
+
+
 class C:
     """Constants from the test project when the random generator is mocked."""
 

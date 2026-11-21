@@ -33,7 +33,11 @@ jobs:
         timeout-minutes: 5
         run: |
           sudo apt update
-          sudo apt install qttools6-dev-tools
+          sudo apt install \
+            qttools6-dev-tools \
+            libenchant-2-dev \
+            hunspell-en-us \
+            hunspell-en-gb
 
       - name: Install UV and Python
         uses: astral-sh/setup-uv@v5
@@ -257,6 +261,9 @@ jobs:
             python3-pytestqt \
             python3-enchant \
             python3-pytest-timeout \
+            libenchant-2-dev \
+            hunspell-en-us \
+            hunspell-en-gb \
             qt6-image-formats-plugins
 
       - name: Install Python Dependencies
@@ -301,6 +308,8 @@ jobs:
             python3-pytest \
             python3-pytest-qt \
             python3-pytest-timeout \
+            enchant2 \
+            hunspell-en-US \
             qt6-linguist \
             qt6-qtimageformats
 

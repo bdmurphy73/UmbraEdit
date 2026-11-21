@@ -42,12 +42,13 @@ from umbraedit.gui.theme import ThemeEntry
 from umbraedit.guimain import GuiMain
 from umbraedit.types import QtKeyEscape, QtModNone
 
-from tests.helpers import TstPaths, checkDialogFreedOnClose
+from tests.helpers import HAS_ENCHANT, TstPaths, checkDialogFreedOnClose
 
 KEY_DELAY = 1
 
 
 @pytest.mark.gui
+@pytest.mark.skipif(not HAS_ENCHANT, reason="The enchant C library is not available")
 def testGuiPreferences_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, tstPaths: TstPaths):
     """Test the preferences dialog loading."""
     monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: [("en", "English [en]")])
@@ -158,6 +159,7 @@ def testGuiPreferences_Actions(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nw
 
 
 @pytest.mark.gui
+@pytest.mark.skipif(not HAS_ENCHANT, reason="The enchant C library is not available")
 def testGuiPreferences_Settings(
     qtbot: QtBot,
     monkeypatch: pytest.MonkeyPatch,

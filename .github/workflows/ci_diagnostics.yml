@@ -1,0 +1,68 @@
+name: CI Diagnostics
+
+# Temporary workflow used to capture the test output of the failing
+# platforms. It is removed once the failures have been fixed.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Install system packages (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-tools-dev-tools libenchant-2-dev hunspell-en-us hunspell-en-gb
+
+      - name: Install system packages (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install enchant
+
+      - name: Install dependencies
+        run: |
+          uv sync --no-dev --group test
+
+      - name: Build assets
+        run: |
+          uv run --no-sync pkgutils.py sample
+
+      - name: Run tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          uv run --no-sync pytest -v --timeout=120 2>&1 | tee test-output.log
+
+      - name: Save diagnostics
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p ci-logs
+          cp test-output.log "ci-logs/${{ matrix.os }}.log" || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ci-logs
+          git commit -m "CI diagnostics for ${{ matrix.os }}" || true
+          git push --force origin "HEAD:refs/heads/ci-diagnostics/${{ matrix.os }}" || true

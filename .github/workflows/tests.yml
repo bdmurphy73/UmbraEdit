@@ -34,7 +34,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install \
-            qttools6-dev-tools \
+            qt6-tools-dev-tools \
             libenchant-2-dev \
             hunspell-en-us \
             hunspell-en-gb

@@ -459,6 +459,7 @@ class GuiProjectToolBar(QWidget):
 
         self.mAddRoot.clear()
         addClass(nwItemClass.NOVEL)
+        addClass(nwItemClass.METADATA)
         self.mAddRoot.addSeparator()
         addClass(nwItemClass.PLOT)
         addClass(nwItemClass.CHARACTER)

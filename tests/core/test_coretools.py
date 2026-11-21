@@ -723,8 +723,15 @@ def testCoreTools_ProjectBuilderNoScenesAndRoots(
     assert plotRoot is not None
     assert project.tree.subTree(plotRoot) == []
 
-    # The invalid root entry was ignored (only Novel, Plot, Archive, and Trash exist)
-    assert project.tree.rootClasses() == {nwItemClass.NOVEL, nwItemClass.PLOT, nwItemClass.ARCHIVE, nwItemClass.TRASH}
+    # The invalid root entry was ignored (only Novel, Metadata, Plot,
+    # Archive, and Trash exist)
+    assert project.tree.rootClasses() == {
+        nwItemClass.NOVEL,
+        nwItemClass.METADATA,
+        nwItemClass.PLOT,
+        nwItemClass.ARCHIVE,
+        nwItemClass.TRASH,
+    }
 
 
 @pytest.mark.core
@@ -996,6 +1003,7 @@ def testCoreTools_DocxImporter(
         "Novel",
         "Characters",
         "Locations",
+        "Metadata",
         "Research",
         "Archive",
         "Trash",

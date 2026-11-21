@@ -491,7 +491,9 @@ class Index:
         """
         isValid, tBits, _ = self.scanThis(line)
         if not isValid or len(tBits) < 2:
-            logger.warning("Skipping keyword with %d value(s) in '%s'", len(tBits) - 1, tHandle)
+            # UmbraEdit (P23): book metadata keywords may be left empty
+            if not (isValid and tBits and tBits[0] in nwKeyWords.META_KEYS):
+                logger.warning("Skipping keyword with %d value(s) in '%s'", len(tBits) - 1, tHandle)
             return
 
         if tBits[0] not in nwKeyWords.VALID_KEYS:
@@ -507,6 +509,10 @@ class Index:
             # UmbraEdit (P06/P07): entity sheet data is recorded on the
             # entity index, not stored as heading references.
             self._umbraEntities.recordKeyword(tHandle, tBits[0], tBits[1:])
+        elif tBits[0] in nwKeyWords.META_KEYS:
+            # UmbraEdit (P23): book metadata values are free-form text,
+            # and are not references to other project items.
+            pass
         else:
             self._itemIndex.addHeadingRef(tHandle, sTitle, tBits[1:], tBits[0])
 
@@ -607,6 +613,12 @@ class Index:
 
         if kBit == nwKeyWords.MENTION_KEY and nBits > 1:
             isGood[1:nBits] = [aBit in self._tagsIndex for aBit in tBits[1:nBits]]
+            return isGood
+
+        if kBit in nwKeyWords.META_KEYS:
+            # UmbraEdit (P23): Book metadata values are free-form text,
+            # so they are always considered valid.
+            isGood[1:nBits] = [True] * (nBits - 1)
             return isGood
 
         # If we're still here, we check that the references exist

@@ -48,6 +48,7 @@ from umbraedit.common import (
     writeTextFile,
 )
 from umbraedit.constants import nwFiles, nwItemClass, nwItemLayout, nwStats
+from umbraedit.core.bookmeta import BookMetaBuilder
 from umbraedit.core.project import NWProject
 from umbraedit.core.storage import ProjectStorageCreate
 from umbraedit.formats.fromdocx import (
@@ -364,6 +365,9 @@ class ProjectBuilder:
         # Add Root Folders
         hNovelRoot = project.newRoot(nwItemClass.NOVEL)
         hTitlePage = project.newFile(trTitlePage, hNovelRoot)
+
+        # Add the book metadata, which is common to all output formats
+        BookMetaBuilder(project).build(project.data.name or "", project.data.author or "")
 
         # Generate Title Page
         aDoc = project.storage.getDocument(hTitlePage)
@@ -737,6 +741,10 @@ class DocxImporter:
             novelRoot = project.newRoot(nwItemClass.NOVEL)
             project.newRoot(nwItemClass.CHARACTER)
             project.newRoot(nwItemClass.WORLD)
+
+            # The book metadata, which is common to all output formats
+            BookMetaBuilder(project).build(project.data.name or "", project.data.author or "")
+
             researchRoot = project.newRoot(nwItemClass.CUSTOM)
             if item := project.tree[researchRoot]:
                 item.setName("Research")

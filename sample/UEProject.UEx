@@ -40,7 +40,7 @@
       <entry key="i56be10" count="0" color="purple" shape="BLOCK_4">Main</entry>
     </importance>
   </settings>
-  <content items="28" novelWords="0" notesWords="0" novelChars="0" notesChars="0">
+  <content items="44" novelWords="0" notesWords="0" novelChars="0" notesChars="0">
     <item handle="0f034b43-9e26-460a-8ff8-7b79d69880c0" parent="None" root="0f034b43-9e26-460a-8ff8-7b79d69880c0" order="0" type="ROOT" class="NOVEL">
       <meta expanded="yes" />
       <name status="sc24b8f" import="ia857f0">Novel</name>
@@ -149,7 +149,39 @@
       <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
       <name status="sf12341" import="i4a1d39" active="yes">Wonderland</name>
     </item>
-    <item handle="60723fc1-2092-4079-a90c-ef39c982acf6" parent="None" root="60723fc1-2092-4079-a90c-ef39c982acf6" order="3" type="ROOT" class="ARCHIVE">
+    <item handle="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" parent="None" root="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" order="3" type="ROOT" class="METADATA">
+      <meta expanded="yes" />
+      <name status="sf12341" import="ia857f0">Metadata</name>
+    </item>
+    <item handle="589c2a93-b6b3-40f8-84ea-cb18550b11a3" parent="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" root="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" order="0" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" icon="prj_document:file" />
+      <name status="sf12341" import="ia857f0" active="yes">Book Metadata</name>
+    </item>
+    <item handle="d9968ae3-8e0e-4d41-83a4-fffb9a22aec0" parent="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" root="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" order="1" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" icon="prj_document:image" />
+      <name status="sf12341" import="ia857f0" active="yes">epub cover</name>
+    </item>
+    <item handle="0a9389a9-06c3-44cb-9884-202270d59a28" parent="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" root="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" order="2" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" icon="prj_document:file" />
+      <name status="sf12341" import="ia857f0" active="yes">epub ISBN</name>
+    </item>
+    <item handle="1842e574-9bdb-4cb3-a5e9-05c14f8c5bdc" parent="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" root="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" order="3" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" icon="prj_document:image" />
+      <name status="sf12341" import="ia857f0" active="yes">print cover</name>
+    </item>
+    <item handle="04fa39e4-2950-4607-bc50-138022c8f27d" parent="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" root="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" order="4" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" icon="prj_document:file" />
+      <name status="sf12341" import="ia857f0" active="yes">print ISBN</name>
+    </item>
+    <item handle="f2169e48-be72-4cd9-bcb6-29b3d345e211" parent="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" root="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" order="5" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" icon="prj_document:image" />
+      <name status="sf12341" import="ia857f0" active="yes">audio cover</name>
+    </item>
+    <item handle="903ecfd5-47df-4db1-8e2b-acaf2066292e" parent="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" root="90dd38a4-afaa-4022-b55d-ec365aa1f0c9" order="6" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" icon="prj_document:file" />
+      <name status="sf12341" import="ia857f0" active="yes">audio ISBN</name>
+    </item>
+    <item handle="60723fc1-2092-4079-a90c-ef39c982acf6" parent="None" root="60723fc1-2092-4079-a90c-ef39c982acf6" order="4" type="ROOT" class="ARCHIVE">
       <meta expanded="yes" />
       <name status="sf12341" import="ia857f0">Archive</name>
     </item>
@@ -161,7 +193,7 @@
       <meta expanded="no" heading="H3" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
       <name status="s90e6c9" import="ia857f0" active="yes">Old Scene</name>
     </item>
-    <item handle="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" parent="None" root="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" order="4" type="ROOT" class="TEMPLATE">
+    <item handle="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" parent="None" root="dffd5e8c-8e20-4455-ac69-ba0ef35f5f85" order="5" type="ROOT" class="TEMPLATE">
       <meta expanded="yes" />
       <name status="sf12341" import="ia857f0">Templates</name>
     </item>
@@ -177,7 +209,7 @@
       <meta expanded="no" heading="H1" charCount="0" wordCount="0" paraCount="0" cursorPos="0" />
       <name status="sf12341" import="ia857f0" active="yes">Character Template</name>
     </item>
-    <item handle="ec2143e8-006d-47d1-920e-634bec082b41" parent="None" root="ec2143e8-006d-47d1-920e-634bec082b41" order="5" type="ROOT" class="TRASH">
+    <item handle="ec2143e8-006d-47d1-920e-634bec082b41" parent="None" root="ec2143e8-006d-47d1-920e-634bec082b41" order="6" type="ROOT" class="TRASH">
       <meta expanded="yes" />
       <name status="sf12341" import="ia857f0">Trash</name>
     </item>

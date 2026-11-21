@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<UmbraEditXML appVersion="26.2b2" hexVersion="0x260200b2" fileVersion="1.5" fileRevision="7" timeStamp="2026-08-04 17:48:52">
-  <project id="d0f3fe10-c6e6-4310-8bfd-181eb4224eed" saveCount="1" autoCount="0" editTime="0" indexRevision="11">
+<UmbraEditXML appVersion="2026.11.0006" hexVersion="0x01000000" fileVersion="1.6" fileRevision="1" timeStamp="2026-11-20 19:41:45">
+  <project id="d0f3fe10-c6e6-4310-8bfd-181eb4224eed" saveCount="1" autoCount="0" editTime="0" indexRevision="18">
     <name>Test Project B</name>
     <author>Jane Doe</author>
   </project>
@@ -9,7 +9,7 @@
     <language rtl="no">en_GB</language>
     <spellChecking auto="no">None</spellChecking>
     <projectTarget date="None" last="28" mode="words">0</projectTarget>
-    <dailyTarget auto="no" last="28" date="2026-08-04">0</dailyTarget>
+    <dailyTarget auto="no" last="28" date="2026-11-20">0</dailyTarget>
     <targetSkipRoots />
     <lastHandle>
       <entry key="editor">None</entry>
@@ -25,13 +25,13 @@
       <entry key="s000003" count="0" color="green" shape="STAR">Finished</entry>
     </status>
     <importance>
-      <entry key="i000004" count="7" color="purple" shape="SQUARE">New</entry>
+      <entry key="i000004" count="15" color="purple" shape="SQUARE">New</entry>
       <entry key="i000005" count="0" color="purple" shape="BLOCK_2">Minor</entry>
       <entry key="i000006" count="0" color="purple" shape="BLOCK_3">Major</entry>
       <entry key="i000007" count="0" color="purple" shape="BLOCK_4">Main</entry>
     </importance>
   </settings>
-  <content items="16" novelWords="28" notesWords="5" novelChars="119" notesChars="33">
+  <content items="24" novelWords="28" notesWords="79" novelChars="119" notesChars="428">
     <item handle="0000000000008" parent="None" root="0000000000008" order="0" type="ROOT" class="NOVEL">
       <meta expanded="no" />
       <name status="s000000" import="i000004">Novel</name>
@@ -40,59 +40,91 @@
       <meta expanded="no" heading="H1" charCount="77" wordCount="16" paraCount="3" cursorPos="0" />
       <name status="s000000" import="i000004" active="yes">Title Page</name>
     </item>
-    <item handle="000000000000a" parent="0000000000008" root="0000000000008" order="1" type="FILE" class="NOVEL" layout="DOCUMENT">
+    <item handle="0000000000012" parent="0000000000008" root="0000000000008" order="1" type="FILE" class="NOVEL" layout="DOCUMENT">
       <meta expanded="no" heading="H3" charCount="7" wordCount="2" paraCount="0" cursorPos="0" />
       <name status="s000000" import="i000004" active="yes">Scene 1</name>
     </item>
-    <item handle="000000000000b" parent="0000000000008" root="0000000000008" order="2" type="FILE" class="NOVEL" layout="DOCUMENT">
+    <item handle="0000000000013" parent="0000000000008" root="0000000000008" order="2" type="FILE" class="NOVEL" layout="DOCUMENT">
       <meta expanded="no" heading="H3" charCount="7" wordCount="2" paraCount="0" cursorPos="0" />
       <name status="s000000" import="i000004" active="yes">Scene 2</name>
     </item>
-    <item handle="000000000000c" parent="0000000000008" root="0000000000008" order="3" type="FILE" class="NOVEL" layout="DOCUMENT">
+    <item handle="0000000000014" parent="0000000000008" root="0000000000008" order="3" type="FILE" class="NOVEL" layout="DOCUMENT">
       <meta expanded="no" heading="H3" charCount="7" wordCount="2" paraCount="0" cursorPos="0" />
       <name status="s000000" import="i000004" active="yes">Scene 3</name>
     </item>
-    <item handle="000000000000d" parent="0000000000008" root="0000000000008" order="4" type="FILE" class="NOVEL" layout="DOCUMENT">
+    <item handle="0000000000015" parent="0000000000008" root="0000000000008" order="4" type="FILE" class="NOVEL" layout="DOCUMENT">
       <meta expanded="no" heading="H3" charCount="7" wordCount="2" paraCount="0" cursorPos="0" />
       <name status="s000000" import="i000004" active="yes">Scene 4</name>
     </item>
-    <item handle="000000000000e" parent="0000000000008" root="0000000000008" order="5" type="FILE" class="NOVEL" layout="DOCUMENT">
+    <item handle="0000000000016" parent="0000000000008" root="0000000000008" order="5" type="FILE" class="NOVEL" layout="DOCUMENT">
       <meta expanded="no" heading="H3" charCount="7" wordCount="2" paraCount="0" cursorPos="0" />
       <name status="s000000" import="i000004" active="yes">Scene 5</name>
     </item>
-    <item handle="000000000000f" parent="0000000000008" root="0000000000008" order="6" type="FILE" class="NOVEL" layout="DOCUMENT">
+    <item handle="0000000000017" parent="0000000000008" root="0000000000008" order="6" type="FILE" class="NOVEL" layout="DOCUMENT">
       <meta expanded="no" heading="H3" charCount="7" wordCount="2" paraCount="0" cursorPos="0" />
       <name status="s000000" import="i000004" active="yes">Scene 6</name>
     </item>
-    <item handle="0000000000010" parent="None" root="0000000000010" order="1" type="ROOT" class="PLOT">
+    <item handle="000000000000a" parent="None" root="000000000000a" order="1" type="ROOT" class="METADATA">
+      <meta expanded="no" />
+      <name status="s000000" import="i000004">Metadata</name>
+    </item>
+    <item handle="000000000000b" parent="000000000000a" root="000000000000a" order="0" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="13" wordCount="2" paraCount="0" cursorPos="0" icon="prj_document:file" />
+      <name status="s000000" import="i000004" active="yes">Book Metadata</name>
+    </item>
+    <item handle="000000000000c" parent="000000000000a" root="000000000000a" order="1" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="117" wordCount="22" paraCount="1" cursorPos="0" icon="prj_document:image" />
+      <name status="s000000" import="i000004" active="yes">epub cover</name>
+    </item>
+    <item handle="000000000000d" parent="000000000000a" root="000000000000a" order="2" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="9" wordCount="2" paraCount="0" cursorPos="0" icon="prj_document:file" />
+      <name status="s000000" import="i000004" active="yes">epub ISBN</name>
+    </item>
+    <item handle="000000000000e" parent="000000000000a" root="000000000000a" order="3" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="118" wordCount="22" paraCount="1" cursorPos="0" icon="prj_document:image" />
+      <name status="s000000" import="i000004" active="yes">print cover</name>
+    </item>
+    <item handle="000000000000f" parent="000000000000a" root="000000000000a" order="4" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="10" wordCount="2" paraCount="0" cursorPos="0" icon="prj_document:file" />
+      <name status="s000000" import="i000004" active="yes">print ISBN</name>
+    </item>
+    <item handle="0000000000010" parent="000000000000a" root="000000000000a" order="5" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="118" wordCount="22" paraCount="1" cursorPos="0" icon="prj_document:image" />
+      <name status="s000000" import="i000004" active="yes">audio cover</name>
+    </item>
+    <item handle="0000000000011" parent="000000000000a" root="000000000000a" order="6" type="FILE" class="METADATA" layout="NOTE">
+      <meta expanded="no" heading="H1" charCount="10" wordCount="2" paraCount="0" cursorPos="0" icon="prj_document:file" />
+      <name status="s000000" import="i000004" active="yes">audio ISBN</name>
+    </item>
+    <item handle="0000000000018" parent="None" root="0000000000018" order="2" type="ROOT" class="PLOT">
       <meta expanded="no" />
       <name status="s000000" import="i000004">Plot</name>
     </item>
-    <item handle="0000000000011" parent="0000000000010" root="0000000000010" order="0" type="FILE" class="PLOT" layout="NOTE">
+    <item handle="0000000000019" parent="0000000000018" root="0000000000018" order="0" type="FILE" class="PLOT" layout="NOTE">
       <meta expanded="no" heading="H1" charCount="9" wordCount="2" paraCount="0" cursorPos="0" />
       <name status="s000000" import="i000004" active="yes">Main Plot</name>
     </item>
-    <item handle="0000000000012" parent="None" root="0000000000012" order="2" type="ROOT" class="CHARACTER">
+    <item handle="000000000001a" parent="None" root="000000000001a" order="3" type="ROOT" class="CHARACTER">
       <meta expanded="no" />
       <name status="s000000" import="i000004">Characters</name>
     </item>
-    <item handle="0000000000013" parent="0000000000012" root="0000000000012" order="0" type="FILE" class="CHARACTER" layout="NOTE">
+    <item handle="000000000001b" parent="000000000001a" root="000000000001a" order="0" type="FILE" class="CHARACTER" layout="NOTE">
       <meta expanded="no" heading="H1" charCount="11" wordCount="1" paraCount="0" cursorPos="0" />
       <name status="s000000" import="i000004" active="yes">Protagonist</name>
     </item>
-    <item handle="0000000000014" parent="None" root="0000000000014" order="3" type="ROOT" class="WORLD">
+    <item handle="000000000001c" parent="None" root="000000000001c" order="4" type="ROOT" class="WORLD">
       <meta expanded="no" />
       <name status="s000000" import="i000004">Locations</name>
     </item>
-    <item handle="0000000000015" parent="0000000000014" root="0000000000014" order="0" type="FILE" class="WORLD" layout="NOTE">
+    <item handle="000000000001d" parent="000000000001c" root="000000000001c" order="0" type="FILE" class="WORLD" layout="NOTE">
       <meta expanded="no" heading="H1" charCount="13" wordCount="2" paraCount="0" cursorPos="0" />
       <name status="s000000" import="i000004" active="yes">Main Location</name>
     </item>
-    <item handle="0000000000016" parent="None" root="0000000000016" order="4" type="ROOT" class="ARCHIVE">
+    <item handle="000000000001e" parent="None" root="000000000001e" order="5" type="ROOT" class="ARCHIVE">
       <meta expanded="no" />
       <name status="s000000" import="i000004">Archive</name>
     </item>
-    <item handle="0000000000017" parent="None" root="0000000000017" order="5" type="ROOT" class="TRASH">
+    <item handle="000000000001f" parent="None" root="000000000001f" order="6" type="ROOT" class="TRASH">
       <meta expanded="no" />
       <name status="s000000" import="i000004">Trash</name>
     </item>

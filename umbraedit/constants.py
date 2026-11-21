@@ -222,6 +222,19 @@ class nwKeyWords:
     LANG_KEY = "@lang"
     MARK_KEY = "@mark"
 
+    # UmbraEdit (P23): Book metadata keywords.
+    # These hold free-form values, not references to other items.
+    TITLE_KEY = "@Title"
+    SUBTITLE_KEY = "@Subtitle"
+    AUTHOR_KEY = "@Author"
+    SERIES_KEY = "@Series"
+    PUBLISHER_KEY = "@Publisher"
+    BLURB_KEY = "@Blurb"
+    BISAC_KEY = "@BISAC"
+    SRCHTERM_KEY = "@SrchTerm"
+    ISBN_KEY = "@ISBN"
+    COVER_KEY = "@Cover"
+
     # Note: The order here affects the order of menu entries
     ALL_KEYS: ClassVar[list[str]] = [
         TAG_KEY,
@@ -282,6 +295,8 @@ class nwKeyWords:
     # UmbraEdit (P06/P07/P22): @alias, @attr, @pron, and guide keywords are
     # valid for the parser and the index, but deliberately not in ALL_KEYS,
     # so they get no entry in the Insert menu or shortcut tables.
+    # UmbraEdit (P23): The book metadata keywords are likewise valid for the
+    # parser, but they hold free-form values, so they are not references.
     VALID_KEYS: ClassVar[set[str]] = set(ALL_KEYS) | {
         ALIAS_KEY,
         ATTR_KEY,
@@ -292,7 +307,31 @@ class nwKeyWords:
         STATUS_KEY,
         LANG_KEY,
         MARK_KEY,
+        TITLE_KEY,
+        SUBTITLE_KEY,
+        AUTHOR_KEY,
+        SERIES_KEY,
+        PUBLISHER_KEY,
+        BLURB_KEY,
+        BISAC_KEY,
+        SRCHTERM_KEY,
+        ISBN_KEY,
+        COVER_KEY,
     }
+
+    # Book metadata keywords that hold free-form values
+    META_KEYS: ClassVar[list[str]] = [
+        TITLE_KEY,
+        SUBTITLE_KEY,
+        AUTHOR_KEY,
+        SERIES_KEY,
+        PUBLISHER_KEY,
+        BLURB_KEY,
+        BISAC_KEY,
+        SRCHTERM_KEY,
+        ISBN_KEY,
+        COVER_KEY,
+    ]
 
     # Map from Keys to Item Class
     KEY_CLASS: ClassVar[dict[str, nwItemClass]] = {
@@ -405,6 +444,7 @@ class nwLabels:
         nwItemClass.TEMPLATE: QT_TRANSLATE_NOOP("Constant", "Templates"),
         nwItemClass.TRASH: QT_TRANSLATE_NOOP("Constant", "Trash"),
         nwItemClass.GUIDE: QT_TRANSLATE_NOOP("Constant", "Translation Guide"),
+        nwItemClass.METADATA: QT_TRANSLATE_NOOP("Constant", "Metadata"),
     }
     CLASS_ICON: ClassVar[dict[nwItemClass, str]] = {
         nwItemClass.NO_CLASS: "cls_none:root",
@@ -420,6 +460,7 @@ class nwLabels:
         nwItemClass.TEMPLATE: "cls_template:root",
         nwItemClass.TRASH: "cls_trash:root",
         nwItemClass.GUIDE: "cls_guide:root",
+        nwItemClass.METADATA: "cls_metadata:root",
     }
     LAYOUT_NAME: ClassVar[dict[nwItemLayout, str]] = {
         nwItemLayout.NO_LAYOUT: QT_TRANSLATE_NOOP("Constant", "None"),
@@ -475,6 +516,16 @@ class nwLabels:
         nwKeyWords.STATUS_KEY: QT_TRANSLATE_NOOP("Constant", "Status"),
         nwKeyWords.LANG_KEY: QT_TRANSLATE_NOOP("Constant", "Language"),
         nwKeyWords.MARK_KEY: QT_TRANSLATE_NOOP("Constant", "Review Mark"),
+        nwKeyWords.TITLE_KEY: QT_TRANSLATE_NOOP("Constant", "Title"),
+        nwKeyWords.SUBTITLE_KEY: QT_TRANSLATE_NOOP("Constant", "Subtitle"),
+        nwKeyWords.AUTHOR_KEY: QT_TRANSLATE_NOOP("Constant", "Author"),
+        nwKeyWords.SERIES_KEY: QT_TRANSLATE_NOOP("Constant", "Series"),
+        nwKeyWords.PUBLISHER_KEY: QT_TRANSLATE_NOOP("Constant", "Publisher"),
+        nwKeyWords.BLURB_KEY: QT_TRANSLATE_NOOP("Constant", "Blurb"),
+        nwKeyWords.BISAC_KEY: QT_TRANSLATE_NOOP("Constant", "BISAC"),
+        nwKeyWords.SRCHTERM_KEY: QT_TRANSLATE_NOOP("Constant", "Search Term"),
+        nwKeyWords.ISBN_KEY: QT_TRANSLATE_NOOP("Constant", "ISBN"),
+        nwKeyWords.COVER_KEY: QT_TRANSLATE_NOOP("Constant", "Cover"),
     }
     KEY_SHORTCUT: ClassVar[dict[str, str]] = {
         nwKeyWords.TAG_KEY: "Ctrl+K, G",

@@ -55,6 +55,7 @@ class nwItemClass(Enum):
     TEMPLATE = 10
     TRASH = 11
     GUIDE = 12
+    METADATA = 13
 
 
 class nwItemLayout(Enum):

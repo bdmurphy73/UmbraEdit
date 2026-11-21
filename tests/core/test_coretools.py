@@ -992,34 +992,108 @@ def testCoreTools_DocxImporter(
     assert project.data.author == "Jane Doe"
 
     roots = {node.item.itemName: node for node in project.tree._model.root.children}
-    assert "Novel" in roots
-    assert "Import Notes" in roots
-    assert "Archive" in roots
-    assert "Trash" in roots
+    assert list(roots) == [
+        "Novel",
+        "Characters",
+        "Locations",
+        "Research",
+        "Archive",
+        "Trash",
+    ]
 
-    # The novel root has a document for each block of the Word document
+    # The novel root has a document for each block of the Word document,
+    # but the scenes are nested under their chapter
     novel = roots["Novel"]
-    assert novel.childCount() == 4
+    assert novel.childCount() == 3
     docs = [(node.item.itemName, node.item.mainHeading) for node in novel.children]
     assert docs == [
         ("My Novel", "H1"),
         ("Chapter One", "H2"),
-        ("Scene One", "H3"),
         ("Chapter Two", "H2"),
     ]
 
+    # The scene must be a child of the chapter it belongs to
+    chapter = novel.children[1]
+    assert chapter.childCount() == 1
+    scene = chapter.children[0]
+    assert scene.item.itemName == "Scene One"
+    assert scene.item.mainHeading == "H3"
+    assert scene.item.itemParent == chapter.item.itemHandle
+
     # The text of the documents must be preserved
-    text = project.storage.getDocumentText(novel.children[2].item.itemHandle)
+    text = project.storage.getDocumentText(scene.item.itemHandle)
     assert "### Scene One" in text
     assert "The first scene." in text
 
-    # The import issues document must be present
-    notes = roots["Import Notes"]
-    assert notes.childCount() == 1
-    assert notes.children[0].item.itemName == "Import Issues"
+    # The import issues document must be present in the research root
+    research = roots["Research"]
+    assert research.childCount() == 1
+    issues = research.children[0]
+    assert issues.item.itemName == "Import Issues"
+    assert issues.item.getMainIconStyle() == "alert_error:issue"
 
     # There must be no orphaned files in the project
     assert project.tree.checkConsistency("Recovered") == (0, 0)
+
+    project.closeProject()
+
+
+@pytest.mark.core
+def testCoreTools_DocxImporterCommentsAndImages(
+    fncPath: Path,
+    mockGUI: MockGuiMain,
+):
+    """Comments and images are handled as specified."""
+    docxPath = makeDocx(
+        fncPath / "novel.docx",
+        [
+            ("Chapter One", "Heading1"),
+            ("A paragraph with an image.", None),
+            ("A commented paragraph.", None),
+        ],
+        comments=[(2, "1", "Check this")],
+        images={1: "rId9"},
+    )
+
+    projPath = fncPath / "imported"
+    importer = DocxImporter()
+    assert importer.importFile(docxPath, projPath) is True
+
+    project = NWProject()
+    assert project.openProject(projPath) is True
+
+    roots = {node.item.itemName: node for node in project.tree._model.root.children}
+    novel = roots["Novel"]
+    chapter = novel.children[0]
+
+    # The chapter must have an images document as a child
+    assert chapter.childCount() == 1
+    images = chapter.children[0]
+    assert images.item.itemName == "Images"
+    assert images.item.getMainIconStyle() == "prj_document:image"
+
+    # The images document must list the image
+    imgText = project.storage.getDocumentText(images.item.itemHandle)
+    assert "# Images" in imgText
+    assert "img_" in imgText
+    assert "rId9" in imgText
+
+    # The image file must be saved in the project
+    assert (projPath / "assets" / "img").is_dir()
+    assert len(list((projPath / "assets" / "img").iterdir())) == 1
+
+    # The text document must hold the image marker
+    text = project.storage.getDocumentText(chapter.item.itemHandle)
+    assert "%Image: img_" in text
+    assert "paragraph=1" in text
+    assert 'context="A paragraph with an image."' in text
+
+    # The comment must be inserted in the text as a synopsis comment,
+    # and must not be a document of its own
+    assert "%Synopsis: Test Author: Check this" in text
+    assert not any(
+        node.item.itemName.startswith("Comment") for node in roots["Research"].children
+    )
 
     project.closeProject()
 

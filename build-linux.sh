@@ -154,13 +154,30 @@ else
     curl -L -o "${TARBALL}" "$TARBALL_URL"
 fi
 
-rm -rf "$EXTRACTED_DIR"
-tar xzf "$TARBALL"
+# The tarball holds a single top level folder with the source code. It
+# is extracted into a staging folder first, so that the source always
+# ends up in a predictable place, no matter what the folder in the
+# tarball is called.
+STAGE_DIR="$(mktemp -d "${PWD}/.umbraedit-stage-XXXXXX")"
+tar xzf "${TARBALL}" -C "$STAGE_DIR"
 
-# The tarball may contain a single top level folder with another name
-if [ ! -d "$EXTRACTED_DIR" ]; then
-    EXTRACTED_DIR="$(find . -maxdepth 1 -type d -name 'umbraedit-*' | head -1)"
+SRC_DIR=""
+for candidate in "$STAGE_DIR"/*/; do
+    if [ -f "${candidate}UmbraEdit.py" ]; then
+        SRC_DIR="${candidate%/}"
+        break
+    fi
+done
+
+if [ -z "$SRC_DIR" ]; then
+    echo "ERROR: Could not locate the extracted UmbraEdit source folder"
+    rm -rf "$STAGE_DIR"
+    exit 1
 fi
+
+rm -rf "${EXTRACTED_DIR}"
+mv "$SRC_DIR" "${EXTRACTED_DIR}"
+rm -rf "$STAGE_DIR"
 
 cd "$EXTRACTED_DIR"
 echo "  Extracted to: $(pwd)"

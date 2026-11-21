@@ -307,13 +307,46 @@ DOCX_ROOT_RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 DOCX_DOC_RELS = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>"""
 
+DOCX_IMAGE_BYTES = b"\x89PNG\r\n\x1a\n" + b"TestImageData" * 4
 
-def makeDocxParagraph(text: str, style: str | None = None) -> str:
-    """Return a WordprocessingML paragraph with optional style."""
+
+def makeDocxParagraph(
+    text: str,
+    style: str | None = None,
+    comments: Sequence[str] | None = None,
+    images: Sequence[str] | None = None,
+) -> str:
+    """Return a WordprocessingML paragraph with optional style.
+
+    Comments are a sequence of comment IDs that are anchored to the
+    paragraph. Images are a sequence of relationship IDs of images
+    placed at the start of the paragraph.
+    """
     from xml.sax.saxutils import escape
 
     props = f'<w:pPr><w:pStyle w:val="{style}" /></w:pPr>' if style else ""
-    return f'<w:p>{props}<w:r><w:t xml:space="preserve">{escape(text)}</w:t></w:r></w:p>'
+
+    parts = [f"<w:p>{props}"]
+    for cmtId in comments or []:
+        parts.append(f'<w:commentRangeStart w:id="{cmtId}" />')
+    for rid in images or []:
+        parts.append(
+            "<w:r><w:drawing>"
+            '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+            f'<a:blip r:embed="{rid}" '
+            'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" />'
+            "</a:graphic></w:drawing></w:r>"
+        )
+    if text:
+        parts.append(f'<w:r><w:t xml:space="preserve">{escape(text)}</w:t></w:r>')
+    for cmtId in comments or []:
+        parts.append(f'<w:commentRangeEnd w:id="{cmtId}" />')
+        parts.append(
+            f'<w:r><w:commentReference w:id="{cmtId}" /></w:r>'
+        )
+    parts.append("</w:p>")
+
+    return "".join(parts)
 
 
 def makeDocx(
@@ -321,15 +354,34 @@ def makeDocx(
     paragraphs: Sequence[tuple[str, str | None]] | None = None,
     title: str = "",
     author: str = "",
+    comments: Sequence[tuple[int, str, str]] | None = None,
+    images: dict[int, str] | None = None,
 ) -> Path:
     """Create a minimal Word document at the given path.
 
     The paragraphs are a sequence of (text, style) tuples, where the
     style is the Word style id, like "Heading1".
+
+    Comments is a sequence of (paragraph index, comment ID, text)
+    tuples. The comments are anchored to the given paragraphs.
+
+    Images is a mapping of paragraph index to the relationship ID of an
+    image placed in that paragraph.
     """
     import zipfile
 
-    body = "".join(makeDocxParagraph(text, style) for text, style in paragraphs or [])
+    paraComments: dict[int, list[str]] = {}
+    commentText: dict[str, str] = {}
+    for index, cmtId, text in comments or []:
+        paraComments.setdefault(index, []).append(cmtId)
+        commentText[cmtId] = text
+
+    body = ""
+    for i, (text, style) in enumerate(paragraphs or []):
+        cmtIds = paraComments.get(i, [])
+        imgIds = [images[i]] if (images and i in images) else []
+        body += makeDocxParagraph(text, style, cmtIds, imgIds)
+
     document = (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
@@ -344,11 +396,61 @@ def makeDocx(
         f"<dc:title>{title}</dc:title><dc:creator>{author}</dc:creator>"
         "</cp:coreProperties>"
     )
+
+    contentTypes = DOCX_CONTENT_TYPES
+    docRels: list[str] = []
+    extra: dict[str, bytes] = {}
+
+    if commentText:
+        items = "".join(
+            f'<w:comment w:id="{cmtId}" w:author="Test Author" '
+            'w:date="2026-01-01T00:00:00Z">'
+            f'<w:p><w:r><w:t xml:space="preserve">{text}</w:t></w:r></w:p>'
+            "</w:comment>"
+            for cmtId, text in commentText.items()
+        )
+        extra["word/comments.xml"] = (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            f"{items}</w:comments>"
+        ).encode()
+        contentTypes = contentTypes.replace(
+            "</Types>",
+            '  <Override PartName="/word/comments.xml" ContentType="application/vnd.'
+            'openxmlformats-officedocument.wordprocessingml.comments+xml"/>\n</Types>',
+        )
+        docRels.append(
+            '  <Relationship Id="rIdComments" Type="http://schemas.openxmlformats.org/'
+            'officeDocument/2006/relationships/comments" Target="comments.xml"/>'
+        )
+
+    if images:
+        for rid in sorted(set(images.values())):
+            docRels.append(
+                f'  <Relationship Id="{rid}" Type="http://schemas.openxmlformats.org/'
+                f'officeDocument/2006/relationships/image" Target="media/{rid}.png"/>'
+            )
+            extra[f"word/media/{rid}.png"] = DOCX_IMAGE_BYTES
+        contentTypes = contentTypes.replace(
+            '<Default Extension="xml" ContentType="application/xml"/>',
+            '<Default Extension="xml" ContentType="application/xml"/>\n'
+            '  <Default Extension="png" ContentType="image/png"/>',
+        )
+
+    docRelText = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n'
+        f"{chr(10).join(docRels)}\n"
+        "</Relationships>"
+    )
+
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, mode="w") as inFile:
-        inFile.writestr("[Content_Types].xml", DOCX_CONTENT_TYPES)
+        inFile.writestr("[Content_Types].xml", contentTypes)
         inFile.writestr("_rels/.rels", DOCX_ROOT_RELS)
-        inFile.writestr("word/_rels/document.xml.rels", DOCX_DOC_RELS)
+        inFile.writestr("word/_rels/document.xml.rels", docRelText)
         inFile.writestr("word/document.xml", document)
         inFile.writestr("docProps/core.xml", core)
+        for name, data in extra.items():
+            inFile.writestr(name, data)
     return path

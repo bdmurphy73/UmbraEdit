@@ -818,6 +818,8 @@ def testGuiTheme_CheckTheme(theme: str):
             "chapter",
             "scene",
             "note",
+            "issue",
+            "image",
             "active",
             "inactive",
             "disabled",

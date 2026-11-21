@@ -50,7 +50,13 @@ from umbraedit.common import (
 from umbraedit.constants import nwFiles, nwItemClass, nwItemLayout, nwStats
 from umbraedit.core.project import NWProject
 from umbraedit.core.storage import ProjectStorageCreate
-from umbraedit.formats.fromdocx import FromDocxDocument, ImportResult, ImportScene
+from umbraedit.formats.fromdocx import (
+    FromDocxDocument,
+    ImportImage,
+    ImportNote,
+    ImportResult,
+    ImportScene,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -565,8 +571,16 @@ class DocxImporter:
 
     The Word document is parsed, and the content is written to a new
     project where each chapter and scene becomes a project document.
-    Items that cannot be translated, like images, headers, footers,
-    comments and footnotes, are captured as note documents.
+    Scenes are nested under the chapter they belong to, so that the
+    project tree reflects the structure of the novel.
+
+    Comments from the Word document are inserted into the text of the
+    document they were anchored to, as synopsis comments. Images are
+    recorded in a separate "Images" document for each text document
+    that contains them.
+
+    Items that cannot be translated, like headers, footers and
+    footnotes, are captured as note documents.
 
     The project is built in a temporary folder next to the target
     location, and moved into place when it is complete. If anything
@@ -678,7 +692,13 @@ class DocxImporter:
             logger.warning("Could not set permissions on %s", outPath)
 
         self._projectPath = outPath
-        logger.info("Import completed: %d scenes, %d notes", len(result.scenes), len(result.notes))
+        logger.info(
+            "Import completed: %d scenes, %d notes, %d images, %d comments",
+            len(result.scenes),
+            len(result.notes),
+            len(result.images),
+            len(result.comments),
+        )
         return True
 
     ##
@@ -715,20 +735,25 @@ class DocxImporter:
 
             # Root folders
             novelRoot = project.newRoot(nwItemClass.NOVEL)
-            notesRoot = project.newRoot(nwItemClass.CUSTOM)
-            if item := project.tree[notesRoot]:
-                item.setName("Import Notes")
+            project.newRoot(nwItemClass.CHARACTER)
+            project.newRoot(nwItemClass.WORLD)
+            researchRoot = project.newRoot(nwItemClass.CUSTOM)
+            if item := project.tree[researchRoot]:
+                item.setName("Research")
             project.newRoot(nwItemClass.ARCHIVE)
             _ = project.tree.trash  # Triggers the creation of Trash
 
             # Documents
-            for scene in result.scenes:
-                self._addScene(project, novelRoot, scene)
-            for note in result.notes:
-                self._addNote(project, notesRoot, note)
+            self._addScenes(project, novelRoot, result.scenes)
 
-            # The issues document and the source provenance
-            self._addIssues(project, notesRoot, result, inPath)
+            # The image files referenced by the image documents
+            self._writeImages(path, result.images)
+
+            # The notes that could not be translated, and the issues
+            # document and the source provenance
+            for note in result.notes:
+                self._addNote(project, researchRoot, note)
+            self._addIssues(project, researchRoot, result, inPath)
             self._writeProvenance(path, inPath)
 
             project.index.rebuild()
@@ -742,36 +767,114 @@ class DocxImporter:
 
         return True
 
-    def _addScene(self, project: NWProject, novelRoot: str, scene: ImportScene) -> None:
-        """Add a chapter or scene document to the project."""
-        if scene.is_front:
-            heading = scene.heading or self.tr("Front Matter")
-            marker = "#"
-            level = "H1"
-        elif scene.is_chapter:
-            heading = scene.heading
-            marker = "##"
-            level = "H2"
-        else:
-            heading = scene.heading
-            marker = "###"
-            level = "H3"
+    def _addScenes(self, project: NWProject, novelRoot: str, scenes: list[ImportScene]) -> None:
+        """Add the chapter and scene documents to the project.
 
-        tHandle = project.newFile(heading, novelRoot)
+        Scenes are added as children of the chapter they belong to, so
+        that the project tree is indented like the novel structure.
+        """
+        chapterHandle: Optional[str] = None
+        for scene in scenes:
+            if scene.is_front:
+                parent = novelRoot
+                marker = "#"
+                level = "H1"
+                heading = scene.heading or self.tr("Front Matter")
+            elif scene.is_chapter:
+                parent = novelRoot
+                marker = "##"
+                level = "H2"
+                heading = scene.heading
+            else:
+                parent = chapterHandle or novelRoot
+                marker = "###"
+                level = "H3"
+                heading = scene.heading
+
+            tHandle = project.newFile(heading, parent)
+            if not tHandle:
+                logger.error("Could not create document '%s'", heading)
+                continue
+
+            tItem = project.tree[tHandle]
+            if tItem is None:  # pragma: no cover
+                continue
+
+            tItem.setLayout(nwItemLayout.DOCUMENT)
+            tItem.setMainHeading(level)
+
+            if scene.is_chapter:
+                chapterHandle = tHandle
+
+            parts = []
+            if scene.preamble:
+                parts.append("\n".join(scene.preamble).strip("\n"))
+            parts.append(f"{marker} {heading}")
+            if scene.text:
+                parts.append(scene.text)
+
+            text = "\n\n".join(parts) + "\n"
+            aDoc = project.storage.getDocument(tHandle)
+            aDoc.writeDocument(text)
+
+            if scene.images:
+                self._addImages(project, tHandle, scene.images)
+
+    def _addImages(self, project: NWProject, parent: str, images: list[ImportImage]) -> None:
+        """Add an images document for a text document.
+
+        The document lists the images that were found in the text, with
+        the ID used to reference them from the text itself.
+        """
+        tHandle = project.newFile("Images", parent)
         if not tHandle:
-            logger.error("Could not create document '%s'", heading)
+            logger.error("Could not create images document")
             return
 
         tItem = project.tree[tHandle]
         if tItem is None:  # pragma: no cover
             return
 
-        tItem.setLayout(nwItemLayout.DOCUMENT)
-        tItem.setMainHeading(level)
+        tItem.setLayout(nwItemLayout.NOTE)
+        tItem.setIconStyle("prj_document:image")
 
-        text = f"{marker} {heading}\n\n{scene.text}\n"
+        lines = [
+            "# Images",
+            "",
+            "The following images were found in this document. Each image is",
+            "referenced from the text with an image marker holding the ID of",
+            "the image.",
+            "",
+        ]
+        for image in images:
+            lines.append(f"## {image.img_id}")
+            lines.append("")
+            lines.append(f"- Source: {image.filename}")
+            lines.append(f"- Type: {image.mime}")
+            lines.append(f"- Size: {len(image.data)} bytes")
+            lines.append(f"- Position: paragraph {image.paragraph}, offset {image.offset}")
+            if image.context:
+                lines.append(f"- Context: {image.context}")
+            lines.append(f"- File: assets/img/{image.img_id}{Path(image.filename).suffix.lower()}")
+            lines.append("")
+
+        text = "\n".join(lines).strip() + "\n"
         aDoc = project.storage.getDocument(tHandle)
         aDoc.writeDocument(text)
+
+    def _writeImages(self, path: Path, images: list[ImportImage]) -> None:
+        """Write the image files to the assets folder of the project."""
+        if not images:
+            return
+        try:
+            imgDir = path / "assets" / "img"
+            imgDir.mkdir(parents=True, exist_ok=True)
+            for image in images:
+                suffix = Path(image.filename).suffix.lower()
+                target = imgDir / f"{image.img_id}{suffix}"
+                target.write_bytes(image.data)
+        except Exception as exc:
+            logger.error("Failed to write the imported images", exc_info=exc)
 
     def _addNote(self, project: NWProject, notesRoot: str, note: ImportNote) -> None:
         """Add a note document for a non-translatable item."""
@@ -816,10 +919,13 @@ class DocxImporter:
             return
 
         tItem.setLayout(nwItemLayout.NOTE)
+        tItem.setIconStyle("alert_error:issue")
 
         counts: dict[str, int] = {}
         for note in result.notes:
             counts[note.note_type] = counts.get(note.note_type, 0) + 1
+
+        loose = [c for c in result.comments if c.paragraph < 0]
 
         lines = [
             "# Import Issues",
@@ -833,11 +939,12 @@ class DocxImporter:
             "",
         ]
 
-        if counts:
-            lines.append("## Summary")
-            lines.append("")
-            lines.extend(f"- {key.title()}: {counts[key]}" for key in sorted(counts))
-            lines.append("")
+        if counts or loose:
+            if counts:
+                lines.append("## Summary")
+                lines.append("")
+                lines.extend(f"- {key.title()}: {counts[key]}" for key in sorted(counts))
+                lines.append("")
             lines.append("## Details")
             lines.append("")
             details = []
@@ -846,6 +953,14 @@ class DocxImporter:
                 details.append("")
                 if note.text:
                     details.append(note.text)
+                    details.append("")
+            for comment in loose:
+                details.append(f"### Comment: {comment.cmt_id}")
+                details.append("")
+                details.append(f"Author: {comment.author}")
+                details.append("")
+                if comment.text:
+                    details.append(comment.text)
                     details.append("")
             lines.extend(details)
         else:

@@ -207,3 +207,140 @@ def testFromDocx_EmptyBlocksDropped(tmp_path: Path):
     result = FromDocxDocument(path).parse()
     assert len(result.scenes) == 1
     assert result.scenes[0].heading == "Chapter Two"
+
+
+@pytest.mark.core
+def testFromDocx_Comments(tmp_path: Path):
+    """Test that comments are inserted into the text as synopsis comments."""
+    path = makeDocx(
+        tmp_path / "comments.docx",
+        [
+            ("Chapter One", "Heading1"),
+            ("The first paragraph.", None),
+            ("The second paragraph.", None),
+        ],
+        comments=[
+            (1, "1", "Check this paragraph"),
+            (2, "2", "And this one too"),
+        ],
+    )
+    result = FromDocxDocument(path).parse()
+
+    # The comments must not be converted into notes
+    assert result.notes == []
+
+    # Both comments must be captured and anchored to their paragraph
+    assert len(result.comments) == 2
+    assert result.comments[0].cmt_id == "1"
+    assert result.comments[0].author == "Test Author"
+    assert result.comments[0].text == "Check this paragraph"
+    assert result.comments[0].paragraph == 1
+    assert result.comments[1].paragraph == 2
+
+    # The comment must be on the line just before the paragraph it is
+    # anchored to, and use the synopsis keyword
+    scene = result.scenes[0]
+    assert scene.text == (
+        "%Synopsis: Test Author: Check this paragraph\n"
+        "\n"
+        "The first paragraph.\n"
+        "\n"
+        "%Synopsis: Test Author: And this one too\n"
+        "\n"
+        "The second paragraph."
+    )
+    assert len(scene.comments) == 2
+
+
+@pytest.mark.core
+def testFromDocx_CommentOnHeading(tmp_path: Path):
+    """Test that a comment on a heading is placed before the heading."""
+    path = makeDocx(
+        tmp_path / "heading.docx",
+        [
+            ("Chapter One", "Heading1"),
+            ("Some text.", None),
+        ],
+        comments=[(0, "1", "Chapter note")],
+    )
+    result = FromDocxDocument(path).parse()
+    scene = result.scenes[0]
+    assert scene.preamble == ["%Synopsis: Test Author: Chapter note", ""]
+    assert scene.text == "Some text."
+
+
+@pytest.mark.core
+def testFromDocx_UnanchoredComment(tmp_path: Path):
+    """Test that a comment with no anchor is reported, but not inserted."""
+    path = makeDocx(
+        tmp_path / "loose.docx",
+        [
+            ("Chapter One", "Heading1"),
+            ("Some text.", None),
+        ],
+        comments=[(5, "1", "Nowhere")],
+    )
+    result = FromDocxDocument(path).parse()
+    assert len(result.comments) == 1
+    assert result.comments[0].paragraph == -1
+    assert result.scenes[0].text == "Some text."
+
+
+@pytest.mark.core
+def testFromDocx_Images(tmp_path: Path):
+    """Test that images are given an ID and a position marker."""
+    path = makeDocx(
+        tmp_path / "images.docx",
+        [
+            ("Chapter One", "Heading1"),
+            ("A paragraph with an image.", None),
+            ("Another paragraph.", None),
+        ],
+        images={1: "rId9"},
+    )
+    result = FromDocxDocument(path).parse()
+
+    # There must be one image, with a stable ID
+    assert len(result.images) == 1
+    image = result.images[0]
+    assert image.img_id.startswith("img_")
+    assert image.img_id.endswith("_001")
+    assert image.rid == "rId9"
+    assert image.mime == "image/png"
+    assert image.paragraph == 1
+    assert image.offset == 0
+    assert image.context == "A paragraph with an image."
+
+    # The text must hold a marker with the ID and the position
+    scene = result.scenes[0]
+    assert scene.text == (
+        f"%Image: {image.img_id} paragraph=1 offset=0 "
+        'context="A paragraph with an image."\n'
+        "A paragraph with an image.\n"
+        "\n"
+        "Another paragraph."
+    )
+
+    # The image must not be turned into a note
+    assert result.notes == []
+
+
+@pytest.mark.core
+def testFromDocx_ImageIDsAreUnique(tmp_path: Path):
+    """Test that each image occurrence gets its own ID."""
+    path = makeDocx(
+        tmp_path / "images.docx",
+        [
+            ("Chapter One", "Heading1"),
+            ("First image.", None),
+            ("Second image.", None),
+        ],
+        images={1: "rId9", 2: "rId9"},
+    )
+    result = FromDocxDocument(path).parse()
+    assert len(result.images) == 2
+    assert result.images[0].img_id != result.images[1].img_id
+    assert result.images[0].img_id.endswith("_001")
+    assert result.images[1].img_id.endswith("_002")
+    # The hash of the content must be the same
+    assert result.images[0].img_id[4:12] == result.images[1].img_id[4:12]

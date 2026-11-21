@@ -58,6 +58,7 @@ class ProjectItem:
         "_expanded",
         "_handle",
         "_heading",
+        "_icon",
         "_import",
         "_layout",
         "_name",
@@ -87,6 +88,7 @@ class ProjectItem:
         self._import = None
         self._active = True
         self._expanded = False
+        self._icon = ""  # Optional override of the item icon style
 
         # Document Meta Data
         self._heading = "H0"  # The main heading
@@ -169,6 +171,10 @@ class ProjectItem:
         return self._heading
 
     @property
+    def iconStyle(self) -> str:
+        return self._icon
+
+    @property
     def charCount(self) -> int:
         return self._charCount
 
@@ -221,6 +227,9 @@ class ProjectItem:
             meta["cursorPos"] = str(self._cursorPos)
             name["active"] = yesNo(self._active)
 
+        if self._icon:
+            meta["icon"] = self._icon
+
         return {
             "name": str(self._name),
             "itemAttr": item,
@@ -250,6 +259,7 @@ class ProjectItem:
         self.setExpanded(meta.get("expanded", False))
         self.setStatus(name.get("status", None))
         self.setImport(name.get("import", None))
+        self.setIconStyle(meta.get("icon", ""))
 
         if self._type == nwItemType.FILE:
             self.setLayout(item.get("layout", nwItemLayout.NO_LAYOUT))
@@ -298,6 +308,7 @@ class ProjectItem:
         new._active = source._active
         new._expanded = source._expanded
         new._heading = source._heading
+        new._icon = source._icon
         new._charCount = source._charCount
         new._wordCount = source._wordCount
         new._paraCount = source._paraCount
@@ -350,10 +361,14 @@ class ProjectItem:
 
     def getMainIconStyle(self) -> str:
         """Get the main item icon style."""
+        if self._icon:
+            return self._icon
         return SHARED.theme.getItemIconStyle(self._type, self._class, self._layout, self._heading)
 
     def getMainIcon(self) -> QIcon:
         """Get the main item icon."""
+        if self._icon:
+            return SHARED.theme.getIcon(self._icon)
         return SHARED.theme.getItemIcon(self._type, self._class, self._layout, self._heading)
 
     def getMainFont(self) -> QFont:
@@ -605,6 +620,19 @@ class ProjectItem:
         """Set the main heading level."""
         if value in nwStyles.H_LEVEL:
             self._heading = value
+
+    def setIconStyle(self, value: Any) -> None:
+        """Set an optional override of the item's icon style.
+
+        The value is an icon style string on the form "name:colour",
+        like "prj_document:image". An empty value removes the override,
+        and the icon is then determined by the item's type, class,
+        layout and heading level.
+        """
+        if isinstance(value, str) and value:
+            self._icon = value
+        else:
+            self._icon = ""
 
     def setCharCount(self, count: Any) -> None:
         """Set the character count, and ensure that it is an integer."""

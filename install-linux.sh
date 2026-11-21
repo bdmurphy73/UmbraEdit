@@ -71,15 +71,16 @@ echo ""
 echo "[2/4] Fetching the source tarball..."
 
 INSTALL_DIR="${HOME}/Downloads/umbraedit-${RELEASE_VERSION}"
-mkdir -p "$INSTALL_DIR"
+DOWNLOAD_DIR="${HOME}/Downloads"
+mkdir -p "$DOWNLOAD_DIR"
 
 if [ -n "${TARBALL_PATH:-}" ]; then
-    cp "$TARBALL_PATH" "${INSTALL_DIR}/${TARBALL}"
+    cp "$TARBALL_PATH" "${DOWNLOAD_DIR}/${TARBALL}"
 else
-    curl -L -o "${INSTALL_DIR}/${TARBALL}" "$TARBALL_URL"
+    curl -L -o "${DOWNLOAD_DIR}/${TARBALL}" "$TARBALL_URL"
 fi
 
-echo "  Ready: $(ls -lh "${INSTALL_DIR}/${TARBALL}" | awk '{print $5}')"
+echo "  Ready: $(ls -lh "${DOWNLOAD_DIR}/${TARBALL}" | awk '{print $5}')"
 
 #-----------------------------------------------------------------------------
 # Step 3: Extract the source
@@ -87,18 +88,39 @@ echo "  Ready: $(ls -lh "${INSTALL_DIR}/${TARBALL}" | awk '{print $5}')"
 echo ""
 echo "[3/4] Extracting the source..."
 
-cd "$INSTALL_DIR"
-rm -rf "umbraedit-${RELEASE_VERSION}"
-tar xzf "${TARBALL}"
+cd "$DOWNLOAD_DIR"
 
-SRC_DIR="${INSTALL_DIR}/umbraedit-${RELEASE_VERSION}"
-if [ ! -d "$SRC_DIR" ]; then
-    # The tarball may contain a single top level folder with another name
-    SRC_DIR="$(find "$INSTALL_DIR" -maxdepth 1 -type d -name 'umbraedit-*' | head -1)"
+# The tarball holds a single top level folder with the source code. It
+# is extracted into a staging folder first, so that the source always
+# ends up in a predictable place, no matter what the folder in the
+# tarball is called.
+STAGE_DIR="$(mktemp -d "${DOWNLOAD_DIR}/.umbraedit-stage-XXXXXX")"
+tar xzf "${TARBALL}" -C "$STAGE_DIR"
+
+SRC_DIR=""
+for candidate in "$STAGE_DIR"/*/; do
+    if [ -f "${candidate}UmbraEdit.py" ]; then
+        SRC_DIR="${candidate%/}"
+        break
+    fi
+done
+
+if [ -z "$SRC_DIR" ]; then
+    echo "ERROR: Could not locate the extracted UmbraEdit source folder"
+    rm -rf "$STAGE_DIR"
+    exit 1
 fi
 
-if [ -z "$SRC_DIR" ] || [ ! -d "$SRC_DIR" ]; then
-    echo "ERROR: Could not locate the extracted UmbraEdit source folder"
+# The extracted source is moved into the install folder, which is
+# already named after the release
+rm -rf "$INSTALL_DIR"
+mv "$SRC_DIR" "$INSTALL_DIR"
+rm -rf "$STAGE_DIR"
+
+SRC_DIR="$INSTALL_DIR"
+
+if [ ! -f "${SRC_DIR}/UmbraEdit.py" ]; then
+    echo "ERROR: The extracted source folder is missing UmbraEdit.py"
     exit 1
 fi
 

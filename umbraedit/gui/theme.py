@@ -481,6 +481,8 @@ class GuiTheme:
             self._setBaseColor("chapter", self._readColor(section, "chapter"))
             self._setBaseColor("scene", self._readColor(section, "scene"))
             self._setBaseColor("note", self._readColor(section, "note"))
+            self._setBaseColor("issue", self._readColor(section, "issue"))
+            self._setBaseColor("image", self._readColor(section, "image"))
             self._setBaseColor("active", self._readColor(section, "active"))
             self._setBaseColor("inactive", self._readColor(section, "inactive"))
             self._setBaseColor("disabled", self._readColor(section, "disabled"))
@@ -622,6 +624,8 @@ class GuiTheme:
                 self._setBaseColor("chapter", color)
                 self._setBaseColor("scene", color)
                 self._setBaseColor("note", color)
+                self._setBaseColor("issue", color)
+                self._setBaseColor("image", color)
 
         self.isDarkTheme = darkMode
         self._currentTheme = theme
@@ -763,11 +767,13 @@ class GuiTheme:
         # Project
         self._setBaseColor("root", blue)
         self._setBaseColor("folder", yellow)
-        self._setBaseColor("file", default)
-        self._setBaseColor("title", green)
-        self._setBaseColor("chapter", red)
+        self._setBaseColor("file", blue)
+        self._setBaseColor("title", blue)
+        self._setBaseColor("chapter", green)
         self._setBaseColor("scene", blue)
         self._setBaseColor("note", yellow)
+        self._setBaseColor("issue", red)
+        self._setBaseColor("image", faded)
         self._setBaseColor("active", green)
         self._setBaseColor("inactive", red)
         self._setBaseColor("disabled", faded)

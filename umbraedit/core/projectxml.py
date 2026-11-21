@@ -355,6 +355,8 @@ class ProjectXMLReader:
                     meta["wordCount"] = checkInt(xVal.attrib.get("wordCount"), 0)
                     meta["paraCount"] = checkInt(xVal.attrib.get("paraCount"), 0)
                     meta["cursorPos"] = checkInt(xVal.attrib.get("cursorPos"), 0)
+                    if "icon" in xVal.attrib:
+                        meta["icon"] = checkString(xVal.attrib.get("icon"), "")
                 elif xVal.tag == "name":
                     itemName = simplified(checkString(xVal.text, ""))
                     name["status"] = checkStringNone(xVal.attrib.get("status"), None)

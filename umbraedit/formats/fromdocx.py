@@ -24,6 +24,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 import xml.etree.ElementTree as ET
@@ -43,6 +44,12 @@ logger = logging.getLogger(__name__)
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 
+# DrawingML namespace, used by the image references in Word drawings
+A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+
+# VML namespace, used by legacy image references
+V_NS = "urn:schemas-microsoft-com:vml"
+
 # Dublin Core namespaces, used by the core document properties
 DC_NS = "http://purl.org/dc/elements/1.1/"
 
@@ -55,6 +62,16 @@ def _wtag(tag: str) -> str:
 def _rtag(tag: str) -> str:
     """Return the namespaced tag for the r namespace."""
     return f"{{{R_NS}}}{tag}"
+
+
+def _atag(tag: str) -> str:
+    """Return the namespaced tag for the DrawingML namespace."""
+    return f"{{{A_NS}}}{tag}"
+
+
+def _vtag(tag: str) -> str:
+    """Return the namespaced tag for the VML namespace."""
+    return f"{{{V_NS}}}{tag}"
 
 
 def _dtag(tag: str) -> str:
@@ -99,6 +116,19 @@ _MARKER = re.compile(r"\[(?:COMMENT|FOOTNOTE|IMAGE)[^\]]*\]")
 # Angle bracket markers, often used by authors to mark scene breaks
 _ANGLE = re.compile(r"^[<>\s]+|[<>\s]+$")
 
+# The keyword used to embed a Word comment into the text of a document.
+# The comment is placed on the line just before the paragraph it was
+# anchored to in the Word document.
+COMMENT_KEY = "%Synopsis:"
+
+# The keyword used to mark the position of an image in a text document.
+# The image ID is followed by position information that a formatter can
+# use to place the image later.
+IMAGE_KEY = "%Image:"
+
+# The number of characters of context text captured for an image marker
+IMAGE_CONTEXT = 30
+
 
 def _styleKey(style: str) -> str:
     """Normalise a Word paragraph style name for style map lookups."""
@@ -112,6 +142,16 @@ def _cleanHeading(text: str) -> str:
     return " ".join(text.split())
 
 
+def _flatten(text: str) -> str:
+    """Collapse a text into a single line with single spaces."""
+    return " ".join(text.split())
+
+
+def _quoteText(text: str) -> str:
+    """Make a text safe to include in a double quoted marker value."""
+    return _flatten(text).replace('"', "'")
+
+
 @dataclass
 class ImportImage:
     """Information about an image found in the Word document."""
@@ -120,13 +160,28 @@ class ImportImage:
     filename: str
     data: bytes
     mime: str
+    img_id: str = ""       # Stable ID of the image, like "img_1a2b3c4d_001"
+    paragraph: int = -1    # Index of the paragraph the image is in
+    offset: int = 0        # Character offset of the image in the paragraph
+    context: str = ""      # Text surrounding the image in the paragraph
+
+
+@dataclass
+class ImportComment:
+    """A Word comment, and the paragraph it is anchored to."""
+
+    cmt_id: str
+    author: str
+    date: str
+    text: str
+    paragraph: int = -1    # Index of the anchor paragraph, -1 if not anchored
 
 
 @dataclass
 class ImportNote:
     """A note capturing a non-translatable item from the Word document."""
 
-    note_type: str       # "image", "header", "footer", "comment", "footnote"
+    note_type: str       # "header", "footer", "footnote"
     source: str          # Where it came from (e.g., "header1.xml", "paragraph 42")
     text: str            # Captured text description
     data: Optional[bytes] = None  # Raw image data, if applicable
@@ -143,6 +198,9 @@ class ImportScene:
     style: str
     is_chapter: bool = False  # True if this is a chapter heading
     is_front: bool = False    # True if this is front matter
+    preamble: list[str] = field(default_factory=list)      # Lines before the heading
+    images: list[ImportImage] = field(default_factory=list)  # Images in the document
+    comments: list[ImportComment] = field(default_factory=list)  # Anchored comments
 
 
 @dataclass
@@ -154,6 +212,9 @@ class _Block:
     level: int
     style: str = "Normal"
     lines: list[str] = field(default_factory=list)
+    preamble: list[str] = field(default_factory=list)
+    images: list[ImportImage] = field(default_factory=list)
+    comments: list[ImportComment] = field(default_factory=list)
 
 
 @dataclass
@@ -167,7 +228,7 @@ class ImportResult:
     images: list[ImportImage] = field(default_factory=list)
     headers: list[str] = field(default_factory=list)
     footers: list[str] = field(default_factory=list)
-    comments: list[str] = field(default_factory=list)
+    comments: list[ImportComment] = field(default_factory=list)
     footnotes: list[str] = field(default_factory=list)
 
 
@@ -179,16 +240,30 @@ class FromDocxDocument:
     (images, headers, footers, comments, footnotes) into notes.
     """
 
-    __slots__ = ("_file_path", "_footers", "_headers", "_images", "_rels", "_result", "_zip")
+    __slots__ = (
+        "_anchored",
+        "_comments",
+        "_file_path",
+        "_footers",
+        "_headers",
+        "_imageCount",
+        "_images",
+        "_rels",
+        "_result",
+        "_zip",
+    )
 
     def __init__(self, file_path: str | Path) -> None:
         self._file_path = Path(file_path)
         self._zip: Optional[ZipFile] = None
         self._result = ImportResult()
         self._rels: dict[str, str] = {}
-        self._images: dict[str, bytes] = {}
+        self._images: dict[str, ImportImage] = {}
         self._headers: dict[str, str] = {}
         self._footers: dict[str, str] = {}
+        self._comments: dict[str, ImportComment] = {}
+        self._anchored: set[str] = set()
+        self._imageCount = 0
 
     ##
     #  Public API
@@ -204,8 +279,8 @@ class FromDocxDocument:
         try:
             self._load_relationships()
             self._load_headers_footers()
-            self._parse_document()
             self._parse_comments()
+            self._parse_document()
             self._parse_footnotes()
             self._load_docprops()
         finally:
@@ -267,9 +342,8 @@ class FromDocxDocument:
                 try:
                     data = self._zip.read(target_path)  # type: ignore[union-attr]
                     mime = self._guess_mime(target)
-                    self._images[rid] = data
-                    self._result.images.append(
-                        ImportImage(rid=rid, filename=target, data=data, mime=mime)
+                    self._images[rid] = ImportImage(
+                        rid=rid, filename=target, data=data, mime=mime
                     )
                 except KeyError:
                     logger.warning("Could not read image: %s", target_path)
@@ -315,6 +389,7 @@ class FromDocxDocument:
         current: Optional[_Block] = None
         chapterHeading = ""
         sceneCount = 0
+        paraIndex = -1
 
         def closeBlock() -> None:
             """Close the current block and add it to the block list."""
@@ -324,7 +399,8 @@ class FromDocxDocument:
                 current = None
 
         for para in body.findall(_wtag("p")):
-            para_result = self._parse_paragraph(para)
+            paraIndex += 1
+            para_result = self._parse_paragraph(para, paraIndex)
             if para_result is None:
                 continue
 
@@ -332,19 +408,9 @@ class FromDocxDocument:
             text = para_result["text"]
             role = STYLE_MAP.get(_styleKey(style), "body")
 
-            # Collect non-translatable items as notes (images)
-            if para_result["images"]:
-                for img_rid in para_result["images"]:
-                    img = next((i for i in self._result.images if i.rid == img_rid), None)
-                    if img:
-                        note = ImportNote(
-                            note_type="image",
-                            source=f"paragraph style={style}",
-                            text=f"Image: {img.filename}",
-                            data=img.data,
-                            mime=img.mime,
-                        )
-                        self._result.notes.append(note)
+            # Comments and images are represented by marker lines that
+            # are inserted just before the paragraph they belong to.
+            markers = self._markerLines(para_result)
 
             # Handle the document title. It opens a front matter block,
             # and is also used as the project title.
@@ -354,6 +420,9 @@ class FromDocxDocument:
                     self._result.title = title
                 closeBlock()
                 current = _Block("front", title or "Title Page", LEVEL_FRONT, style)
+                current.preamble.extend(markers)
+                current.images.extend(para_result["images"])
+                current.comments.extend(para_result["comments"])
                 continue
 
             # Handle the subtitle. It is the author name, and is kept as
@@ -364,9 +433,12 @@ class FromDocxDocument:
                     self._result.author = subtitle
                 if current is None:
                     current = _Block("front", "Title Page", LEVEL_FRONT, style)
+                current.lines.extend(markers)
                 if subtitle:
                     current.lines.append(subtitle)
                     current.lines.append("")
+                current.images.extend(para_result["images"])
+                current.comments.extend(para_result["comments"])
                 continue
 
             # Handle chapter headings. These open a new chapter.
@@ -376,6 +448,9 @@ class FromDocxDocument:
                 chapterHeading = heading or f"Chapter {len(blocks) + 1}"
                 sceneCount = 0
                 current = _Block("chapter", chapterHeading, LEVEL_CHAPTER, style)
+                current.preamble.extend(markers)
+                current.images.extend(para_result["images"])
+                current.comments.extend(para_result["comments"])
                 continue
 
             # Handle scene breaks. These open a new scene in the current
@@ -388,14 +463,24 @@ class FromDocxDocument:
                 if not heading:
                     heading = f"{chapterHeading} - Scene {sceneCount}" if chapterHeading else f"Scene {sceneCount}"
                 current = _Block("scene", heading, LEVEL_SCENE, style)
+                current.preamble.extend(markers)
+                current.images.extend(para_result["images"])
+                current.comments.extend(para_result["comments"])
                 continue
 
             # Regular content paragraphs
-            if text.strip():
+            if text.strip() or markers:
                 if current is None:
                     current = _Block("front", "Front Matter", LEVEL_FRONT, style)
-                current.lines.append(text)
-                current.lines.append("")
+                current.lines.extend(markers)
+                if text.strip():
+                    current.lines.append(text)
+                    current.lines.append("")
+                elif para_result["images"]:
+                    # An image only paragraph is separated from the next
+                    current.lines.append("")
+                current.images.extend(para_result["images"])
+                current.comments.extend(para_result["comments"])
 
         # Save the last block
         closeBlock()
@@ -404,7 +489,7 @@ class FromDocxDocument:
         # dropped, as they only hold empty section breaks.
         for block in blocks:
             text = "\n".join(block.lines).strip()
-            if not text:
+            if not text and not block.preamble and not block.images:
                 continue
             self._result.scenes.append(
                 ImportScene(
@@ -414,6 +499,9 @@ class FromDocxDocument:
                     style=block.style,
                     is_chapter=(block.role == "chapter"),
                     is_front=(block.role == "front"),
+                    preamble=block.preamble,
+                    images=block.images,
+                    comments=block.comments,
                 )
             )
 
@@ -434,18 +522,16 @@ class FromDocxDocument:
             )
             self._result.notes.append(note)
 
-        # Add image notes for images found in the document
-        for img in self._result.images:
-            note = ImportNote(
-                note_type="image",
-                source=f"image file: {img.filename}",
-                text=f"Image: {img.filename}",
-                data=img.data,
-                mime=img.mime,
-            )
-            self._result.notes.append(note)
+        # Collect all comments, and flag the ones that could not be
+        # anchored to a paragraph in the document
+        for comment in self._comments.values():
+            self._result.comments.append(comment)
 
-    def _parse_paragraph(self, para: ET.Element) -> Optional[dict]:
+        # Collect all images that are actually used in the document
+        for scene in self._result.scenes:
+            self._result.images.extend(scene.images)
+
+    def _parse_paragraph(self, para: ET.Element, index: int) -> Optional[dict]:
         """Parse a single paragraph element and return its content."""
         # Get paragraph style
         style = "Normal"
@@ -458,19 +544,28 @@ class FromDocxDocument:
         # Extract text from all runs
         text_parts: list[str] = []
         image_rids: list[str] = []
+        image_offsets: list[int] = []
         footnote_ids: list[str] = []
-        comment_ids: list[str] = []
+        text_len = 0
 
-        for run in para.findall(_wtag("r")):
-            # Check for image
+        for run in para.iter(_wtag("r")):
+            # Check for image. Images are referenced from a DrawingML
+            # blip element, or from a legacy VML image element.
+            embed = ""
             drawing = run.find(_wtag("drawing"))
             if drawing is not None:
-                blip = drawing.find(".//" + _wtag("blip"))
+                blip = drawing.find(".//" + _atag("blip"))
                 if blip is not None:
-                    embed = blip.get(_rtag("embed"))
-                    if embed:
-                        image_rids.append(embed)
-                        text_parts.append(f"[IMAGE:{embed}]")
+                    embed = blip.get(_rtag("embed")) or blip.get(_rtag("link")) or ""
+            else:
+                pict = run.find(_wtag("pict"))
+                if pict is not None:
+                    image = pict.find(".//" + _vtag("imagedata"))
+                    if image is not None:
+                        embed = image.get(_rtag("id")) or ""
+            if embed:
+                image_rids.append(embed)
+                image_offsets.append(text_len)
 
             # Check for footnote reference
             fn_ref = run.find(_wtag("footnoteReference"))
@@ -478,43 +573,135 @@ class FromDocxDocument:
                 fn_id = fn_ref.get(f"{{{W_NS}}}id", "")
                 footnote_ids.append(fn_id)
                 text_parts.append(f"[FOOTNOTE:{fn_id}]")
-
-            # Check for comment reference
-            cmt_ref = run.find(_wtag("commentReference"))
-            if cmt_ref is not None:
-                cmt_id = cmt_ref.get(f"{{{W_NS}}}id", "")
-                comment_ids.append(cmt_id)
-                text_parts.append(f"[COMMENT:{cmt_id}]")
+                text_len += len(text_parts[-1])
 
             # Extract text elements
             for t_elem in run.findall(_wtag("t")):
                 t_text = t_elem.text or ""
-                # Check for xml:space preserve
-                if t_elem.get("{http://www.w3.org/XML/1998/namespace}space") == "preserve":
-                    text_parts.append(t_text)
-                else:
-                    text_parts.append(t_text)
+                text_parts.append(t_text)
+                text_len += len(t_text)
 
             # Check for line break
             if run.find(_wtag("br")) is not None:
                 text_parts.append(nwShortcode.BREAK)
+                text_len += len(nwShortcode.BREAK)
 
             # Check for tab
             if run.find(_wtag("tab")) is not None:
                 text_parts.append("    ")
+                text_len += 4
 
         full_text = "".join(text_parts)
+
+        # Resolve the comments anchored to this paragraph
+        comments = self._anchorComments(para, index)
+
+        # Build the image entries for this paragraph
+        images: list[ImportImage] = []
+        for rid, offset in zip(image_rids, image_offsets):
+            base = self._images.get(rid)
+            if base is None:
+                logger.warning("Image '%s' is missing from the document", rid)
+                continue
+            context = self._contextText(full_text, offset)
+            images.append(
+                ImportImage(
+                    rid=base.rid,
+                    filename=base.filename,
+                    data=base.data,
+                    mime=base.mime,
+                    img_id=self._makeImageId(base.data),
+                    paragraph=index,
+                    offset=offset,
+                    context=context,
+                )
+            )
 
         return {
             "style": style,
             "text": full_text,
-            "images": image_rids,
+            "images": images,
             "footnotes": footnote_ids,
-            "comments": comment_ids,
+            "comments": comments,
         }
 
+    def _anchorComments(self, para: ET.Element, index: int) -> list[ImportComment]:
+        """Return the comments anchored to a paragraph.
+
+        A comment is anchored to the paragraph where its comment range
+        starts. If the comment has no range, but only a reference, it is
+        anchored to the paragraph holding the reference.
+        """
+        anchors: list[str] = []
+        for tag in ("commentRangeStart", "commentReference"):
+            for elem in para.iter(_wtag(tag)):
+                cmt_id = elem.get(f"{{{W_NS}}}id", "")
+                if cmt_id and cmt_id not in anchors:
+                    anchors.append(cmt_id)
+
+        comments: list[ImportComment] = []
+        for cmt_id in anchors:
+            if cmt_id in self._anchored:
+                continue
+            comment = self._comments.get(cmt_id)
+            if comment is None:
+                continue
+            comment.paragraph = index
+            self._anchored.add(cmt_id)
+            comments.append(comment)
+
+        return comments
+
+    def _markerLines(self, para_result: dict) -> list[str]:
+        """Return the marker lines for a paragraph.
+
+        Comments are added as synopsis comments on the line just before
+        the paragraph they are anchored to. Images are added as image
+        markers with the image ID and the position of the image.
+        """
+        lines: list[str] = []
+        for comment in para_result["comments"]:
+            lines.append(f"{COMMENT_KEY} {self._commentText(comment)}")
+            # Synopsis comments are separated from the text they precede
+            lines.append("")
+        for image in para_result["images"]:
+            context = _quoteText(image.context)
+            lines.append(
+                f"{IMAGE_KEY} {image.img_id} "
+                f"paragraph={image.paragraph} offset={image.offset} "
+                f'context="{context}"'
+            )
+        return lines
+
+    def _makeImageId(self, data: bytes) -> str:
+        """Return a stable ID for an image."""
+        self._imageCount += 1
+        digest = hashlib.sha256(data).hexdigest()[:8]
+        return f"img_{digest}_{self._imageCount:03d}"
+
+    @staticmethod
+    def _contextText(text: str, offset: int, width: int = IMAGE_CONTEXT) -> str:
+        """Return the text surrounding a given offset in a paragraph."""
+        start = max(0, offset - width)
+        end = min(len(text), offset + width)
+        return _flatten(text[start:end])
+
+    @staticmethod
+    def _commentText(comment: ImportComment) -> str:
+        """Return the text of a comment as a single line."""
+        text = _flatten(comment.text)
+        author = _flatten(comment.author)
+        if author and author.lower() != "unknown":
+            return f"{author}: {text}" if text else f"{author}:"
+        return text
+
     def _parse_comments(self) -> None:
-        """Parse comments from comments.xml."""
+        """Parse comments from comments.xml.
+
+        The comments are not converted into documents. They are instead
+        inserted into the text of the document at the position where they
+        were anchored in the Word document.
+        """
         xml_text = self._read_xml("word/comments.xml")
         if not xml_text:
             return
@@ -524,17 +711,24 @@ class FromDocxDocument:
                 cmt_id = comment.get(f"{{{W_NS}}}id", "")
                 author = comment.get(f"{{{W_NS}}}author", "Unknown")
                 date = comment.get(f"{{{W_NS}}}date", "")
-                text = self._extract_text_from_element(comment)
-                note_text = f"Comment by {author} ({date}): {text}" if date else f"Comment by {author}: {text}"
-                note = ImportNote(
-                    note_type="comment",
-                    source=f"comment id={cmt_id}",
-                    text=note_text,
+                text = self._extract_comment_text(comment)
+                self._comments[cmt_id] = ImportComment(
+                    cmt_id=cmt_id,
+                    author=author,
+                    date=date,
+                    text=text,
                 )
-                self._result.notes.append(note)
-                self._result.comments.append(note_text)
         except ET.ParseError:
             logger.warning("Could not parse comments.xml")
+
+    def _extract_comment_text(self, element: ET.Element) -> str:
+        """Extract the text of a comment element."""
+        paras = element.findall(_wtag("p"))
+        if paras:
+            return " ".join(
+                _flatten(self._extract_text_from_element(para)) for para in paras
+            ).strip()
+        return self._extract_text_from_element(element)
 
     def _parse_footnotes(self) -> None:
         """Parse footnotes from footnotes.xml."""

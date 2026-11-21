@@ -57,7 +57,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install "pyqt6>=6.4,!=6.12.1" "pyenchant>=3.3.0" "jsonschema>=4.26.0" "python-docx>=1.1.0" "lxml>=5.0.0" "httpx>=0.28.0" "pillow>=13.0.0"
+          pip install "pyqt6>=6.4,!=6.12.1" "pyenchant>=3.3.0" "jsonschema>=4.25.1" "python-docx>=1.1.0" "lxml>=5.0.0" "httpx>=0.28.0" "pillow>=11.3.0"
           pip install "fastapi>=0.115" "uvicorn>=0.34"
           pip install pytest pytest-qt pytest-timeout
       - name: Run tests (offscreen)

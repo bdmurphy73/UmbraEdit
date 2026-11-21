@@ -15,8 +15,9 @@
 # Usage:
 #   bash setup/macos/build-app.sh [arch] [python-version]
 #
-# The arch argument is only used for the file name of the DMG. It must
-# match the architecture of the machine running the build.
+# The arch argument is the architecture to build for. It must match the
+# architecture of the machine running the build, and is used for the file
+# name of the DMG.
 
 set -euo pipefail
 
@@ -29,11 +30,17 @@ case "$ARCH" in
     x86_64|amd64) ARCH="x86_64" ;;
 esac
 
+# The bundle must match the architecture of the machine that builds it.
 HOST_ARCH="$(uname -m)"
 case "$HOST_ARCH" in
     arm64) HOST_ARCH="arm64" ;;
     x86_64) HOST_ARCH="x86_64" ;;
 esac
+
+if [ "$ARCH" != "$HOST_ARCH" ]; then
+    echo "WARNING: This is a $HOST_ARCH machine, so the bundle is built for $HOST_ARCH." >&2
+    ARCH="$HOST_ARCH"
+fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 SRC_DIR="$SCRIPT_DIR/../.."
@@ -72,11 +79,6 @@ die () {
     echo "ERROR: $1" >&2
     exit 1
 }
-
-# The bundle must match the architecture of the machine that builds it.
-if [ "$ARCH" != "$HOST_ARCH" ]; then
-    die "The bundle must be built on a $ARCH machine, but this is a $HOST_ARCH machine."
-fi
 
 # --- Locate Python ---------------------------------------------------------------------------- #
 

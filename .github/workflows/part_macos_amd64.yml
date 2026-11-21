@@ -29,12 +29,13 @@ jobs:
         id: build
         run: |
           echo "BUILD_VERSION=$(python3 pkgutils.py version)" >> $GITHUB_OUTPUT
+          echo "DMG_ARCH=$(uname -m)" >> $GITHUB_OUTPUT
           ./setup/macos/build.sh $PYTHON_VERSION $PACKAGE_ARCH
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
-          name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-MacOS-AMD64-DMG
+          name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-MacOS-${{ steps.build.outputs.DMG_ARCH }}-DMG
           path: dist_macos/*.dmg*
           if-no-files-found: error
           retention-days: 14

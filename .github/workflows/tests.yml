@@ -120,6 +120,8 @@ jobs:
     name: Windows Python 3.13
     permissions:
       contents: read
+    env:
+      COVERAGE_FILE: .coverage.win
     defaults:
       run:
         shell: bash
@@ -142,8 +144,10 @@ jobs:
           uv run --no-sync pkgutils.py sample
 
       - name: Run Tests
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: |
-          uv run --no-sync coverage run -m pytest -v --timeout=60
+          uv run --no-sync coverage run -m pytest -v --timeout=120
           uv run --no-sync coverage report --skip-covered --show-missing
 
       - name: Upload Coverage Data

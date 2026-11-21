@@ -25,7 +25,6 @@ from __future__ import annotations
 import re
 
 from pathlib import Path
-from time import time
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -3955,8 +3954,10 @@ def testGuiDocEditor_WordCounters(
     runnable.run()
     assert docEditor._docCounter.busy is False
 
-    # Run the full word counter
-    docEditor._lastEdit = time()  # Simulate an edit since the last run
+    # Run the full word counter. The timestamps are relative to the
+    # last run, since the system clock has a low resolution on some
+    # platforms, and two calls may return the same value.
+    docEditor._lastEdit = docEditor._lastDocTask + 1.0  # Simulate an edit since the last run
     docEditor._runDocumentTasks()
     assert docEditor._docCounter.busy is True
 
@@ -3997,12 +3998,12 @@ def testGuiDocEditor_WordCounters(
 
     # A repeated run with no edit since the last one is skipped entirely
     threadPool._runObj = None
-    docEditor._lastEdit = time() - 100.0
+    docEditor._lastEdit = docEditor._lastDocTask - 100.0
     docEditor._runDocumentTasks()
     assert threadPool.runnable() is None
 
     # A genuine new edit makes the next run go ahead again
-    docEditor._lastEdit = time()
+    docEditor._lastEdit = docEditor._lastDocTask + 1.0
     docEditor._runDocumentTasks()
     assert threadPool.runnable() is not None
 

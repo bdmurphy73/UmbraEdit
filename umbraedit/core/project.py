@@ -22,9 +22,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import errno
 import json
 import logging
+import os
 import shutil
+import stat
+import tempfile
+import uuid
 
 from enum import Enum
 from functools import partial
@@ -50,6 +55,7 @@ from umbraedit.core.index import Index
 from umbraedit.core.options import OptionState
 from umbraedit.core.projectdata import ProjectData
 from umbraedit.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLReadState
+from umbraedit.core.safeio import copyRegularFile, isLinkLike, renameNoReplace
 from umbraedit.core.sessions import SessionLog
 from umbraedit.core.storage import ProjectStorage, ProjectStorageCreate, ProjectStorageOpen
 from umbraedit.core.tree import ProjectTree
@@ -505,16 +511,151 @@ class NWProject:
     def saveProjectAs(self, newPath: str | Path, newName: str) -> bool:
         """Save the current project to a new location with a new name.
 
-        Creates a new project folder at the given path, copies all document
-        and metadata files from the current project, and writes the project
-        XML with the new name. The new location is added to the recent
-        projects list as a separate entry from the original location.
+        Creates a new project folder at the given path, copies all document,
+        metadata, and asset files from the current project, and writes the
+        project XML with the new name. The new location is added to the
+        recent projects list as a separate entry from the original location.
+
+        If any part of the new project fails to build, the original project
+        remains active and the incomplete destination is removed.
         """
         if not self._storage.isOpen():
             SHARED.error(self.tr("There is no project open."))
             return False
 
-        newPath = Path(newPath).resolve()
+        # Resolve the parent path, but preserve the final path component
+        # so a symlinked destination can be rejected instead of silently
+        # writing through it to another location.
+        requestedPath = Path(newPath).expanduser().absolute()
+        newPath = requestedPath.parent.resolve() / requestedPath.name
+        if isLinkLike(newPath):
+            SHARED.error(self.tr("The target project location cannot be a symbolic link."))
+            return False
+
+        oldRuntimePath = self._storage.runtimePath
+        if oldRuntimePath:
+            try:
+                newPath.resolve().relative_to(oldRuntimePath.resolve())
+            except ValueError:
+                pass
+            else:
+                SHARED.error(self.tr("The target project location cannot be inside the current project."))
+                return False
+
+        targetExisted = newPath.exists() or newPath.is_symlink()
+        targetMode = 0o755
+        targetIdentity: Optional[tuple[int, int]] = None
+        if targetExisted:
+            try:
+                if isLinkLike(newPath) or not newPath.is_dir():
+                    SHARED.error(self.tr("Failed to create project storage."))
+                    return False
+                targetStat = os.lstat(newPath)
+                if not stat.S_ISDIR(targetStat.st_mode):
+                    SHARED.error(self.tr("Failed to create project storage."))
+                    return False
+                if any(newPath.iterdir()):
+                    SHARED.error(self.tr("The target folder is not empty. Please choose another folder."))
+                    return False
+                targetMode = stat.S_IMODE(targetStat.st_mode)
+                targetIdentity = (targetStat.st_dev, targetStat.st_ino)
+            except OSError as exc:
+                SHARED.error(self.tr("Failed to create project storage."), exc=exc)
+                return False
+
+        # Save the complete active state so that a failed copy can restore
+        # the original project rather than leaving it pointed at a partial
+        # destination.
+        oldStorageState: dict[str, object] = {
+            "_storagePath": self._storage._storagePath,
+            "_runtimePath": self._storage._runtimePath,
+            "_lockFilePath": self._storage._lockFilePath,
+            "_manifestPath": self._storage._manifestPath,
+            "_lockedBy": self._storage._lockedBy,
+            "_openMode": self._storage._openMode,
+            "_ready": self._storage._ready,
+            "_exception": self._storage._exception,
+            "_oldDocuments": self._storage._oldDocuments,
+            "_kind": self._storage._kind,
+            "_timeStamp": self._storage._timeStamp,
+        }
+        oldUuid = self._data.uuid
+        oldName = self._data.name
+        oldIndexRevision = self._data.indexRevision
+        oldEditTime = self._data.editTime
+        oldChanged = self._changed
+        oldCountsDirty = self._countsDirty
+        oldLockPath = self._storage._lockFilePath
+
+        stagingPath: Optional[Path] = None
+        stagingIdentity: Optional[tuple[int, int]] = None
+        targetBackupPath: Optional[Path] = None
+
+        def restoreState() -> None:
+            """Restore the original project and storage state."""
+            for key, value in oldStorageState.items():
+                setattr(self._storage, key, value)
+            self._data.setUuid(oldUuid)
+            self._data.setName(oldName)
+            self._data.setIndexRevision(oldIndexRevision)
+            self._data.setEditTime(oldEditTime)
+            self._countsDirty = oldCountsDirty
+            self.setProjectChanged(oldChanged)
+
+        def cleanStaging() -> bool:
+            """Remove the application-owned staging directory."""
+            if stagingPath is None:
+                return True
+            try:
+                stagingStat = stagingPath.lstat()
+            except FileNotFoundError:
+                return True
+            except OSError:
+                logger.error("Failed to inspect project staging directory '%s'", stagingPath)
+                logException()
+                return False
+            if (
+                stat.S_ISLNK(stagingStat.st_mode)
+                or stagingIdentity is None
+                or stagingStat.st_dev != stagingIdentity[0]
+                or stagingStat.st_ino != stagingIdentity[1]
+            ):
+                logger.warning("Refusing to remove an unexpected project staging path '%s'", stagingPath)
+                return False
+            try:
+                shutil.rmtree(stagingPath)
+            except OSError:
+                logger.error("Failed to remove project staging directory '%s'", stagingPath)
+                logException()
+                return False
+            return True
+
+        def restoreTargetBackup() -> bool:
+            """Restore an empty target folder moved aside for publishing."""
+            nonlocal targetBackupPath
+            if targetBackupPath is None:
+                return True
+            try:
+                if newPath.exists() or newPath.is_symlink():
+                    logger.warning(
+                        "Could not restore the target project folder; it is preserved at '%s'", targetBackupPath
+                    )
+                    return False
+                if renameNoReplace(targetBackupPath, newPath):
+                    targetBackupPath = None
+                    return True
+            except Exception as exc:
+                if getattr(exc, "errno", None) in (errno.ENOSYS, errno.ENOTSUP, errno.EOPNOTSUPP, errno.EINVAL):
+                    try:
+                        if not newPath.exists() and not newPath.is_symlink():
+                            os.rename(targetBackupPath, newPath)
+                            targetBackupPath = None
+                            return True
+                    except OSError:
+                        pass
+                logger.exception("Failed to restore the target project folder '%s'", newPath)
+            logger.warning("The target project folder is preserved at '%s'", targetBackupPath)
+            return False
 
         # First save all current documents to make sure everything is current
         saveTime = time()
@@ -531,76 +672,211 @@ class NWProject:
         # Save old paths before creating new storage (createNewProject
         # overwrites _storagePath, _runtimePath, etc.)
         oldContentPath = self._storage.contentPath
-        oldRuntimePath = self._storage._runtimePath
         oldMetaPath = oldRuntimePath / "meta" if oldRuntimePath else None
+        oldAssetPath = oldRuntimePath / "assets" / "img" if oldRuntimePath else None
 
-        # Create new project storage at the new location
-        status = self._storage.createNewProject(newPath)
+        # Build the new project in an application-owned staging directory.
+        # The user-selected target is not modified until the complete copy
+        # has been validated and is ready to publish.
+        try:
+            stagingPath = Path(
+                tempfile.mkdtemp(prefix=".umbraedit-stage-", dir=str(newPath.parent)),
+            )
+            stagingStat = stagingPath.stat()
+            stagingIdentity = (stagingStat.st_dev, stagingStat.st_ino)
+            os.chmod(stagingPath, targetMode)
+        except OSError as exc:
+            cleanStaging()
+            restoreState()
+            SHARED.error(self.tr("Failed to create project storage."), exc=exc)
+            return False
+
+        if isLinkLike(stagingPath):
+            cleanStaging()
+            restoreState()
+            SHARED.error(self.tr("Failed to create project storage."))
+            return False
+
+        status = self._storage.createNewProject(stagingPath, resolvePath=False)
         if status != ProjectStorageCreate.READY:
+            cleanStaging()
+            restoreState()
             if status == ProjectStorageCreate.NOT_EMPTY:
                 SHARED.error(self.tr("The target folder is not empty. Please choose another folder."))
             else:
                 SHARED.error(self.tr("Failed to create project storage."))
             return False
 
-        # Update project data: new UUID and name
-        self._data.setUuid("")
-        self._data.setName(newName)
+        errorMessage = self.tr("Failed to save project as a new project.")
+        try:
+            # Update project data: new UUID and name
+            self._data.setUuid("")
+            self._data.setName(newName)
 
-        # Copy all document files from old content to new content
-        newContentPath = self._storage.contentPath
-        if oldContentPath and newContentPath:
-            for mdFile in oldContentPath.glob("*.md"):
-                destFile = newContentPath / mdFile.name
-                try:
-                    shutil.copy2(mdFile, destFile)
-                except Exception as exc:
-                    logger.error("Failed to copy document file %s: %s", mdFile.name, exc)
-                    SHARED.error(self.tr("Failed to copy document file: {0}").format(mdFile.name))
-                    return False
-
-        # Copy all meta files from old meta to new meta
-        newMetaPath = self._storage._runtimePath / "meta" if self._storage._runtimePath else None
-        if oldMetaPath and newMetaPath and oldMetaPath.is_dir():
-            newMetaPath.mkdir(exist_ok=True)
-            for metaFile in oldMetaPath.glob("*"):
-                if metaFile.is_file():
-                    destFile = newMetaPath / metaFile.name
+            # Copy all document files from old content to new content
+            newContentPath = self._storage.contentPath
+            if oldContentPath and newContentPath:
+                for mdFile in oldContentPath.glob("*.md"):
+                    destFile = newContentPath / mdFile.name
                     try:
-                        shutil.copy2(metaFile, destFile)
+                        shutil.copy2(mdFile, destFile)
                     except Exception as exc:
-                        logger.error("Failed to copy meta file %s: %s", metaFile.name, exc)
+                        logger.error("Failed to copy document file %s: %s", mdFile.name, exc)
+                        errorMessage = self.tr("Failed to copy document file: {0}").format(mdFile.name)
+                        raise
 
-        # Copy manifest.json if it exists
-        oldManifestPath = oldRuntimePath / nwFiles.MANIFEST_FILE if oldRuntimePath else None
-        newManifestPath = self._storage._runtimePath / nwFiles.MANIFEST_FILE if self._storage._runtimePath else None
-        if oldManifestPath and newManifestPath and oldManifestPath.exists():
+            # Copy all meta files from old meta to new meta
+            newMetaPath = self._storage._runtimePath / "meta" if self._storage._runtimePath else None
+            if oldMetaPath and newMetaPath and oldMetaPath.is_dir():
+                newMetaPath.mkdir(exist_ok=True)
+                for metaFile in oldMetaPath.glob("*"):
+                    if metaFile.is_file():
+                        destFile = newMetaPath / metaFile.name
+                        try:
+                            shutil.copy2(metaFile, destFile)
+                        except Exception as exc:
+                            logger.error("Failed to copy meta file %s: %s", metaFile.name, exc)
+                            errorMessage = self.tr("Failed to copy project metadata file: {0}").format(metaFile.name)
+                            raise
+
+            # Copy all project image assets. Link-like files and folders
+            # are rejected rather than silently omitted, since a missing
+            # image would break references in the copied project.
+            newAssetPath = self._storage._runtimePath / "assets" / "img" if self._storage._runtimePath else None
+            if oldAssetPath and newAssetPath:
+                try:
+                    if isLinkLike(oldAssetPath) or isLinkLike(oldAssetPath.parent):
+                        raise OSError("The project image folder cannot be a link")
+                    if oldAssetPath.exists() and not oldAssetPath.is_dir():
+                        raise OSError("The project image folder is not a directory")
+                    if oldAssetPath.is_dir():
+                        newAssetPath.mkdir(parents=True, exist_ok=True)
+                        for assetFile in oldAssetPath.iterdir():
+                            if isLinkLike(assetFile):
+                                raise OSError("The project image file cannot be a link")
+                            if assetFile.is_file():
+                                copyRegularFile(assetFile, newAssetPath / assetFile.name)
+                except Exception as exc:
+                    logger.error("Failed to copy project image file: %s", exc)
+                    errorMessage = self.tr("Failed to copy project image file.")
+                    raise
+
+            # Write project XML
+            self._data.setIndexRevision(self._index.indexRevision)
+            saveTime = time()
+            editTime = self._data.editTime + max(round(saveTime - self._session.start), 0)
+            content = self._tree.pack()
+            xmlWriter = self._storage.getXmlWriter()
+            if not isinstance(xmlWriter, ProjectXMLWriter):
+                raise OSError("Could not create a project XML writer")
+
+            if not xmlWriter.write(self._data, content, saveTime, editTime):
+                self._reportErrors(self.tr("Issues encountered when saving project:"))
+                raise OSError("Could not write the project XML")
+
+            # Save other project data
+            if not self._options.saveSettings():
+                raise OSError("Could not save the project options")
+            if not self._index.saveIndex():
+                raise OSError("Could not save the project index")
+
+            if not self._storage.runPostSaveTasks(saveTime=saveTime, autoSave=False):
+                raise OSError("Could not finalise the project storage")
+            if not self._storage._manifestPath or not self._storage._manifestPath.is_file():
+                raise OSError("Could not write the project manifest")
+
+            # Lock the staged project before publishing it. The lock file
+            # is moved together with the rest of the project.
+            assert stagingPath is not None
+            self._storage.lockSession()
+            stagedLockPath = self._storage._lockFilePath
+            if not stagedLockPath or not stagedLockPath.is_file():
+                raise OSError("Could not lock the new project")
+
+            # Publish the complete staged project with atomic no-replace
+            # semantics. An existing empty target is first moved aside,
+            # and is restored if publishing fails.
+            if targetExisted:
+                try:
+                    currentStat = os.lstat(newPath)
+                except OSError:
+                    errorMessage = self.tr("The target project location changed while saving. Please try again.")
+                    raise
+                if (
+                    stat.S_ISLNK(currentStat.st_mode)
+                    or not stat.S_ISDIR(currentStat.st_mode)
+                    or targetIdentity is None
+                    or currentStat.st_dev != targetIdentity[0]
+                    or currentStat.st_ino != targetIdentity[1]
+                ):
+                    errorMessage = self.tr("The target project location changed while saving. Please try again.")
+                    raise OSError("The target project location changed while saving")
+                if any(newPath.iterdir()):
+                    errorMessage = self.tr("The target project location changed while saving. Please try again.")
+                    raise OSError("The target project location is no longer an empty folder")
+
+                targetBackupPath = newPath.parent / f".{newPath.name}.umbraedit-saveas-{uuid.uuid4().hex}"
+                os.rename(newPath, targetBackupPath)
+                if any(targetBackupPath.iterdir()):
+                    restoreTargetBackup()
+                    errorMessage = self.tr("The target project location changed while saving. Please try again.")
+                    raise OSError("The target project location is no longer an empty folder")
+            elif newPath.exists() or newPath.is_symlink():
+                errorMessage = self.tr("The target project location changed while saving. Please try again.")
+                raise OSError("The target project location already exists")
+
             try:
-                shutil.copy2(oldManifestPath, newManifestPath)
-            except Exception as exc:
-                logger.error("Failed to copy manifest file: %s", exc)
+                published = renameNoReplace(stagingPath, newPath)
+            except Exception:
+                restoreTargetBackup()
+                raise
+            if not published:
+                restoreTargetBackup()
+                errorMessage = self.tr("The target project location changed while saving. Please try again.")
+                raise OSError("The target project location already exists")
+            stagingPath = None
 
-        # Write project XML
-        self._data.setIndexRevision(self._index.indexRevision)
-        saveTime = time()
-        editTime = self._data.editTime + max(round(saveTime - self._session.start), 0)
-        content = self._tree.pack()
-        xmlWriter = self._storage.getXmlWriter()
-        if not isinstance(xmlWriter, ProjectXMLWriter):
+            if targetBackupPath is not None:
+                try:
+                    os.rmdir(targetBackupPath)
+                    targetBackupPath = None
+                except OSError:
+                    logger.warning("Could not remove the previous target project folder '%s'", targetBackupPath)
+
+            # The staged paths now refer to the published project.
+            self._storage._storagePath = newPath
+            self._storage._runtimePath = newPath
+            self._storage._lockFilePath = newPath / nwFiles.PROJ_LOCK
+            self._storage._manifestPath = newPath / nwFiles.MANIFEST_FILE
+
+            if oldLockPath and oldLockPath != self._storage._lockFilePath and oldLockPath.exists():
+                try:
+                    oldLockPath.unlink()
+                except OSError as exc:
+                    logger.warning("Failed to release the original project lock: %s", exc)
+                    SHARED.warn(
+                        self.tr(
+                            "The new project was saved, but the original project lock could not be removed. "
+                            "Please remove it manually if necessary."
+                        )
+                    )
+
+        except Exception as exc:
+            cleaned = cleanStaging()
+            restored = restoreTargetBackup()
+            restoreState()
+            details = "" if cleaned else self.tr("The incomplete destination could not be removed.")
+            if not restored and targetBackupPath is not None:
+                details = self.tr("The previous target project folder is preserved at: {0}").format(targetBackupPath)
+            logger.error("Failed to save project as a new project", exc_info=exc)
+            SHARED.error(errorMessage, details=details, exc=exc)
             return False
-
-        if not xmlWriter.write(self._data, content, saveTime, editTime):
-            self._reportErrors(self.tr("Issues encountered when saving project:"))
-            return False
-
-        # Save other project data
-        self._options.saveSettings()
-        self._index.saveIndex()
-
-        self._storage.runPostSaveTasks(saveTime=saveTime, autoSave=False)
 
         # Update recent projects with the new location (separate from original)
-        CONFIG.recentProjects.update(str(newPath), self._data, saveTime)
+        try:
+            CONFIG.recentProjects.update(str(newPath), self._data, saveTime)
+        except Exception as exc:
+            logger.error("Failed to update the recent projects list", exc_info=exc)
 
         self._reportErrors(self.tr("Issues encountered when saving project:"))
         SHARED.newStatusMessage(self.tr("Saved Project As: {0}").format(newName))

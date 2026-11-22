@@ -22,6 +22,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import os
+
 from datetime import datetime
 from pathlib import Path
 from shutil import copyfile
@@ -481,6 +483,43 @@ def testNWProject_Save(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, mo
         assert project.saveProject() is True
 
     project.closeProject()
+
+
+@pytest.mark.core
+def testNWProject_SaveAsRejectsUnsafeTargets(
+    mockGUI: MockGuiMain,
+    mockRnd: MockRnd,
+    fncPath: Path,
+    projPath: Path,
+):
+    """Test that Save As rejects self-copy and symlinked destinations."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    originalPath = project.storage.storagePath
+    assert project.saveProjectAs(projPath, "Self Copy") is False
+    assert SHARED.lastAlert[0] == "The target project location cannot be inside the current project."
+    assert project.storage.storagePath == originalPath
+
+    nestedPath = projPath / "nested-project"
+    assert project.saveProjectAs(nestedPath, "Nested Copy") is False
+    assert SHARED.lastAlert[0] == "The target project location cannot be inside the current project."
+    assert project.storage.storagePath == originalPath
+    assert not nestedPath.exists()
+
+    outsidePath = fncPath / "outside-target"
+    outsidePath.mkdir()
+    linkedPath = fncPath / "linked-target"
+    try:
+        os.symlink(outsidePath, linkedPath, target_is_directory=True)
+    except OSError:
+        pytest.skip("Symbolic links are not supported on this platform")
+
+    assert project.saveProjectAs(linkedPath, "Linked Copy") is False
+    assert SHARED.lastAlert[0] == "The target project location cannot be a symbolic link."
+    assert project.storage.storagePath == originalPath
+    assert list(outsidePath.iterdir()) == []
 
 
 @pytest.mark.core

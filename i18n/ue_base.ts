@@ -684,6 +684,11 @@
     </message>
     <message>
       <location filename="../umbraedit/constants.py"/>
+      <source>Icon</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/constants.py"/>
       <source>Open Document (.odt)</source>
       <translation type="unfinished"/>
     </message>
@@ -850,6 +855,16 @@
     <message>
       <location filename="../umbraedit/constants.py"/>
       <source>CSV files</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/constants.py"/>
+      <source>JPEG images</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/constants.py"/>
+      <source>PNG images</source>
       <translation type="unfinished"/>
     </message>
     <message>
@@ -1989,6 +2004,84 @@
     </message>
   </context>
   <context>
+    <name>GuiDocPanes</name>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The requested image type is not valid.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Please open a project before importing an image.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Please open a document to import the image into.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Select Image</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Image import cancelled. No changes were made.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The selected image file could not be found.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The selected file must be a JPG or PNG image.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The selected file is not a valid JPG or PNG image.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The selected image format does not match its file extension.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The selected image is too large to import safely.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The active project or document changed while selecting an image. Please try again.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Could not copy the image into the project.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Could not insert the image reference into the document.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Could not insert the image reference into the document. The imported image could not be removed.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Imported image: {0}</source>
+      <translation type="unfinished"/>
+    </message>
+  </context>
+  <context>
     <name>GuiMainMenu</name>
     <message>
       <location filename="../umbraedit/gui/mainmenu.py"/>
@@ -2328,6 +2421,21 @@
     <message>
       <location filename="../umbraedit/gui/mainmenu.py"/>
       <source>Tags and References</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/mainmenu.py"/>
+      <source>Images</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/mainmenu.py"/>
+      <source>Cover</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/mainmenu.py"/>
+      <source>Icon</source>
       <translation type="unfinished"/>
     </message>
     <message>
@@ -4285,6 +4393,66 @@
     <message>
       <location filename="../umbraedit/core/project.py"/>
       <source>Saved Project: {0}</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>Failed to copy project image file.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>The target project location cannot be a symbolic link.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>The target project location cannot be inside the current project.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>Failed to create project storage.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>Failed to save project as a new project.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>Failed to copy document file: {0}</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>Failed to copy project metadata file: {0}</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>The target project location changed while saving. Please try again.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>The previous target project folder is preserved at: {0}</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>The new project was saved, but the original project lock could not be removed. Please remove it manually if necessary.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>The incomplete destination could not be removed.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/core/project.py"/>
+      <source>Saved Project As: {0}</source>
       <translation type="unfinished"/>
     </message>
     <message>

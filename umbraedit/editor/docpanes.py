@@ -31,6 +31,8 @@ from PyQt6.QtWidgets import QFileDialog, QSplitter, QVBoxLayout, QWidget
 
 from umbraedit import CONFIG, SHARED
 from umbraedit.common import formatFileFilter
+from umbraedit.constants import nwKeyWords
+from umbraedit.core.imageimport import ImageImportError, ImageImportReason, importProjectImage
 from umbraedit.editor.editor import GuiDocEditor
 from umbraedit.editor.viewer import GuiDocViewer
 from umbraedit.editor.viewerpanel import GuiDocViewerPanel
@@ -294,6 +296,130 @@ class GuiDocPanes(QWidget):
                 return
 
         self.docEditor.replaceText(text)
+
+    @pyqtSlot(str)
+    def insertImage(self, keyword: str) -> None:
+        """Import a project image and insert its reference in the document."""
+        if keyword not in (nwKeyWords.COVER_KEY, nwKeyWords.ICON_KEY):
+            logger.error("Invalid image keyword '%s'", keyword)
+            SHARED.error(self.tr("The requested image type is not valid."))
+            return
+
+        if not SHARED.hasProject:
+            SHARED.error(self.tr("Please open a project before importing an image."))
+            return
+
+        documentHandle = self.docEditor.docHandle
+        if documentHandle is None:
+            SHARED.error(self.tr("Please open a document to import the image into."))
+            return
+
+        project = SHARED.project
+        projectPath = project.storage.storagePath
+        document = self.docEditor.document()
+        if document is None:
+            SHARED.error(self.tr("Please open a document to import the image into."))
+            return
+        documentRevision = document.revision()
+        capturedCursor = self.docEditor.textCursor()
+        lastPath = CONFIG.lastPath("image")
+        fileFilter = formatFileFilter(["*.jpg", "*.png"])
+        loadFile, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("Select Image"),
+            str(lastPath),
+            filter=fileFilter,
+        )
+
+        # The file chooser is modal, but restore the complete cursor
+        # state immediately so cancellation and all subsequent failure
+        # paths leave the editor exactly where it was before the chooser
+        # was opened. Do not restore it into a changed context.
+        currentDocument = self.docEditor.document()
+        sameDocument = (
+            currentDocument is not None
+            and self.docEditor.docHandle == documentHandle
+            and capturedCursor.document() is currentDocument
+        )
+        sameRevision = currentDocument is not None and sameDocument and currentDocument.revision() == documentRevision
+        sameProject = (
+            SHARED.hasProject
+            and SHARED.project is project
+            and project.storage.storagePath == projectPath
+            and project.storage.isOpen()
+        )
+        sameContext = sameProject and sameDocument and sameRevision
+        if sameContext:
+            self.docEditor.setTextCursor(capturedCursor)
+        if not loadFile.strip():
+            if sameContext:
+                SHARED.newStatusMessage(self.tr("Image import cancelled. No changes were made."))
+            else:
+                SHARED.error(
+                    self.tr("The active project or document changed while selecting an image. Please try again.")
+                )
+            return
+
+        if not sameContext:
+            SHARED.error(self.tr("The active project or document changed while selecting an image. Please try again."))
+            return
+
+        try:
+            imported = importProjectImage(project, loadFile)
+        except ImageImportError as exc:
+            if sameDocument:
+                self.docEditor.setTextCursor(capturedCursor)
+            if exc.reason == ImageImportReason.NO_PROJECT:
+                message = self.tr("Please open a project before importing an image.")
+            elif exc.reason == ImageImportReason.NOT_FOUND:
+                message = self.tr("The selected image file could not be found.")
+            elif exc.reason == ImageImportReason.UNSUPPORTED_TYPE:
+                message = self.tr("The selected file must be a JPG or PNG image.")
+            elif exc.reason == ImageImportReason.INVALID_IMAGE:
+                message = self.tr("The selected file is not a valid JPG or PNG image.")
+            elif exc.reason == ImageImportReason.FORMAT_MISMATCH:
+                message = self.tr("The selected image format does not match its file extension.")
+            elif exc.reason == ImageImportReason.IMAGE_TOO_LARGE:
+                message = self.tr("The selected image is too large to import safely.")
+            else:
+                message = self.tr("Could not copy the image into the project.")
+            SHARED.error(message, exc=exc)
+            return
+        except Exception as exc:
+            if sameDocument:
+                self.docEditor.setTextCursor(capturedCursor)
+            logger.error("Unexpected error while importing a project image", exc_info=exc)
+            SHARED.error(self.tr("Could not copy the image into the project."), exc=exc)
+            return
+
+        insertError: Optional[Exception] = None
+        try:
+            inserted = self.docEditor.insertMetaValue(keyword, imported.relativePath)
+        except Exception as exc:
+            logger.error("Unexpected error while inserting an image reference", exc_info=exc)
+            inserted = False
+            insertError = exc
+
+        if not inserted:
+            if sameDocument:
+                self.docEditor.setTextCursor(capturedCursor)
+            cleanupFailed = False
+            try:
+                imported.path.unlink()
+            except OSError as exc:
+                cleanupFailed = True
+                logger.warning("Could not remove uninserted project image '%s'", imported.path, exc_info=exc)
+            if cleanupFailed:
+                message = self.tr(
+                    "Could not insert the image reference into the document. The imported image could not be removed."
+                )
+            else:
+                message = self.tr("Could not insert the image reference into the document.")
+            SHARED.error(message, exc=insertError)
+            return
+
+        CONFIG.setLastPath("image", loadFile)
+        SHARED.newStatusMessage(self.tr("Imported image: {0}").format(imported.relativePath))
 
     def viewDocument(
         self, tHandle: Optional[str] = None, sTitle: Optional[str] = None, changeFocus: bool = False

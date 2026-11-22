@@ -15,6 +15,11 @@ Development release following the 2026.11 release cycle.
 
 **Features**
 
+* Added **Insert > Images > Cover** and **Insert > Images > Icon** commands. They import a
+  JPEG or PNG image into the project's `assets/img` folder and insert an `@Cover:` or `@icon:`
+  metadata tag at the cursor in the current document. Existing images are never overwritten.
+  By B.D. Murphy.
+
 * Added a "Project storage location" setting to Preferences. It points to the folder where
   new projects are created, and which is searched for projects when the Welcome dialog is
   opened. The default is a "UE_Projects" folder in the user's home folder. By B.D. Murphy.
@@ -51,8 +56,8 @@ Development release following the 2026.11 release cycle.
 **Features**
 
 * Added "Save Project As" (Ctrl+Alt+S) to the Project menu. Saves the current project
-  to a new location with an optional new name. All document files, metadata, and the
-  project XML are copied to the new location, and the new project is added to the
+  to a new location with an optional new name. All document files, metadata, project images,
+  and the project XML are copied to the new location, and the new project is added to the
   recent projects list as a separate entry. By B.D. Murphy.
 
 ---

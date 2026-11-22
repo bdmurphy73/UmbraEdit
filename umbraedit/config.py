@@ -1342,7 +1342,7 @@ class RecentProjects:
 class RecentPaths:
     """A record of recently used file paths."""
 
-    KEYS: Final[list[str]] = ["default", "project", "import", "story", "stats"]
+    KEYS: Final[list[str]] = ["default", "project", "import", "image", "story", "stats"]
 
     def __init__(self, config: Config) -> None:
         self._conf = config

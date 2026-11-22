@@ -64,6 +64,7 @@ class GuiMainMenu(QMenuBar):
     requestDocInsert = pyqtSignal(nwDocInsert)
     requestDocInsertText = pyqtSignal(str)
     requestDocKeyWordInsert = pyqtSignal(str)
+    requestImageInsert = pyqtSignal(str)
     requestFocusChange = pyqtSignal(nwFocus)
     requestViewChange = pyqtSignal(nwView)
 
@@ -179,6 +180,11 @@ class GuiMainMenu(QMenuBar):
     def _emitDocKeyWordInsert(self, key: str) -> None:
         """Forward a document keyword insert request."""
         self.requestDocKeyWordInsert.emit(key)
+
+    @pyqtSlot(str)
+    def _emitImageInsert(self, key: str) -> None:
+        """Forward an image insert request."""
+        self.requestImageInsert.emit(key)
 
     @pyqtSlot(nwFocus)
     def _emitFocusChange(self, focus: nwFocus) -> None:
@@ -610,6 +616,17 @@ class GuiMainMenu(QMenuBar):
             action.setShortcut(nwLabels.KEY_SHORTCUT[key])
             action.triggered.connect(qtWeakLambda(self._emitDocKeyWordInsert, key))
             self.mainGui.addAction(action)
+
+        # Insert > Images
+        self.mInsImages = qtAddMenu(self.insMenu, self.tr("Images"))
+
+        # Insert > Images > Cover
+        self.aInsCover = qtAddAction(self.mInsImages, self.tr("Cover"))
+        self.aInsCover.triggered.connect(qtWeakLambda(self._emitImageInsert, nwKeyWords.COVER_KEY))
+
+        # Insert > Images > Icon
+        self.aInsIcon = qtAddAction(self.mInsImages, self.tr("Icon"))
+        self.aInsIcon.triggered.connect(qtWeakLambda(self._emitImageInsert, nwKeyWords.ICON_KEY))
 
         # Insert > Special Comments
         self.mInsComments = qtAddMenu(self.insMenu, self.tr("Special Comments"))

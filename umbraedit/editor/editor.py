@@ -1197,13 +1197,37 @@ class GuiDocEditor(QTextEdit):
 
         return
 
-    def insertNewBlock(self, text: str, defaultAfter: bool = True) -> bool:
-        """Insert a piece of text on a blank line."""
+    def insertNewBlock(self, text: str, defaultAfter: bool = True, atCursor: bool = False) -> bool:
+        """Insert a piece of text on a blank line.
+
+        By default, the text is inserted after the current line. When
+        ``atCursor`` is set, the current line is split at the cursor so
+        that the inserted text has a line of its own.
+        """
         cursor = self.textCursor()
         block = cursor.block()
         if not block.isValid():
             logger.error("Not a valid text block")
             return False
+
+        if atCursor:
+            if cursor.hasSelection():
+                cursor.clearSelection()
+            blockOffset = cursor.positionInBlock()
+            hasBefore = blockOffset > 0
+            hasAfter = blockOffset < block.length() - 1
+
+            cursor.beginEditBlock()
+            if hasBefore:
+                insertText = f"\n{text}" + ("\n" if hasAfter else "")
+            else:
+                insertText = text + ("\n" if hasAfter else "")
+            cursor.insertText(insertText)
+            if hasAfter:
+                cursor.setPosition(cursor.position() - 1)
+            cursor.endEditBlock()
+            self.setTextCursor(cursor)
+            return True
 
         sPos = block.position()
         sLen = block.length()
@@ -1487,6 +1511,15 @@ class GuiDocEditor(QTextEdit):
             return False
         logger.debug("Inserting keyword '%s'", keyword)
         return self.insertNewBlock(f"{keyword}: ")
+
+    @pyqtSlot(str, str)
+    def insertMetaValue(self, keyword: str, value: str) -> bool:
+        """Insert a metadata keyword and its value at the cursor."""
+        if keyword not in nwKeyWords.META_KEYS or not value:
+            logger.error("Invalid metadata keyword or value")
+            return False
+        logger.debug("Inserting metadata '%s' with value '%s'", keyword, value)
+        return self.insertNewBlock(f"{keyword}: {value}", atCursor=True)
 
     @pyqtSlot()
     def toggleSearch(self) -> None:

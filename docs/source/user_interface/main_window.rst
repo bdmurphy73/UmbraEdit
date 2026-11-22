@@ -22,6 +22,22 @@ views you can switch between, a quick link to the **Manuscript Build** tool, and
 project-related tools and quick access to settings at the bottom.
 
 
+Inserting Project Images
+========================
+
+The **Insert > Images** submenu provides **Cover** and **Icon** commands. Each command opens a file
+chooser for JPEG (``.jpg``) or PNG (``.png``) images. The selected image is validated and copied to
+the ``assets/img`` folder in the current project. Existing files are never overwritten; when a file
+name is already in use, a numeric suffix is added.
+
+The command then inserts an ``@Cover:`` or ``@icon:`` line at the cursor in the current document.
+The value is the project-relative path of the imported file, for example
+``@Cover: assets/img/cover.png``. Undoing the insertion removes the tag from the document but
+leaves the imported image in the project.
+
+.. versionadded:: 2026.11.0006
+
+
 Project Tree and Editor View
 ============================
 

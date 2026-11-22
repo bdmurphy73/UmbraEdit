@@ -112,6 +112,28 @@ def testGuiMain_ProjectBlocker(caplog: pytest.LogCaptureFixture, nwGUI: GuiMain)
 
 
 @pytest.mark.gui
+def testGuiMain_SaveAsUsesProjectFolder(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that Save As starts in the configured project folder."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+
+    selectedPaths = []
+
+    def selectFolder(parent, path):
+        selectedPaths.append(path)
+
+    monkeypatch.setattr(SHARED, "getProjectFolder", selectFolder)
+    nwGUI.saveProjectAs()
+
+    assert selectedPaths == [str(CONFIG.projectFolder())]
+
+
+@pytest.mark.gui
 def testGuiMain_Launch(
     qtbot: QtBot,
     monkeypatch: pytest.MonkeyPatch,

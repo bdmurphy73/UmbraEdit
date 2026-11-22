@@ -611,6 +611,7 @@ def testConfig_RecentPaths(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths):
     recent.setPath("default", tstPaths.cnfDir / "default")
     recent.setPath("project", tstPaths.cnfDir / "project")
     recent.setPath("import", tstPaths.cnfDir / "import")
+    recent.setPath("image", tstPaths.cnfDir / "image")
     recent.setPath("story", tstPaths.cnfDir / "story")
     recent.setPath("stats", tstPaths.cnfDir / "stats")
 
@@ -621,6 +622,7 @@ def testConfig_RecentPaths(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths):
     assert recent.getPath("default") == str(tstPaths.cnfDir / "default")
     assert recent.getPath("project") == str(tstPaths.cnfDir / "project")
     assert recent.getPath("import") == str(tstPaths.cnfDir / "import")
+    assert recent.getPath("image") == str(tstPaths.cnfDir / "image")
     assert recent.getPath("story") == str(tstPaths.cnfDir / "story")
     assert recent.getPath("stats") == str(tstPaths.cnfDir / "stats")
 
@@ -632,6 +634,7 @@ def testConfig_RecentPaths(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths):
         "default": str(tstPaths.cnfDir / "default"),
         "project": str(tstPaths.cnfDir / "project"),
         "import": str(tstPaths.cnfDir / "import"),
+        "image": str(tstPaths.cnfDir / "image"),
         "story": str(tstPaths.cnfDir / "story"),
         "stats": str(tstPaths.cnfDir / "stats"),
     }

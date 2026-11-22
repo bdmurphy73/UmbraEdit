@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 
 from contextlib import suppress
 from datetime import datetime
@@ -48,6 +49,7 @@ from umbraedit.common import (
 from umbraedit.constants import nwFiles
 from umbraedit.core.document import ProjectDocument
 from umbraedit.core.projectxml import FILE_REVISION, FILE_VERSION, ProjectXMLReader, ProjectXMLWriter
+from umbraedit.core.safeio import isLinkLike, openRegularFile
 from umbraedit.core.spellcheck import UserDictionary
 from umbraedit.enum import nwItemClass, nwItemLayout, nwProjectKind
 from umbraedit.error import logException
@@ -176,9 +178,13 @@ class ProjectStorage:
         """
         return len(self._oldDocuments) > 0
 
-    def createNewProject(self, path: str | Path) -> ProjectStorageCreate:
-        """Create a new project at the given location."""
-        inPath = Path(path).resolve()
+    def createNewProject(self, path: str | Path, resolvePath: bool = True) -> ProjectStorageCreate:
+        """Create a new project at the given location.
+
+        ``resolvePath`` can be disabled for application-owned staging
+        directories so a link introduced at the path is not followed.
+        """
+        inPath = Path(path).expanduser().absolute() if not resolvePath else Path(path).resolve()
         if safeIsDir(inPath) and len(list(safeIterDir(inPath))) > 0:
             logger.error("Folder is not empty: %s", inPath)
             return ProjectStorageCreate.NOT_EMPTY
@@ -374,6 +380,9 @@ class ProjectStorage:
         try:
             baseMeta = basePath / "meta"
             baseCont = basePath / "content"
+            baseAssets = basePath / "assets"
+            baseImages = baseAssets / "img"
+            assetFiles: list[tuple[Path, str]] = []
             files = [
                 (basePath / nwFiles.PROJ_FILE, nwFiles.PROJ_FILE),
                 (baseMeta / nwFiles.BUILDS_FILE, f"meta/{nwFiles.BUILDS_FILE}"),
@@ -386,6 +395,18 @@ class ProjectStorage:
                 if contItem.is_file() and contItem.suffix == ".md" and isHandle(contItem.stem):
                     files.append((contItem, f"content/{contItem.name}"))  # noqa: PERF401
 
+            if baseAssets.exists() or isLinkLike(baseAssets):
+                if isLinkLike(baseAssets) or isLinkLike(baseImages):
+                    raise OSError("The project image folder cannot be a link")
+                if baseImages.exists():
+                    if not baseImages.is_dir():
+                        raise OSError("The project image folder is not a directory")
+                    for assetItem in baseImages.iterdir():
+                        if isLinkLike(assetItem):
+                            raise OSError("The project image file cannot be a link")
+                        if assetItem.is_file():
+                            assetFiles.append((assetItem, f"assets/img/{assetItem.name}"))
+
             comp = ZIP_STORED if compression is None else ZIP_DEFLATED
             level = minmax(compression, 0, 9) if isinstance(compression, int) else None
             with ZipFile(target, mode="w", compression=comp, compresslevel=level) as zipObj:
@@ -396,6 +417,13 @@ class ProjectStorage:
                     if srcPath.is_file():
                         zipObj.write(srcPath, zipPath)
                         logger.debug("Added: %s", zipPath)
+                for srcPath, zipPath in assetFiles:
+                    with (
+                        openRegularFile(srcPath) as inFile,
+                        zipObj.open(zipPath, mode="w", force_zip64=True) as outFile,
+                    ):
+                        shutil.copyfileobj(inFile, outFile, length=1024 * 1024)
+                    logger.debug("Added: %s", zipPath)
 
         except Exception:
             logger.error("Failed to create archive")

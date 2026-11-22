@@ -217,6 +217,7 @@ class GuiMain(QMainWindow):
         self.mainMenu.requestDocInsert.connect(self.docPanes.passDocumentInsert)
         self.mainMenu.requestDocInsertText.connect(self.docPanes.passDocumentInsert)
         self.mainMenu.requestDocKeyWordInsert.connect(self.docEditor.insertKeyWord)
+        self.mainMenu.requestImageInsert.connect(self.docPanes.insertImage)
         self.mainMenu.requestFocusChange.connect(self._switchFocus)
         self.mainMenu.requestViewChange.connect(self.changeView)
 
@@ -478,7 +479,7 @@ class GuiMain(QMainWindow):
             return
 
         # Get destination folder
-        folder = SHARED.getProjectFolder(self, str(CONFIG.homePath()))
+        folder = SHARED.getProjectFolder(self, str(CONFIG.projectFolder()))
         if not folder:
             return
 

@@ -379,6 +379,7 @@ def testIndex_CheckThese(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     assert index.checkThese(["@SrchTerm", "one", "two"], nHandle) == [True, True, True]
     assert index.checkThese(["@ISBN", "978-0-000000-00-0"], nHandle) == [True, True]
     assert index.checkThese(["@Cover", "assets/img/epub_cover.png"], nHandle) == [True, True]
+    assert index.checkThese(["@icon", "assets/img/icon.png"], nHandle) == [True, True]
     assert index.checkThese(["@Blurb"], nHandle) == [True]
 
     project.closeProject()

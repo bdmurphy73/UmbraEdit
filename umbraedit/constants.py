@@ -234,6 +234,7 @@ class nwKeyWords:
     SRCHTERM_KEY = "@SrchTerm"
     ISBN_KEY = "@ISBN"
     COVER_KEY = "@Cover"
+    ICON_KEY = "@icon"
 
     # Note: The order here affects the order of menu entries
     ALL_KEYS: ClassVar[list[str]] = [
@@ -317,6 +318,7 @@ class nwKeyWords:
         SRCHTERM_KEY,
         ISBN_KEY,
         COVER_KEY,
+        ICON_KEY,
     }
 
     # Book metadata keywords that hold free-form values
@@ -331,6 +333,7 @@ class nwKeyWords:
         SRCHTERM_KEY,
         ISBN_KEY,
         COVER_KEY,
+        ICON_KEY,
     ]
 
     # Map from Keys to Item Class
@@ -526,6 +529,7 @@ class nwLabels:
         nwKeyWords.SRCHTERM_KEY: QT_TRANSLATE_NOOP("Constant", "Search Term"),
         nwKeyWords.ISBN_KEY: QT_TRANSLATE_NOOP("Constant", "ISBN"),
         nwKeyWords.COVER_KEY: QT_TRANSLATE_NOOP("Constant", "Cover"),
+        nwKeyWords.ICON_KEY: QT_TRANSLATE_NOOP("Constant", "Icon"),
     }
     KEY_SHORTCUT: ClassVar[dict[str, str]] = {
         nwKeyWords.TAG_KEY: "Ctrl+K, G",
@@ -641,6 +645,8 @@ class nwLabels:
         "*.txt": QT_TRANSLATE_NOOP("Constant", "Text files"),
         "*.md": QT_TRANSLATE_NOOP("Constant", "Markdown files"),
         "*.csv": QT_TRANSLATE_NOOP("Constant", "CSV files"),
+        "*.jpg": QT_TRANSLATE_NOOP("Constant", "JPEG images"),
+        "*.png": QT_TRANSLATE_NOOP("Constant", "PNG images"),
         "*": QT_TRANSLATE_NOOP("Constant", "All files"),
     }
     PAGE_UNIT_NAME: ClassVar[dict[str, str]] = {

@@ -351,6 +351,7 @@ def testIndexHeading_References():
         "@SrchTerm": [],
         "@ISBN": [],
         "@Cover": [],
+        "@icon": [],
     }
     assert head.getReferencesByKeyword("@tag") == []
 
@@ -394,6 +395,7 @@ def testIndexHeading_References():
         "@SrchTerm": [],
         "@ISBN": [],
         "@Cover": [],
+        "@icon": [],
     }
 
     # Check them individually

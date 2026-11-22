@@ -82,6 +82,39 @@ msgstr ""
 "rapide aux paramètres dans la partie inférieure."
 
 #: ../../source/user_interface/main_window.rst:26
+msgid "Inserting Project Images"
+msgstr "Insérer des images dans le projet"
+
+#: ../../source/user_interface/main_window.rst:28
+msgid ""
+"The **Insert > Images** submenu provides **Cover** and **Icon** commands. "
+"Each command opens a file chooser for JPEG (``.jpg``) or PNG (``.png``) "
+"images. The selected image is validated and copied to the ``assets/img`` "
+"folder in the current project. Existing files are never overwritten; when "
+"a file name is already in use, a numeric suffix is added."
+msgstr ""
+"Le sous-menu **Insertion > Images** propose les commandes **Couverture** et "
+"**Icône**. Chaque commande ouvre un sélecteur de fichiers pour les images "
+"JPEG (``.jpg``) ou PNG (``.png``). L'image sélectionnée est validée puis "
+"copiée dans le dossier ``assets/img`` du projet actuel. Les fichiers "
+"existants ne sont jamais écrasés ; lorsqu'un nom de fichier est déjà "
+"utilisé, un suffixe numérique est ajouté."
+
+#: ../../source/user_interface/main_window.rst:33
+msgid ""
+"The command then inserts an ``@Cover:`` or ``@icon:`` line at the cursor in "
+"the current document. The value is the project-relative path of the "
+"imported file, for example ``@Cover: assets/img/cover.png``. Undoing the "
+"insertion removes the tag from the document but leaves the imported image in "
+"the project."
+msgstr ""
+"La commande insère ensuite une ligne ``@Cover:`` ou ``@icon:`` à l'emplacement "
+"du curseur dans le document ouvert. La valeur correspond au chemin du "
+"fichier importé relatif au projet, par exemple "
+"``@Cover: assets/img/cover.png``. Annuler l'insertion retire la balise du "
+"document, mais laisse l'image importée dans le projet."
+
+#: ../../source/user_interface/main_window.rst:42
 msgid "Project Tree and Editor View"
 msgstr "Arborescence du projet et vue de l'éditeur"
 

@@ -36,6 +36,12 @@ storage for robustness.
    More Documents <https://umbraedit.io/more/>
 
 .. toctree::
+   :caption: Extended Manual
+   :hidden:
+
+   umbra/index
+
+.. toctree::
    :caption: Getting Started
    :hidden:
 

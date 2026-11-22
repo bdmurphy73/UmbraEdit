@@ -61,4 +61,4 @@ See also
 ========
 
 * :doc:`what-is-umbraedit` — What UmbraEdit is.
-* :doc:`first-book` — Create your first project.
+* :doc:`../tutorials/first-book` — Create your first project.

@@ -27,13 +27,13 @@ Data Layout
 
 The server stores all data under a single data directory:
 
-```
-<data-dir>/
-  umbrastore.db          # SQLite database (WAL mode, synchronous=FULL)
-  blobs/
-    <sha256[0:2]>/
-      <sha256>           # Content-addressed blob storage
-```
+::
+
+    <data-dir>/
+      umbrastore.db          # SQLite database (WAL mode, synchronous=FULL)
+      blobs/
+        <sha256[0:2]>/
+          <sha256>           # Content-addressed blob storage
 
 Install
 -------

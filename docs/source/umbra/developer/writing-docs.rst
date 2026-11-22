@@ -1,43 +1,52 @@
-# UmbraEdit Documentation Writing Standard
+.. _umbra-developer-writing-docs:
+
+UmbraEdit Documentation Writing Standard
+=========================================
 
 This document defines the writing standard for UmbraEdit documentation.
 All feature pages must follow it.
 
-## Voice and Tone
+Voice and Tone
+--------------
 
-- Address the reader as **you**.
-- Use **present tense**.
-- One idea per paragraph.
-- Headings name tasks ("Assign a speaker"), not concepts ("Speaker assignment").
-- Be direct. No hedging.
+* Address the reader as **you**.
+* Use **present tense**.
+* One idea per paragraph.
+* Headings name tasks ("Assign a speaker"), not concepts ("Speaker assignment").
+* Be direct. No hedging.
 
-## Formatting
+Formatting
+----------
 
-- **Bold** for UI labels exactly as they appear in the interface.
-- ``Literals`` for file names, keywords, values, and code.
-- ``:kbd:`` for keyboard keys.
-- ``:doc:`` for links to other manual pages.
-- No "simply", "just", "obviously", or "of course".
+* **Bold** for UI labels exactly as they appear in the interface.
+* ``Literals`` for file names, keywords, values, and code.
+* ``:kbd:`` for keyboard keys.
+* ``:doc:`` for links to other manual pages.
+* No "simply", "just", "obviously", or "of course".
 
-## Examples
+Examples
+--------
 
-- Every example must be complete and runnable as shown.
-- Use the ``umbra-example`` directive so the real parser verifies it.
-- Every example must show the expected result.
+* Every example must be complete and runnable as shown.
+* Use the ``umbra-example`` directive so the real parser verifies it.
+* Every example must show the expected result.
 
-## Images
+Images
+------
 
-- Every image must have alt text.
-- Use ``umbra-shot`` for screenshots.
-- No screenshot of text that could be a code block.
+* Every image must have alt text.
+* Use ``umbra-shot`` for screenshots.
+* No screenshot of text that could be a code block.
 
-## Terminology
+Terminology
+-----------
 
-- Every term is defined once in the glossary.
-- Link to the glossary entry on first use.
-- Do not invent synonyms for defined terms.
+* Every term is defined once in the glossary.
+* Link to the glossary entry on first use.
+* Do not invent synonyms for defined terms.
 
-## Page Structure
+Page Structure
+--------------
 
 Every feature page follows the template in
 ``docs/source/_templates/feature_page.rst.tpl``:

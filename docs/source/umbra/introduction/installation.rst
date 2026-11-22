@@ -56,4 +56,4 @@ Run the ``.exe`` installer.
 See also
 ========
 
-* :doc:`first-book` — Create your first project.
+* :doc:`../tutorials/first-book` — Create your first project.

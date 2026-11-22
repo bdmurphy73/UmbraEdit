@@ -44,6 +44,10 @@ Development release following the 2026.11 release cycle.
   self-contained Python runtime, and the process title is no longer rewritten when the app
   runs from a bundle. By B.D. Murphy.
 
+* Fixed the Sphinx documentation build and restored generation of the French manual. The
+  project storage and location conflict features are now included in both English and French
+  documentation. By B.D. Murphy.
+
 **Features**
 
 * Added "Save Project As" (Ctrl+Alt+S) to the Project menu. Saves the current project

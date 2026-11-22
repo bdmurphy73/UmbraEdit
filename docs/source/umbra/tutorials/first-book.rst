@@ -19,7 +19,7 @@ Why it exists
 Before you start
 ================
 
-You need UmbraEdit installed (see :doc:`installation`).
+You need UmbraEdit installed (see :doc:`../introduction/installation`).
 
 Quick start
 ===========

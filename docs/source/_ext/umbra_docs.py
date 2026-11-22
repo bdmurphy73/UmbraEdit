@@ -128,9 +128,10 @@ class UmbraCatalogDirective(Directive):
 
     def run(self) -> list[nodes.Node]:
         catalogName = self.arguments[0].strip()
-        node = nodes.section()
+        node = nodes.container()
+        node["classes"].append("umbra-catalog")
         node["umbra-catalog"] = catalogName
-        node += nodes.title("", f"Generated {catalogName.title()} Catalog")
+        node += nodes.rubric("", f"Generated {catalogName.title()} Catalog")
         node += nodes.paragraph(
             "", f"This catalog is generated at build time from the code. Run `make {catalogName}` to regenerate."
         )

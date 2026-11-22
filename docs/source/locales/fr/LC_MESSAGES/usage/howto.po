@@ -41,7 +41,7 @@ msgid ""
 msgstr ""
 "Cette section sera développée au fil du temps. Si vous souhaitez que quelque "
 "chose soit ajouté, n'hésitez pas à contribuer, ou à lancer une discussion sur "
-"la `Page des discussions`_ du projet."
+"la `Discussions Page`_ du projet."
 
 #: ../../source/usage/howto.rst:17
 msgid "Managing the Project"

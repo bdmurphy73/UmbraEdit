@@ -147,7 +147,12 @@ running:
 Building the Documentation
 ==========================
 
-A local copy of this documentation can be generated as HTML.
+A local copy of this documentation can be generated as HTML. The build requires Sphinx and the
+related extensions. With uv_, install the documentation dependency group first:
+
+.. code-block:: bash
+
+   uv sync --group docs
 
 If you're using ``pip``, you must first generate the ``requirements.txt`` file:
 
@@ -170,6 +175,15 @@ Or you can run directly with uv_ or similar tools:
 
 If successful, the documentation should be available in the ``docs/build/html`` folder and you can
 open the ``index.html`` file in your browser.
+
+To build English and every available translated language, use the documentation build command:
+
+.. code-block:: bash
+
+   python pkgutils.py docs-html all
+
+The separate HTML trees are written to ``dist_doc/html/<language>``. French is currently the only
+translated documentation language in addition to English.
 
 You can also build a PDF manual from the documentation using the ``pkgutils.py`` script:
 

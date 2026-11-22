@@ -232,16 +232,25 @@ msgstr ""
 msgid "Building the Documentation"
 msgstr "Élaboration de la documentation"
 
-#: ../../source/technical/source.rst:139
+#: ../../source/technical/source.rst:150
 msgid ""
-"A local copy of this documentation can be generated as HTML. This "
-"requires installing some Python packages from PyPi:"
+"A local copy of this documentation can be generated as HTML. The build "
+"requires Sphinx and the related extensions. With uv_, install the "
+"documentation dependency group first:"
 msgstr ""
 "Une copie locale de cette documentation peut être générée au format "
-"HTML. Cela nécessite l'installation de certains paquets Python à partir "
-"de PyPi :"
+"HTML. La création nécessite Sphinx et les extensions associées. Avec "
+"uv_, installez d'abord le groupe de dépendances de documentation :"
 
-#: ../../source/technical/source.rst:146
+#: ../../source/technical/source.rst:158
+msgid ""
+"If you're using ``pip``, you must first generate the ``requirements.txt`` "
+"file:"
+msgstr ""
+"Si vous utilisez ``pip``, vous devez d'abord générer le fichier "
+"``requirements.txt`` :"
+
+#: ../../source/technical/source.rst:165
 msgid ""
 "The documentation can then be built from the root folder in the source "
 "code by running:"
@@ -249,16 +258,35 @@ msgstr ""
 "La documentation peut ensuite être créée à partir du dossier racine du "
 "code source en lançant le programme :"
 
-#: ../../source/technical/source.rst:152
+#: ../../source/technical/source.rst:171
 msgid ""
 "If successful, the documentation should be available in the ``docs/build/"
 "html`` folder and you can open the ``index.html`` file in your browser."
 msgstr ""
 "En cas de succès, la documentation devrait être disponible dans le "
-"dossier `docs/build/html` et vous pouvez ouvrir le fichier `index.html` "
-"dans votre navigateur."
+"dossier ``docs/build/html`` et vous pouvez ouvrir le fichier "
+"``index.html`` dans votre navigateur."
 
-#: ../../source/technical/source.rst:155
+#: ../../source/technical/source.rst:176
+msgid ""
+"To build English and every available translated language, use the "
+"documentation build command:"
+msgstr ""
+"Pour créer la documentation en anglais et dans toutes les langues "
+"traduites disponibles, utilisez la commande de création de la "
+"documentation :"
+
+#: ../../source/technical/source.rst:183
+msgid ""
+"The separate HTML trees are written to ``dist_doc/html/<language>``. "
+"French is currently the only translated documentation language in "
+"addition to English."
+msgstr ""
+"Les arborescences HTML distinctes sont écrites dans "
+"``dist_doc/html/<language>``. Le français est actuellement la seule "
+"langue de documentation traduite en plus de l'anglais."
+
+#: ../../source/technical/source.rst:188
 msgid ""
 "You can also build a PDF manual from the documentation using the "
 "``pkgutils.py`` script:"

@@ -66,7 +66,7 @@ rsync -a \
     --exclude='__pycache__/' \
     --exclude='*.py[cod]' \
     --exclude='dist/' \
-    --exclude='dist_macos/' \
+    --exclude='dist_*/' \
     --exclude='tests/_temp/' \
     --exclude='*.egg-info/' \
     --exclude='build/' \

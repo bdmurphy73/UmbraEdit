@@ -24,9 +24,11 @@ from __future__ import annotations
 
 import datetime
 import logging
+import os
 import xml.etree.ElementTree as ET
 
 from enum import Enum
+from io import StringIO
 from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING, Optional, Union
@@ -43,6 +45,7 @@ from umbraedit.common import (
     xmlIndent,
     yesNo,
 )
+from umbraedit.core.safeio import FileIdentity, fileIdentity, openRegularFile, writeFileAtomic
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -132,8 +135,15 @@ class ProjectXMLReader:
         Rev 1: Added ignoreCase attribute to autoReplace (26.3).
     """
 
-    def __init__(self, path: str | Path) -> None:
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        expectedParent: Optional[FileIdentity] = None,
+    ) -> None:
         self._path = Path(path)
+        self._expectedParent = expectedParent
+        self._lastIdentity: Optional[FileIdentity] = None
         self._state = XMLReadState.NO_ACTION
         self._root = ""
         self._version = 0x0
@@ -150,6 +160,11 @@ class ProjectXMLReader:
     def state(self) -> XMLReadState:
         """Return the parsing state."""
         return self._state
+
+    @property
+    def lastIdentity(self) -> Optional[FileIdentity]:
+        """Return the identity of the last verified XML file."""
+        return self._lastIdentity
 
     @property
     def xmlRoot(self) -> str:
@@ -189,8 +204,12 @@ class ProjectXMLReader:
         """Read and parse the project XML file."""
         tStart = time()
         logger.debug("Reading project XML")
+        self._lastIdentity = None
         try:
-            xml = ET.parse(str(self._path))
+            with openRegularFile(self._path, expectedParent=self._expectedParent) as inFile:
+                fileStat = os.fstat(inFile.fileno())
+                self._lastIdentity = fileIdentity(fileStat)
+                xml = ET.parse(inFile)
             self._state = XMLReadState.NO_ERROR
         except Exception as exc:
             logger.error("Failed to parse project XML", exc_info=exc)
@@ -497,13 +516,34 @@ class ProjectXMLWriter:
 
     def __init__(self, path: str | Path) -> None:
         self._path = Path(path)
+        self._lastIdentity: Optional[FileIdentity] = None
+
+    @property
+    def lastIdentity(self) -> Optional[FileIdentity]:
+        """Return the identity of the most recently published file."""
+        return self._lastIdentity
 
     ##
     #  Methods
     ##
 
-    def write(self, data: ProjectData, content: list, saveTime: float, editTime: int) -> bool:
-        """Write the project data and content to the XML files."""
+    def write(
+        self,
+        data: ProjectData,
+        content: list,
+        saveTime: float,
+        editTime: int,
+        *,
+        expectedParent: Optional[FileIdentity] = None,
+        expectedTarget: Optional[FileIdentity] = None,
+        replaceExisting: bool = True,
+    ) -> bool:
+        """Write the project data and content to the XML files.
+
+        The write is published atomically. ``expectedParent`` and
+        ``expectedTarget`` can be used to bind the operation to a project
+        directory and file identity that were validated earlier.
+        """
         tStart = time()
         logger.debug("Writing project XML")
 
@@ -585,17 +625,25 @@ class ProjectXMLWriter:
             xName.text = item["name"]
 
         # Write the XML tree to file
-        tmp = self._path.with_suffix(".tmp")
         try:
             xml = ET.ElementTree(xRoot)
             xmlIndent(xml)
-            with open(tmp, mode="w", encoding="utf-8", errors="xmlcharrefreplace", newline=CONFIG.lineEnding) as fObj:
-                # The XML declaration is written explicitly. The encoding
-                # spelling differs between Python versions when ElementTree
-                # generates it, and this keeps the output consistent.
-                fObj.write("<?xml version='1.0' encoding='utf-8'?>\n")
-                xml.write(fObj, encoding="unicode", xml_declaration=False)
-            tmp.replace(self._path)
+            buffer = StringIO()
+            # The XML declaration is written explicitly. The encoding
+            # spelling differs between Python versions when ElementTree
+            # generates it, and this keeps the output consistent.
+            buffer.write("<?xml version='1.0' encoding='utf-8'?>\n")
+            xml.write(buffer, encoding="unicode", xml_declaration=False)
+            xmlText = buffer.getvalue()
+            lineEnding = CONFIG.lineEnding if isinstance(CONFIG.lineEnding, str) else os.linesep
+            payload = xmlText.replace("\r\n", "\n").replace("\r", "\n").replace("\n", lineEnding).encode("utf-8")
+            self._lastIdentity = writeFileAtomic(
+                self._path,
+                payload,
+                expectedParent=expectedParent,
+                expectedTarget=expectedTarget,
+                replaceExisting=replaceExisting,
+            )
         except Exception as exc:
             SHARED.appendErrorMessage(exc)
             return False

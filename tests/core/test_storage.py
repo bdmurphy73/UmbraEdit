@@ -24,9 +24,11 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 from zipfile import ZipFile
 
 import pytest
@@ -37,11 +39,13 @@ from umbraedit.constants import nwFiles
 from umbraedit.core.document import ProjectDocument
 from umbraedit.core.project import NWProject
 from umbraedit.core.projectxml import FILE_REVISION, FILE_VERSION, ProjectXMLReader, ProjectXMLWriter
+from umbraedit.core.safeio import fileIdentity, openDirectoryAt
 from umbraedit.core.storage import (
     MANIFEST_VERSION,
     ProjectStorage,
     ProjectStorageCreate,
     ProjectStorageOpen,
+    _addFileToZip,
     _LegacyDocuments,
     _LegacyStorage,
 )
@@ -187,6 +191,27 @@ def testProjectStorage_InitProjectStorage(
 
 
 @pytest.mark.core
+def testProjectStorage_InitProjectStorage_PathFallback(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+):
+    """Test that project opening works without directory-descriptor support."""
+    (fncPath / "meta").mkdir()
+    (fncPath / "content").mkdir()
+    (fncPath / nwFiles.PROJ_FILE).touch()
+
+    storage = ProjectStorage(MockProject())  # type: ignore
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.storage.supportsDirectoryDescriptors", lambda: False)
+        assert storage.initProjectStorage(fncPath) == ProjectStorageOpen.READY
+
+    assert storage.runtimePath == fncPath
+    assert storage.metaIdentity is not None
+    assert storage.contentIdentity is not None
+    storage.closeSession()
+
+
+@pytest.mark.core
 def testProjectStorage_InitProjectStorage_Invalid(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, fncPath: Path):
     """Test initialising a project in an invalid folder."""
     project = NWProject()
@@ -258,7 +283,7 @@ def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
 
     # Write lockfile fails
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.write_text", causeOSError)
+        mp.setattr("umbraedit.core.storage.writeFileAtomic", causeOSError)
         storage._writeLockFile()
         assert not lockFilePath.exists()
 
@@ -269,7 +294,7 @@ def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
 
     # Read lockfile fails
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.read_text", causeOSError)
+        mp.setattr("umbraedit.core.storage.openRegularFile", causeOSError)
         storage._readLockFile()
         assert storage.lockStatus == ["ERROR", "ERROR", "ERROR", "ERROR"]
         assert lockFilePath.exists()
@@ -289,13 +314,20 @@ def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     assert storage.lockStatus is None
 
     # Fail to remove lockfile
+    storage._lockFileIdentity = fileIdentity(os.lstat(lockFilePath))
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.unlink", causeOSError)
+        mp.setattr("umbraedit.core.storage.unlinkEntryIfSameFile", causeOSError)
         storage._clearLockFile()
         assert lockFilePath.exists()
 
-    # Successful remove
+    # A replacement lock is not removed by normal session cleanup
+    lockFilePath.unlink()
+    lockFilePath.write_text("replacement", encoding="utf-8")
     storage._clearLockFile()
+    assert lockFilePath.read_text(encoding="utf-8") == "replacement"
+
+    # The explicit recovery action can remove the replacement
+    storage._clearLockFile(force=True)
     assert not lockFilePath.exists()
 
 
@@ -319,8 +351,8 @@ def testProjectStorage_Manifest(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
 
     # Write manifest fails
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.write_text", causeOSError)
-        assert storage.runPostSaveTasks(1000.0) is True
+        mp.setattr("umbraedit.core.storage.writeFileAtomic", causeOSError)
+        assert storage.runPostSaveTasks(1000.0) is False
         assert not manifestPath.exists()
 
     # Successful write
@@ -395,20 +427,23 @@ def testProjectStorage_ZipIt(
 
     # Fail to list content
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.iterdir", causeOSError)
+        mp.setattr("umbraedit.core.storage.os.scandir", causeOSError)
         assert storage.zipIt(zipFile, 1000.0) is False
         assert not zipFile.exists()
 
-    # Fail to create archive, and fail to clean up
+    # Fail to create archive, and fail to clean up the private staging file
     with monkeypatch.context() as mp:
-        mp.setattr("umbraedit.core.storage.ZipFile.write", causeOSError)
-        mp.setattr("pathlib.Path.unlink", causeOSError)
+        mp.setattr("umbraedit.core.storage._addFileToZip", causeOSError)
+        mp.setattr("umbraedit.core.storage.unlinkEntryIfSameFile", causeOSError)
         assert storage.zipIt(zipFile, 1000.0) is False
-        assert zipFile.exists()
+        assert not zipFile.exists()
+        stagedFiles = list(tstPaths.tmpDir.glob(".umbraedit-backup-*.tmp"))
+        assert len(stagedFiles) == 1
+    stagedFiles[0].unlink()
 
     # Fail to create archive, and clean up
     with monkeypatch.context() as mp:
-        mp.setattr("umbraedit.core.storage.ZipFile.write", causeOSError)
+        mp.setattr("umbraedit.core.storage._addFileToZip", causeOSError)
         assert storage.zipIt(zipFile, 1000.0) is False
         assert not zipFile.exists()
 
@@ -434,6 +469,196 @@ def testProjectStorage_ZipIt(
         assert "content/not-a-handle.txt" not in names
 
     project.closeProject()
+
+
+@pytest.mark.core
+def testProjectStorage_ZipRejectsSymlinkedTarget(
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that a backup never truncates or replaces a linked target."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+
+    outside = fncPath / "outside.zip"
+    outside.write_bytes(b"outside data")
+    target = fncPath / "project.zip"
+    try:
+        os.symlink(outside, target)
+    except OSError:
+        pytest.skip("Symbolic links are not supported on this platform")
+
+    assert project.storage.zipIt(target, 1000.0) is False
+    assert outside.read_bytes() == b"outside data"
+    assert target.is_symlink()
+
+
+@pytest.mark.core
+def testProjectStorage_ZipRejectsReplacedParent(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that backup staging stays bound to the validated parent."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+
+    backupDir = fncPath / "backups"
+    backupDir.mkdir()
+    originalParent = fncPath / "backups-original"
+    target = backupDir / "project.zip"
+    originalAdd = _addFileToZip
+    replaced = False
+
+    def replaceParent(*args: Any, **kwargs: Any) -> None:
+        nonlocal replaced
+        originalAdd(*args, **kwargs)
+        if not replaced:
+            replaced = True
+            backupDir.rename(originalParent)
+            backupDir.mkdir()
+
+    monkeypatch.setattr("umbraedit.core.storage._addFileToZip", replaceParent)
+    assert project.storage.zipIt(target, 1000.0) is False
+    assert list(backupDir.iterdir()) == []
+    assert list(originalParent.iterdir()) == []
+
+
+@pytest.mark.core
+def testProjectStorage_LockPrecedesLegacyConversion(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+):
+    """Test that the exclusive lock exists before legacy data is changed."""
+    storage = ProjectStorage(MockProject())  # type: ignore
+    (fncPath / nwFiles.PROJ_FILE).touch()
+    legacyFolder = fncPath / "data_0"
+    legacyFolder.mkdir()
+    (legacyFolder / "000000000000_main.bak").write_text("backup", encoding="utf-8")
+
+    lockWasPresent = False
+    originalDeprecated = _LegacyStorage.deprecatedFiles
+
+    def checkLock(self: _LegacyStorage, path: Path, **kwargs: Any) -> None:
+        nonlocal lockWasPresent
+        lockWasPresent = (path / nwFiles.PROJ_LOCK).is_file()
+        originalDeprecated(self, path, **kwargs)
+
+    monkeypatch.setattr(_LegacyStorage, "deprecatedFiles", checkLock)
+    assert storage.initProjectStorage(fncPath) == ProjectStorageOpen.READY
+    assert lockWasPresent is True
+    assert (fncPath / nwFiles.PROJ_LOCK).is_file()
+
+
+@pytest.mark.core
+def testProjectStorage_ForeignLockPreventsLegacyConversion(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+):
+    """Test that a foreign lock prevents all legacy project mutation."""
+    storage = ProjectStorage(MockProject())  # type: ignore
+    (fncPath / nwFiles.PROJ_FILE).touch()
+    lockPath = fncPath / nwFiles.PROJ_LOCK
+    lockPath.write_text("foreign;lock;holder;1", encoding="utf-8")
+    conversionCalled = False
+
+    def markConversion(self: _LegacyStorage, path: Path) -> None:
+        nonlocal conversionCalled
+        conversionCalled = True
+
+    monkeypatch.setattr(_LegacyStorage, "deprecatedFiles", markConversion)
+    assert storage.initProjectStorage(fncPath) == ProjectStorageOpen.LOCKED
+    assert conversionCalled is False
+    assert lockPath.read_text(encoding="utf-8") == "foreign;lock;holder;1"
+
+
+@pytest.mark.core
+def testProjectStorage_RootReplacementPreventsLockAcquisition(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+):
+    """Test that a replaced project root cannot receive a new lock."""
+    storage = ProjectStorage(MockProject())  # type: ignore
+    (fncPath / nwFiles.PROJ_FILE).touch()
+    originalRoot = fncPath.with_name(f"{fncPath.name}-original")
+    replaced = False
+
+    def replaceRoot(self: ProjectStorage) -> None:
+        nonlocal replaced
+        if not replaced:
+            replaced = True
+            fncPath.rename(originalRoot)
+            fncPath.mkdir()
+
+    monkeypatch.setattr(ProjectStorage, "_readLockFile", replaceRoot)
+    assert storage.initProjectStorage(fncPath) == ProjectStorageOpen.LOCKED
+    assert list(fncPath.iterdir()) == []
+    assert (originalRoot / nwFiles.PROJ_FILE).is_file()
+
+
+@pytest.mark.core
+def testProjectStorage_LockAcquisitionIsExclusive(fncPath: Path):
+    """Test that two sessions cannot both acquire the same project lock."""
+    lockPath = fncPath / nwFiles.PROJ_LOCK
+    first = ProjectStorage(MockProject())  # type: ignore
+    second = ProjectStorage(MockProject())  # type: ignore
+    first._lockFilePath = lockPath
+    second._lockFilePath = lockPath
+
+    assert first._writeLockFile() is True
+    assert second._writeLockFile() is False
+    assert lockPath.is_file()
+
+    second._clearLockFile()
+    assert lockPath.is_file()
+    first._clearLockFile()
+    assert not lockPath.exists()
+
+
+@pytest.mark.core
+def testProjectStorage_LockFileRejectsSymlinks(fncPath: Path):
+    """Test that lock-file operations never follow or remove a link."""
+    storage = ProjectStorage(MockProject())  # type: ignore
+    outside = fncPath / "outside.lock"
+    outside.write_text("outside data", encoding="utf-8")
+    lockPath = fncPath / nwFiles.PROJ_LOCK
+    storage._lockFilePath = lockPath
+    try:
+        os.symlink(outside, lockPath)
+    except OSError:
+        pytest.skip("Symbolic links are not supported on this platform")
+
+    storage._writeLockFile()
+    assert outside.read_text(encoding="utf-8") == "outside data"
+    assert lockPath.is_symlink()
+
+    storage._readLockFile()
+    assert storage.lockStatus == ["ERROR", "ERROR", "ERROR", "ERROR"]
+
+    storage._clearLockFile()
+    assert lockPath.is_symlink()
+    assert outside.read_text(encoding="utf-8") == "outside data"
+
+
+@pytest.mark.core
+def testProjectStorage_DanglingLockSymlinkIsNotCreated(fncPath: Path):
+    """Test that writing a dangling lock link does not create its target."""
+    storage = ProjectStorage(MockProject())  # type: ignore
+    outside = fncPath / "missing.lock"
+    lockPath = fncPath / nwFiles.PROJ_LOCK
+    storage._lockFilePath = lockPath
+    try:
+        os.symlink(outside, lockPath)
+    except OSError:
+        pytest.skip("Symbolic links are not supported on this platform")
+
+    storage._writeLockFile()
+    assert not outside.exists()
+    assert lockPath.is_symlink()
 
 
 @pytest.mark.core
@@ -490,8 +715,7 @@ def testProjectStorage_LegacyDataFolder(monkeypatch: pytest.MonkeyPatch, fncPath
 
     # Fail cleanup of folder 9
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.rename", causeOSError)
-        mp.setattr("pathlib.Path.unlink", causeOSError)
+        mp.setattr("umbraedit.core.storage.renameNoReplaceIfSameFile", causeOSError)
         legacy.legacyDataFolder(fncPath, data[9])
         assert data[9].exists()
         assert not (fncPath / "content" / "9000000000009.nwd").exists()
@@ -502,6 +726,121 @@ def testProjectStorage_LegacyDataFolder(monkeypatch: pytest.MonkeyPatch, fncPath
     assert storage.hasBreakingChanges() is True
     for c in "0123456789abcdef":
         assert (fncPath / "content" / f"{c}00000000000{c}.nwd").exists()
+
+
+@pytest.mark.core
+def testProjectStorage_LegacyDataFolder_PathFallback(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+):
+    """Test that legacy conversion works without directory descriptors."""
+    content = fncPath / "content"
+    content.mkdir()
+    legacyFolder = fncPath / "data_0"
+    legacyFolder.mkdir()
+    legacyFile = legacyFolder / "000000000000_main.nwd"
+    legacyFile.write_text("legacy", encoding="utf-8")
+
+    rootIdentity = fileIdentity(os.lstat(fncPath))
+    contentIdentity = fileIdentity(os.lstat(content))
+    legacy = _LegacyStorage(MockProject())  # type: ignore
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.storage.supportsDirectoryDescriptors", lambda: False)
+        legacy.legacyDataFolder(
+            fncPath,
+            legacyFolder,
+            expectedRoot=rootIdentity,
+            expectedContent=contentIdentity,
+        )
+
+    assert (content / "0000000000000.nwd").read_text(encoding="utf-8") == "legacy"
+    assert not legacyFolder.exists()
+
+
+@pytest.mark.core
+def testProjectStorage_LegacyDataFolderRejectsReplacedChild(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+):
+    """Test that a replaced legacy child is never converted or removed."""
+    content = fncPath / "content"
+    content.mkdir()
+    legacyFolder = fncPath / "data_0"
+    legacyFolder.mkdir()
+    legacyFile = legacyFolder / "000000000000_main.nwd"
+    legacyFile.write_text("legacy", encoding="utf-8")
+    movedFolder = fncPath / "data_0-original"
+
+    injected = False
+
+    def replaceChild(parentFd: int, name: str) -> int:
+        nonlocal injected
+        if not injected and name == "data_0":
+            injected = True
+            legacyFolder.rename(movedFolder)
+            legacyFolder.mkdir()
+            (legacyFolder / "foreign.txt").write_text("foreign", encoding="utf-8")
+        return openDirectoryAt(parentFd, name)
+
+    rootIdentity = fileIdentity(os.lstat(fncPath))
+    contentIdentity = fileIdentity(os.lstat(content))
+    legacy = _LegacyStorage(MockProject())  # type: ignore
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.storage.openDirectoryAt", replaceChild)
+        legacy.legacyDataFolder(
+            fncPath,
+            legacyFolder,
+            expectedRoot=rootIdentity,
+            expectedContent=contentIdentity,
+        )
+
+    assert injected is True
+    assert (legacyFolder / "foreign.txt").read_text(encoding="utf-8") == "foreign"
+    assert (movedFolder / legacyFile.name).read_text(encoding="utf-8") == "legacy"
+    assert not (content / "0000000000000.nwd").exists()
+
+
+@pytest.mark.core
+def testProjectStorage_LegacyDataFolderRejectsReplacedContent(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+):
+    """Test that a replaced content folder is never used or removed."""
+    content = fncPath / "content"
+    content.mkdir()
+    legacyFolder = fncPath / "data_0"
+    legacyFolder.mkdir()
+    legacyFile = legacyFolder / "000000000000_main.nwd"
+    legacyFile.write_text("legacy", encoding="utf-8")
+    movedContent = fncPath / "content-original"
+
+    injected = False
+
+    def replaceContent(parentFd: int, name: str) -> int:
+        nonlocal injected
+        if not injected and name == "content":
+            injected = True
+            content.rename(movedContent)
+            content.mkdir()
+            (content / "foreign.txt").write_text("foreign", encoding="utf-8")
+        return openDirectoryAt(parentFd, name)
+
+    rootIdentity = fileIdentity(os.lstat(fncPath))
+    contentIdentity = fileIdentity(os.lstat(content))
+    legacy = _LegacyStorage(MockProject())  # type: ignore
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.storage.openDirectoryAt", replaceContent)
+        legacy.legacyDataFolder(
+            fncPath,
+            legacyFolder,
+            expectedRoot=rootIdentity,
+            expectedContent=contentIdentity,
+        )
+
+    assert injected is True
+    assert (content / "foreign.txt").read_text(encoding="utf-8") == "foreign"
+    assert legacyFile.read_text(encoding="utf-8") == "legacy"
+    assert not (content / "0000000000000.nwd").exists()
 
 
 @pytest.mark.core
@@ -520,7 +859,7 @@ def testProjectStorage_FindOldDocuments(fncPath: Path):
     (content / f"{C.hChapterDoc}.md").write_text("### Text\n", encoding="utf-8")
     (content / "folder.nwd").mkdir()
 
-    assert legacy.findOldDocuments(content) == [nwdFile]
+    assert [document.path for document in legacy.findOldDocuments(content)] == [nwdFile]
 
 
 @pytest.mark.core
@@ -549,7 +888,7 @@ def testProjectStorage_RunPostXMLTasks(monkeypatch: pytest.MonkeyPatch, fncPath:
     assert (content / f"{C.hSceneDoc}.md").exists()
 
     # A failed conversion records the exception
-    storage._oldDocuments = [nwdFile]
+    storage._oldDocuments = [nwdFile]  # type: ignore[assignment]
     with monkeypatch.context() as mp:
         mp.setattr("umbraedit.core.storage._LegacyDocuments.convertDocuments", causeOSError)
         assert storage.runPostXMLTasks() is False
@@ -620,36 +959,45 @@ def testLegacyDocuments_ConvertDocuments(monkeypatch: pytest.MonkeyPatch, fncPat
     rawText = "%%~name: Bad\n### Text\n"
     badFile.write_text(rawText, encoding="utf-8")
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.write_text", causeOSError)
+        mp.setattr("umbraedit.core.storage.writeFileAtomic", causeOSError)
         legacy.convertDocuments([badFile])
     assert not badFile.exists()
     fallbackFile = content / f"{C.hChapterDoc}.md"
     assert fallbackFile.read_text(encoding="utf-8") == rawText
 
-    # A partial output file left behind by the failed write does not
-    # block the fallback from overwriting it (replace, not rename, so
-    # this also works on platforms that don't allow renaming onto an
-    # existing file, e.g. Windows)
+    # An existing output is never overwritten by the fallback. Both the
+    # source and the conflicting output are preserved, and the conflict
+    # does not block the caller from continuing.
     fallbackFile.unlink()
     badFile.write_text(rawText, encoding="utf-8")
     fallbackFile.write_text("partial junk", encoding="utf-8")
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.write_text", causeOSError)
+        mp.setattr("umbraedit.core.storage.writeFileAtomic", causeOSError)
         legacy.convertDocuments([badFile])
-    assert not badFile.exists()
-    assert fallbackFile.read_text(encoding="utf-8") == rawText
+    assert badFile.read_text(encoding="utf-8") == rawText
+    assert fallbackFile.read_text(encoding="utf-8") == "partial junk"
 
     # If the fallback rename also fails, there is nothing more that can
     # be done, so the exception is left to propagate to the caller
     fallbackFile.unlink()
     badFile.write_text(rawText, encoding="utf-8")
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.write_text", causeOSError)
-        mp.setattr("pathlib.Path.replace", causeOSError)
+        mp.setattr("umbraedit.core.storage.writeFileAtomic", causeOSError)
+        mp.setattr("umbraedit.core.storage.renameNoReplaceIfSameFile", causeOSError)
         with pytest.raises(OSError, match="Mock OSError"):
             legacy.convertDocuments([badFile])
     assert badFile.exists()
     assert not fallbackFile.exists()
+
+    # A cleanup failure after successful publication is recoverable. The
+    # converted file remains usable and the legacy source is preserved.
+    fallbackFile.unlink(missing_ok=True)
+    badFile.write_text(rawText, encoding="utf-8")
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.storage._LegacyDocuments._removeConvertedSource", causeOSError)
+        legacy.convertDocuments([badFile])
+    assert badFile.read_text(encoding="utf-8") == rawText
+    assert fallbackFile.exists()
 
 
 @pytest.mark.core
@@ -731,7 +1079,7 @@ def testProjectStorage_DeprecatedFiles(monkeypatch: pytest.MonkeyPatch, fncPath:
         assert depFile.exists()
 
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.unlink", causeOSError)
+        mp.setattr("umbraedit.core.storage.unlinkEntryIfSameFile", causeOSError)
         legacy.deprecatedFiles(fncPath)
         for depFile in remove:
             assert depFile.exists()
@@ -776,7 +1124,7 @@ def testProjectStorage_OldFormatConvert(monkeypatch: pytest.MonkeyPatch, mockGUI
 
     # Check Failure
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.storage.openRegularFile", causeOSError)
         legacy.deprecatedFiles(fncPath)
         assert wordListOld.exists() is True
         assert wordListNew.exists() is False

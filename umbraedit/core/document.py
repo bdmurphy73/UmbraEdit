@@ -23,8 +23,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import hashlib
+import io
 import logging
 import os
+import stat
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,7 +34,16 @@ from time import time
 from typing import TYPE_CHECKING, Optional, TextIO, Union
 
 from umbraedit import CONFIG
-from umbraedit.common import formatTimeStamp, isHandle, safeExists, safeIsFile, stripUnsafe
+from umbraedit.common import formatTimeStamp, isHandle, stripUnsafe
+from umbraedit.core.safeio import (
+    FileIdentity,
+    fileIdentity,
+    isLinkLike,
+    openDirectory,
+    openRegularFile,
+    unlinkIfSameFile,
+    writeFileAtomic,
+)
 from umbraedit.enum import nwItemClass, nwItemLayout
 from umbraedit.error import formatException, logException
 from umbraedit.formats.tomlparser import NTomlParser
@@ -82,6 +93,8 @@ class ProjectDocument:
 
         self._lastHash = ""  # The last known SHA hash
         self._lastStat = None  # The (mtime_ns, size) of the file at last read/write
+        self._lastIdentity: Optional[FileIdentity] = None  # Identity observed at the last read/write
+        self._identityKnown = False  # Whether the target's presence was observed
         self._hashError = False  # Hash mismatch on last write attempt
 
         if isHandle(tHandle):
@@ -142,13 +155,37 @@ class ProjectDocument:
     ##
 
     @staticmethod
-    def quickReadText(content: Path, tHandle: str) -> str:
-        """Return the text of a document in a fast and efficient way."""
+    def quickReadText(
+        content: Path,
+        tHandle: str,
+        expectedParent: Optional[FileIdentity] = None,
+    ) -> str:
+        """Return the text of a document without following links."""
         try:
-            if (path := content / f"{tHandle}.md").is_file():
-                with open(path, mode="r", encoding="utf-8") as inFile:
-                    _, text = ProjectDocument._splitHeader(inFile)
-                    return text
+            contentStat = os.lstat(content)
+            if isLinkLike(content) or not stat.S_ISDIR(contentStat.st_mode):
+                raise OSError("The content folder is not a real directory")
+            parentIdentity = expectedParent if expectedParent is not None else fileIdentity(contentStat)
+            if fileIdentity(contentStat) != parentIdentity:
+                raise OSError("The content folder changed since the project was opened")
+            path = content / f"{tHandle}.md"
+            try:
+                targetStat = os.lstat(path)
+            except FileNotFoundError:
+                return ""
+            if isLinkLike(path) or not stat.S_ISREG(targetStat.st_mode):
+                raise OSError("The document file is not a regular file")
+            targetIdentity = fileIdentity(targetStat)
+            with (
+                openRegularFile(
+                    path,
+                    expectedParent=parentIdentity,
+                    expectedIdentity=targetIdentity,
+                ) as binaryFile,
+                io.TextIOWrapper(binaryFile, encoding="utf-8", newline="") as inFile,
+            ):
+                _, text = ProjectDocument._splitHeader(inFile)
+                return text
         except Exception:
             logger.error("Cannot read document with handle '%s'", tHandle)
             logException()
@@ -168,7 +205,12 @@ class ProjectDocument:
             logger.error("No content path set")
             return False
 
-        return safeIsFile(contentPath / f"{self._handle}.md")
+        path = contentPath / f"{self._handle}.md"
+        try:
+            pathStat = os.lstat(path)
+        except OSError:
+            return False
+        return stat.S_ISREG(pathStat.st_mode) and not isLinkLike(path)
 
     def readDocument(self, isOrphan: bool = False) -> Optional[str]:
         """Read the document specified by the handle set in the
@@ -189,6 +231,11 @@ class ProjectDocument:
         if not isinstance(contentPath, Path):
             logger.error("No content path set")
             return None
+        try:
+            contentIdentity = self._getContentIdentity(contentPath)
+        except OSError as exc:
+            self._error = formatException(exc)
+            return None
 
         docFile = f"{self._handle}.md"
         logger.debug("Opening document: %s", docFile)
@@ -200,20 +247,43 @@ class ProjectDocument:
         self._meta = DocumentMeta()
         self._lastHash = ""
         self._lastStat = None
+        self._lastIdentity = None
+        self._identityKnown = False
 
-        if safeExists(docPath):
+        try:
+            targetStat = os.lstat(docPath)
+        except FileNotFoundError:
+            targetStat = None
+        except OSError as exc:
+            self._error = formatException(exc)
+            return None
+
+        if targetStat is not None:
             try:
-                with open(docPath, mode="r", encoding="utf-8") as inFile:
+                if isLinkLike(docPath) or not stat.S_ISREG(targetStat.st_mode):
+                    raise OSError("The document file is not a regular file")
+                targetIdentity = fileIdentity(targetStat)
+                with (
+                    openRegularFile(
+                        docPath,
+                        expectedParent=contentIdentity,
+                        expectedIdentity=targetIdentity,
+                    ) as binaryFile,
+                    io.TextIOWrapper(binaryFile, encoding="utf-8", newline="") as inFile,
+                ):
                     metaLines, text = self._splitHeader(inFile)
                     if metaLines:
                         parser = NTomlParser(flat=True)
                         parser.readString("".join(metaLines))
                         self._applyMeta(parser)
 
-                    # Record the file's stat so future saves can check for
-                    # external changes without a full re-read and hash
-                    stat = os.fstat(inFile.fileno())
-                    self._lastStat = (stat.st_mtime_ns, stat.st_size)
+                    # Record the file's identity and stat so future saves
+                    # can detect a concurrent replacement without relying
+                    # only on timestamps and file size.
+                    fileStat = os.fstat(inFile.fileno())
+                    self._lastIdentity = fileIdentity(fileStat)
+                    self._identityKnown = True
+                    self._lastStat = (fileStat.st_mtime_ns, fileStat.st_size)
 
             except Exception as exc:
                 self._error = formatException(exc)
@@ -222,6 +292,7 @@ class ProjectDocument:
         else:
             # The document file does not exist, so we assume it's a new
             # document and return an empty text string.
+            self._identityKnown = True
             logger.debug("The requested document does not exist")
 
         self._lastHash = hashlib.sha1(text.encode()).hexdigest()
@@ -245,19 +316,61 @@ class ProjectDocument:
         if not isinstance(contentPath, Path):
             logger.error("No content path set")
             return False
+        try:
+            contentStat = os.lstat(contentPath)
+            if isLinkLike(contentPath) or not stat.S_ISDIR(contentStat.st_mode):
+                raise OSError("The content folder is not a real directory")
+            contentIdentity = fileIdentity(contentStat)
+        except OSError as exc:
+            self._error = formatException(exc)
+            return False
 
         docFile = f"{self._handle}.md"
         logger.debug("Saving document: %s", docFile)
 
         docPath = contentPath / docFile
-        docTemp = docPath.with_suffix(".tmp")
+        expectedTarget: Optional[FileIdentity] = None
+        replaceExisting = False
+        try:
+            targetStat = os.lstat(docPath)
+        except FileNotFoundError:
+            targetStat = None
+        except OSError as exc:
+            self._error = formatException(exc)
+            return False
 
-        # Check if the document has changed on disk
+        currentIdentity: Optional[FileIdentity] = None
+        if targetStat is not None:
+            if isLinkLike(docPath) or not stat.S_ISREG(targetStat.st_mode):
+                self._error = "The document file is not a regular file"
+                return False
+            currentIdentity = fileIdentity(targetStat)
+
+        if self._identityKnown:
+            if self._lastIdentity != currentIdentity:
+                if not forceWrite:
+                    logger.error("The document file was replaced since it was opened")
+                    self._hashError = True
+                    return False
+                if self.readDocument() is None:
+                    return False
+            expectedTarget = self._lastIdentity
+            replaceExisting = expectedTarget is not None
+        else:
+            # This document was not loaded through this wrapper. Capture
+            # the target once at the start of the write decision so a
+            # replacement installed later cannot be adopted implicitly.
+            expectedTarget = currentIdentity
+            replaceExisting = currentIdentity is not None
+
+        # Check if the document has changed in place on disk.
         prevHash = self._lastHash
         if prevHash:
             try:
-                stat = docPath.stat()
-                statSig = (stat.st_mtime_ns, stat.st_size)
+                currentStat = os.lstat(docPath)
+                if isLinkLike(docPath) or not stat.S_ISREG(currentStat.st_mode):
+                    raise OSError("The document file is not a regular file")
+                statSig = (currentStat.st_mtime_ns, currentStat.st_size)
             except OSError:
                 statSig = None
 
@@ -278,7 +391,7 @@ class ProjectDocument:
         updatedDate = self._meta.updatedDate
         if writeHash != self._lastHash:
             updatedDate = currTime
-        if not safeIsFile(docPath):
+        if targetStat is None:
             createdDate = currTime
             updatedDate = currTime
 
@@ -298,33 +411,39 @@ class ProjectDocument:
             toml = NTomlParser(flat=True).writeString(meta).strip()
             docMeta = f"+++\n{toml}\n+++\n"
 
-        try:
-            with open(docTemp, mode="w", encoding="utf-8", newline=CONFIG.lineEnding) as outFile:
-                outFile.write(docMeta)
-                outFile.write(text)
-        except Exception as exc:
-            self._error = formatException(exc)
-            return False
-
-        # If we're here, the file was successfully saved, so we can
-        # notify listeners before replacing the temp file with the actual file
+        # If we're here, the file was successfully prepared, so we can
+        # notify listeners before it is published.
         from umbraedit.umbra import hooks as _umbraHooks
 
         _umbraHooks.call(_umbraHooks.DOCUMENT_PRE_SAVE, self._handle, str(docPath))
 
         try:
-            docTemp.replace(docPath)
-        except OSError as exc:
+            payloadText = (docMeta + text).replace("\r\n", "\n").replace("\r", "\n")
+            lineEnding = CONFIG.lineEnding if isinstance(CONFIG.lineEnding, str) else os.linesep
+            payload = payloadText.replace("\n", lineEnding).encode("utf-8")
+            publishedIdentity = writeFileAtomic(
+                docPath,
+                payload,
+                expectedParent=contentIdentity,
+                expectedTarget=expectedTarget,
+                replaceExisting=replaceExisting,
+            )
+        except Exception as exc:
             self._error = formatException(exc)
+            logger.error("Failed to write document '%s'", self._handle, exc_info=exc)
             return False
 
         self._lastHash = writeHash
+        self._lastIdentity = publishedIdentity
+        self._identityKnown = True
         self._meta.textHash = writeHash
         self._meta.createdDate = createdDate
         self._meta.updatedDate = updatedDate
         try:
-            stat = docPath.stat()
-            self._lastStat = (stat.st_mtime_ns, stat.st_size)
+            currentStat = os.lstat(docPath)
+            if isLinkLike(docPath) or not stat.S_ISREG(currentStat.st_mode):
+                raise OSError("The document file is not a regular file")
+            self._lastStat = (currentStat.st_mtime_ns, currentStat.st_size)
         except OSError:
             self._lastStat = None
         self._hashError = False
@@ -351,8 +470,27 @@ class ProjectDocument:
         docTemp = docPath.with_suffix(".tmp")
 
         try:
-            docPath.unlink(missing_ok=True)
-            docTemp.unlink(missing_ok=True)
+            contentIdentity = self._getContentIdentity(contentPath)
+            parentFd: Optional[int] = None
+            if os.name != "nt" and os.open in os.supports_dir_fd:
+                parentFd = openDirectory(contentPath)
+                if fileIdentity(os.fstat(parentFd)) != contentIdentity:
+                    raise OSError("The content folder changed before the document could be removed")
+            try:
+                for targetPath in (docPath, docTemp):
+                    try:
+                        if parentFd is not None and os.stat in os.supports_dir_fd:
+                            targetStat = os.stat(targetPath.name, dir_fd=parentFd, follow_symlinks=False)
+                        else:
+                            targetStat = os.lstat(targetPath)
+                    except FileNotFoundError:
+                        continue
+                    if isLinkLike(targetPath) or not stat.S_ISREG(targetStat.st_mode):
+                        raise OSError("The document file is not a regular file")
+                    unlinkIfSameFile(targetPath, fileIdentity(targetStat), dirFd=parentFd)
+            finally:
+                if parentFd is not None:
+                    os.close(parentFd)
         except Exception as exc:
             self._error = formatException(exc)
             return False
@@ -362,6 +500,17 @@ class ProjectDocument:
     ##
     #  Internal Functions
     ##
+
+    def _getContentIdentity(self, contentPath: Path) -> FileIdentity:
+        """Return the validated identity of the project content folder."""
+        contentStat = os.lstat(contentPath)
+        if isLinkLike(contentPath) or not stat.S_ISDIR(contentStat.st_mode):
+            raise OSError("The content folder is not a real directory")
+        contentIdentity = fileIdentity(contentStat)
+        expectedIdentity = self._project.storage.contentIdentity
+        if expectedIdentity is not None and contentIdentity != expectedIdentity:
+            raise OSError("The content folder changed since the project was opened")
+        return contentIdentity
 
     def _applyMeta(self, parser: NTomlParser) -> None:
         """Populate the document meta data from a parsed TOML header."""

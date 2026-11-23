@@ -22,11 +22,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-import errno
 import json
 import logging
 import os
-import shutil
 import stat
 import tempfile
 import uuid
@@ -55,7 +53,23 @@ from umbraedit.core.index import Index
 from umbraedit.core.options import OptionState
 from umbraedit.core.projectdata import ProjectData
 from umbraedit.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLReadState
-from umbraedit.core.safeio import copyRegularFile, isLinkLike, renameNoReplace
+from umbraedit.core.safeio import (
+    copyRegularFile,
+    ensureDirectory,
+    fileIdentity,
+    getDefaultDirectoryMode,
+    isLinkLike,
+    isPathWithin,
+    openDirectory,
+    openDirectoryAt,
+    removeEmptyDirectoryIfOwned,
+    removeTreeIfOwned,
+    renameNoReplace,
+    renameNoReplaceBetween,
+    scanRegularFiles,
+    supportsDirectoryDescriptors,
+    unlinkIfSameFile,
+)
 from umbraedit.core.sessions import SessionLog
 from umbraedit.core.storage import ProjectStorage, ProjectStorageCreate, ProjectStorageOpen
 from umbraedit.core.tree import ProjectTree
@@ -329,16 +343,25 @@ class NWProject:
                 pass
             return False
 
+        # File identity receipts belong to a single project session. A
+        # reused NWProject instance must re-observe the options and index
+        # files when it opens a new session instead of comparing them
+        # with identities retained from the previous session.
+        self._options.resetIdentity()
+        self._index.resetIdentity()
+
         # Read Project XML
         # ================
 
         xmlReader = self._storage.getXmlReader()
         if not isinstance(xmlReader, ProjectXMLReader):
+            self._storage.closeSession()
             return False
 
         self._data = ProjectData(self)
         projContent = []
         xmlParsed = xmlReader.read(self._data, projContent)
+        self._storage.recordXmlIdentity(xmlReader.lastIdentity)
         appVersion = xmlReader.appVersion or self.tr("Unknown")
         if not xmlParsed:
             if xmlReader.state == XMLReadState.NOT_NWX_FILE:
@@ -353,6 +376,7 @@ class NWProject:
                 )
             else:
                 SHARED.error(self.tr("Failed to parse project xml."))
+            self._storage.closeSession()
             return False
 
         # Check Legacy Upgrade
@@ -365,6 +389,7 @@ class NWProject:
                 "longer be able to open this project. Continue?"
             )
         ):
+            self._storage.closeSession()
             return False
 
         # Check UmbraEdit Version
@@ -380,16 +405,23 @@ class NWProject:
             ).format(appVersion, __version__),
             warn=True,
         ):
+            self._storage.closeSession()
             return False
 
         # Post XML Loading
-        self._storage.runPostXMLTasks()
+        if not self._storage.runPostXMLTasks():
+            SHARED.error(self.tr("Failed to open project."), exc=self._storage.exc)
+            self._storage.closeSession()
+            return False
 
         # Extract Data
         # ============
 
         self._tree.unpack(projContent)
-        self._options.loadSettings()
+        if not self._options.loadSettings():
+            SHARED.error(self.tr("Failed to open project."), exc=self._storage.exc)
+            self._storage.closeSession()
+            return False
         self._loadProjectLocalisation()
 
         # Check the project tree consistency
@@ -402,6 +434,9 @@ class NWProject:
                 )
             )
 
+        # A missing, corrupt, or raced index cache is recoverable. The
+        # index revision check in the GUI will trigger a rebuild without
+        # preventing the project itself from opening.
         self._index.loadIndex()
         if xmlReader.state == XMLReadState.WAS_LEGACY:
             # Often, the index needs to be rebuilt when updating format
@@ -409,6 +444,17 @@ class NWProject:
 
         self.updateCounts()
         self._session.startSession()
+
+        # The storage layer acquires the exclusive lock before any project
+        # mutation. Verify that this session still owns it before exposing
+        # the opened project to the rest of the application.
+        if not self._storage.lockSession():
+            self._valid = False
+            self._state = NWProjectState.LOCKED
+            self._storage.closeSession()
+            SHARED.error(self.tr("The project is already open in another session."))
+            return False
+
         from umbraedit.umbra import hooks as _umbraHooks
 
         _umbraHooks.call(_umbraHooks.PROJECT_OPENED, self)
@@ -444,7 +490,6 @@ class NWProject:
 
         self._valid = True
         self._state = NWProjectState.READY
-        self._storage.lockSession()  # Lock only after a successful open. See issue #1977.
 
         SHARED.newStatusMessage(self.tr("Opened Project: {0}").format(self._data.name))
 
@@ -481,16 +526,45 @@ class NWProject:
         self._data.setIndexRevision(self._index.indexRevision)
         editTime = self._data.editTime + max(round(saveTime - self._session.start), 0)
         content = self._tree.pack()
-        if not xmlWriter.write(self._data, content, saveTime, editTime):
+        if not xmlWriter.write(
+            self._data,
+            content,
+            saveTime,
+            editTime,
+            expectedParent=self._storage.rootIdentity,
+            expectedTarget=self._storage.xmlIdentity,
+            replaceExisting=self._storage.xmlIdentity is not None,
+        ):
             self._reportErrors(self.tr("Issues encountered when saving project:"))
             return False
+        self._storage.recordXmlIdentity(xmlWriter.lastIdentity)
 
         # Save other project data
         if not autoSave:
-            self._options.saveSettings()
-            self._index.saveIndex()
+            if not self._options.saveSettings(
+                expectedParent=self._storage.metaIdentity,
+                expectedTarget=self._options.lastIdentity,
+                replaceExisting=self._options.lastIdentity is not None,
+            ):
+                self._reportErrors(self.tr("Issues encountered when saving project:"))
+                return False
+            if not self._index.saveIndex(
+                expectedParent=self._storage.metaIdentity,
+                expectedTarget=self._index.lastIdentity,
+                replaceExisting=self._index.lastIdentity is not None,
+            ):
+                self._reportErrors(self.tr("Issues encountered when saving project:"))
+                return False
 
-        self._storage.runPostSaveTasks(saveTime=saveTime, autoSave=autoSave)
+        if not self._storage.runPostSaveTasks(
+            saveTime=saveTime,
+            autoSave=autoSave,
+            expectedParent=self._storage.rootIdentity,
+            expectedTarget=self._storage.lastManifestIdentity,
+            replaceExisting=self._storage.lastManifestIdentity is not None,
+        ):
+            self._reportErrors(self.tr("Issues encountered when saving project:"))
+            return False
 
         # Update recent projects
         if storagePath := self._storage.storagePath:
@@ -533,17 +607,25 @@ class NWProject:
             return False
 
         oldRuntimePath = self._storage.runtimePath
+        oldContentPath = self._storage.contentPath
+        oldMetaPath = oldRuntimePath / "meta" if oldRuntimePath else None
+        oldAssetPath = oldRuntimePath / "assets" / "img" if oldRuntimePath else None
+        oldRootIdentity = self._storage.rootIdentity
+        oldMetaIdentity = self._storage.metaIdentity
+        oldContentIdentity = self._storage.contentIdentity
+        useDirectoryDescriptors = supportsDirectoryDescriptors()
         if oldRuntimePath:
             try:
-                newPath.resolve().relative_to(oldRuntimePath.resolve())
-            except ValueError:
-                pass
-            else:
+                targetInsideProject = isPathWithin(newPath.resolve(), oldRuntimePath.resolve())
+            except OSError as exc:
+                SHARED.error(self.tr("Failed to validate the target project location."), exc=exc)
+                return False
+            if targetInsideProject:
                 SHARED.error(self.tr("The target project location cannot be inside the current project."))
                 return False
 
         targetExisted = newPath.exists() or newPath.is_symlink()
-        targetMode = 0o755
+        targetMode: Optional[int] = None
         targetIdentity: Optional[tuple[int, int]] = None
         if targetExisted:
             try:
@@ -563,14 +645,70 @@ class NWProject:
                 SHARED.error(self.tr("Failed to create project storage."), exc=exc)
                 return False
 
+        # Reject linked source files before saving any document. A normal
+        # document save must never write through a malicious project link.
+        if oldRuntimePath:
+            try:
+                rootStat = os.lstat(oldRuntimePath)
+                if isLinkLike(oldRuntimePath) or not stat.S_ISDIR(rootStat.st_mode):
+                    raise OSError("The project folder is not a real directory")
+                if oldRootIdentity is not None and fileIdentity(rootStat) != oldRootIdentity:
+                    raise OSError("The project folder changed before Save As could begin")
+            except OSError as exc:
+                logger.error("Failed to validate the project folder before Save As", exc_info=exc)
+                SHARED.error(self.tr("Failed to validate the target project location."), exc=exc)
+                return False
+        if oldContentPath and (oldContentPath.exists() or isLinkLike(oldContentPath)):
+            try:
+                contentSnapshot = scanRegularFiles(oldContentPath)
+                if oldContentIdentity is not None and contentSnapshot.identity != oldContentIdentity:
+                    raise OSError("The project content folder changed before Save As could begin")
+            except OSError as exc:
+                logger.error("Failed to validate project content before Save As", exc_info=exc)
+                SHARED.error(
+                    self.tr("Failed to copy document file: {0}").format(oldContentPath.name),
+                    exc=exc,
+                )
+                return False
+        if oldMetaPath and (oldMetaPath.exists() or isLinkLike(oldMetaPath)):
+            try:
+                metaSnapshot = scanRegularFiles(oldMetaPath)
+                if oldMetaIdentity is not None and metaSnapshot.identity != oldMetaIdentity:
+                    raise OSError("The project metadata folder changed before Save As could begin")
+            except OSError as exc:
+                logger.error("Failed to validate project metadata before Save As", exc_info=exc)
+                SHARED.error(
+                    self.tr("Failed to copy project metadata file: {0}").format(oldMetaPath.name),
+                    exc=exc,
+                )
+                return False
+        if oldAssetPath:
+            try:
+                if isLinkLike(oldAssetPath) or isLinkLike(oldAssetPath.parent):
+                    raise OSError("The project image folder cannot be a link")
+                if oldAssetPath.parent.exists() and not oldAssetPath.parent.is_dir():
+                    raise OSError("The project asset folder is not a directory")
+                if oldAssetPath.exists():
+                    scanRegularFiles(oldAssetPath, expectedPath=oldAssetPath)
+            except OSError as exc:
+                logger.error("Failed to validate project images before Save As", exc_info=exc)
+                SHARED.error(self.tr("Failed to copy project image file."), exc=exc)
+                return False
+
         # Save the complete active state so that a failed copy can restore
         # the original project rather than leaving it pointed at a partial
         # destination.
         oldStorageState: dict[str, object] = {
             "_storagePath": self._storage._storagePath,
             "_runtimePath": self._storage._runtimePath,
+            "_rootIdentity": self._storage._rootIdentity,
+            "_metaIdentity": self._storage._metaIdentity,
+            "_contentIdentity": self._storage._contentIdentity,
+            "_xmlIdentity": self._storage._xmlIdentity,
             "_lockFilePath": self._storage._lockFilePath,
+            "_lockFileIdentity": self._storage._lockFileIdentity,
             "_manifestPath": self._storage._manifestPath,
+            "_lastManifestIdentity": self._storage._lastManifestIdentity,
             "_lockedBy": self._storage._lockedBy,
             "_openMode": self._storage._openMode,
             "_ready": self._storage._ready,
@@ -586,10 +724,54 @@ class NWProject:
         oldChanged = self._changed
         oldCountsDirty = self._countsDirty
         oldLockPath = self._storage._lockFilePath
+        oldLockIdentity = self._storage._lockFileIdentity
+        oldOptionsIdentity = self._options.lastIdentity
+        oldOptionsIdentityKnown = self._options.lastIdentityKnown
+        oldIndexIdentity = self._index.lastIdentity
+        oldIndexIdentityKnown = self._index.lastIdentityKnown
 
         stagingPath: Optional[Path] = None
         stagingIdentity: Optional[tuple[int, int]] = None
+        stagingParentIdentity: Optional[tuple[int, int]] = None
+        stagedFileIdentities: dict[Path, tuple[int, int]] = {}
+        stagedMetaIdentity: Optional[tuple[int, int]] = None
         targetBackupPath: Optional[Path] = None
+        conflictPath: Optional[Path] = None
+
+        def verifyStaging() -> None:
+            """Verify that the application-owned staging tree is unchanged."""
+            if stagingPath is None or stagingIdentity is None:
+                raise OSError("The project staging directory is unavailable")
+            if useDirectoryDescriptors:
+                parentFd = openDirectory(newPath.parent)
+                try:
+                    if stagingParentIdentity is not None:
+                        parentStat = os.fstat(parentFd)
+                        if fileIdentity(parentStat) != stagingParentIdentity:
+                            raise OSError("The destination folder changed while saving")
+                    stageStat = os.stat(
+                        stagingPath.name,
+                        dir_fd=parentFd,
+                        follow_symlinks=False,
+                    )
+                    if not stat.S_ISDIR(stageStat.st_mode) or fileIdentity(stageStat) != stagingIdentity:
+                        raise OSError("The project staging directory changed while saving")
+                finally:
+                    os.close(parentFd)
+            else:
+                if stagingParentIdentity is not None:
+                    parentStat = os.lstat(newPath.parent)
+                    if isLinkLike(newPath.parent) or fileIdentity(parentStat) != stagingParentIdentity:
+                        raise OSError("The destination folder changed while saving")
+                stageStat = os.lstat(stagingPath)
+                if isLinkLike(stagingPath) or not stat.S_ISDIR(stageStat.st_mode):
+                    raise OSError("The project staging directory changed while saving")
+                if fileIdentity(stageStat) != stagingIdentity:
+                    raise OSError("The project staging directory changed while saving")
+            for stagedPath, expectedIdentity in stagedFileIdentities.items():
+                stagedStat = os.lstat(stagedPath)
+                if not stat.S_ISREG(stagedStat.st_mode) or fileIdentity(stagedStat) != expectedIdentity:
+                    raise OSError("A staged project file changed while saving")
 
         def restoreState() -> None:
             """Restore the original project and storage state."""
@@ -597,6 +779,10 @@ class NWProject:
                 setattr(self._storage, key, value)
             self._data.setUuid(oldUuid)
             self._data.setName(oldName)
+            self._options._lastIdentity = oldOptionsIdentity
+            self._options._identityKnown = oldOptionsIdentityKnown
+            self._index._lastIdentity = oldIndexIdentity
+            self._index._identityKnown = oldIndexIdentityKnown
             self._data.setIndexRevision(oldIndexRevision)
             self._data.setEditTime(oldEditTime)
             self._countsDirty = oldCountsDirty
@@ -604,26 +790,10 @@ class NWProject:
 
         def cleanStaging() -> bool:
             """Remove the application-owned staging directory."""
-            if stagingPath is None:
+            if stagingPath is None or stagingIdentity is None:
                 return True
             try:
-                stagingStat = stagingPath.lstat()
-            except FileNotFoundError:
-                return True
-            except OSError:
-                logger.error("Failed to inspect project staging directory '%s'", stagingPath)
-                logException()
-                return False
-            if (
-                stat.S_ISLNK(stagingStat.st_mode)
-                or stagingIdentity is None
-                or stagingStat.st_dev != stagingIdentity[0]
-                or stagingStat.st_ino != stagingIdentity[1]
-            ):
-                logger.warning("Refusing to remove an unexpected project staging path '%s'", stagingPath)
-                return False
-            try:
-                shutil.rmtree(stagingPath)
+                removeTreeIfOwned(stagingPath, stagingIdentity)
             except OSError:
                 logger.error("Failed to remove project staging directory '%s'", stagingPath)
                 logException()
@@ -632,29 +802,117 @@ class NWProject:
 
         def restoreTargetBackup() -> bool:
             """Restore an empty target folder moved aside for publishing."""
-            nonlocal targetBackupPath
+            nonlocal conflictPath, targetBackupPath
             if targetBackupPath is None:
                 return True
             try:
-                if newPath.exists() or newPath.is_symlink():
-                    logger.warning(
-                        "Could not restore the target project folder; it is preserved at '%s'", targetBackupPath
-                    )
-                    return False
-                if renameNoReplace(targetBackupPath, newPath):
-                    targetBackupPath = None
-                    return True
-            except Exception as exc:
-                if getattr(exc, "errno", None) in (errno.ENOSYS, errno.ENOTSUP, errno.EOPNOTSUPP, errno.EINVAL):
+                if targetIdentity is None:
+                    raise OSError("The previous target project folder identity is unknown")
+
+                parentFd: Optional[int] = None
+                if useDirectoryDescriptors:
+                    parentFd = openDirectory(newPath.parent)
                     try:
-                        if not newPath.exists() and not newPath.is_symlink():
-                            os.rename(targetBackupPath, newPath)
-                            targetBackupPath = None
-                            return True
+                        if stagingParentIdentity is not None:
+                            parentStat = os.fstat(parentFd)
+                            if fileIdentity(parentStat) != stagingParentIdentity:
+                                raise OSError("The destination folder changed while saving")
+                        backupStat = os.stat(
+                            targetBackupPath.name,
+                            dir_fd=parentFd,
+                            follow_symlinks=False,
+                        )
+                        if (
+                            stat.S_ISLNK(backupStat.st_mode)
+                            or not stat.S_ISDIR(backupStat.st_mode)
+                            or fileIdentity(backupStat) != targetIdentity
+                        ):
+                            raise OSError("The previous target project folder changed before it could be restored")
+                        try:
+                            os.stat(newPath.name, dir_fd=parentFd, follow_symlinks=False)
+                        except FileNotFoundError:
+                            pass
+                        else:
+                            logger.warning(
+                                "Could not restore the target project folder; it is preserved at '%s'",
+                                targetBackupPath,
+                            )
+                            return False
+                        if not renameNoReplaceBetween(
+                            Path(targetBackupPath.name),
+                            Path(newPath.name),
+                            sourceDirFd=parentFd,
+                            targetDirFd=parentFd,
+                        ):
+                            raise OSError("Could not restore the target project folder")
+                        restoredStat = os.stat(
+                            newPath.name,
+                            dir_fd=parentFd,
+                            follow_symlinks=False,
+                        )
+                    finally:
+                        os.close(parentFd)
+                else:
+                    if stagingParentIdentity is not None:
+                        parentStat = os.lstat(newPath.parent)
+                        if fileIdentity(parentStat) != stagingParentIdentity:
+                            raise OSError("The destination folder changed while saving")
+                    backupStat = os.lstat(targetBackupPath)
+                    if (
+                        stat.S_ISLNK(backupStat.st_mode)
+                        or not stat.S_ISDIR(backupStat.st_mode)
+                        or fileIdentity(backupStat) != targetIdentity
+                    ):
+                        raise OSError("The previous target project folder changed before it could be restored")
+                    if newPath.exists() or newPath.is_symlink():
+                        logger.warning(
+                            "Could not restore the target project folder; it is preserved at '%s'", targetBackupPath
+                        )
+                        return False
+                    if not renameNoReplace(targetBackupPath, newPath):
+                        raise OSError("Could not restore the target project folder")
+                    restoredStat = os.lstat(newPath)
+
+                if not stat.S_ISDIR(restoredStat.st_mode) or fileIdentity(restoredStat) != targetIdentity:
+                    conflictCandidate = newPath.parent / f".umbraedit-conflict-{uuid.uuid4().hex}"
+                    try:
+                        if useDirectoryDescriptors:
+                            parentFd = openDirectory(newPath.parent)
+                            try:
+                                if stagingParentIdentity is not None:
+                                    parentStat = os.fstat(parentFd)
+                                    if fileIdentity(parentStat) != stagingParentIdentity:
+                                        raise OSError("The destination folder changed while saving")
+                                if renameNoReplaceBetween(
+                                    Path(newPath.name),
+                                    Path(conflictCandidate.name),
+                                    sourceDirFd=parentFd,
+                                    targetDirFd=parentFd,
+                                ):
+                                    conflictPath = conflictCandidate
+                                else:
+                                    conflictPath = newPath
+                            finally:
+                                os.close(parentFd)
+                        else:
+                            if stagingParentIdentity is not None:
+                                parentStat = os.lstat(newPath.parent)
+                                if fileIdentity(parentStat) != stagingParentIdentity:
+                                    raise OSError("The destination folder changed while saving")
+                            if renameNoReplace(newPath, conflictCandidate):
+                                conflictPath = conflictCandidate
+                            else:
+                                conflictPath = newPath
                     except OSError:
-                        pass
+                        conflictPath = None
+                    targetBackupPath = None
+                    raise OSError("The restored target project folder does not match the original folder")
+                targetBackupPath = None
+                return True
+            except Exception:
                 logger.exception("Failed to restore the target project folder '%s'", newPath)
-            logger.warning("The target project folder is preserved at '%s'", targetBackupPath)
+            if targetBackupPath is not None:
+                logger.warning("The target project folder is preserved at '%s'", targetBackupPath)
             return False
 
         # First save all current documents to make sure everything is current
@@ -666,32 +924,68 @@ class NWProject:
             doc = self._storage.getDocument(docHandle)
             if doc and doc.nwItem:
                 text = doc.readDocument()
-                if text is not None:
-                    doc.writeDocument(text)
-
-        # Save old paths before creating new storage (createNewProject
-        # overwrites _storagePath, _runtimePath, etc.)
-        oldContentPath = self._storage.contentPath
-        oldMetaPath = oldRuntimePath / "meta" if oldRuntimePath else None
-        oldAssetPath = oldRuntimePath / "assets" / "img" if oldRuntimePath else None
+                if text is None:
+                    SHARED.error(self.tr("Failed to read a project document before saving."))
+                    return False
+                if not doc.writeDocument(text):
+                    SHARED.error(self.tr("Failed to save a project document before saving."))
+                    return False
 
         # Build the new project in an application-owned staging directory.
         # The user-selected target is not modified until the complete copy
         # has been validated and is ready to publish.
         try:
-            stagingPath = Path(
-                tempfile.mkdtemp(prefix=".umbraedit-stage-", dir=str(newPath.parent)),
-            )
-            stagingStat = stagingPath.stat()
-            stagingIdentity = (stagingStat.st_dev, stagingStat.st_ino)
-            os.chmod(stagingPath, targetMode)
+            if useDirectoryDescriptors:
+                parentFd = openDirectory(newPath.parent)
+                try:
+                    stagingParentStat = os.fstat(parentFd)
+                    stagingParentIdentity = fileIdentity(stagingParentStat)
+                    for _ in range(10):
+                        stagingName = f".umbraedit-stage-{uuid.uuid4().hex}"
+                        try:
+                            os.mkdir(stagingName, 0o700, dir_fd=parentFd)
+                        except FileExistsError:
+                            continue
+                        stagingPath = newPath.parent / stagingName
+                        stagingStat = os.stat(
+                            stagingName,
+                            dir_fd=parentFd,
+                            follow_symlinks=False,
+                        )
+                        break
+                    else:
+                        raise OSError("Could not create a unique project staging directory")
+                finally:
+                    os.close(parentFd)
+            else:
+                stagingParentStat = os.lstat(newPath.parent)
+                if isLinkLike(newPath.parent) or not stat.S_ISDIR(stagingParentStat.st_mode):
+                    raise OSError("The destination folder is not a real directory")
+                stagingParentIdentity = fileIdentity(stagingParentStat)
+                stagingPath = Path(
+                    tempfile.mkdtemp(prefix=".umbraedit-stage-", dir=str(newPath.parent)),
+                )
+                stagingStat = os.lstat(stagingPath)
+                currentParentStat = os.lstat(newPath.parent)
+                if fileIdentity(currentParentStat) != stagingParentIdentity:
+                    raise OSError("The destination folder changed while saving")
+            if isLinkLike(stagingPath) or not stat.S_ISDIR(stagingStat.st_mode):
+                raise OSError("The project staging directory is not a real directory")
+            stagingIdentity = fileIdentity(stagingStat)
+            if targetMode is None:
+                targetMode = getDefaultDirectoryMode(
+                    newPath.parent,
+                    expectedParent=stagingParentIdentity,
+                )
         except OSError as exc:
             cleanStaging()
             restoreState()
             SHARED.error(self.tr("Failed to create project storage."), exc=exc)
             return False
 
-        if isLinkLike(stagingPath):
+        try:
+            verifyStaging()
+        except OSError:
             cleanStaging()
             restoreState()
             SHARED.error(self.tr("Failed to create project storage."))
@@ -707,61 +1001,214 @@ class NWProject:
                 SHARED.error(self.tr("Failed to create project storage."))
             return False
 
+        try:
+            verifyStaging()
+        except OSError as exc:
+            cleanStaging()
+            restoreState()
+            SHARED.error(self.tr("Failed to create project storage."), exc=exc)
+            return False
+
         errorMessage = self.tr("Failed to save project as a new project.")
         try:
             # Update project data: new UUID and name
             self._data.setUuid("")
             self._data.setName(newName)
 
-            # Copy all document files from old content to new content
-            newContentPath = self._storage.contentPath
-            if oldContentPath and newContentPath:
-                for mdFile in oldContentPath.glob("*.md"):
-                    destFile = newContentPath / mdFile.name
-                    try:
-                        shutil.copy2(mdFile, destFile)
-                    except Exception as exc:
-                        logger.error("Failed to copy document file %s: %s", mdFile.name, exc)
-                        errorMessage = self.tr("Failed to copy document file: {0}").format(mdFile.name)
-                        raise
-
-            # Copy all meta files from old meta to new meta
-            newMetaPath = self._storage._runtimePath / "meta" if self._storage._runtimePath else None
-            if oldMetaPath and newMetaPath and oldMetaPath.is_dir():
-                newMetaPath.mkdir(exist_ok=True)
-                for metaFile in oldMetaPath.glob("*"):
-                    if metaFile.is_file():
-                        destFile = newMetaPath / metaFile.name
+            # Copy all document files from old content to new content.
+            # Link-like entries are rejected rather than dereferenced.
+            if oldContentPath:
+                try:
+                    if oldContentPath.exists() or isLinkLike(oldContentPath):
+                        contentSnapshot = scanRegularFiles(oldContentPath)
+                        if oldContentIdentity is not None and contentSnapshot.identity != oldContentIdentity:
+                            raise OSError("The project content folder changed while it was being copied")
+                        verifyStaging()
+                        stageFd: Optional[int] = None
+                        newContentFd: Optional[int] = None
+                        newContentIdentity: Optional[tuple[int, int]] = None
                         try:
-                            shutil.copy2(metaFile, destFile)
-                        except Exception as exc:
-                            logger.error("Failed to copy meta file %s: %s", metaFile.name, exc)
-                            errorMessage = self.tr("Failed to copy project metadata file: {0}").format(metaFile.name)
-                            raise
+                            if useDirectoryDescriptors:
+                                stageFd = openDirectory(stagingPath)
+                                stageStat = os.fstat(stageFd)
+                                if fileIdentity(stageStat) != stagingIdentity:
+                                    raise OSError("The project staging directory changed while it was being copied")
+                                newContentFd = openDirectoryAt(stageFd, "content")
+                                newContentStat = os.fstat(newContentFd)
+                                if not stat.S_ISDIR(newContentStat.st_mode):
+                                    raise OSError("The staged content folder is not a real directory")
+                                newContentIdentity = fileIdentity(newContentStat)
+                            else:
+                                newContentPath = stagingPath / "content"
+                                newContentStat = os.lstat(newContentPath)
+                                if isLinkLike(newContentPath) or not stat.S_ISDIR(newContentStat.st_mode):
+                                    raise OSError("The staged content folder is not a real directory")
+                                newContentIdentity = fileIdentity(newContentStat)
+                            for mdFile in contentSnapshot.files:
+                                if mdFile.suffix == ".md":
+                                    verifyStaging()
+                                    targetPath = stagingPath / "content" / mdFile.name
+                                    copiedIdentity = copyRegularFile(
+                                        mdFile,
+                                        targetPath,
+                                        expectedParent=contentSnapshot.identity,
+                                        expectedSourceIdentity=contentSnapshot.fileIdentities[mdFile.name],
+                                        expectedTargetParent=newContentIdentity,
+                                        targetDirFd=newContentFd,
+                                    )
+                                    stagedFileIdentities[targetPath] = copiedIdentity
+                        finally:
+                            if newContentFd is not None:
+                                os.close(newContentFd)
+                            if stageFd is not None:
+                                os.close(stageFd)
+                        verifyStaging()
+                except Exception as exc:
+                    errorMessage = self.tr("Failed to copy document file: {0}").format(oldContentPath.name)
+                    logger.error("Failed to copy document file: %s", exc)
+                    raise
+
+            # Copy all meta files from old meta to new meta.
+            if oldMetaPath:
+                try:
+                    if oldMetaPath.exists() or isLinkLike(oldMetaPath):
+                        metaSnapshot = scanRegularFiles(oldMetaPath)
+                        if oldMetaIdentity is not None and metaSnapshot.identity != oldMetaIdentity:
+                            raise OSError("The project metadata folder changed while it was being copied")
+                        verifyStaging()
+                        stageFd: Optional[int] = None
+                        metaFd: Optional[int] = None
+                        try:
+                            if useDirectoryDescriptors:
+                                stageFd = openDirectory(stagingPath)
+                                stageStat = os.fstat(stageFd)
+                                if fileIdentity(stageStat) != stagingIdentity:
+                                    raise OSError("The project staging directory changed while it was being copied")
+                                try:
+                                    metaFd = openDirectoryAt(stageFd, "meta")
+                                except FileNotFoundError:
+                                    os.mkdir("meta", 0o700, dir_fd=stageFd)
+                                    metaFd = openDirectoryAt(stageFd, "meta")
+                                newMetaStat = os.fstat(metaFd)
+                                stagedMetaIdentity = fileIdentity(newMetaStat)
+                            else:
+                                newMetaPath = stagingPath / "meta"
+                                newMetaStat = os.lstat(newMetaPath)
+                                if isLinkLike(newMetaPath) or not stat.S_ISDIR(newMetaStat.st_mode):
+                                    raise OSError("The staged metadata folder is not a real directory")
+                                stagedMetaIdentity = fileIdentity(newMetaStat)
+                            for metaFile in metaSnapshot.files:
+                                verifyStaging()
+                                targetPath = stagingPath / "meta" / metaFile.name
+                                copiedIdentity = copyRegularFile(
+                                    metaFile,
+                                    targetPath,
+                                    expectedParent=metaSnapshot.identity,
+                                    expectedSourceIdentity=metaSnapshot.fileIdentities[metaFile.name],
+                                    expectedTargetParent=stagedMetaIdentity,
+                                    targetDirFd=metaFd,
+                                )
+                                stagedFileIdentities[targetPath] = copiedIdentity
+                        finally:
+                            if metaFd is not None:
+                                os.close(metaFd)
+                            if stageFd is not None:
+                                os.close(stageFd)
+                        verifyStaging()
+                except Exception as exc:
+                    errorMessage = self.tr("Failed to copy project metadata file: {0}").format(oldMetaPath.name)
+                    logger.error("Failed to copy meta file: %s", exc)
+                    raise
 
             # Copy all project image assets. Link-like files and folders
             # are rejected rather than silently omitted, since a missing
             # image would break references in the copied project.
-            newAssetPath = self._storage._runtimePath / "assets" / "img" if self._storage._runtimePath else None
-            if oldAssetPath and newAssetPath:
+            if oldAssetPath:
                 try:
                     if isLinkLike(oldAssetPath) or isLinkLike(oldAssetPath.parent):
                         raise OSError("The project image folder cannot be a link")
+                    if oldAssetPath.parent.exists() and not oldAssetPath.parent.is_dir():
+                        raise OSError("The project asset folder is not a directory")
                     if oldAssetPath.exists() and not oldAssetPath.is_dir():
                         raise OSError("The project image folder is not a directory")
                     if oldAssetPath.is_dir():
-                        newAssetPath.mkdir(parents=True, exist_ok=True)
-                        for assetFile in oldAssetPath.iterdir():
-                            if isLinkLike(assetFile):
-                                raise OSError("The project image file cannot be a link")
-                            if assetFile.is_file():
-                                copyRegularFile(assetFile, newAssetPath / assetFile.name)
+                        assetSnapshot = scanRegularFiles(oldAssetPath, expectedPath=oldAssetPath)
+                        verifyStaging()
+                        stageFd: Optional[int] = None
+                        assetsFd: Optional[int] = None
+                        imageFd: Optional[int] = None
+                        newAssetIdentity: Optional[tuple[int, int]] = None
+                        try:
+                            if useDirectoryDescriptors:
+                                stageFd = openDirectory(stagingPath)
+                                stageStat = os.fstat(stageFd)
+                                if fileIdentity(stageStat) != stagingIdentity:
+                                    raise OSError("The project staging directory changed while it was being copied")
+                                try:
+                                    assetsFd = openDirectoryAt(stageFd, "assets")
+                                except FileNotFoundError:
+                                    os.mkdir("assets", 0o700, dir_fd=stageFd)
+                                    assetsFd = openDirectoryAt(stageFd, "assets")
+                                try:
+                                    imageFd = openDirectoryAt(assetsFd, "img")
+                                except FileNotFoundError:
+                                    os.mkdir("img", 0o700, dir_fd=assetsFd)
+                                    imageFd = openDirectoryAt(assetsFd, "img")
+                                newAssetStat = os.fstat(imageFd)
+                                newAssetIdentity = fileIdentity(newAssetStat)
+                            else:
+                                assetsPath = stagingPath / "assets"
+                                imagePath = assetsPath / "img"
+                                ensureDirectory(assetsPath)
+                                ensureDirectory(imagePath)
+                                newAssetStat = os.lstat(imagePath)
+                                if isLinkLike(imagePath) or not stat.S_ISDIR(newAssetStat.st_mode):
+                                    raise OSError("The staged image folder is not a real directory")
+                                newAssetIdentity = fileIdentity(newAssetStat)
+                            for assetFile in assetSnapshot.files:
+                                verifyStaging()
+                                targetPath = stagingPath / "assets" / "img" / assetFile.name
+                                copiedIdentity = copyRegularFile(
+                                    assetFile,
+                                    targetPath,
+                                    expectedParent=assetSnapshot.identity,
+                                    expectedSourceIdentity=assetSnapshot.fileIdentities[assetFile.name],
+                                    expectedTargetParent=newAssetIdentity,
+                                    targetDirFd=imageFd,
+                                )
+                                stagedFileIdentities[targetPath] = copiedIdentity
+                        finally:
+                            if imageFd is not None:
+                                os.close(imageFd)
+                            if assetsFd is not None:
+                                os.close(assetsFd)
+                            if stageFd is not None:
+                                os.close(stageFd)
+                        verifyStaging()
                 except Exception as exc:
                     logger.error("Failed to copy project image file: %s", exc)
                     errorMessage = self.tr("Failed to copy project image file.")
                     raise
 
             # Write project XML
+            verifyStaging()
+            if stagedMetaIdentity is None:
+                if useDirectoryDescriptors:
+                    stageFd = openDirectory(stagingPath)
+                    try:
+                        metaFd = openDirectoryAt(stageFd, "meta")
+                        try:
+                            stagedMetaIdentity = fileIdentity(os.fstat(metaFd))
+                        finally:
+                            os.close(metaFd)
+                    finally:
+                        os.close(stageFd)
+                else:
+                    newMetaPath = stagingPath / "meta"
+                    newMetaStat = os.lstat(newMetaPath)
+                    if isLinkLike(newMetaPath) or not stat.S_ISDIR(newMetaStat.st_mode):
+                        raise OSError("The staged metadata folder is not a real directory")
+                    stagedMetaIdentity = fileIdentity(newMetaStat)
             self._data.setIndexRevision(self._index.indexRevision)
             saveTime = time()
             editTime = self._data.editTime + max(round(saveTime - self._session.start), 0)
@@ -770,28 +1217,81 @@ class NWProject:
             if not isinstance(xmlWriter, ProjectXMLWriter):
                 raise OSError("Could not create a project XML writer")
 
-            if not xmlWriter.write(self._data, content, saveTime, editTime):
+            if not xmlWriter.write(
+                self._data,
+                content,
+                saveTime,
+                editTime,
+                expectedParent=stagingIdentity,
+                expectedTarget=None,
+                replaceExisting=False,
+            ):
                 self._reportErrors(self.tr("Issues encountered when saving project:"))
                 raise OSError("Could not write the project XML")
+            xmlPath = stagingPath / nwFiles.PROJ_FILE
+            xmlIdentity = xmlWriter.lastIdentity
+            if xmlIdentity is None:
+                raise OSError("Could not write the project XML")
+            stagedFileIdentities[xmlPath] = xmlIdentity
+            verifyStaging()
 
             # Save other project data
-            if not self._options.saveSettings():
+            optionsPath = stagingPath / "meta" / nwFiles.OPTS_FILE
+            optionsIdentity = stagedFileIdentities.get(optionsPath)
+            if not self._options.saveSettings(
+                expectedParent=stagedMetaIdentity,
+                expectedTarget=optionsIdentity,
+                replaceExisting=optionsIdentity is not None,
+            ):
                 raise OSError("Could not save the project options")
-            if not self._index.saveIndex():
-                raise OSError("Could not save the project index")
+            optionsIdentity = self._options.lastIdentity
+            if optionsIdentity is None:
+                raise OSError("Could not save the project options")
+            stagedFileIdentities[optionsPath] = optionsIdentity
+            verifyStaging()
 
-            if not self._storage.runPostSaveTasks(saveTime=saveTime, autoSave=False):
+            indexPath = stagingPath / "meta" / nwFiles.INDEX_FILE
+            indexIdentity = stagedFileIdentities.get(indexPath)
+            if not self._index.saveIndex(
+                expectedParent=stagedMetaIdentity,
+                expectedTarget=indexIdentity,
+                replaceExisting=indexIdentity is not None,
+            ):
+                raise OSError("Could not save the project index")
+            indexIdentity = self._index.lastIdentity
+            if indexIdentity is None:
+                raise OSError("Could not save the project index")
+            stagedFileIdentities[indexPath] = indexIdentity
+            verifyStaging()
+
+            if not self._storage.runPostSaveTasks(
+                saveTime=saveTime,
+                autoSave=False,
+                expectedParent=stagingIdentity,
+                expectedTarget=None,
+                replaceExisting=False,
+            ):
                 raise OSError("Could not finalise the project storage")
-            if not self._storage._manifestPath or not self._storage._manifestPath.is_file():
+            manifestPath = stagingPath / nwFiles.MANIFEST_FILE
+            manifestIdentity = self._storage.lastManifestIdentity
+            if manifestIdentity is None:
                 raise OSError("Could not write the project manifest")
+            stagedFileIdentities[manifestPath] = manifestIdentity
+            verifyStaging()
 
             # Lock the staged project before publishing it. The lock file
             # is moved together with the rest of the project.
             assert stagingPath is not None
-            self._storage.lockSession()
+            if not self._storage.lockSession(expectedParent=stagingIdentity):
+                raise OSError("Could not lock the staged project")
+            verifyStaging()
             stagedLockPath = self._storage._lockFilePath
             if not stagedLockPath or not stagedLockPath.is_file():
                 raise OSError("Could not lock the new project")
+            stagedLockIdentity = self._storage._lockFileIdentity
+            if stagedLockIdentity is None:
+                raise OSError("Could not lock the new project")
+            stagedFileIdentities[stagedLockPath] = stagedLockIdentity
 
             # Publish the complete staged project with atomic no-replace
             # semantics. An existing empty target is first moved aside,
@@ -815,8 +1315,44 @@ class NWProject:
                     errorMessage = self.tr("The target project location changed while saving. Please try again.")
                     raise OSError("The target project location is no longer an empty folder")
 
-                targetBackupPath = newPath.parent / f".{newPath.name}.umbraedit-saveas-{uuid.uuid4().hex}"
-                os.rename(newPath, targetBackupPath)
+                targetBackupCandidate = newPath.parent / f".umbraedit-saveas-{uuid.uuid4().hex}"
+                if useDirectoryDescriptors:
+                    parentFd = openDirectory(newPath.parent)
+                    try:
+                        if stagingParentIdentity is not None:
+                            parentStat = os.fstat(parentFd)
+                            if fileIdentity(parentStat) != stagingParentIdentity:
+                                raise OSError("The destination folder changed while saving")
+                        moved = renameNoReplaceBetween(
+                            Path(newPath.name),
+                            Path(targetBackupCandidate.name),
+                            sourceDirFd=parentFd,
+                            targetDirFd=parentFd,
+                        )
+                    finally:
+                        os.close(parentFd)
+                else:
+                    if stagingParentIdentity is not None:
+                        parentStat = os.lstat(newPath.parent)
+                        if fileIdentity(parentStat) != stagingParentIdentity:
+                            raise OSError("The destination folder changed while saving")
+                    moved = renameNoReplace(newPath, targetBackupCandidate)
+                if not moved:
+                    errorMessage = self.tr("The target project location changed while saving. Please try again.")
+                    raise OSError("Could not move the existing target project folder aside")
+                targetBackupPath = targetBackupCandidate
+                backupStat = os.lstat(targetBackupPath)
+                if (
+                    stat.S_ISLNK(backupStat.st_mode)
+                    or not stat.S_ISDIR(backupStat.st_mode)
+                    or targetIdentity is None
+                    or backupStat.st_dev != targetIdentity[0]
+                    or backupStat.st_ino != targetIdentity[1]
+                ):
+                    conflictPath = targetBackupPath
+                    targetBackupPath = None
+                    errorMessage = self.tr("The target project location changed while saving. Please try again.")
+                    raise OSError("The target project location changed before it could be moved aside")
                 if any(targetBackupPath.iterdir()):
                     restoreTargetBackup()
                     errorMessage = self.tr("The target project location changed while saving. Please try again.")
@@ -825,8 +1361,52 @@ class NWProject:
                 errorMessage = self.tr("The target project location changed while saving. Please try again.")
                 raise OSError("The target project location already exists")
 
+            # The staging directory remains private while it is being built.
+            # Apply the intended final permissions immediately before the
+            # atomic publication so a new target follows the process umask.
+            assert targetMode is not None
+            verifyStaging()
+            if useDirectoryDescriptors:
+                stagingFd = openDirectory(stagingPath)
+                try:
+                    os.fchmod(stagingFd, targetMode)
+                finally:
+                    os.close(stagingFd)
+            else:
+                os.chmod(stagingPath, targetMode)
+            verifyStaging()
             try:
-                published = renameNoReplace(stagingPath, newPath)
+                if useDirectoryDescriptors:
+                    parentFd = openDirectory(newPath.parent)
+                    try:
+                        if stagingParentIdentity is not None:
+                            parentStat = os.fstat(parentFd)
+                            if fileIdentity(parentStat) != stagingParentIdentity:
+                                raise OSError("The destination folder changed while saving")
+                        stageStat = os.stat(
+                            stagingPath.name,
+                            dir_fd=parentFd,
+                            follow_symlinks=False,
+                        )
+                        if fileIdentity(stageStat) != stagingIdentity:
+                            raise OSError("The project staging directory changed before publication")
+                        published = renameNoReplaceBetween(
+                            Path(stagingPath.name),
+                            Path(newPath.name),
+                            sourceDirFd=parentFd,
+                            targetDirFd=parentFd,
+                        )
+                    finally:
+                        os.close(parentFd)
+                else:
+                    if stagingParentIdentity is not None:
+                        parentStat = os.lstat(newPath.parent)
+                        if fileIdentity(parentStat) != stagingParentIdentity:
+                            raise OSError("The destination folder changed while saving")
+                    stageStat = os.lstat(stagingPath)
+                    if isLinkLike(stagingPath) or fileIdentity(stageStat) != stagingIdentity:
+                        raise OSError("The project staging directory changed before publication")
+                    published = renameNoReplace(stagingPath, newPath)
             except Exception:
                 restoreTargetBackup()
                 raise
@@ -836,22 +1416,98 @@ class NWProject:
                 raise OSError("The target project location already exists")
             stagingPath = None
 
+            assert stagingIdentity is not None
+            try:
+                if useDirectoryDescriptors:
+                    parentFd = openDirectory(newPath.parent)
+                    try:
+                        if stagingParentIdentity is not None:
+                            parentStat = os.fstat(parentFd)
+                            if fileIdentity(parentStat) != stagingParentIdentity:
+                                raise OSError("The destination folder changed while saving")
+                        publishedStat = os.stat(
+                            newPath.name,
+                            dir_fd=parentFd,
+                            follow_symlinks=False,
+                        )
+                        if not stat.S_ISDIR(publishedStat.st_mode) or fileIdentity(publishedStat) != stagingIdentity:
+                            raise OSError("The published project folder does not match the staged project")
+                    finally:
+                        os.close(parentFd)
+                else:
+                    if stagingParentIdentity is not None:
+                        parentStat = os.lstat(newPath.parent)
+                        if fileIdentity(parentStat) != stagingParentIdentity:
+                            raise OSError("The destination folder changed while saving")
+                    publishedStat = os.lstat(newPath)
+                    if isLinkLike(newPath) or not stat.S_ISDIR(publishedStat.st_mode):
+                        raise OSError("The published project folder does not match the staged project")
+                    if fileIdentity(publishedStat) != stagingIdentity:
+                        raise OSError("The published project folder does not match the staged project")
+            except OSError as exc:
+                conflictCandidate = newPath.parent / f".umbraedit-conflict-{uuid.uuid4().hex}"
+                try:
+                    if useDirectoryDescriptors:
+                        parentFd = openDirectory(newPath.parent)
+                        try:
+                            if stagingParentIdentity is not None:
+                                parentStat = os.fstat(parentFd)
+                                if fileIdentity(parentStat) != stagingParentIdentity:
+                                    raise OSError("The destination folder changed while saving")
+                            if renameNoReplaceBetween(
+                                Path(newPath.name),
+                                Path(conflictCandidate.name),
+                                sourceDirFd=parentFd,
+                                targetDirFd=parentFd,
+                            ):
+                                conflictPath = conflictCandidate
+                            else:
+                                conflictPath = newPath
+                        finally:
+                            os.close(parentFd)
+                    else:
+                        if stagingParentIdentity is not None:
+                            parentStat = os.lstat(newPath.parent)
+                            if fileIdentity(parentStat) != stagingParentIdentity:
+                                raise OSError("The destination folder changed while saving")
+                        if renameNoReplace(newPath, conflictCandidate):
+                            conflictPath = conflictCandidate
+                        else:
+                            conflictPath = newPath
+                except OSError:
+                    # The destination path may now refer to an unrelated
+                    # directory. Never move or remove that replacement.
+                    conflictPath = None
+                errorMessage = self.tr("The published project folder changed while saving. Please try again.")
+                raise OSError("The published project folder does not match the staged project") from exc
+
             if targetBackupPath is not None:
                 try:
-                    os.rmdir(targetBackupPath)
+                    if targetIdentity is None:
+                        raise OSError("The previous target project folder identity is unknown")
+                    removeEmptyDirectoryIfOwned(
+                        targetBackupPath,
+                        targetIdentity,
+                        expectedParent=stagingParentIdentity,
+                    )
                     targetBackupPath = None
                 except OSError:
                     logger.warning("Could not remove the previous target project folder '%s'", targetBackupPath)
+                    SHARED.warn(
+                        self.tr("The previous target project folder is preserved at: {0}").format(targetBackupPath)
+                    )
 
             # The staged paths now refer to the published project.
             self._storage._storagePath = newPath
             self._storage._runtimePath = newPath
             self._storage._lockFilePath = newPath / nwFiles.PROJ_LOCK
             self._storage._manifestPath = newPath / nwFiles.MANIFEST_FILE
+            self._storage._xmlIdentity = stagedFileIdentities.get(newPath / nwFiles.PROJ_FILE)
+            self._storage._lastManifestIdentity = stagedFileIdentities.get(newPath / nwFiles.MANIFEST_FILE)
 
-            if oldLockPath and oldLockPath != self._storage._lockFilePath and oldLockPath.exists():
+            if oldLockPath and oldLockIdentity is not None and oldLockPath != self._storage._lockFilePath:
                 try:
-                    oldLockPath.unlink()
+                    unlinkIfSameFile(oldLockPath, oldLockIdentity)
                 except OSError as exc:
                     logger.warning("Failed to release the original project lock: %s", exc)
                     SHARED.warn(
@@ -865,9 +1521,18 @@ class NWProject:
             cleaned = cleanStaging()
             restored = restoreTargetBackup()
             restoreState()
-            details = "" if cleaned else self.tr("The incomplete destination could not be removed.")
+            detailMessages = []
+            if not cleaned:
+                detailMessages.append(self.tr("The incomplete destination could not be removed."))
             if not restored and targetBackupPath is not None:
-                details = self.tr("The previous target project folder is preserved at: {0}").format(targetBackupPath)
+                detailMessages.append(
+                    self.tr("The previous target project folder is preserved at: {0}").format(targetBackupPath)
+                )
+            if conflictPath is not None:
+                detailMessages.append(
+                    self.tr("An unexpected published project folder is preserved at: {0}").format(conflictPath)
+                )
+            details = "\n".join(detailMessages)
             logger.error("Failed to save project as a new project", exc_info=exc)
             SHARED.error(errorMessage, details=details, exc=exc)
             return False
@@ -890,7 +1555,11 @@ class NWProject:
 
         SHARED.clearErrorCache()
         self._index.clear()  # Triggers clear signal, see #1718
-        self._options.saveSettings()
+        self._options.saveSettings(
+            expectedParent=self._storage.metaIdentity,
+            expectedTarget=self._options.lastIdentity,
+            replaceExisting=self._options.lastIdentity is not None,
+        )
         self._tree.writeToCFile()
         self._session.appendSession(idleTime)
         self._storage.closeSession()
@@ -922,6 +1591,8 @@ class NWProject:
         baseDir = backupPath / cleanName
         try:
             baseDir.mkdir(exist_ok=True, parents=True)
+            if isLinkLike(baseDir) or not baseDir.is_dir():
+                raise OSError("The backup folder cannot be a link")
         except Exception as exc:
             SHARED.error(self.tr("Could not create backup folder."), exc=exc)
             return False
@@ -938,6 +1609,18 @@ class NWProject:
             timeStamp = formatTimeStamp(saveTime, fileSafe=True)
 
         archName = baseDir / f"{cleanName} {timeStamp}.zip"
+        if archName.exists() or isLinkLike(archName):
+            if isLinkLike(archName):
+                SHARED.error(self.tr("The backup archive target cannot be a symbolic link."))
+                return False
+            for index in range(1, 1000):
+                candidate = baseDir / f"{cleanName} {timeStamp} ({index}).zip"
+                if not candidate.exists() and not isLinkLike(candidate):
+                    archName = candidate
+                    break
+            else:
+                SHARED.error(self.tr("Could not create a unique backup archive name."))
+                return False
         if self._storage.zipIt(archName, saveTime, compression=2):
             if doNotify:
                 size = formatInt(getFileSize(archName))

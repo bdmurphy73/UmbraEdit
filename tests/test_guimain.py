@@ -1149,7 +1149,8 @@ def testGuiMain_FocusMode(
     nwGUI.toggleFocusMode()
     assert nwGUI.treePane.isVisible() is True
     assert nwGUI.mainStatus.isVisible() is True
-    assert nwGUI.mainMenu.isVisible() is True
+    if QGuiApplication.platformName() != "cocoa":
+        assert nwGUI.mainMenu.isVisible() is True
     assert nwGUI.sideBar.isVisible() is True
 
     # Open a file only in the editor, with the viewer untouched and the
@@ -1177,7 +1178,8 @@ def testGuiMain_FocusMode(
     assert SHARED.focusMode is True
     assert nwGUI.treePane.isVisible() is False
     assert nwGUI.mainStatus.isVisible() is False
-    assert nwGUI.mainMenu.isVisible() is False
+    if QGuiApplication.platformName() != "cocoa":
+        assert nwGUI.mainMenu.isVisible() is False
     assert nwGUI.sideBar.isVisible() is False
     assert nwGUI.docPanes.splitView.isVisible() is False
 
@@ -1186,7 +1188,8 @@ def testGuiMain_FocusMode(
     assert SHARED.focusMode is False
     assert nwGUI.treePane.isVisible() is True
     assert nwGUI.mainStatus.isVisible() is True
-    assert nwGUI.mainMenu.isVisible() is True
+    if QGuiApplication.platformName() != "cocoa":
+        assert nwGUI.mainMenu.isVisible() is True
     assert nwGUI.sideBar.isVisible() is True
     assert nwGUI.docPanes.splitView.isVisible() is True
 
@@ -1330,7 +1333,7 @@ def testGuiMain_Features(
 
     # Handle I/O error
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.document.openRegularFile", causeOSError)
         assert nwGUI.docPanes.openDocument(C.hChapterDoc) is False
 
     # Import Document

@@ -310,7 +310,7 @@ def testGuiDocEditor_SaveText(
 
     # Cause error when saving
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.document.writeFileAtomic", causeOSError)
         assert docEditor.saveText() is False
         assert "Could not save document." in caplog.text
 

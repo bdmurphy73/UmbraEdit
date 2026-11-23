@@ -27,25 +27,37 @@ import errno
 import logging
 import os
 import shutil
+import stat
 import struct
 import tempfile
+import uuid
 import warnings
+import zlib
 
 from dataclasses import dataclass
 from enum import Enum
 from itertools import count
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, BinaryIO, Optional, Union
 
 import PIL.Image
 
 from umbraedit.common import makeFileNameSafe
 from umbraedit.core.safeio import (
+    FileIdentity,
     ensureDirectory,
+    fileIdentity,
     isLinkLike,
+    linkNoReplaceIfSameFile,
     openDirectory,
+    openDirectoryAt,
+    openExclusiveFile,
     openRegularFile,
-    renameNoReplaceAt,
+    renameNoReplace,
+    renameNoReplaceBetween,
+    renameNoReplaceIfSameFile,
+    supportsDirectoryDescriptors,
+    unlinkEntryIfSameFile,
 )
 
 if TYPE_CHECKING:
@@ -84,6 +96,16 @@ WINDOWS_RESERVED_NAMES = {
     *(f"LPT{number}" for number in range(1, 10)),
 }
 
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_PNG_HEADER_CHUNK = b"IHDR"
+_PNG_DATA_CHUNK = b"IDAT"
+_PNG_END_CHUNK = b"IEND"
+_JPEG_START = b"\xff\xd8"
+_JPEG_END_MARKER = 0xD9
+_JPEG_SCAN_MARKER = 0xDA
+_JPEG_STANDALONE_MARKERS = {0x01, 0xD8, *range(0xD0, 0xD8)}
+_STRUCTURE_READ_SIZE = 1024 * 1024
+
 
 class ImageImportReason(Enum):
     """Reasons why a project image could not be imported."""
@@ -111,6 +133,7 @@ class ImportedImage:
 
     path: Path
     relativePath: str
+    identity: FileIdentity
 
 
 def importProjectImage(project: NWProject, source: Union[Path, str]) -> ImportedImage:
@@ -120,12 +143,20 @@ def importProjectImage(project: NWProject, source: Union[Path, str]) -> Imported
     assets are never overwritten. If the requested file name is already
     in use, a numeric suffix is added before the extension.
     """
-    projectPath = project.storage.storagePath
+    projectPath = project.storage.runtimePath
     if not project.storage.isOpen() or not isinstance(projectPath, Path):
         raise ImageImportError(ImageImportReason.NO_PROJECT, "No project is open")
 
     sourcePath = Path(source)
-    if not sourcePath.is_file():
+    try:
+        sourceStat = os.lstat(sourcePath)
+    except FileNotFoundError as exc:
+        raise ImageImportError(ImageImportReason.NOT_FOUND, f"Image file not found: {sourcePath}") from exc
+    except OSError as exc:
+        raise ImageImportError(ImageImportReason.NOT_FOUND, f"Image file not found: {sourcePath}") from exc
+    if stat.S_ISLNK(sourceStat.st_mode) or getattr(sourceStat, "st_file_attributes", 0) & 0x400:
+        raise ImageImportError(ImageImportReason.INVALID_IMAGE, "The image data is invalid")
+    if not stat.S_ISREG(sourceStat.st_mode):
         raise ImageImportError(ImageImportReason.NOT_FOUND, f"Image file not found: {sourcePath}")
 
     expectedFormat = IMAGE_FORMATS.get(sourcePath.suffix.lower())
@@ -143,8 +174,14 @@ def importProjectImage(project: NWProject, source: Union[Path, str]) -> Imported
         )
 
     try:
-        assetDir = _prepareAssetDir(projectPath)
-        target = _copyUnique(sourcePath, assetDir, expectedFormat)
+        assetDir, assetIdentity = _prepareAssetDir(projectPath, project.storage.rootIdentity)
+        target, targetIdentity = _copyUnique(
+            sourcePath,
+            assetDir,
+            expectedFormat,
+            expectedRoot=project.storage.rootIdentity,
+            expectedAsset=assetIdentity,
+        )
     except ImageImportError:
         raise
     except OSError as exc:
@@ -155,39 +192,42 @@ def importProjectImage(project: NWProject, source: Union[Path, str]) -> Imported
 
     relativePath = target.relative_to(projectPath).as_posix()
     logger.info("Imported project image '%s' as '%s'", sourcePath.name, relativePath)
-    return ImportedImage(path=target, relativePath=relativePath)
+    return ImportedImage(path=target, relativePath=relativePath, identity=targetIdentity)
 
 
-def _validateImage(path: Path, *, secure: bool = False) -> str:
+def _validateImage(path: Path) -> str:
     """Return the image format after validating the image data.
 
-    Pillow's decompression bomb warning is promoted to an error so an
-    image between the warning and error thresholds cannot trigger a
-    large allocation. When ``secure`` is set, the file is opened without
-    following symbolic links and the same handle is used for validation.
+    The same open handle is used for verification and decoding, and
+    symbolic links are never followed.
     """
+    try:
+        with openRegularFile(path) as imageFile:
+            return _validateImageFile(imageFile)
+    except ImageImportError:
+        raise
+    except (EOFError, OSError, ValueError, SyntaxError, struct.error) as exc:
+        raise ImageImportError(ImageImportReason.INVALID_IMAGE, "The image data is invalid") from exc
+
+
+def _validateImageFile(imageFile: BinaryIO) -> str:
+    """Validate and fully decode an image from an open file handle."""
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", PIL.Image.DecompressionBombWarning)
-            if secure:
-                with openRegularFile(path) as imageFile:
-                    with PIL.Image.open(imageFile) as image:
-                        imageFormat = _checkImageSize(image)
-                        image.verify()
-                    imageFile.seek(0)
-                    with PIL.Image.open(imageFile) as image:
-                        image.load()
-            else:
-                with PIL.Image.open(path) as image:
-                    imageFormat = _checkImageSize(image)
-                    image.verify()
+            imageFile.seek(0)
+            with PIL.Image.open(imageFile) as image:
+                imageFormat = image.format
+                _validateImageStructure(imageFile, str(imageFormat) if imageFormat else "")
+                image.verify()
 
-                # JPEG verification does not necessarily detect truncated
-                # scan data, so decode the image as well. This ensures that
-                # the file contains a complete, usable image rather than
-                # only a valid header.
-                with PIL.Image.open(path) as image:
-                    image.load()
+            # JPEG verification does not necessarily detect truncated scan
+            # data, so decode the image as well. This ensures that the file
+            # contains a complete, usable image rather than only a valid
+            # header.
+            imageFile.seek(0)
+            with PIL.Image.open(imageFile) as image:
+                image.load()
     except (PIL.Image.DecompressionBombError, PIL.Image.DecompressionBombWarning) as exc:
         raise ImageImportError(ImageImportReason.IMAGE_TOO_LARGE, "The image is too large to import") from exc
     except (EOFError, OSError, ValueError, SyntaxError, struct.error) as exc:
@@ -196,89 +236,322 @@ def _validateImage(path: Path, *, secure: bool = False) -> str:
     return str(imageFormat) if imageFormat else ""
 
 
-def _checkImageSize(image: PIL.Image.Image) -> Optional[str]:
-    """Check an image against Pillow's decompression bomb limit."""
-    maxPixels = PIL.Image.MAX_IMAGE_PIXELS
-    if isinstance(maxPixels, int) and maxPixels > 0 and image.width * image.height > maxPixels:
-        raise PIL.Image.DecompressionBombError("The image exceeds the decompression bomb limit")
-    return image.format
+def _readExact(imageFile: BinaryIO, size: int) -> bytes:
+    """Read exactly the requested number of bytes or fail."""
+    data = imageFile.read(size)
+    if len(data) != size:
+        raise ValueError("The image data ended unexpectedly")
+    return data
 
 
-def _prepareAssetDir(projectPath: Path) -> Path:
+def _validateImageStructure(imageFile: BinaryIO, imageFormat: str) -> None:
+    """Validate the container structure and termination of an image.
+
+    Other formats are fully decoded by Pillow but are not structurally
+    checked here. Their format is returned so the caller can report an
+    extension mismatch separately from invalid image content.
+    """
+    if imageFormat == "PNG":
+        _validatePngStructure(imageFile)
+    elif imageFormat == "JPEG":
+        _validateJpegStructure(imageFile)
+
+
+def _validatePngStructure(imageFile: BinaryIO) -> None:
+    """Validate all PNG chunks and require a complete IEND chunk."""
+    imageFile.seek(0)
+    if _readExact(imageFile, len(_PNG_SIGNATURE)) != _PNG_SIGNATURE:
+        raise ValueError("The PNG signature is invalid")
+
+    headerSeen = False
+    dataSeen = False
+    while True:
+        length = struct.unpack(">I", _readExact(imageFile, 4))[0]
+        if length > 0x7FFFFFFF:
+            raise ValueError("The PNG chunk length is invalid")
+        chunkType = _readExact(imageFile, 4)
+        if not chunkType.isalpha():
+            raise ValueError("The PNG chunk type is invalid")
+
+        checksum = zlib.crc32(chunkType)
+        remaining = length
+        while remaining:
+            data = imageFile.read(min(remaining, _STRUCTURE_READ_SIZE))
+            if not data:
+                raise ValueError("The PNG data ended unexpectedly")
+            checksum = zlib.crc32(data, checksum)
+            remaining -= len(data)
+
+        storedChecksum = struct.unpack(">I", _readExact(imageFile, 4))[0]
+        if storedChecksum != (checksum & 0xFFFFFFFF):
+            raise ValueError("The PNG chunk checksum is invalid")
+
+        if not headerSeen:
+            if chunkType != _PNG_HEADER_CHUNK or length != 13:
+                raise ValueError("The PNG header is invalid")
+            headerSeen = True
+        elif chunkType == _PNG_HEADER_CHUNK:
+            raise ValueError("The PNG contains multiple headers")
+
+        if chunkType == _PNG_DATA_CHUNK:
+            dataSeen = True
+        elif chunkType == _PNG_END_CHUNK:
+            if length != 0 or not dataSeen:
+                raise ValueError("The PNG end marker is invalid")
+            return
+
+
+def _readJpegMarker(imageFile: BinaryIO) -> int:
+    """Return the next JPEG marker code."""
+    while True:
+        data = imageFile.read(1)
+        if not data:
+            raise ValueError("The JPEG data ended unexpectedly")
+        if data != b"\xff":
+            continue
+
+        marker = imageFile.read(1)
+        while marker == b"\xff":
+            marker = imageFile.read(1)
+        if not marker:
+            raise ValueError("The JPEG data ended unexpectedly")
+        if marker[0] == 0x00:
+            raise ValueError("The JPEG contains an invalid marker")
+        return marker[0]
+
+
+def _readJpegScanMarker(imageFile: BinaryIO) -> int:
+    """Return the next marker following JPEG entropy-coded data."""
+    while True:
+        data = imageFile.read(1)
+        if not data:
+            raise ValueError("The JPEG data ended unexpectedly")
+        if data != b"\xff":
+            continue
+
+        marker = imageFile.read(1)
+        while marker == b"\xff":
+            marker = imageFile.read(1)
+        if not marker:
+            raise ValueError("The JPEG data ended unexpectedly")
+        markerCode = marker[0]
+        if markerCode == 0x00 or 0xD0 <= markerCode <= 0xD7:
+            continue
+        return markerCode
+
+
+def _readJpegSegmentLength(imageFile: BinaryIO) -> int:
+    """Read and validate a JPEG segment length."""
+    length = struct.unpack(">H", _readExact(imageFile, 2))[0]
+    if length < 2:
+        raise ValueError("The JPEG segment length is invalid")
+    return length
+
+
+def _validateJpegStructure(imageFile: BinaryIO) -> None:
+    """Validate JPEG markers and require a complete EOI marker."""
+    imageFile.seek(0)
+    if _readExact(imageFile, len(_JPEG_START)) != _JPEG_START:
+        raise ValueError("The JPEG signature is invalid")
+
+    markerCode = _readJpegMarker(imageFile)
+    while True:
+        if markerCode == _JPEG_END_MARKER:
+            return
+        if markerCode == _JPEG_SCAN_MARKER:
+            segmentLength = _readJpegSegmentLength(imageFile)
+            imageFile.seek(segmentLength - 2, os.SEEK_CUR)
+            markerCode = _readJpegScanMarker(imageFile)
+            continue
+        if markerCode in _JPEG_STANDALONE_MARKERS:
+            markerCode = _readJpegMarker(imageFile)
+            continue
+
+        segmentLength = _readJpegSegmentLength(imageFile)
+        imageFile.seek(segmentLength - 2, os.SEEK_CUR)
+        markerCode = _readJpegMarker(imageFile)
+
+
+def _prepareAssetDir(
+    projectPath: Path,
+    expectedRoot: Optional[FileIdentity] = None,
+) -> tuple[Path, FileIdentity]:
     """Create and validate the project image asset folder."""
-    projectRoot = projectPath.resolve()
-    assetsPath = projectRoot / "assets"
+    rootStat = os.lstat(projectPath)
+    if isLinkLike(projectPath) or not stat.S_ISDIR(rootStat.st_mode):
+        raise OSError("The project folder is not a real directory")
+    rootIdentity = fileIdentity(rootStat)
+    if expectedRoot is not None and rootIdentity != expectedRoot:
+        raise OSError("The project folder changed before the image folder could be created")
+
+    assetsPath = projectPath / "assets"
     assetDir = assetsPath / "img"
 
-    ensureDirectory(assetsPath)
-    ensureDirectory(assetDir)
+    if supportsDirectoryDescriptors():
+        rootFd = openDirectory(projectPath)
+        try:
+            if fileIdentity(os.fstat(rootFd)) != rootIdentity:
+                raise OSError("The project folder changed while it was being opened")
+            with contextlib.suppress(FileExistsError):
+                os.mkdir("assets", 0o700, dir_fd=rootFd)
+            assetsFd = openDirectoryAt(rootFd, "assets")
+            try:
+                with contextlib.suppress(FileExistsError):
+                    os.mkdir("img", 0o700, dir_fd=assetsFd)
+                assetFd = openDirectoryAt(assetsFd, "img")
+                try:
+                    assetIdentity = fileIdentity(os.fstat(assetFd))
+                finally:
+                    os.close(assetFd)
+            finally:
+                os.close(assetsFd)
+        finally:
+            os.close(rootFd)
+    else:
+        ensureDirectory(assetsPath)
+        ensureDirectory(assetDir)
+        assetStat = os.lstat(assetDir)
+        if isLinkLike(assetDir) or not stat.S_ISDIR(assetStat.st_mode):
+            raise OSError("The project image folder is not a real directory")
+        assetIdentity = fileIdentity(assetStat)
 
-    # Resolve the final path as well to catch a link introduced while the
-    # folders were being created.
-    if assetDir.resolve() != projectRoot / ASSET_DIR:
-        raise OSError("The project image folder resolves outside the project")
-    if isLinkLike(assetsPath) or isLinkLike(assetDir):
-        raise OSError("The project image folder cannot be a link")
+    currentRootStat = os.lstat(projectPath)
+    if isLinkLike(projectPath) or fileIdentity(currentRootStat) != rootIdentity:
+        raise OSError("The project folder changed while the image folder was being created")
+    currentAssetStat = os.lstat(assetDir)
+    if isLinkLike(assetDir) or not stat.S_ISDIR(currentAssetStat.st_mode):
+        raise OSError("The project image folder is not a real directory")
+    if fileIdentity(currentAssetStat) != assetIdentity:
+        raise OSError("The project image folder changed while it was being created")
 
-    return assetDir
+    return assetDir, assetIdentity
 
 
-def _copyUnique(source: Path, assetDir: Path, expectedFormat: str) -> Path:
+def _createStagingFile(projectRoot: Path, rootFd: Optional[int]) -> tuple[Path, int]:
+    """Create a private staging file in the validated project root."""
+    if rootFd is not None:
+        for _ in range(10):
+            stageName = f".umbraedit-image-{uuid.uuid4().hex}.tmp"
+            try:
+                fileDesc = openExclusiveFile(Path(stageName), rootFd, mode=0o600, readable=True)
+            except FileExistsError:
+                continue
+            return projectRoot / stageName, fileDesc
+        raise OSError("Could not create a unique project image staging file")
+
+    fileDesc, tmpName = tempfile.mkstemp(dir=projectRoot, prefix=".umbraedit-image-", suffix=".tmp")
+    return Path(tmpName), fileDesc
+
+
+def _copyUnique(
+    source: Path,
+    assetDir: Path,
+    expectedFormat: str,
+    *,
+    expectedRoot: Optional[FileIdentity] = None,
+    expectedAsset: Optional[FileIdentity] = None,
+) -> tuple[Path, FileIdentity]:
     """Copy a source image to a unique target without overwriting."""
-    stem = _safeImageStem(source)
+    stem = safeImageStem(source)
     suffix = source.suffix.lower()
     projectRoot = assetDir.parent.parent
 
-    # Stage the completed image outside assets/img. Backups and Save As
-    # only include the asset folder, so they cannot capture a partially
-    # written staging file.
-    fileDesc, tmpName = tempfile.mkstemp(dir=projectRoot, prefix=".umbraedit-image-", suffix=".tmp")
-    os.close(fileDesc)
-    tmpPath = Path(tmpName)
+    rootFd: Optional[int] = None
+    assetsFd: Optional[int] = None
+    assetFd: Optional[int] = None
+    stageFile: Optional[BinaryIO] = None
+    stagePath: Optional[Path] = None
+    stageIdentity: Optional[FileIdentity] = None
+
     try:
-        shutil.copy2(source, tmpPath)
+        rootStat = os.lstat(projectRoot)
+        if isLinkLike(projectRoot) or not stat.S_ISDIR(rootStat.st_mode):
+            raise OSError("The project folder is not a real directory")
+        rootIdentity = fileIdentity(rootStat)
+        if expectedRoot is not None and rootIdentity != expectedRoot:
+            raise OSError("The project folder changed before the image could be copied")
+
+        if supportsDirectoryDescriptors():
+            rootFd = openDirectory(projectRoot)
+            if fileIdentity(os.fstat(rootFd)) != rootIdentity:
+                raise OSError("The project folder changed while it was being opened")
+            assetsFd = openDirectoryAt(rootFd, "assets")
+            assetFd = openDirectoryAt(assetsFd, "img")
+            assetStat = os.fstat(assetFd)
+        else:
+            assetStat = os.lstat(assetDir)
+            if isLinkLike(assetDir) or not stat.S_ISDIR(assetStat.st_mode):
+                raise OSError("The project image folder is not a real directory")
+        assetIdentity = fileIdentity(assetStat)
+        if expectedAsset is not None and assetIdentity != expectedAsset:
+            raise OSError("The project image folder changed before the image could be copied")
+
+        # Stage the completed image outside assets/img. Backups and Save As
+        # only include the asset folder, so they cannot capture a partially
+        # written staging file. The open descriptor remains the authority
+        # for the validated bytes until publication is complete.
+        stagePath, fileDesc = _createStagingFile(projectRoot, rootFd)
+        stageFile = os.fdopen(fileDesc, mode="w+b")
+        stageIdentity = fileIdentity(os.fstat(stageFile.fileno()))
+        with openRegularFile(source) as inFile:
+            shutil.copyfileobj(inFile, stageFile, length=1024 * 1024)
+        stageFile.flush()
+        os.fsync(stageFile.fileno())
 
         # Validate the copied bytes as well as the original. This closes
         # the race where the source file changes during the copy.
-        actualFormat = _validateImage(tmpPath, secure=True)
+        actualFormat = _validateImageFile(stageFile)
         if actualFormat != expectedFormat:
             raise ImageImportError(
                 ImageImportReason.FORMAT_MISMATCH,
                 f"Image format '{actualFormat}' does not match '{source.suffix}'",
             )
 
-        assetFd: Optional[int] = None
-        try:
-            if os.open in os.supports_dir_fd:
-                assetFd = openDirectory(assetDir)
-                assetStat = os.fstat(assetFd)
-            else:
-                assetStat = os.stat(assetDir, follow_symlinks=False)
-            for index in count():
-                targetName = f"{stem}{suffix}" if index == 0 else f"{stem}_{index}{suffix}"
-                _verifyAssetDir(assetDir, projectRoot, assetStat)
-                if _publishTemp(tmpPath, targetName, assetFd, assetDir):
-                    try:
-                        _verifyAssetDir(assetDir, projectRoot, assetStat)
-                    except Exception:
-                        with contextlib.suppress(OSError, TypeError):
-                            if assetFd is not None and os.unlink in os.supports_dir_fd:
-                                os.unlink(targetName, dir_fd=assetFd)
-                            else:
-                                (assetDir / targetName).unlink()
-                        raise
-                    return assetDir / targetName
-        finally:
-            if assetFd is not None:
-                os.close(assetFd)
+        for index in count():
+            targetName = f"{stem}{suffix}" if index == 0 else f"{stem}_{index}{suffix}"
+            _verifyAssetDir(assetDir, projectRoot, assetStat, rootIdentity)
+            assert stagePath is not None
+            assert stageIdentity is not None
+            _verifyStageFile(stagePath, stageIdentity, rootFd)
+            targetIdentity = _publishTemp(
+                stagePath,
+                stageFile,
+                stageIdentity,
+                targetName,
+                rootFd,
+                assetFd,
+                assetDir,
+                expectedFormat,
+            )
+            if targetIdentity is None:
+                continue
+            target = assetDir / targetName
+            try:
+                _verifyAssetDir(assetDir, projectRoot, assetStat, rootIdentity)
+                currentTargetIdentity = _publishedTargetIdentity(target, targetName, assetFd)
+                if currentTargetIdentity != targetIdentity:
+                    raise OSError("The published project image changed before it could be returned")
+            except Exception:
+                _removePublishedTarget(target, targetIdentity, assetFd)
+                raise
+            return target, targetIdentity
     finally:
-        with contextlib.suppress(OSError):
-            tmpPath.unlink()
+        if stageFile is not None:
+            stageFile.close()
+        if stagePath is not None and stageIdentity is not None:
+            with contextlib.suppress(OSError):
+                _removeStageFile(stagePath, stageIdentity, rootFd)
+        if assetFd is not None:
+            os.close(assetFd)
+        if assetsFd is not None:
+            os.close(assetsFd)
+        if rootFd is not None:
+            os.close(rootFd)
 
     raise OSError("Could not find a unique file name for the project image")
 
 
-def _safeImageStem(source: Path) -> str:
+def safeImageStem(source: Path) -> str:
     """Return a portable, metadata-safe stem for an imported image."""
     # Normalise first. NFKC can turn a full-width comma into an ASCII
     # comma, which must be removed after normalisation because commas
@@ -298,9 +571,22 @@ def _safeImageStem(source: Path) -> str:
     return stem or "image"
 
 
-def _verifyAssetDir(assetDir: Path, projectRoot: Path, assetStat: os.stat_result) -> None:
-    """Verify that an open asset directory still has its expected path."""
-    if isLinkLike(assetDir) or assetDir.resolve() != projectRoot / ASSET_DIR:
+def _verifyAssetDir(
+    assetDir: Path,
+    projectRoot: Path,
+    assetStat: os.stat_result,
+    expectedRoot: Optional[FileIdentity] = None,
+) -> None:
+    """Verify that the project and asset directories are still unchanged."""
+    try:
+        rootStat = os.lstat(projectRoot)
+    except OSError:
+        raise
+    if isLinkLike(projectRoot) or not stat.S_ISDIR(rootStat.st_mode):
+        raise OSError("The project folder changed while it was being used")
+    if expectedRoot is not None and fileIdentity(rootStat) != expectedRoot:
+        raise OSError("The project folder changed while it was being used")
+    if isLinkLike(assetDir):
         raise OSError("The project image folder changed while it was being used")
     try:
         currentStat = os.lstat(assetDir)
@@ -310,88 +596,238 @@ def _verifyAssetDir(assetDir: Path, projectRoot: Path, assetStat: os.stat_result
         raise OSError("The project image folder changed while it was being used")
 
 
-def _publishTemp(tmpPath: Path, targetName: str, assetFd: Optional[int], assetDir: Path) -> bool:
+def _verifyStageFile(
+    tmpPath: Path,
+    expectedIdentity: FileIdentity,
+    stageFd: Optional[int] = None,
+) -> None:
+    """Verify that the staging path still refers to the validated file."""
+    try:
+        if stageFd is not None and os.stat in os.supports_dir_fd:
+            currentStat = os.stat(tmpPath.name, dir_fd=stageFd, follow_symlinks=False)
+        else:
+            currentStat = os.lstat(tmpPath)
+    except OSError:
+        raise
+    if not stat.S_ISREG(currentStat.st_mode) or fileIdentity(currentStat) != expectedIdentity:
+        raise OSError("The staged project image changed before it could be published")
+
+
+def _removeStageFile(
+    tmpPath: Path,
+    expectedIdentity: FileIdentity,
+    rootFd: Optional[int] = None,
+) -> None:
+    """Remove the staging file only if it is still the validated file."""
+    unlinkEntryIfSameFile(tmpPath, expectedIdentity, dirFd=rootFd)
+
+
+def _isUnsupportedError(exc: BaseException) -> bool:
+    """Return whether an error indicates an unavailable atomic operation."""
+    return getattr(exc, "errno", None) in (
+        errno.EACCES,
+        errno.EINVAL,
+        errno.ENOSYS,
+        errno.ENOTSUP,
+        errno.EOPNOTSUPP,
+        errno.EPERM,
+    )
+
+
+def _publishTemp(
+    tmpPath: Path,
+    stageFile: BinaryIO,
+    stageIdentity: FileIdentity,
+    targetName: str,
+    stageFd: Optional[int],
+    assetFd: Optional[int],
+    assetDir: Path,
+    expectedFormat: str,
+) -> Optional[FileIdentity]:
     """Publish a temporary file without replacing an existing target.
 
     Creating a hard link is an atomic no-replace operation on the file
     systems supported by UmbraEdit. If hard links are unavailable, an
-    atomic no-replace rename is used. As a final fallback, an exclusively
-    created target is filled from the completed temporary file.
+    identity-checked atomic no-replace rename is used. As a final fallback,
+    an exclusively created target is filled from the validated open
+    descriptor and the copied bytes are decoded before publication.
     """
+    target = assetDir / targetName
     try:
-        if assetFd is not None and os.link in os.supports_dir_fd:
-            os.link(tmpPath, targetName, dst_dir_fd=assetFd, follow_symlinks=False)
-        else:
-            os.link(tmpPath, assetDir / targetName, follow_symlinks=False)
-    except FileExistsError:
-        return False
+        published = linkNoReplaceIfSameFile(
+            tmpPath,
+            target,
+            stageIdentity,
+            sourceDirFd=stageFd,
+            targetDirFd=assetFd,
+        )
     except (OSError, NotImplementedError) as linkError:
-        if assetFd is not None:
-            try:
-                return renameNoReplaceAt(tmpPath, targetName, assetFd)
-            except OSError as renameError:
-                if renameError.errno not in (
-                    errno.EACCES,
-                    errno.EINVAL,
-                    errno.ENOSYS,
-                    errno.ENOTSUP,
-                    errno.EOPNOTSUPP,
-                    errno.EPERM,
-                ):
-                    raise
-        elif getattr(linkError, "errno", None) not in (
-            errno.EACCES,
-            errno.EINVAL,
-            errno.ENOSYS,
-            errno.ENOTSUP,
-            errno.EOPNOTSUPP,
-            errno.EPERM,
-        ):
+        if not isinstance(linkError, NotImplementedError) and not _isUnsupportedError(linkError):
+            # Identity mismatches and source races are publication
+            # failures, not evidence that hard links are unavailable. In
+            # particular, do not reinterpret a concurrently replaced target
+            # as an ordinary filename collision and retry indefinitely.
             raise
-        return _publishExclusive(tmpPath, targetName, assetFd, assetDir)
-    return True
+        try:
+            published = renameNoReplaceIfSameFile(
+                tmpPath,
+                target,
+                stageIdentity,
+                sourceDirFd=stageFd,
+                targetDirFd=assetFd,
+            )
+        except OSError as renameError:
+            if not _isUnsupportedError(renameError):
+                raise
+            published = None
+        if published is True:
+            try:
+                return _validatePublishedTarget(target, stageIdentity, expectedFormat, assetFd)
+            except Exception:
+                _removePublishedTarget(target, stageIdentity, assetFd)
+                raise
+        if published is False:
+            return None
+        if not _isUnsupportedError(linkError) and getattr(linkError, "errno", None) is not None:
+            raise linkError
+        return _publishExclusive(stageFile, targetName, assetFd, assetDir, expectedFormat)
+
+    if not published:
+        return None
+
+    try:
+        return _validatePublishedTarget(target, stageIdentity, expectedFormat, assetFd)
+    except Exception:
+        _removePublishedTarget(target, stageIdentity, assetFd)
+        raise
 
 
-def _publishExclusive(tmpPath: Path, targetName: str, assetFd: Optional[int], assetDir: Path) -> bool:
-    """Publish a temporary file using an exclusive target creation."""
-    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+def _publishedTargetIdentity(target: Path, targetName: str, assetFd: Optional[int]) -> FileIdentity:
+    """Return the identity of a published regular file."""
+    if assetFd is not None and os.stat in os.supports_dir_fd:
+        targetStat = os.stat(targetName, dir_fd=assetFd, follow_symlinks=False)
+    else:
+        targetStat = os.lstat(target)
+    if not stat.S_ISREG(targetStat.st_mode):
+        raise OSError("The published project image is not a regular file")
+    return fileIdentity(targetStat)
+
+
+def _validatePublishedTarget(
+    target: Path,
+    expectedIdentity: FileIdentity,
+    expectedFormat: str,
+    assetFd: Optional[int] = None,
+) -> FileIdentity:
+    """Verify the identity and decoded bytes of a published target."""
+    targetIdentity = _publishedTargetIdentity(target, target.name, assetFd)
+    if targetIdentity != expectedIdentity:
+        raise OSError("The published project image does not match the validated image")
+
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    fileDesc: Optional[int] = None
     try:
         if assetFd is not None and os.open in os.supports_dir_fd:
-            fileDesc = os.open(targetName, flags, 0o000, dir_fd=assetFd)
+            fileDesc = os.open(target.name, flags, dir_fd=assetFd)
         else:
-            fileDesc = os.open(assetDir / targetName, flags, 0o000)
-    except FileExistsError:
-        return False
+            fileDesc = os.open(target, flags)
+        openedStat = os.fstat(fileDesc)
+        if not stat.S_ISREG(openedStat.st_mode) or fileIdentity(openedStat) != expectedIdentity:
+            raise OSError("The published project image changed before it could be validated")
+        publishedFile = os.fdopen(fileDesc, mode="rb")
+        fileDesc = None
+        with publishedFile:
+            actualFormat = _validateImageFile(publishedFile)
+    finally:
+        if fileDesc is not None:
+            os.close(fileDesc)
 
-    targetStat = os.fstat(fileDesc)
+    if actualFormat != expectedFormat:
+        raise ImageImportError(
+            ImageImportReason.FORMAT_MISMATCH,
+            f"Image format '{actualFormat}' does not match the expected format",
+        )
+    currentIdentity = _publishedTargetIdentity(target, target.name, assetFd)
+    if currentIdentity != expectedIdentity:
+        raise OSError("The published project image changed while it was being validated")
+    return targetIdentity
+
+
+def _quarantinePublishedTarget(target: Path, assetFd: Optional[int] = None) -> Path:
+    """Move an unexpected published entry to a recoverable sibling name."""
+    conflictName = f".umbraedit-conflict-{uuid.uuid4().hex}"
+    conflictPath = target.parent / conflictName
+    if assetFd is not None and os.name != "nt":
+        try:
+            moved = renameNoReplaceBetween(
+                Path(target.name),
+                Path(conflictName),
+                sourceDirFd=assetFd,
+                targetDirFd=assetFd,
+            )
+        except OSError:
+            moved = False
+    else:
+        try:
+            moved = renameNoReplace(target, conflictPath)
+        except OSError:
+            moved = False
+    return conflictPath if moved else target
+
+
+def _removePublishedTarget(target: Path, expectedIdentity: FileIdentity, assetFd: Optional[int] = None) -> None:
+    """Remove a just-published target only if it still has that identity."""
+    with contextlib.suppress(OSError):
+        unlinkEntryIfSameFile(target, expectedIdentity, dirFd=assetFd)
+
+
+def _publishExclusive(
+    stageFile: BinaryIO,
+    targetName: str,
+    assetFd: Optional[int],
+    assetDir: Path,
+    expectedFormat: str,
+) -> Optional[FileIdentity]:
+    """Publish the validated image using exclusive target creation."""
+    fileDesc: Optional[int]
     try:
-        with os.fdopen(fileDesc, mode="wb") as outFile, openRegularFile(tmpPath) as inFile:
-            shutil.copyfileobj(inFile, outFile, length=1024 * 1024)
+        if assetFd is not None and os.open in os.supports_dir_fd:
+            fileDesc = openExclusiveFile(Path(targetName), assetFd, readable=True)
+        else:
+            fileDesc = openExclusiveFile(assetDir / targetName, readable=True)
+    except FileExistsError:
+        return None
+
+    target = assetDir / targetName
+    targetIdentity = fileIdentity(os.fstat(fileDesc))
+    try:
+        outFile = os.fdopen(fileDesc, mode="w+b")
+        fileDesc = None
+        with outFile:
+            stageFile.seek(0)
+            shutil.copyfileobj(stageFile, outFile, length=1024 * 1024)
             outFile.flush()
+            actualFormat = _validateImageFile(outFile)
+            if actualFormat != expectedFormat:
+                raise ImageImportError(
+                    ImageImportReason.FORMAT_MISMATCH,
+                    f"Image format '{actualFormat}' does not match the expected format",
+                )
             os.fsync(outFile.fileno())
             if hasattr(os, "fchmod"):
                 os.fchmod(outFile.fileno(), 0o600)
 
-        # Ensure the path still refers to the file we created before
-        # reporting success. A failed copy is removed, but only if it is
-        # still the same file.
         if assetFd is not None and os.stat in os.supports_dir_fd:
             currentStat = os.stat(targetName, dir_fd=assetFd, follow_symlinks=False)
         else:
-            currentStat = os.stat(assetDir / targetName, follow_symlinks=False)
-        if currentStat.st_dev != targetStat.st_dev or currentStat.st_ino != targetStat.st_ino:
+            currentStat = os.stat(target, follow_symlinks=False)
+        if fileIdentity(currentStat) != targetIdentity:
             raise OSError("The project image target changed while it was being copied")
     except Exception:
-        with contextlib.suppress(OSError, TypeError):
-            if assetFd is not None and os.stat in os.supports_dir_fd:
-                currentStat = os.stat(targetName, dir_fd=assetFd, follow_symlinks=False)
-                if currentStat.st_dev == targetStat.st_dev and currentStat.st_ino == targetStat.st_ino:
-                    os.unlink(targetName, dir_fd=assetFd)
-            else:
-                currentPath = assetDir / targetName
-                currentStat = os.stat(currentPath, follow_symlinks=False)
-                if currentStat.st_dev == targetStat.st_dev and currentStat.st_ino == targetStat.st_ino:
-                    currentPath.unlink()
+        _removePublishedTarget(target, targetIdentity, assetFd)
         raise
+    finally:
+        if fileDesc is not None:
+            os.close(fileDesc)
 
-    return True
+    return targetIdentity

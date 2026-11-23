@@ -29,6 +29,7 @@ from typing import Any
 
 import pytest
 
+from umbraedit.core import safeio
 from umbraedit.core.document import MAX_META_LINES, DocumentMeta, ProjectDocument
 from umbraedit.core.project import NWProject
 from umbraedit.enum import nwItemClass, nwItemLayout
@@ -79,7 +80,7 @@ def testProjectDocument_LoadSave(
 
     # Cause open() to fail while loading
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.document.openRegularFile", causeOSError)
         doc = ProjectDocument(project, C.hSceneDoc)
         assert doc.fileExists() is True
         assert doc.readDocument() is None
@@ -159,16 +160,17 @@ def testProjectDocument_LoadSave(
 
     # Cause open() to fail while saving
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.document.writeFileAtomic", causeOSError)
         assert doc.writeDocument(text) is False
         assert doc.error == "OSError: Mock OSError"
 
     doc._error = ""
     assert doc.error == ""
 
-    # Cause os.replace() to fail while saving
+    # Cause publication to fail while saving
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.replace", causeOSError)
+        mp.setattr("umbraedit.core.safeio.renameNoReplaceBetween", causeOSError)
+        mp.setattr("umbraedit.core.safeio.renameNoReplace", causeOSError)
         assert doc.writeDocument(text) is False
         assert doc.error == "OSError: Mock OSError"
 
@@ -180,16 +182,24 @@ def testProjectDocument_LoadSave(
     assert doc.writeDocument(text) is False
 
     # Cause stat() to fail right after a successful write
-    origStat = type(docPath).stat
+    origLstat = os.lstat
+    published = False
+
+    def markPublished(*args: Any, **kwargs: Any):
+        nonlocal published
+        result = safeio.writeFileAtomic(*args, **kwargs)
+        published = True
+        return result
 
     def failDocStat(path: Path, *a: Any, **kw: Any) -> os.stat_result:
-        if path == docPath:
+        if published and path == docPath:
             raise OSError("Mock OSError")
-        return origStat(path, *a, **kw)
+        return origLstat(path, *a, **kw)
 
     doc = ProjectDocument(project, xHandle)
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.stat", failDocStat)
+        mp.setattr("umbraedit.core.document.writeFileAtomic", markPublished)
+        mp.setattr(os, "lstat", failDocStat)
         assert doc.writeDocument("Stat Failure") is True
         assert doc._lastStat is None
 
@@ -220,7 +230,7 @@ def testProjectDocument_LoadSave(
     # Check read text fallback
     assert ProjectDocument.quickReadText(contPath, "0000000000000") == ""
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.document.openRegularFile", causeOSError)
         assert ProjectDocument.quickReadText(contPath, xHandle) == ""
 
     # A missing closing +++ is treated as having no header at all
@@ -259,7 +269,7 @@ def testProjectDocument_LoadSave(
 
     # Cause the delete to fail
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.unlink", causeOSError)
+        mp.setattr("umbraedit.core.document.unlinkIfSameFile", causeOSError)
         doc = ProjectDocument(project, xHandle)
         assert doc.deleteDocument() is False
         assert doc.error == "OSError: Mock OSError"
@@ -268,6 +278,60 @@ def testProjectDocument_LoadSave(
     doc = ProjectDocument(project, xHandle)
     assert doc.deleteDocument() is True
     assert not docPath.exists()
+
+
+@pytest.mark.core
+def testProjectDocument_RejectsSymlinkedFile(
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that document reads and writes never follow a linked file."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+
+    docPath = fncPath / "content" / f"{C.hSceneDoc}.md"
+    outside = fncPath / "outside-document.md"
+    outside.write_text("outside data", encoding="utf-8")
+    docPath.unlink()
+    try:
+        os.symlink(outside, docPath)
+    except OSError:
+        pytest.skip("Symbolic links are not supported on this platform")
+
+    doc = ProjectDocument(project, C.hSceneDoc)
+    assert doc.readDocument() is None
+    assert doc.writeDocument("replacement") is False
+    assert outside.read_text(encoding="utf-8") == "outside data"
+    assert docPath.is_symlink()
+
+
+@pytest.mark.core
+def testProjectDocument_RejectsConcurrentReplacement(
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that a document replacement is preserved between read and write."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+
+    docPath = fncPath / "content" / f"{C.hSceneDoc}.md"
+    originalStat = docPath.stat()
+    originalBytes = docPath.read_bytes()
+    doc = ProjectDocument(project, C.hSceneDoc)
+    assert doc.readDocument() == "### New Scene\n\n"
+
+    replacement = fncPath / "replacement.md"
+    replacement.write_bytes(originalBytes)
+    os.utime(replacement, ns=(originalStat.st_atime_ns, originalStat.st_mtime_ns))
+    docPath.unlink()
+    replacement.replace(docPath)
+
+    assert doc.writeDocument("replacement text") is False
+    assert docPath.read_bytes() == originalBytes
 
 
 @pytest.mark.core

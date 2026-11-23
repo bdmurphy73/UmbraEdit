@@ -24,14 +24,25 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import stat
 
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from umbraedit import CONFIG, SHARED
-from umbraedit.common import checkBool, checkFloat, checkInt, checkString, jsonEncode, safeExists
+from umbraedit.common import checkBool, checkFloat, checkInt, checkString, jsonEncode
 from umbraedit.constants import nwFiles
+from umbraedit.core.safeio import (
+    FileIdentity,
+    captureRegularFileIdentity,
+    fileIdentity,
+    isLinkLike,
+    openRegularFile,
+    verifyPathIdentity,
+    writeFileAtomic,
+)
 from umbraedit.error import logException
 
 if TYPE_CHECKING:
@@ -129,6 +140,23 @@ class OptionState:
     def __init__(self, project: NWProject) -> None:
         self._project = project
         self._state = {}
+        self._lastIdentity: Optional[FileIdentity] = None
+        self._identityKnown = False
+
+    @property
+    def lastIdentity(self) -> Optional[FileIdentity]:
+        """Return the identity of the last observed or published file."""
+        return self._lastIdentity
+
+    @property
+    def lastIdentityKnown(self) -> bool:
+        """Return whether the target's presence was observed."""
+        return self._identityKnown
+
+    def resetIdentity(self) -> None:
+        """Start a new observation epoch for the options file."""
+        self._lastIdentity = None
+        self._identityKnown = False
 
     ##
     #  Load and Save Cache
@@ -140,16 +168,35 @@ class OptionState:
         if not isinstance(stateFile, Path):
             return False
 
-        data = {}
-        if safeExists(stateFile):
-            logger.debug("Loading GUI options file")
-            try:
-                with open(stateFile, mode="r", encoding="utf-8") as inFile:
+        logger.debug("Loading GUI options file")
+        try:
+            parentIdentity = self._getParentIdentity(stateFile, None)
+            targetIdentity = captureRegularFileIdentity(stateFile)
+
+            if self._identityKnown:
+                if self._lastIdentity is None:
+                    if targetIdentity is not None:
+                        raise OSError("The options file appeared after it was observed to be absent")
+                elif targetIdentity != self._lastIdentity:
+                    raise OSError("The options file changed after it was observed")
+
+            if targetIdentity is None:
+                self._lastIdentity = None
+                self._identityKnown = True
+                data = {}
+            else:
+                with openRegularFile(
+                    stateFile,
+                    expectedParent=parentIdentity,
+                    expectedIdentity=targetIdentity,
+                ) as inFile:
                     data = json.load(inFile)
-            except Exception:
-                logger.error("Failed to load GUI options file")
-                logException()
-                return False
+                self._lastIdentity = targetIdentity
+                self._identityKnown = True
+        except Exception:
+            logger.error("Failed to load GUI options file")
+            logException()
+            return False
 
         # Filter out unused variables
         state = data.get("UmbraEdit.guiOptions", {})
@@ -162,7 +209,13 @@ class OptionState:
 
         return True
 
-    def saveSettings(self) -> bool:
+    def saveSettings(
+        self,
+        *,
+        expectedParent: Optional[FileIdentity] = None,
+        expectedTarget: Optional[FileIdentity] = None,
+        replaceExisting: bool = True,
+    ) -> bool:
         """Save the options dictionary to the project."""
         stateFile = self._project.storage.getMetaFile(nwFiles.OPTS_FILE)
         if not isinstance(stateFile, Path):
@@ -170,9 +223,27 @@ class OptionState:
 
         logger.debug("Saving GUI options file")
         try:
-            with open(stateFile, mode="w+", encoding="utf-8", newline=CONFIG.lineEnding) as fObj:
-                data = {"UmbraEdit.guiOptions": self._state}
-                fObj.write(jsonEncode(data, nmax=4))
+            parentIdentity = self._getParentIdentity(stateFile, expectedParent)
+            targetIdentity = expectedTarget
+            replaceTarget = replaceExisting
+            if targetIdentity is None and self._identityKnown:
+                targetIdentity = self._lastIdentity
+                if targetIdentity is None:
+                    replaceTarget = False
+
+            data = {"UmbraEdit.guiOptions": self._state}
+            text = jsonEncode(data, nmax=4)
+            lineEnding = CONFIG.lineEnding if isinstance(CONFIG.lineEnding, str) else os.linesep
+            payload = text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", lineEnding).encode("utf-8")
+            publishedIdentity = writeFileAtomic(
+                stateFile,
+                payload,
+                expectedParent=parentIdentity,
+                expectedTarget=targetIdentity,
+                replaceExisting=replaceTarget,
+            )
+            self._lastIdentity = publishedIdentity
+            self._identityKnown = True
         except Exception as exc:
             SHARED.appendErrorMessage(exc)
             logger.error("Failed to save GUI options file")
@@ -180,6 +251,27 @@ class OptionState:
             return False
 
         return True
+
+    ##
+    #  Internal Functions
+    ##
+
+    def _getParentIdentity(
+        self,
+        stateFile: Path,
+        expectedParent: Optional[FileIdentity],
+    ) -> FileIdentity:
+        """Return and validate the identity of the project meta folder."""
+        parentIdentity = expectedParent
+        if parentIdentity is None:
+            parentIdentity = self._project.storage.metaIdentity
+        if parentIdentity is None:
+            parentStat = os.lstat(stateFile.parent)
+            if isLinkLike(stateFile.parent) or not stat.S_ISDIR(parentStat.st_mode):
+                raise OSError("The project meta folder is not a real directory")
+            parentIdentity = fileIdentity(parentStat)
+        verifyPathIdentity(stateFile.parent, parentIdentity, requireDirectory=True)
+        return parentIdentity
 
     ##
     #  Setters

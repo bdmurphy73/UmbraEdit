@@ -22,6 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import errno
 import os
 
 from datetime import datetime
@@ -35,6 +36,7 @@ from umbraedit import CONFIG, SHARED
 from umbraedit.constants import nwFiles
 from umbraedit.core.project import NWProject, NWProjectState
 from umbraedit.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLReadState
+from umbraedit.core.safeio import renameNoReplace
 from umbraedit.enum import nwItemClass, nwProjectKind
 from umbraedit.shared import _GuiAlert
 
@@ -177,7 +179,7 @@ def testNWProject_NewFileFolder(
 
     # Delete new file, but block access
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.unlink", causeOSError)
+        mp.setattr("umbraedit.core.document.unlinkIfSameFile", causeOSError)
         assert project.removeItem(bHandle) is False
         assert bHandle in project.tree
 
@@ -413,6 +415,30 @@ def testNWProject_Open(
 
 
 @pytest.mark.core
+def testNWProject_ReopenResetsFileIdentityReceipts(
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that a reused project instance can open a new session."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+
+    assert project.openProject(fncPath) is True
+    assert project.saveProject() is True
+    project.closeProject()
+
+    # The options and index files were published by the previous session.
+    # Reopening must re-observe them instead of treating the new file
+    # identities as a concurrent replacement from the old session.
+    assert project.openProject(fncPath) is True
+    assert project.options.lastIdentityKnown is True
+    assert project.index.lastIdentityKnown is True
+    project.closeProject()
+
+
+@pytest.mark.core
 def testNWProject_OpenConvertsOldDocuments(
     monkeypatch: pytest.MonkeyPatch,
     mockGUI: MockGuiMain,
@@ -452,6 +478,86 @@ def testNWProject_OpenConvertsOldDocuments(
 
 
 @pytest.mark.core
+def testNWProject_OpenPreservesConflictingLegacyDocument(
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that an existing converted document does not block open."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+    project.closeProject()
+
+    contentPath = fncPath / "content"
+    nwdFile = contentPath / f"{C.hSceneDoc}.nwd"
+    mdFile = contentPath / f"{C.hSceneDoc}.md"
+    nwdText = "### Legacy Scene\n"
+    mdText = mdFile.read_text(encoding="utf-8")
+    nwdFile.write_text(nwdText, encoding="utf-8")
+
+    # The current document is already present, so it is used without
+    # overwriting it. The legacy source is retained for recovery.
+    assert project.openProject(fncPath) is True
+    assert nwdFile.read_text(encoding="utf-8") == nwdText
+    assert mdFile.read_text(encoding="utf-8") == mdText
+    project.closeProject()
+
+
+@pytest.mark.core
+def testNWProject_SaveRejectsReplacedProjectFiles(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    mockRnd: MockRnd,
+    fncPath: Path,
+):
+    """Test that normal saves never overwrite concurrently replaced files."""
+    fileNames = (
+        nwFiles.PROJ_FILE,
+        f"meta/{nwFiles.OPTS_FILE}",
+        f"meta/{nwFiles.INDEX_FILE}",
+        nwFiles.MANIFEST_FILE,
+    )
+    for fileName in fileNames:
+        projectPath = fncPath / fileName.replace("/", "-")
+        projectPath.mkdir()
+        project = NWProject()
+        mockRnd.reset()
+        buildTestProject(project, projectPath)
+
+        target = projectPath / fileName
+        replacement = b"foreign replacement\n"
+        target.unlink()
+        target.write_bytes(replacement)
+
+        assert project.saveProject() is False
+        assert target.read_bytes() == replacement
+        project.closeProject()
+
+
+@pytest.mark.core
+def testNWProject_SaveUsesRetainedFileIdentities(
+    mockGUI: MockGuiMain,
+    mockRnd: MockRnd,
+    fncPath: Path,
+):
+    """Test that each successful save replaces the identity it published."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+
+    xmlPath = fncPath / nwFiles.PROJ_FILE
+    firstIdentity = xmlPath.stat().st_ino
+    assert project.saveProject() is True
+    assert xmlPath.stat().st_ino != firstIdentity
+
+    secondIdentity = xmlPath.stat().st_ino
+    assert project.saveProject() is True
+    assert xmlPath.stat().st_ino != secondIdentity
+    project.closeProject()
+
+
+@pytest.mark.core
 def testNWProject_Save(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, mockRnd: MockRnd, fncPath: Path):
     """Test saving a project."""
     project = NWProject()
@@ -469,7 +575,7 @@ def testNWProject_Save(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, mo
 
     # Fail writing
     with monkeypatch.context() as mp:
-        mp.setattr(ProjectXMLWriter, "write", lambda *a: False)
+        mp.setattr(ProjectXMLWriter, "write", lambda *a, **kwargs: False)
         assert project.saveProject() is False
 
     # Save with and without autosave
@@ -483,6 +589,35 @@ def testNWProject_Save(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, mo
         assert project.saveProject() is True
 
     project.closeProject()
+
+
+@pytest.mark.core
+def testNWProject_OpenLockRaceFailsClosed(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that a lock appearing during open is not replaced."""
+    builder = NWProject()
+    mockRnd.reset()
+    buildTestProject(builder, fncPath)
+    builder.closeProject()
+
+    lockPath = fncPath / nwFiles.PROJ_LOCK
+
+    def installForeignLock(path, data, **kwargs):
+        Path(path).write_text("foreign session", encoding="utf-8")
+        raise FileExistsError("The project lockfile already exists", str(path))
+
+    project = NWProject()
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.storage.writeFileAtomic", installForeignLock)
+        assert project.openProject(fncPath) is False
+
+    assert project.isValid is False
+    assert project.state == NWProjectState.LOCKED
+    assert lockPath.read_text(encoding="utf-8") == "foreign session"
 
 
 @pytest.mark.core
@@ -520,6 +655,69 @@ def testNWProject_SaveAsRejectsUnsafeTargets(
     assert SHARED.lastAlert[0] == "The target project location cannot be a symbolic link."
     assert project.storage.storagePath == originalPath
     assert list(outsidePath.iterdir()) == []
+
+
+@pytest.mark.core
+def testNWProject_SaveAsPathFallback(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    mockRnd: MockRnd,
+    fncPath: Path,
+    projPath: Path,
+):
+    """Test that Save As works without directory-descriptor support."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    target = fncPath / "path-fallback-copy"
+    target.mkdir()
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.project.supportsDirectoryDescriptors", lambda: False)
+        mp.setattr("umbraedit.core.storage.supportsDirectoryDescriptors", lambda: False)
+        assert project.saveProjectAs(target, "Path Fallback Copy") is True
+
+    assert project.storage.storagePath == target
+    assert (target / "meta").is_dir()
+    assert (target / "content").is_dir()
+    assert (target / nwFiles.PROJ_FILE).is_file()
+    assert not list(fncPath.glob(".umbraedit-stage-*"))
+
+
+@pytest.mark.core
+def testNWProject_SaveAsPathFallbackRollsBack(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    mockRnd: MockRnd,
+    fncPath: Path,
+    projPath: Path,
+):
+    """Test that path-based Save As restores an existing empty target."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+    originalPath = project.storage.storagePath
+
+    target = fncPath / "path-fallback-rollback"
+    target.mkdir()
+    realRename = renameNoReplace
+
+    def failPublication(sourcePath: Path, targetPath: Path) -> bool:
+        if Path(sourcePath).name.startswith(".umbraedit-stage-") and Path(targetPath) == target:
+            raise OSError(errno.EIO, "Simulated publication failure", str(targetPath))
+        return realRename(sourcePath, targetPath)
+
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.project.supportsDirectoryDescriptors", lambda: False)
+        mp.setattr("umbraedit.core.storage.supportsDirectoryDescriptors", lambda: False)
+        mp.setattr("umbraedit.core.project.renameNoReplace", failPublication)
+        assert project.saveProjectAs(target, "Failed Copy") is False
+
+    assert project.storage.storagePath == originalPath
+    assert target.is_dir()
+    assert list(target.iterdir()) == []
+    assert not list(fncPath.glob(".umbraedit-stage-*"))
+    assert not list(fncPath.glob(".umbraedit-saveas-*"))
 
 
 @pytest.mark.core
@@ -688,7 +886,7 @@ def testNWProject_Backup(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, 
 
     # Can't write archive
     with monkeypatch.context() as mp:
-        mp.setattr("zipfile.ZipFile.write", causeOSError)
+        mp.setattr("umbraedit.core.storage._addFileToZip", causeOSError)
         assert project.backupProject(doNotify=False) is False
 
     # Test correct settings

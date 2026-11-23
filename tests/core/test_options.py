@@ -23,6 +23,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import json
+import os
 
 from pathlib import Path
 
@@ -78,7 +79,8 @@ def testOptionState_LoadSave(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMa
 
     # Cause open() to fail
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.options.openRegularFile", causeOSError)
+        mp.setattr("umbraedit.core.options.writeFileAtomic", causeOSError)
         assert options.loadSettings() is False
         assert options.saveSettings() is False
 
@@ -110,6 +112,29 @@ def testOptionState_LoadSave(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMa
             "importColW": 130,
         },
     }
+
+
+@pytest.mark.core
+def testOptionState_RejectsSymlink(fncPath: Path, mockGUI: MockGuiMain):
+    """Test that project options are never read through a link."""
+    project = NWProject()
+    options = OptionState(project)
+    metaDir = fncPath / "meta"
+    metaDir.mkdir()
+    project.storage._runtimePath = fncPath
+    project.storage._ready = True
+
+    outside = fncPath / "outside.json"
+    outside.write_text('{"outside": true}', encoding="utf-8")
+    optFile = metaDir / nwFiles.OPTS_FILE
+    try:
+        os.symlink(outside, optFile)
+    except OSError:
+        pytest.skip("Symbolic links are not supported on this platform")
+
+    assert options.loadSettings() is False
+    assert optFile.is_symlink()
+    assert outside.read_text(encoding="utf-8") == '{"outside": true}'
 
 
 @pytest.mark.core

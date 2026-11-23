@@ -142,7 +142,7 @@ def testCoreTools_DocMerger(
 
     # Block writing and check error handling
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.document.writeFileAtomic", causeOSError)
         assert docMerger.writeTargetDoc() is False
         assert not saveFile.exists()
         assert docMerger.getError() != ""
@@ -264,7 +264,7 @@ def testCoreTools_DocSplitter(
 
     # Cause write error on all chunks
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.document.writeFileAtomic", causeOSError)
         assert not any(docSplitter.writeDocuments(False))
         assert docSplitter.getError() == "OSError: Mock OSError"
     assert project.tree.subTree(C.hNovelRoot) == [

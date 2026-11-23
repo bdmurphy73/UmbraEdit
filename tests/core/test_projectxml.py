@@ -23,6 +23,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import json
+import os
 import xml.etree.ElementTree as ET
 
 from datetime import date, datetime
@@ -318,7 +319,7 @@ def testProjectXMLReader_ReadCurrent(
 
     SHARED.clearErrorCache()
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.replace", causeOSError)
+        mp.setattr("umbraedit.core.projectxml.writeFileAtomic", causeOSError)
         assert xmlWriter.write(data, packedContent, timeStamp, 1000) is False
         assert SHARED.errorCache() == ["OSError: Mock OSError"]
 
@@ -327,6 +328,26 @@ def testProjectXMLReader_ReadCurrent(
     assert xmlWriter.write(data, packedContent, timeStamp, 1000) is True
     copyfile(outFile, tstFile)
     assert cmpFiles(tstFile, refFile)
+
+
+@pytest.mark.core
+def testProjectXMLReader_RejectsSymlink(fncPath: Path, mockGUI: MockGuiMain):
+    """Test that the project XML reader never follows a linked file."""
+    outside = fncPath / "outside.nwx"
+    outside.write_text("<UmbraEditXML fileVersion='1.6'/>", encoding="utf-8")
+    xmlFile = fncPath / nwFiles.PROJ_FILE
+    try:
+        os.symlink(outside, xmlFile)
+    except OSError:
+        pytest.skip("Symbolic links are not supported on this platform")
+
+    reader = ProjectXMLReader(xmlFile)
+    data = ProjectData(MockProject())  # type: ignore
+    content = []
+    assert reader.read(data, content) is False
+    assert reader.state == XMLReadState.CANNOT_PARSE
+    assert xmlFile.is_symlink()
+    assert outside.read_text(encoding="utf-8") == "<UmbraEditXML fileVersion='1.6'/>"
 
 
 @pytest.mark.core

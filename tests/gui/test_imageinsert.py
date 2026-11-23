@@ -301,7 +301,7 @@ def testImageInsert_RejectsOversizedImage(
     editor.setCursorPosition(2)
     source = fncPath / "large.png"
     _writeImage(source)
-    monkeypatch.setattr(PIL.Image, "MAX_IMAGE_PIXELS", 1)
+    monkeypatch.setattr(PIL.Image, "MAX_IMAGE_PIXELS", 10)
     monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
 
     nwGUI.mainMenu.aInsCover.activate(QAction.ActionEvent.Trigger)
@@ -366,15 +366,12 @@ def testImageInsert_CopyAndInsertionFailures(
     assert not (projPath / "assets" / "img" / "cover.png").exists()
 
     targetPath = projPath / "assets" / "img" / "cover.png"
-    realUnlink = Path.unlink
 
-    def failUnlink(path, *args, **kwargs):
-        if path == targetPath:
-            raise OSError("Cleanup failed")
-        return realUnlink(path, *args, **kwargs)
+    def failCleanup(*args, **kwargs):
+        raise OSError("Cleanup failed")
 
     with monkeypatch.context() as mp:
-        mp.setattr("pathlib.Path.unlink", failUnlink)
+        mp.setattr("umbraedit.editor.docpanes.unlinkIfSameFile", failCleanup)
         mp.setattr(editor, "insertMetaValue", lambda *args, **kwargs: False)
         nwGUI.mainMenu.aInsCover.activate(QAction.ActionEvent.Trigger)
     assert SHARED.lastAlert[0] == (

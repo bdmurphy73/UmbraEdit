@@ -1420,7 +1420,7 @@ def testGuiProjectTree_MergeDocuments(
 
     # Block writing and check error handling
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.document.writeFileAtomic", causeOSError)
         assert projTree.mergeDocuments(hChapter1, False) is False
 
     # Successful merge, and move to trash
@@ -1619,7 +1619,7 @@ def testGuiProjectTree_SplitDocument(
 
     # Writing fails
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.document.writeFileAtomic", causeOSError)
         assert projTree.splitDocument(hSplitDoc) is True
         for tHandle in fstSet:
             assert tHandle in project.tree

@@ -23,6 +23,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import json
+import os
 
 from pathlib import Path
 from shutil import copyfile
@@ -42,6 +43,29 @@ from umbraedit.models.novelmodel import NovelModel
 
 from tests.helpers import C, MockRnd, TstPaths, buildTestProject, cmpFiles
 from tests.mocked import MockGuiMain, causeException
+
+
+@pytest.mark.core
+def testIndex_RejectsSymlink(fncPath: Path, mockGUI: MockGuiMain):
+    """Test that the project index is never read through a link."""
+    project = NWProject()
+    index = Index(project)
+    metaDir = fncPath / "meta"
+    metaDir.mkdir()
+    project.storage._runtimePath = fncPath
+    project.storage._ready = True
+
+    outside = fncPath / "outside.json"
+    outside.write_text('{"outside": true}', encoding="utf-8")
+    indexFile = metaDir / nwFiles.INDEX_FILE
+    try:
+        os.symlink(outside, indexFile)
+    except OSError:
+        pytest.skip("Symbolic links are not supported on this platform")
+
+    assert index.loadIndex() is False
+    assert indexFile.is_symlink()
+    assert outside.read_text(encoding="utf-8") == '{"outside": true}'
 
 
 @pytest.mark.core
@@ -105,7 +129,7 @@ def testIndex_LoadSave(
 
     # Make the save fail
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeException)
+        mp.setattr("umbraedit.core.index.writeFileAtomic", causeException)
         assert index.saveIndex() is False
 
     # Make the save pass

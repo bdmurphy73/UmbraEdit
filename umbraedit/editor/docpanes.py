@@ -33,6 +33,7 @@ from umbraedit import CONFIG, SHARED
 from umbraedit.common import formatFileFilter
 from umbraedit.constants import nwKeyWords
 from umbraedit.core.imageimport import ImageImportError, ImageImportReason, importProjectImage
+from umbraedit.core.safeio import unlinkIfSameFile
 from umbraedit.editor.editor import GuiDocEditor
 from umbraedit.editor.viewer import GuiDocViewer
 from umbraedit.editor.viewerpanel import GuiDocViewerPanel
@@ -392,6 +393,33 @@ class GuiDocPanes(QWidget):
             SHARED.error(self.tr("Could not copy the image into the project."), exc=exc)
             return
 
+        currentDocument = self.docEditor.document()
+        sameDocumentAfterImport = (
+            currentDocument is not None
+            and self.docEditor.docHandle == documentHandle
+            and capturedCursor.document() is currentDocument
+            and currentDocument.revision() == documentRevision
+        )
+        sameProjectAfterImport = (
+            SHARED.hasProject
+            and SHARED.project is project
+            and project.storage.storagePath == projectPath
+            and project.storage.isOpen()
+        )
+        if not (sameDocumentAfterImport and sameProjectAfterImport):
+            cleanupFailed = False
+            try:
+                unlinkIfSameFile(imported.path, imported.identity)
+            except OSError as exc:
+                cleanupFailed = True
+                logger.warning("Could not remove uninserted project image '%s'", imported.path, exc_info=exc)
+            details = self.tr("The imported image could not be removed.") if cleanupFailed else ""
+            SHARED.error(
+                self.tr("The active project or document changed while importing the image. Please try again."),
+                details=details,
+            )
+            return
+
         insertError: Optional[Exception] = None
         try:
             inserted = self.docEditor.insertMetaValue(keyword, imported.relativePath)
@@ -405,7 +433,7 @@ class GuiDocPanes(QWidget):
                 self.docEditor.setTextCursor(capturedCursor)
             cleanupFailed = False
             try:
-                imported.path.unlink()
+                unlinkIfSameFile(imported.path, imported.identity)
             except OSError as exc:
                 cleanupFailed = True
                 logger.warning("Could not remove uninserted project image '%s'", imported.path, exc_info=exc)

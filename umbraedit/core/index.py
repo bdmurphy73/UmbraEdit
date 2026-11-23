@@ -24,7 +24,9 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import random
+import stat
 
 from pathlib import Path
 from time import time
@@ -39,10 +41,18 @@ from umbraedit.common import (
     isTitleTag,
     jsonCombine,
     jsonEncode,
-    safeExists,
 )
 from umbraedit.constants import nwFiles, nwKeyWords
 from umbraedit.core.indexdata import NOTE_TYPES, TT_NONE, IndexHeading, IndexNode, T_NoteTypes
+from umbraedit.core.safeio import (
+    FileIdentity,
+    captureRegularFileIdentity,
+    fileIdentity,
+    isLinkLike,
+    openRegularFile,
+    verifyPathIdentity,
+    writeFileAtomic,
+)
 from umbraedit.enum import nwComment, nwItemClass, nwItemLayout, nwItemType, nwNovelExtra
 from umbraedit.error import logException
 from umbraedit.models.novelmodel import NovelModel
@@ -93,9 +103,11 @@ class Index:
     """
 
     __slots__ = (
+        "_identityKnown",
         "_indexRevision",
         "_indexUpgrade",
         "_itemIndex",
+        "_lastIdentity",
         "_novelExtra",
         "_novelModels",
         "_project",
@@ -108,6 +120,8 @@ class Index:
         self._project = project
 
         # Storage and State
+        self._lastIdentity: Optional[FileIdentity] = None
+        self._identityKnown = False
         self._tagsIndex = TagsIndex()
         self._itemIndex = ItemIndex(project, self._tagsIndex)
         self._indexUpgrade = False
@@ -131,6 +145,21 @@ class Index:
     ##
     #  Properties
     ##
+
+    @property
+    def lastIdentity(self) -> Optional[FileIdentity]:
+        """Return the identity of the most recently published file."""
+        return self._lastIdentity
+
+    @property
+    def lastIdentityKnown(self) -> bool:
+        """Return whether the target's presence was observed."""
+        return self._identityKnown
+
+    def resetIdentity(self) -> None:
+        """Start a new observation epoch for the index file."""
+        self._lastIdentity = None
+        self._identityKnown = False
 
     @property
     def indexRebuild(self) -> bool:
@@ -254,16 +283,40 @@ class Index:
             return False
 
         tStart = time()
-        if safeExists(indexFile):
-            logger.debug("Loading index file")
-            try:
-                with open(indexFile, mode="r", encoding="utf-8") as inFile:
+        data = {}
+        indexPresent = False
+        try:
+            parentIdentity = self._getParentIdentity(indexFile, None)
+            targetIdentity = captureRegularFileIdentity(indexFile)
+            if self._identityKnown:
+                if self._lastIdentity is None:
+                    if targetIdentity is not None:
+                        raise OSError("The index file appeared after it was observed to be absent")
+                elif targetIdentity != self._lastIdentity:
+                    raise OSError("The index file changed after it was observed")
+            if targetIdentity is None:
+                self._lastIdentity = None
+                self._identityKnown = True
+            else:
+                indexPresent = True
+                logger.debug("Loading index file")
+                with openRegularFile(
+                    indexFile,
+                    expectedParent=parentIdentity,
+                    expectedIdentity=targetIdentity,
+                ) as inFile:
+                    # Retain the identity receipt as soon as the validated
+                    # file is open. Parsing may fail, but a later rebuild
+                    # must still be able to replace this exact corrupt file.
+                    self._lastIdentity = targetIdentity
+                    self._identityKnown = True
                     data = json.load(inFile)
-            except Exception:
-                logger.error("Failed to load index file")
-                logException()
-                return False
+        except Exception:
+            logger.error("Failed to load index file")
+            logException()
+            return False
 
+        if indexPresent:
             try:
                 meta = data.get("UmbraEdit.meta", {})
                 self._indexUpgrade = meta.get("version") != __hexversion__
@@ -290,7 +343,13 @@ class Index:
 
         return True
 
-    def saveIndex(self) -> bool:
+    def saveIndex(
+        self,
+        *,
+        expectedParent: Optional[FileIdentity] = None,
+        expectedTarget: Optional[FileIdentity] = None,
+        replaceExisting: bool = True,
+    ) -> bool:
         """Save the current index as a json file in the project meta
         data folder.
         """
@@ -302,19 +361,34 @@ class Index:
         start = time()
 
         try:
+            parentIdentity = self._getParentIdentity(indexFile, expectedParent)
+            targetIdentity = expectedTarget
+            replaceTarget = replaceExisting
+            if targetIdentity is None and self._identityKnown:
+                targetIdentity = self._lastIdentity
+                if targetIdentity is None:
+                    replaceTarget = False
+
             meta = {
                 "version": __hexversion__,
                 "timestamp": formatTimeStamp(start),
                 "revision": self._indexRevision,
             }
-            with open(indexFile, mode="w+", encoding="utf-8", newline=CONFIG.lineEnding) as outFile:
-                outFile.write(
-                    jsonCombine({
-                        "UmbraEdit.meta": jsonEncode(meta, n=1),
-                        "UmbraEdit.tagsIndex": jsonEncode(self._tagsIndex.packData(), n=1, nmax=2),
-                        "UmbraEdit.itemIndex": jsonEncode(self._itemIndex.packData(), n=1, nmax=4),
-                    })
-                )
+            text = jsonCombine({
+                "UmbraEdit.meta": jsonEncode(meta, n=1),
+                "UmbraEdit.tagsIndex": jsonEncode(self._tagsIndex.packData(), n=1, nmax=2),
+                "UmbraEdit.itemIndex": jsonEncode(self._itemIndex.packData(), n=1, nmax=4),
+            })
+            lineEnding = CONFIG.lineEnding if isinstance(CONFIG.lineEnding, str) else os.linesep
+            payload = text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", lineEnding).encode("utf-8")
+            self._lastIdentity = writeFileAtomic(
+                indexFile,
+                payload,
+                expectedParent=parentIdentity,
+                expectedTarget=targetIdentity,
+                replaceExisting=replaceTarget,
+            )
+            self._identityKnown = True
         except Exception as exc:
             SHARED.appendErrorMessage(exc)
             logger.error("Failed to save index file")
@@ -324,6 +398,27 @@ class Index:
         logger.debug("Index saved in %.3f ms", (time() - start) * 1000)
 
         return True
+
+    ##
+    #  Internal Functions
+    ##
+
+    def _getParentIdentity(
+        self,
+        indexFile: Path,
+        expectedParent: Optional[FileIdentity],
+    ) -> FileIdentity:
+        """Return and validate the identity of the project meta folder."""
+        parentIdentity = expectedParent
+        if parentIdentity is None:
+            parentIdentity = self._project.storage.metaIdentity
+        if parentIdentity is None:
+            parentStat = os.lstat(indexFile.parent)
+            if isLinkLike(indexFile.parent) or not stat.S_ISDIR(parentStat.st_mode):
+                raise OSError("The project meta folder is not a real directory")
+            parentIdentity = fileIdentity(parentStat)
+        verifyPathIdentity(indexFile.parent, parentIdentity, requireDirectory=True)
+        return parentIdentity
 
     ##
     #  Index Building

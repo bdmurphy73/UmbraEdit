@@ -229,13 +229,32 @@ fi
 
 mkdir -p "$RLS_DIR"
 
-# Remove any previous build of the same version
-rm -f "$RLS_DIR/umbraedit-${VERSION}-${ARCH}.dmg" "$RLS_DIR/umbraedit-${VERSION}-${ARCH}.dmg.sha256"
+DMG_NAME="umbraedit-${VERSION}-${ARCH}.dmg"
+DMG_PATH="$RLS_DIR/$DMG_NAME"
 
-create-dmg --volname "UmbraEdit $VERSION" --volicon "$SRC_DIR/setup/macos/umbraedit.icns" \
-    --window-pos 200 120 --window-size 800 400 --icon-size 100 \
-    --icon UmbraEdit.app 200 190 --hide-extension UmbraEdit.app \
-    --app-drop-link 600 185 "$RLS_DIR/umbraedit-${VERSION}-${ARCH}.dmg" "$BUILD_DIR/"
+# Remove any previous build of the same version
+rm -f "$DMG_PATH" "$DMG_PATH.sha256"
+
+DMG_ARGS=(
+    --volname "UmbraEdit $VERSION"
+    --volicon "$SRC_DIR/setup/macos/umbraedit.icns"
+    --window-pos 200 120
+    --window-size 800 400
+    --icon-size 100
+    --icon UmbraEdit.app 200 190
+    --hide-extension UmbraEdit.app
+    --app-drop-link 600 185
+)
+
+# create-dmg normally asks Finder to polish the mounted window. Recent
+# macOS releases can reject that cosmetic AppleScript even though the disk
+# image itself was created correctly. Retry without the Finder step so a
+# functional DMG is still produced on those systems.
+if ! create-dmg "${DMG_ARGS[@]}" "$DMG_PATH" "$BUILD_DIR/"; then
+    echo "WARNING: create-dmg could not apply the Finder layout; retrying without it." >&2
+    rm -f "$DMG_PATH" "$RLS_DIR"/rw.*."$DMG_NAME"
+    create-dmg --skip-jenkins "${DMG_ARGS[@]}" "$DMG_PATH" "$BUILD_DIR/"
+fi
 
 pushd "$RLS_DIR" || die "Could not enter $RLS_DIR"
 shasum -a 256 "umbraedit-${VERSION}-${ARCH}.dmg" | tee "umbraedit-${VERSION}-${ARCH}.dmg.sha256"

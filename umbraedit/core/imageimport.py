@@ -53,11 +53,10 @@ from umbraedit.core.safeio import (
     openDirectoryAt,
     openExclusiveFile,
     openRegularFile,
-    renameNoReplace,
-    renameNoReplaceBetween,
     renameNoReplaceIfSameFile,
     supportsDirectoryDescriptors,
     unlinkEntryIfSameFile,
+    unlinkIfSameFile,
 )
 
 if TYPE_CHECKING:
@@ -134,6 +133,8 @@ class ImportedImage:
     path: Path
     relativePath: str
     identity: FileIdentity
+    rootIdentity: FileIdentity
+    assetIdentity: FileIdentity
 
 
 def importProjectImage(project: NWProject, source: Union[Path, str]) -> ImportedImage:
@@ -144,7 +145,8 @@ def importProjectImage(project: NWProject, source: Union[Path, str]) -> Imported
     in use, a numeric suffix is added before the extension.
     """
     projectPath = project.storage.runtimePath
-    if not project.storage.isOpen() or not isinstance(projectPath, Path):
+    rootIdentity = project.storage.rootIdentity
+    if not project.storage.isOpen() or not isinstance(projectPath, Path) or rootIdentity is None:
         raise ImageImportError(ImageImportReason.NO_PROJECT, "No project is open")
 
     sourcePath = Path(source)
@@ -174,12 +176,12 @@ def importProjectImage(project: NWProject, source: Union[Path, str]) -> Imported
         )
 
     try:
-        assetDir, assetIdentity = _prepareAssetDir(projectPath, project.storage.rootIdentity)
+        assetDir, assetIdentity = _prepareAssetDir(projectPath, rootIdentity)
         target, targetIdentity = _copyUnique(
             sourcePath,
             assetDir,
             expectedFormat,
-            expectedRoot=project.storage.rootIdentity,
+            expectedRoot=rootIdentity,
             expectedAsset=assetIdentity,
         )
     except ImageImportError:
@@ -192,7 +194,112 @@ def importProjectImage(project: NWProject, source: Union[Path, str]) -> Imported
 
     relativePath = target.relative_to(projectPath).as_posix()
     logger.info("Imported project image '%s' as '%s'", sourcePath.name, relativePath)
-    return ImportedImage(path=target, relativePath=relativePath, identity=targetIdentity)
+    return ImportedImage(
+        path=target,
+        relativePath=relativePath,
+        identity=targetIdentity,
+        rootIdentity=rootIdentity,
+        assetIdentity=assetIdentity,
+    )
+
+
+def _validatedImportedImagePath(
+    project: NWProject,
+    imported: ImportedImage,
+    *,
+    allowMissing: bool,
+) -> Optional[Path]:
+    """Validate the project, asset folder, and image captured at import."""
+    projectPath = project.storage.runtimePath
+    rootIdentity = project.storage.rootIdentity
+    if (
+        not project.storage.isOpen()
+        or not isinstance(projectPath, Path)
+        or rootIdentity is None
+        or rootIdentity != imported.rootIdentity
+    ):
+        raise OSError(errno.EINVAL, "The project changed before the image could be used")
+
+    try:
+        rootStat = os.lstat(projectPath)
+    except OSError as exc:
+        raise OSError(errno.EINVAL, "The project changed before the image could be used") from exc
+    if (
+        isLinkLike(projectPath)
+        or not stat.S_ISDIR(rootStat.st_mode)
+        or fileIdentity(rootStat, projectPath) != rootIdentity
+    ):
+        raise OSError(errno.EINVAL, "The project changed before the image could be used")
+
+    assetPath = projectPath / ASSET_DIR
+    expectedPath = assetPath / imported.path.name
+    expectedRelativePath = expectedPath.relative_to(projectPath).as_posix()
+    if imported.path != expectedPath or imported.relativePath != expectedRelativePath:
+        raise OSError(errno.EINVAL, "The imported image path is not a project asset")
+
+    try:
+        assetStat = os.lstat(assetPath)
+    except FileNotFoundError:
+        if allowMissing:
+            return None
+        raise OSError(
+            errno.EINVAL,
+            "The project image folder changed before the image could be used",
+        ) from None
+    if (
+        isLinkLike(assetPath)
+        or not stat.S_ISDIR(assetStat.st_mode)
+        or fileIdentity(assetStat, assetPath) != imported.assetIdentity
+    ):
+        raise OSError(errno.EINVAL, "The project image folder changed before the image could be used")
+
+    try:
+        targetStat = os.lstat(expectedPath)
+    except FileNotFoundError:
+        if allowMissing:
+            return None
+        raise OSError(
+            errno.EINVAL,
+            "The imported image changed before the image could be used",
+        ) from None
+    if (
+        isLinkLike(expectedPath)
+        or not stat.S_ISREG(targetStat.st_mode)
+        or fileIdentity(targetStat, expectedPath) != imported.identity
+    ):
+        raise OSError(errno.EINVAL, "The imported image changed before the image could be used")
+
+    return expectedPath
+
+
+def verifyImportedProjectImage(project: NWProject, imported: ImportedImage) -> None:
+    """Verify that an imported image still refers to the validated objects."""
+    _validatedImportedImagePath(project, imported, allowMissing=False)
+
+
+def removeImportedProjectImage(project: NWProject, imported: ImportedImage) -> bool:
+    """Remove an imported image through the validated project quarantine.
+
+    The project root, asset folder, and image must all still refer to the
+    objects observed during import. On POSIX the image is retained in the
+    project-level quarantine rather than being physically unlinked, so no
+    pathname replacement can be deleted accidentally.
+    """
+    expectedPath = _validatedImportedImagePath(project, imported, allowMissing=True)
+    if expectedPath is None:
+        return True
+
+    projectPath = project.storage.runtimePath
+    rootIdentity = project.storage.rootIdentity
+    if not isinstance(projectPath, Path) or rootIdentity is None:
+        raise OSError(errno.EINVAL, "The project changed before the image could be removed")
+
+    return unlinkIfSameFile(
+        expectedPath,
+        imported.identity,
+        quarantineParent=projectPath,
+        expectedQuarantineParent=rootIdentity,
+    )
 
 
 def _validateImage(path: Path) -> str:
@@ -221,13 +328,15 @@ def _validateImageFile(imageFile: BinaryIO) -> str:
                 _validateImageStructure(imageFile, str(imageFormat) if imageFormat else "")
                 image.verify()
 
-            # JPEG verification does not necessarily detect truncated scan
-            # data, so decode the image as well. This ensures that the file
-            # contains a complete, usable image rather than only a valid
-            # header.
+            # Verification does not necessarily detect truncated scan data
+            # or corrupt animation frames, so decode every frame as well.
+            # This ensures that the file contains a complete, usable image
+            # rather than only a valid first frame.
             imageFile.seek(0)
             with PIL.Image.open(imageFile) as image:
-                image.load()
+                for frame in range(max(int(getattr(image, "n_frames", 1)), 1)):
+                    image.seek(frame)
+                    image.load()
     except (PIL.Image.DecompressionBombError, PIL.Image.DecompressionBombWarning) as exc:
         raise ImageImportError(ImageImportReason.IMAGE_TOO_LARGE, "The image is too large to import") from exc
     except (EOFError, OSError, ValueError, SyntaxError, struct.error) as exc:
@@ -380,7 +489,7 @@ def _prepareAssetDir(
     rootStat = os.lstat(projectPath)
     if isLinkLike(projectPath) or not stat.S_ISDIR(rootStat.st_mode):
         raise OSError("The project folder is not a real directory")
-    rootIdentity = fileIdentity(rootStat)
+    rootIdentity = fileIdentity(rootStat, projectPath)
     if expectedRoot is not None and rootIdentity != expectedRoot:
         raise OSError("The project folder changed before the image folder could be created")
 
@@ -390,7 +499,7 @@ def _prepareAssetDir(
     if supportsDirectoryDescriptors():
         rootFd = openDirectory(projectPath)
         try:
-            if fileIdentity(os.fstat(rootFd)) != rootIdentity:
+            if fileIdentity(os.fstat(rootFd), fileDescriptor=rootFd) != rootIdentity:
                 raise OSError("The project folder changed while it was being opened")
             with contextlib.suppress(FileExistsError):
                 os.mkdir("assets", 0o700, dir_fd=rootFd)
@@ -400,7 +509,7 @@ def _prepareAssetDir(
                     os.mkdir("img", 0o700, dir_fd=assetsFd)
                 assetFd = openDirectoryAt(assetsFd, "img")
                 try:
-                    assetIdentity = fileIdentity(os.fstat(assetFd))
+                    assetIdentity = fileIdentity(os.fstat(assetFd), fileDescriptor=assetFd)
                 finally:
                     os.close(assetFd)
             finally:
@@ -413,15 +522,15 @@ def _prepareAssetDir(
         assetStat = os.lstat(assetDir)
         if isLinkLike(assetDir) or not stat.S_ISDIR(assetStat.st_mode):
             raise OSError("The project image folder is not a real directory")
-        assetIdentity = fileIdentity(assetStat)
+        assetIdentity = fileIdentity(assetStat, assetDir)
 
     currentRootStat = os.lstat(projectPath)
-    if isLinkLike(projectPath) or fileIdentity(currentRootStat) != rootIdentity:
+    if isLinkLike(projectPath) or fileIdentity(currentRootStat, projectPath) != rootIdentity:
         raise OSError("The project folder changed while the image folder was being created")
     currentAssetStat = os.lstat(assetDir)
     if isLinkLike(assetDir) or not stat.S_ISDIR(currentAssetStat.st_mode):
         raise OSError("The project image folder is not a real directory")
-    if fileIdentity(currentAssetStat) != assetIdentity:
+    if fileIdentity(currentAssetStat, assetDir) != assetIdentity:
         raise OSError("The project image folder changed while it was being created")
 
     return assetDir, assetIdentity
@@ -467,13 +576,13 @@ def _copyUnique(
         rootStat = os.lstat(projectRoot)
         if isLinkLike(projectRoot) or not stat.S_ISDIR(rootStat.st_mode):
             raise OSError("The project folder is not a real directory")
-        rootIdentity = fileIdentity(rootStat)
+        rootIdentity = fileIdentity(rootStat, projectRoot)
         if expectedRoot is not None and rootIdentity != expectedRoot:
             raise OSError("The project folder changed before the image could be copied")
 
         if supportsDirectoryDescriptors():
             rootFd = openDirectory(projectRoot)
-            if fileIdentity(os.fstat(rootFd)) != rootIdentity:
+            if fileIdentity(os.fstat(rootFd), fileDescriptor=rootFd) != rootIdentity:
                 raise OSError("The project folder changed while it was being opened")
             assetsFd = openDirectoryAt(rootFd, "assets")
             assetFd = openDirectoryAt(assetsFd, "img")
@@ -482,7 +591,11 @@ def _copyUnique(
             assetStat = os.lstat(assetDir)
             if isLinkLike(assetDir) or not stat.S_ISDIR(assetStat.st_mode):
                 raise OSError("The project image folder is not a real directory")
-        assetIdentity = fileIdentity(assetStat)
+        assetIdentity = (
+            fileIdentity(assetStat, fileDescriptor=assetFd)
+            if assetFd is not None
+            else fileIdentity(assetStat, assetDir)
+        )
         if expectedAsset is not None and assetIdentity != expectedAsset:
             raise OSError("The project image folder changed before the image could be copied")
 
@@ -492,7 +605,7 @@ def _copyUnique(
         # for the validated bytes until publication is complete.
         stagePath, fileDesc = _createStagingFile(projectRoot, rootFd)
         stageFile = os.fdopen(fileDesc, mode="w+b")
-        stageIdentity = fileIdentity(os.fstat(stageFile.fileno()))
+        stageIdentity = fileIdentity(os.fstat(stageFile.fileno()), fileDescriptor=stageFile.fileno())
         with openRegularFile(source) as inFile:
             shutil.copyfileobj(inFile, stageFile, length=1024 * 1024)
         stageFile.flush()
@@ -509,7 +622,13 @@ def _copyUnique(
 
         for index in count():
             targetName = f"{stem}{suffix}" if index == 0 else f"{stem}_{index}{suffix}"
-            _verifyAssetDir(assetDir, projectRoot, assetStat, rootIdentity)
+            _verifyAssetDir(
+                assetDir,
+                projectRoot,
+                assetStat,
+                rootIdentity,
+                assetIdentity,
+            )
             assert stagePath is not None
             assert stageIdentity is not None
             _verifyStageFile(stagePath, stageIdentity, rootFd)
@@ -522,17 +641,31 @@ def _copyUnique(
                 assetFd,
                 assetDir,
                 expectedFormat,
+                projectRoot,
+                rootIdentity,
             )
             if targetIdentity is None:
                 continue
             target = assetDir / targetName
             try:
-                _verifyAssetDir(assetDir, projectRoot, assetStat, rootIdentity)
+                _verifyAssetDir(
+                    assetDir,
+                    projectRoot,
+                    assetStat,
+                    rootIdentity,
+                    assetIdentity,
+                )
                 currentTargetIdentity = _publishedTargetIdentity(target, targetName, assetFd)
                 if currentTargetIdentity != targetIdentity:
                     raise OSError("The published project image changed before it could be returned")
             except Exception:
-                _removePublishedTarget(target, targetIdentity, assetFd)
+                _removePublishedTarget(
+                    target,
+                    targetIdentity,
+                    assetFd,
+                    projectRoot,
+                    rootIdentity,
+                )
                 raise
             return target, targetIdentity
     finally:
@@ -576,6 +709,7 @@ def _verifyAssetDir(
     projectRoot: Path,
     assetStat: os.stat_result,
     expectedRoot: Optional[FileIdentity] = None,
+    expectedAsset: Optional[FileIdentity] = None,
 ) -> None:
     """Verify that the project and asset directories are still unchanged."""
     try:
@@ -584,7 +718,7 @@ def _verifyAssetDir(
         raise
     if isLinkLike(projectRoot) or not stat.S_ISDIR(rootStat.st_mode):
         raise OSError("The project folder changed while it was being used")
-    if expectedRoot is not None and fileIdentity(rootStat) != expectedRoot:
+    if expectedRoot is not None and fileIdentity(rootStat, projectRoot) != expectedRoot:
         raise OSError("The project folder changed while it was being used")
     if isLinkLike(assetDir):
         raise OSError("The project image folder changed while it was being used")
@@ -592,7 +726,11 @@ def _verifyAssetDir(
         currentStat = os.lstat(assetDir)
     except OSError:
         raise
-    if not os.path.samestat(assetStat, currentStat):
+    currentIdentity = fileIdentity(currentStat, assetDir)
+    if expectedAsset is not None:
+        if currentIdentity != expectedAsset:
+            raise OSError("The project image folder changed while it was being used")
+    elif fileIdentity(assetStat, assetDir) != currentIdentity:
         raise OSError("The project image folder changed while it was being used")
 
 
@@ -609,7 +747,12 @@ def _verifyStageFile(
             currentStat = os.lstat(tmpPath)
     except OSError:
         raise
-    if not stat.S_ISREG(currentStat.st_mode) or fileIdentity(currentStat) != expectedIdentity:
+    currentIdentity = (
+        fileIdentity(currentStat, Path(tmpPath.name), dirFd=stageFd)
+        if stageFd is not None and os.stat in os.supports_dir_fd
+        else fileIdentity(currentStat, tmpPath)
+    )
+    if not stat.S_ISREG(currentStat.st_mode) or currentIdentity != expectedIdentity:
         raise OSError("The staged project image changed before it could be published")
 
 
@@ -627,6 +770,7 @@ def _isUnsupportedError(exc: BaseException) -> bool:
     return getattr(exc, "errno", None) in (
         errno.EACCES,
         errno.EINVAL,
+        errno.EXDEV,
         errno.ENOSYS,
         errno.ENOTSUP,
         errno.EOPNOTSUPP,
@@ -643,6 +787,8 @@ def _publishTemp(
     assetFd: Optional[int],
     assetDir: Path,
     expectedFormat: str,
+    quarantineParent: Path,
+    expectedQuarantineParent: FileIdentity,
 ) -> Optional[FileIdentity]:
     """Publish a temporary file without replacing an existing target.
 
@@ -678,19 +824,38 @@ def _publishTemp(
             )
         except OSError as renameError:
             if not _isUnsupportedError(renameError):
+                # ``renameNoReplaceIfSameFile`` already preserves an
+                # unexpected target under a conflict name when it detects
+                # a publication race. Do not quarantine the target path a
+                # second time: an unrelated file may have appeared there
+                # after the safe-I/O layer completed its own recovery.
                 raise
             published = None
         if published is True:
             try:
                 return _validatePublishedTarget(target, stageIdentity, expectedFormat, assetFd)
             except Exception:
-                _removePublishedTarget(target, stageIdentity, assetFd)
+                _removePublishedTarget(
+                    target,
+                    stageIdentity,
+                    assetFd,
+                    quarantineParent,
+                    expectedQuarantineParent,
+                )
                 raise
         if published is False:
             return None
         if not _isUnsupportedError(linkError) and getattr(linkError, "errno", None) is not None:
             raise linkError
-        return _publishExclusive(stageFile, targetName, assetFd, assetDir, expectedFormat)
+        return _publishExclusive(
+            stageFile,
+            targetName,
+            assetFd,
+            assetDir,
+            expectedFormat,
+            quarantineParent,
+            expectedQuarantineParent,
+        )
 
     if not published:
         return None
@@ -698,7 +863,13 @@ def _publishTemp(
     try:
         return _validatePublishedTarget(target, stageIdentity, expectedFormat, assetFd)
     except Exception:
-        _removePublishedTarget(target, stageIdentity, assetFd)
+        _removePublishedTarget(
+            target,
+            stageIdentity,
+            assetFd,
+            quarantineParent,
+            expectedQuarantineParent,
+        )
         raise
 
 
@@ -710,7 +881,9 @@ def _publishedTargetIdentity(target: Path, targetName: str, assetFd: Optional[in
         targetStat = os.lstat(target)
     if not stat.S_ISREG(targetStat.st_mode):
         raise OSError("The published project image is not a regular file")
-    return fileIdentity(targetStat)
+    if assetFd is not None and os.stat in os.supports_dir_fd:
+        return fileIdentity(targetStat, Path(targetName), dirFd=assetFd)
+    return fileIdentity(targetStat, target)
 
 
 def _validatePublishedTarget(
@@ -732,7 +905,14 @@ def _validatePublishedTarget(
         else:
             fileDesc = os.open(target, flags)
         openedStat = os.fstat(fileDesc)
-        if not stat.S_ISREG(openedStat.st_mode) or fileIdentity(openedStat) != expectedIdentity:
+        if (
+            not stat.S_ISREG(openedStat.st_mode)
+            or fileIdentity(
+                openedStat,
+                fileDescriptor=fileDesc,
+            )
+            != expectedIdentity
+        ):
             raise OSError("The published project image changed before it could be validated")
         publishedFile = os.fdopen(fileDesc, mode="rb")
         fileDesc = None
@@ -753,32 +933,22 @@ def _validatePublishedTarget(
     return targetIdentity
 
 
-def _quarantinePublishedTarget(target: Path, assetFd: Optional[int] = None) -> Path:
-    """Move an unexpected published entry to a recoverable sibling name."""
-    conflictName = f".umbraedit-conflict-{uuid.uuid4().hex}"
-    conflictPath = target.parent / conflictName
-    if assetFd is not None and os.name != "nt":
-        try:
-            moved = renameNoReplaceBetween(
-                Path(target.name),
-                Path(conflictName),
-                sourceDirFd=assetFd,
-                targetDirFd=assetFd,
-            )
-        except OSError:
-            moved = False
-    else:
-        try:
-            moved = renameNoReplace(target, conflictPath)
-        except OSError:
-            moved = False
-    return conflictPath if moved else target
-
-
-def _removePublishedTarget(target: Path, expectedIdentity: FileIdentity, assetFd: Optional[int] = None) -> None:
+def _removePublishedTarget(
+    target: Path,
+    expectedIdentity: FileIdentity,
+    assetFd: Optional[int] = None,
+    quarantineParent: Optional[Path] = None,
+    expectedQuarantineParent: Optional[FileIdentity] = None,
+) -> None:
     """Remove a just-published target only if it still has that identity."""
     with contextlib.suppress(OSError):
-        unlinkEntryIfSameFile(target, expectedIdentity, dirFd=assetFd)
+        unlinkEntryIfSameFile(
+            target,
+            expectedIdentity,
+            dirFd=assetFd,
+            quarantineParent=quarantineParent,
+            expectedQuarantineParent=expectedQuarantineParent,
+        )
 
 
 def _publishExclusive(
@@ -787,6 +957,8 @@ def _publishExclusive(
     assetFd: Optional[int],
     assetDir: Path,
     expectedFormat: str,
+    quarantineParent: Path,
+    expectedQuarantineParent: FileIdentity,
 ) -> Optional[FileIdentity]:
     """Publish the validated image using exclusive target creation."""
     fileDesc: Optional[int]
@@ -799,7 +971,7 @@ def _publishExclusive(
         return None
 
     target = assetDir / targetName
-    targetIdentity = fileIdentity(os.fstat(fileDesc))
+    targetIdentity = fileIdentity(os.fstat(fileDesc), fileDescriptor=fileDesc)
     try:
         outFile = os.fdopen(fileDesc, mode="w+b")
         fileDesc = None
@@ -821,10 +993,21 @@ def _publishExclusive(
             currentStat = os.stat(targetName, dir_fd=assetFd, follow_symlinks=False)
         else:
             currentStat = os.stat(target, follow_symlinks=False)
-        if fileIdentity(currentStat) != targetIdentity:
+        currentIdentity = (
+            fileIdentity(currentStat, Path(targetName), dirFd=assetFd)
+            if assetFd is not None and os.stat in os.supports_dir_fd
+            else fileIdentity(currentStat, target)
+        )
+        if currentIdentity != targetIdentity:
             raise OSError("The project image target changed while it was being copied")
     except Exception:
-        _removePublishedTarget(target, targetIdentity, assetFd)
+        _removePublishedTarget(
+            target,
+            targetIdentity,
+            assetFd,
+            quarantineParent,
+            expectedQuarantineParent,
+        )
         raise
     finally:
         if fileDesc is not None:

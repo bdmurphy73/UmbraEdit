@@ -256,13 +256,13 @@ class GuiMain(QMainWindow):
         if CONFIG.checkMinQtVersion(0x060500):  # pragma: no branch
             self._themeHints = QGuiApplication.styleHints()
             if self._themeHints is not None:  # pragma: no branch
-
-                @pyqtSlot(Qt.ColorScheme)
-                def colorSchemeChangedSlot(schemeHint: Qt.ColorScheme) -> None:
-                    self.checkThemeUpdate(schemeHint=schemeHint)
-
-                self._themeHints.colorSchemeChanged.connect(colorSchemeChangedSlot)
-                self._themeChangedSlot = colorSchemeChangedSlot
+                # Connect a bound QObject method so Qt automatically
+                # disconnects it if the main window is destroyed. A nested
+                # closure would retain the deleted window and could be
+                # invoked by the application-wide style-hints signal
+                # during teardown.
+                self._themeHints.colorSchemeChanged.connect(self._colorSchemeChanged)
+                self._themeChangedSlot = self._colorSchemeChanged
 
         # Finalise Initialisation
         # =======================
@@ -345,6 +345,11 @@ class GuiMain(QMainWindow):
         to confirm.
         """
         if not SHARED.hasProject:
+            if SHARED.hasPendingProjectCleanup:
+                # A previous close ended the project session but could not
+                # remove its validated lock. Retry the cleanup without
+                # writing project data again.
+                return SHARED.closeProject()
             # There is no project loaded, everything OK
             return True
 
@@ -358,6 +363,7 @@ class GuiMain(QMainWindow):
 
         self.docPanes.saveDocument()
         saveOK = self.saveProject()
+        closed = False
         doBackup = False
         if SHARED.project.data.doBackup and CONFIG.backupOnClose:
             doBackup = True
@@ -376,12 +382,12 @@ class GuiMain(QMainWindow):
             self.itemDetails.clearDetails()
             self.mainStatus.clearStatus()
 
-            SHARED.closeProject()
+            closed = SHARED.closeProject()
 
             self._updateWindowTitle()
             self.changeView(nwView.PROJECT)
 
-        return saveOK
+        return saveOK and closed
 
     def openProject(self, projFile: Union[str, Optional[Path]]) -> bool:
         """Open a project from a projFile path."""
@@ -469,12 +475,23 @@ class GuiMain(QMainWindow):
             return SHARED.saveProject(autoSave=autoSave)
         return False
 
+    def backupProject(self) -> bool:
+        """Save the active document and create a project backup."""
+        if not SHARED.hasProject:
+            return False
+        if not self.docPanes.saveDocument():
+            return False
+        return SHARED.project.backupProject(True)
+
     def saveProjectAs(self) -> None:
         """Save the current project to a new location (Save As)."""
         if not SHARED.hasProject:
             return
 
-        # First save current project to make sure everything is current
+        # First save the active document and current project so the copy
+        # includes metadata that has not yet been written to disk.
+        if not self.docPanes.saveDocument():
+            return
         if not self.saveProject(autoSave=False):
             return
 
@@ -646,8 +663,8 @@ class GuiMain(QMainWindow):
             # Ignore window size if in full screen mode
             CONFIG.setMainWinSize(self.geometry())
 
-        if SHARED.hasProject:
-            self.closeProject(True)
+        if (SHARED.hasProject or SHARED.hasPendingProjectCleanup) and not self.closeProject(True):
+            return False
         CONFIG.saveConfig()
 
         self.asProjTimer.stop()
@@ -656,6 +673,11 @@ class GuiMain(QMainWindow):
         QApplication.quit()
 
         return True
+
+    @pyqtSlot(Qt.ColorScheme)
+    def _colorSchemeChanged(self, schemeHint: Qt.ColorScheme) -> None:
+        """Apply an operating-system colour scheme change."""
+        self.checkThemeUpdate(schemeHint=schemeHint)
 
     def checkThemeUpdate(self, *, schemeHint: Optional[Any] = None) -> None:
         """Load theme if mode changed."""
@@ -696,6 +718,7 @@ class GuiMain(QMainWindow):
         if self.closeMain():
             if self._themeHints is not None and self._themeChangedSlot is not None:
                 self._themeHints.colorSchemeChanged.disconnect(self._themeChangedSlot)
+                self._themeChangedSlot = None
             self.docEditor.clearEditor()  # Extra safety to clear widgets
             event.accept()
         else:

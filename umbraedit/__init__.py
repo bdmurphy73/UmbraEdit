@@ -37,7 +37,7 @@ from typing import TYPE_CHECKING, Optional
 from PyQt6.QtWidgets import QApplication, QErrorMessage
 
 try:
-    import tomllib  # noqa: F401 - used as sys.modules alias fallback
+    import tomllib  # type: ignore[reportMissingImports]  # noqa: F401 - used as sys.modules alias fallback
 except ModuleNotFoundError:
     import tomli  # type: ignore[import-not-found]
 
@@ -207,10 +207,17 @@ def main(sysArgs: Optional[list] = None) -> Optional[GuiMain]:
     # Single Instance Check
     # =====================
     # Check if another instance is already running. If so, try to switch
-    # to it. If it appears hung, kill it and start a new instance.
-    from umbraedit.singleinstance import checkSingleInstance
+    # to it and exit without starting a second instance.
+    from umbraedit.singleinstance import SingleInstanceError, checkSingleInstance
 
-    if not checkSingleInstance():
+    try:
+        instanceAvailable = checkSingleInstance()
+    except SingleInstanceError as exc:
+        logger.critical("Could not establish single-instance safety: %s", exc)
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    if not instanceAvailable:
         logger.info("Another UmbraEdit instance took over, exiting.")
         sys.exit(0)
 

@@ -62,7 +62,7 @@ class NovelModel(QAbstractTableModel):
     def __init__(self) -> None:
         super().__init__()
         self._rows: list[dict[int, T_NodeData]] = []
-        self._more = SHARED.theme.getIcon("more_arrow:tool")
+        self._more = SHARED.theme.getIcon("more_arrow:tool") if SHARED.hasTheme else QIcon()
         self._columns = 3
         self._extraKey = ""
         self._extraLabel = ""
@@ -231,7 +231,7 @@ class NovelModel(QAbstractTableModel):
         data[C_FACTOR * 0 | QtToolTipRole] = head.title
         data[C_FACTOR * 0 | QtDisplayRole] = head.title
         data[C_FACTOR * 0 | QtAccessibleTextRole] = f"{self._levels.get(head.level, '')}: {head.title}"
-        data[C_FACTOR * 0 | QtDecorationRole] = SHARED.theme.getHeaderDecoration(iLevel)
+        data[C_FACTOR * 0 | QtDecorationRole] = SHARED.theme.getHeaderDecoration(iLevel) if SHARED.hasTheme else None
         data[C_FACTOR * 1 | QtTextAlignmentRole] = QtAlignRight
         self._setCount(data, head.mainCount)
         if self._columns == 3:

@@ -56,6 +56,12 @@ from umbraedit.splash import NSplashScreen
 from tests.helpers import clearLogHandlers
 
 
+@pytest.fixture(autouse=True)
+def mockSingleInstance(monkeypatch: pytest.MonkeyPatch):
+    """Keep launch tests independent from the user's instance lock."""
+    monkeypatch.setattr("umbraedit.singleinstance.checkSingleInstance", lambda: True)
+
+
 @pytest.mark.base
 def testInit_Launch(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Check launching the main GUI."""

@@ -126,11 +126,21 @@ class SharedData(QObject):
         return self._gui
 
     @property
+    def hasGui(self) -> bool:
+        """Return whether the main GUI has been initialised."""
+        return self._gui is not None
+
+    @property
     def theme(self) -> GuiTheme:
         """Return the GUI Theme instance."""
         if self._theme is None:
             raise RuntimeError("SharedData class not fully initialised")
         return self._theme
+
+    @property
+    def hasTheme(self) -> bool:
+        """Return whether the GUI theme has been initialised."""
+        return self._theme is not None
 
     @property
     def project(self) -> NWProject:
@@ -155,6 +165,11 @@ class SharedData(QObject):
     def hasProject(self) -> bool:
         """Return True if the project instance is populated."""
         return self.project.isValid
+
+    @property
+    def hasPendingProjectCleanup(self) -> bool:
+        """Return whether a project session still needs lock cleanup."""
+        return self.project.storage.isOpen()
 
     @property
     def projectLock(self) -> Optional[list]:
@@ -232,9 +247,12 @@ class SharedData(QObject):
         self._lockedBy = None
         status = self.project.openProject(path, clearLock=clearLock)
         if status is False:
-            # We must cache the lock status before resetting the project
+            # We must cache the lock status before resetting the project.
+            # If lock cleanup is still pending, retain this project instance
+            # so the exact validated lock ownership can be retried.
             self._lockedBy = self.project.lockStatus
-            self._resetProject()
+            if not self.project.storage.isOpen():
+                self._resetProject()
 
         self.updateSpellCheckLanguage(reload=True)
         self._resetIdleTimer()
@@ -255,12 +273,23 @@ class SharedData(QObject):
             return False
         return self.project.saveProjectAs(newPath, newName)
 
-    def closeProject(self) -> None:
+    def closeProject(self) -> bool:
         """Close the current project."""
         self._closeToolDialogs()
-        self.project.closeProject(self._idleTime)
+        if self.project.storage.isOpen() and not self.project.isValid:
+            # The project was closed logically, but its validated lock
+            # cleanup failed. Retry only the lock cleanup; do not write
+            # project data again during the recovery attempt.
+            closed = self.project.releaseSession()
+        else:
+            closed = self.project.closeProject(self._idleTime)
+        if self.project.storage.isOpen():
+            # The validated lock cleanup is still pending. Keep this
+            # project instance so the caller can retry the exact cleanup.
+            return False
         self._resetProject()
         self._resetIdleTimer()
+        return closed
 
     def updateSpellCheckLanguage(self, reload: bool = False) -> None:
         """Update the active spell check language from settings."""
@@ -430,6 +459,9 @@ class SharedData(QObject):
 
     def info(self, text: T_Msg, info: str = "", details: str = "", log: bool = True) -> None:
         """Open an information alert box."""
+        if not self.hasGui:
+            self._logHeadlessMessage(text, info, details, logger.info if log else None)
+            return
         alert = _GuiAlert(self.mainGui, self.theme)
         alert.setMessage(text, info, details)
         alert.setAlertType(_GuiAlert.INFO, False)
@@ -440,6 +472,9 @@ class SharedData(QObject):
 
     def warn(self, text: T_Msg, info: str = "", details: str = "", log: bool = True) -> None:
         """Open a warning alert box."""
+        if not self.hasGui:
+            self._logHeadlessMessage(text, info, details, logger.warning if log else None)
+            return
         alert = _GuiAlert(self.mainGui, self.theme)
         alert.setMessage(text, info, details)
         alert.setAlertType(_GuiAlert.WARN, False)
@@ -457,6 +492,9 @@ class SharedData(QObject):
         exc: Optional[Exception] = None,
     ) -> None:
         """Open an error alert box."""
+        if not self.hasGui:
+            self._logHeadlessMessage(text, info, details, logger.error if log else None, exc=exc)
+            return
         alert = _GuiAlert(self.mainGui, self.theme)
         alert.setMessage(text, info, details)
         alert.setAlertType(_GuiAlert.ERROR, False)
@@ -467,8 +505,18 @@ class SharedData(QObject):
             self._logMessage(self._lastAlert, logger.error)
         alert.pop()
 
-    def question(self, text: T_Msg, info: str = "", details: str = "", warn: bool = False) -> bool:
+    def question(
+        self,
+        text: T_Msg,
+        info: str = "",
+        details: str = "",
+        warn: bool = False,
+        default: bool = False,
+    ) -> bool:
         """Open a question box."""
+        if not self.hasGui:
+            self._logHeadlessMessage(text, info, details, logger.info)
+            return default
         alert = _GuiAlert(self.mainGui, self.theme)
         alert.setMessage(text, info, details)
         alert.setAlertType(_GuiAlert.WARN if warn else _GuiAlert.ASK, True)
@@ -484,6 +532,26 @@ class SharedData(QObject):
         """Print message to log."""
         for text in message:
             log(RX_HTML.sub("", text), stacklevel=3)
+
+    def _logHeadlessMessage(
+        self,
+        text: T_Msg,
+        info: str,
+        details: str,
+        log: Optional[Callable],
+        exc: Optional[Exception] = None,
+    ) -> None:
+        """Log an alert when no GUI is available."""
+        message = "\n".join(text) if isinstance(text, list) else str(text)
+        if info:
+            message = f"{message}\n{info}"
+        if details:
+            message = f"{message}\n{details}"
+        if exc is not None:
+            message = f"{message}\n{exc!s}"
+        self._lastAlert = [message]
+        if log is not None:
+            log(message, stacklevel=3)
 
     def _resetProject(self) -> None:
         """Create a new project and spell checking instance."""

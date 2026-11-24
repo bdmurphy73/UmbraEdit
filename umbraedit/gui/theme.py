@@ -28,7 +28,7 @@ from __future__ import annotations
 import logging
 
 try:
-    import tomllib
+    import tomllib  # type: ignore[reportMissingImports]
 except ModuleNotFoundError:
     import tomli as tomllib  # type: ignore
 

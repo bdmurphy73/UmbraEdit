@@ -23,17 +23,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 from pathlib import Path
+from zipfile import ZipFile
 
 import PIL.Image
 import pytest
 
 from PyQt6.QtGui import QAction, QTextCursor
-from PyQt6.QtWidgets import QFileDialog
+from PyQt6.QtWidgets import QFileDialog, QInputDialog
 from pytestqt.qtbot import QtBot
 
 from umbraedit import CONFIG, SHARED
 from umbraedit.constants import nwKeyWords
-from umbraedit.core.imageimport import ImageImportError, ImageImportReason
+from umbraedit.core.imageimport import ImageImportError, ImageImportReason, importProjectImage
 from umbraedit.core.project import NWProject
 from umbraedit.guimain import GuiMain
 from umbraedit.types import QtKeepAnchor, QtMoveAnchor
@@ -126,6 +127,77 @@ def testImageInsert_ImportCoverAndIcon(
     nwGUI.mainMenu.aInsIcon.activate(QAction.ActionEvent.Trigger)
     assert editor.getText() == "Text\n@icon: assets/img/cover_1.png"
     assert (projPath / "assets" / "img" / "cover_1.png").is_file()
+
+
+@pytest.mark.gui
+def testImageInsert_BackupIncludesUnsavedMetadataAndAsset(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that a manual backup flushes image metadata before archiving."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+
+    editor = nwGUI.docEditor
+    editor.setPlainText("Text")
+    editor.setCursorPosition(4)
+
+    source = fncPath / "cover.png"
+    _writeImage(source)
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+    nwGUI.mainMenu.aInsCover.activate(QAction.ActionEvent.Trigger)
+    assert editor.docChanged is True
+
+    backupPath = fncPath / "backups"
+    backupPath.mkdir(parents=True)
+    CONFIG.setBackupPath(backupPath)
+    assert nwGUI.backupProject() is True
+
+    archives = list(backupPath.rglob("*.zip"))
+    assert len(archives) == 1
+    with ZipFile(archives[0]) as archive:
+        names = set(archive.namelist())
+        assert "assets/img/cover.png" in names
+        document = archive.read(f"content/{C.hSceneDoc}.md").decode("utf-8")
+    assert "@Cover: assets/img/cover.png" in document
+
+
+@pytest.mark.gui
+def testImageInsert_SaveAsIncludesUnsavedMetadataAndAsset(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that Save As flushes image metadata before copying the project."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+
+    editor = nwGUI.docEditor
+    editor.setPlainText("Text")
+    editor.setCursorPosition(4)
+
+    source = fncPath / "cover.png"
+    _writeImage(source)
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+    nwGUI.mainMenu.aInsCover.activate(QAction.ActionEvent.Trigger)
+    assert editor.docChanged is True
+
+    target = fncPath / "image-project-copy"
+    monkeypatch.setattr(SHARED, "getProjectFolder", lambda *args: str(target))
+    monkeypatch.setattr(QInputDialog, "getText", lambda *args, **kwargs: ("Image Copy", True))
+    nwGUI.saveProjectAs()
+
+    assert target.is_dir()
+    assert (target / "assets" / "img" / "cover.png").is_file()
+    document = (target / "content" / f"{C.hSceneDoc}.md").read_text(encoding="utf-8")
+    assert "@Cover: assets/img/cover.png" in document
 
 
 @pytest.mark.gui
@@ -371,7 +443,7 @@ def testImageInsert_CopyAndInsertionFailures(
         raise OSError("Cleanup failed")
 
     with monkeypatch.context() as mp:
-        mp.setattr("umbraedit.editor.docpanes.unlinkIfSameFile", failCleanup)
+        mp.setattr("umbraedit.editor.docpanes.removeImportedProjectImage", failCleanup)
         mp.setattr(editor, "insertMetaValue", lambda *args, **kwargs: False)
         nwGUI.mainMenu.aInsCover.activate(QAction.ActionEvent.Trigger)
     assert SHARED.lastAlert[0] == (
@@ -382,6 +454,44 @@ def testImageInsert_CopyAndInsertionFailures(
     assert CONFIG.lastPath("image") == lastImagePath
     assert targetPath.is_file()
     targetPath.unlink()
+
+
+@pytest.mark.gui
+def testImageInsert_ReplacementAfterImportAbortsInsertion(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that a replaced imported image is not referenced in the document."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+
+    editor = nwGUI.docEditor
+    editor.setPlainText("Text")
+    editor.setCursorPosition(4)
+
+    source = fncPath / "cover.png"
+    _writeImage(source)
+
+    def importThenReplace(project, path):
+        imported = importProjectImage(project, path)
+        imported.path.unlink()
+        imported.path.write_bytes(b"replacement")
+        return imported
+
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+    monkeypatch.setattr("umbraedit.editor.docpanes.importProjectImage", importThenReplace)
+    nwGUI.mainMenu.aInsCover.activate(QAction.ActionEvent.Trigger)
+
+    assert editor.getText() == "Text"
+    assert editor.getCursorPosition() == 4
+    assert SHARED.lastAlert[0] == (
+        "The active project or document changed while importing the image. Please try again."
+    )
+    assert (projPath / "assets" / "img" / "cover.png").read_bytes() == b"replacement"
 
 
 @pytest.mark.gui

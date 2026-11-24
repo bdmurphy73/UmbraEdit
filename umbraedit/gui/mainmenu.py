@@ -971,7 +971,7 @@ class GuiMainMenu(QMenuBar):
 
         # Tools > Backup Project
         self.aBackupProject = qtAddAction(self.toolsMenu, self.tr("Backup Project"))
-        self.aBackupProject.triggered.connect(qtLambda(SHARED.project.backupProject, True))
+        self.aBackupProject.triggered.connect(qtLambda(self.mainGui.backupProject))
 
         # Tools > Manuscript Build
         self.aBuildManuscript = qtAddAction(self.toolsMenu, self.tr("Manuscript Build"))

@@ -22,6 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import atexit
 import hashlib
 import json
 import logging
@@ -30,6 +31,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any, Optional
 
+from umbraedit.cli.project_cleanup import releaseProjects
 from umbraedit.common import writeTextFile
 
 EXIT_OK = 0
@@ -41,6 +43,19 @@ logger = logging.getLogger(__name__)
 API_VERSION = "v1"
 DEFAULT_PORT = 47321
 TOKEN_FILE = Path.home() / ".umbraedit" / "api-token"
+
+_openProjects: list[Any] = []
+
+
+def _releaseProjects() -> bool:
+    """Release API project sessions and report pending cleanup."""
+    released = releaseProjects(_openProjects)
+    if not released:
+        logger.warning("One or more API project session locks are still pending cleanup")
+    return released
+
+
+atexit.register(_releaseProjects)
 
 
 def _utc_now_iso() -> str:
@@ -545,10 +560,34 @@ def cmd_serve(args: Any) -> int:
     from umbraedit.core.project import NWProject
 
     project = NWProject()
-    if not project.openProject(str(project_path)):
+    # Register before opening so every exception path retains ownership
+    # until the exclusive lock has actually been released.
+    _openProjects.append(project)
+    try:
+        opened = project.openProject(str(project_path), updateRecent=False)
+    except BaseException:
+        # The lock may already have been acquired when opening failed.
+        if not _releaseProjects():
+            print(f"Error: could not release project lock for '{project_path}'", flush=True)
+        raise
+    if not opened:
         print(f"Error: cannot open project '{project_path}'", flush=True)
+        if not _releaseProjects():
+            print(f"Error: could not release project lock for '{project_path}'", flush=True)
         return EXIT_ERROR
 
     port = args.port or DEFAULT_PORT
-    serve(project, port)
+    try:
+        serve(project, port)
+    except BaseException:
+        # Preserve the server failure while making a best effort to release
+        # the exclusive project lock. A failed release remains registered
+        # for the dispatcher and process-exit retry.
+        if not _releaseProjects():
+            print(f"Error: could not release project lock for '{project_path}'", flush=True)
+        raise
+
+    if not _releaseProjects():
+        print(f"Error: could not release project lock for '{project_path}'", flush=True)
+        return EXIT_ERROR
     return EXIT_OK

@@ -387,6 +387,8 @@ class Index:
                 expectedParent=parentIdentity,
                 expectedTarget=targetIdentity,
                 replaceExisting=replaceTarget,
+                quarantineParent=self._project.storage.runtimePath,
+                expectedQuarantineParent=self._project.storage.rootIdentity,
             )
             self._identityKnown = True
         except Exception as exc:
@@ -416,7 +418,7 @@ class Index:
             parentStat = os.lstat(indexFile.parent)
             if isLinkLike(indexFile.parent) or not stat.S_ISDIR(parentStat.st_mode):
                 raise OSError("The project meta folder is not a real directory")
-            parentIdentity = fileIdentity(parentStat)
+            parentIdentity = fileIdentity(parentStat, indexFile.parent)
         verifyPathIdentity(indexFile.parent, parentIdentity, requireDirectory=True)
         return parentIdentity
 

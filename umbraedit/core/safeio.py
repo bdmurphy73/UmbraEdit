@@ -25,7 +25,9 @@ from __future__ import annotations
 import contextlib
 import ctypes
 import errno
+import hashlib
 import logging
+import ntpath
 import os
 import platform
 import shutil
@@ -35,18 +37,33 @@ import uuid
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, Optional
+from typing import Any, BinaryIO, NamedTuple, Optional, cast
 
 # Windows marks symbolic links, junctions, and other reparse points with
 # this file attribute. Path.is_symlink() does not identify every kind of
 # reparse point on Python 3.9.
+_FILE_ATTRIBUTE_DIRECTORY = 0x10
 _FILE_ATTRIBUTE_REPARSE_POINT = 0x400
+
+# POSIX cleanup is quarantine-only because supported systems do not provide
+# an inode-bound unlink or rmdir operation. The quarantine directory keeps
+# retained objects out of direct-child project scans and backup archives.
+QUARANTINE_DIRECTORY_NAME = ".umbraedit-quarantine"
 
 # Darwin and Linux use different values for AT_FDCWD. The Darwin value is
 # required by renameatx_np(); using the Linux value there makes descriptor-
 # relative calls with one descriptor-less side fail or resolve incorrectly.
 _DARWIN_AT_FDCWD = -2
 _LINUX_AT_FDCWD = -100
+
+# Linux statx() flags and mask bits used to obtain a fallback file birth
+# time. The value remains unchanged when a file is renamed or hard linked.
+# Some filesystems expose only coarse timestamp granularity, so Linux file
+# handles are preferred when they are available.
+_LINUX_AT_SYMLINK_NOFOLLOW = 0x00000100
+_LINUX_STATX_BTIME = 0x00000800
+_LINUX_AT_EMPTY_PATH = 0x00001000
+_LINUX_MAX_HANDLE_SIZE = 128
 
 # Linux renameat2() syscall numbers. The libc wrapper is not available on
 # glibc versions older than 2.28, so the raw syscall is used as a fallback.
@@ -64,7 +81,116 @@ _LINUX_RENAMEAT2_SYSCALL = {
     "x86_64": 316,
 }
 
-FileIdentity = tuple[int, int]
+
+class _StatxTimestamp(ctypes.Structure):
+    """Linux statx timestamp structure."""
+
+    _fields_ = [
+        ("seconds", ctypes.c_int64),
+        ("nanoseconds", ctypes.c_uint32),
+        ("reserved", ctypes.c_int32),
+    ]
+
+
+class _LinuxFileHandle(ctypes.Structure):
+    """Linux name_to_handle_at() result buffer."""
+
+    _fields_ = [
+        ("handle_bytes", ctypes.c_uint),
+        ("handle_type", ctypes.c_int),
+        ("file_handle", ctypes.c_ubyte * _LINUX_MAX_HANDLE_SIZE),
+    ]
+
+
+class _StatxBuffer(ctypes.Structure):
+    """Linux statx result structure."""
+
+    _fields_ = [
+        ("mask", ctypes.c_uint32),
+        ("blockSize", ctypes.c_uint32),
+        ("attributes", ctypes.c_uint64),
+        ("linkCount", ctypes.c_uint32),
+        ("userId", ctypes.c_uint32),
+        ("groupId", ctypes.c_uint32),
+        ("mode", ctypes.c_uint16),
+        ("reserved0", ctypes.c_uint16 * 1),
+        ("inode", ctypes.c_uint64),
+        ("size", ctypes.c_uint64),
+        ("blocks", ctypes.c_uint64),
+        ("attributesMask", ctypes.c_uint64),
+        ("accessTime", _StatxTimestamp),
+        ("birthTime", _StatxTimestamp),
+        ("changeTime", _StatxTimestamp),
+        ("modifyTime", _StatxTimestamp),
+        ("deviceMajor", ctypes.c_uint32),
+        ("deviceMinor", ctypes.c_uint32),
+        ("reserved1", ctypes.c_uint32 * 2),
+        ("reserved2", ctypes.c_uint64 * 14),
+    ]
+
+
+_GENERATION_UNKNOWN = 0
+_GENERATION_BIRTH = 1
+_GENERATION_CHANGE = 2
+_GENERATION_FILE_HANDLE = 3
+_GENERATION_WINDOWS_FILE_ID = 4
+_GENERATION_WINDOWS_LEGACY = 5
+
+
+class _WindowsFileId128(ctypes.Structure):
+    """Windows 128-bit filesystem object identifier."""
+
+    _fields_ = [("identifier", ctypes.c_ubyte * 16)]
+
+
+class _WindowsFileIdInfo(ctypes.Structure):
+    """Windows FILE_ID_INFO structure."""
+
+    _fields_ = [
+        ("volumeSerialNumber", ctypes.c_uint64),
+        ("fileId", _WindowsFileId128),
+    ]
+
+
+class FileIdentity(NamedTuple):
+    """Identify a filesystem object across pathname replacements.
+
+    Device and inode numbers alone are not sufficient on Linux, where an
+    inode can be reused immediately after a file is unlinked. The generation
+    field is derived from a stable filesystem identifier when one is
+    available: a Linux file handle, a Windows file ID, a Windows creation
+    time, or a macOS birth time. It is unchanged by rename and hard-link
+    operations, but differs for a new object that reuses the same device
+    and inode numbers. Windows file IDs include their volume serial number
+    so objects on different volumes can never compare equal.
+    """
+
+    device: int
+    inode: int
+    generation: int
+    generationSource: int
+
+
+class PublishedFileError(OSError):
+    """Raised when a published file cannot be verified after publication.
+
+    The staged file's identity is retained so callers that own the
+    publication can clean up or retry the exact object without touching a
+    concurrent replacement.
+    """
+
+    def __init__(self, message: str, path: Path, publishedIdentity: FileIdentity) -> None:
+        super().__init__(errno.EINVAL, message, str(path))
+        self.publishedIdentity = publishedIdentity
+
+
+class _WindowsHandleInformation(NamedTuple):
+    """Identity and attributes of an object opened with a Windows handle."""
+
+    identity: FileIdentity
+    attributes: int
+    legacyIdentity: Optional[FileIdentity] = None
+
 
 logger = logging.getLogger(__name__)
 
@@ -84,9 +210,275 @@ class DirectorySnapshot:
     fileIdentities: dict[str, FileIdentity]
 
 
-def fileIdentity(pathStat: os.stat_result) -> FileIdentity:
-    """Return the device and inode identity of a stat result."""
-    return pathStat.st_dev, pathStat.st_ino
+def _linuxBirthTime(
+    path: Optional[Path] = None,
+    *,
+    dirFd: Optional[int] = None,
+    fileDescriptor: Optional[int] = None,
+) -> tuple[int, int]:
+    """Return a Linux statx birth time and inode, when available.
+
+    The inode is returned so the caller can reject a birth time observed
+    for a different object during a concurrent pathname replacement.
+    """
+    if not sys.platform.startswith("linux"):
+        return 0, 0
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        statxFunction = getattr(libc, "statx", None)
+    except (AttributeError, OSError):
+        return 0, 0
+    if statxFunction is None:
+        return 0, 0
+
+    statxFunction.argtypes = [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_uint,
+        ctypes.POINTER(_StatxBuffer),
+    ]
+    statxFunction.restype = ctypes.c_int
+
+    effectiveFd = _LINUX_AT_FDCWD
+    flags = _LINUX_AT_SYMLINK_NOFOLLOW
+    if dirFd is not None and path is not None:
+        effectiveFd = dirFd
+        pathBytes = os.fsencode(path.name)
+    elif fileDescriptor is not None:
+        # /proc/self/fd keeps the stat bound to the object held open by the
+        # descriptor, including after the original pathname is unlinked.
+        effectiveFd = _LINUX_AT_FDCWD
+        flags = 0
+        pathBytes = os.fsencode(f"/proc/self/fd/{fileDescriptor}")
+    elif path is not None:
+        pathBytes = os.fsencode(path)
+    else:
+        return 0, 0
+
+    result = _StatxBuffer()
+    status = statxFunction(
+        effectiveFd,
+        pathBytes,
+        flags,
+        _LINUX_STATX_BTIME,
+        ctypes.byref(result),
+    )
+    if status != 0 or not result.mask & _LINUX_STATX_BTIME:
+        return 0, 0
+    birthTime = result.birthTime.seconds * 1_000_000_000 + result.birthTime.nanoseconds
+    return birthTime, result.inode
+
+
+def _linuxFileHandleBytes(fileDescriptor: int) -> Optional[bytes]:
+    """Return an opaque Linux file handle for an open descriptor.
+
+    Linux file handles include the filesystem's generation identifier where
+    one is available. Unlike a birth timestamp, they remain distinct when
+    an inode number is reused within the filesystem's timestamp granularity.
+    """
+    if not sys.platform.startswith("linux"):
+        return None
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        handleFunction = getattr(libc, "name_to_handle_at", None)
+    except (AttributeError, OSError):
+        return None
+    if handleFunction is None:
+        return None
+
+    handleFunction.argtypes = [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.POINTER(_LinuxFileHandle),
+        ctypes.POINTER(ctypes.c_int),
+        ctypes.c_int,
+    ]
+    handleFunction.restype = ctypes.c_int
+
+    resultBuffer = _LinuxFileHandle()
+    mountId = ctypes.c_int()
+    ctypes.set_errno(0)
+    result = handleFunction(
+        fileDescriptor,
+        b"",
+        ctypes.byref(resultBuffer),
+        ctypes.byref(mountId),
+        _LINUX_AT_EMPTY_PATH,
+    )
+    if result != 0:
+        errorNumber = ctypes.get_errno()
+        requiredBytes = int(resultBuffer.handle_bytes)
+        if errorNumber != errno.EOVERFLOW or requiredBytes <= 0:
+            return None
+        if requiredBytes > _LINUX_MAX_HANDLE_SIZE:
+            return None
+        resultBuffer.handle_bytes = requiredBytes
+        ctypes.set_errno(0)
+        result = handleFunction(
+            fileDescriptor,
+            b"",
+            ctypes.byref(resultBuffer),
+            ctypes.byref(mountId),
+            _LINUX_AT_EMPTY_PATH,
+        )
+    if result != 0:
+        return None
+
+    handleBytes = bytes(resultBuffer.file_handle[: resultBuffer.handle_bytes])
+    if not handleBytes:
+        return None
+    return bytes([resultBuffer.handle_type & 0xFF]) + handleBytes
+
+
+def _linuxFileHandleGeneration(
+    pathStat: os.stat_result,
+    path: Optional[Path] = None,
+    *,
+    dirFd: Optional[int] = None,
+    fileDescriptor: Optional[int] = None,
+) -> tuple[int, os.stat_result]:
+    """Return a stable generation derived from a Linux file handle."""
+    if not sys.platform.startswith("linux"):
+        return 0, pathStat
+
+    ownDescriptor = False
+    descriptor = fileDescriptor
+    if descriptor is None:
+        if path is None:
+            return 0, pathStat
+        flags = getattr(os, "O_PATH", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
+        if not flags:
+            return 0, pathStat
+        try:
+            if dirFd is not None and os.open in os.supports_dir_fd:
+                descriptor = os.open(path.name, flags, dir_fd=dirFd)
+            else:
+                descriptor = os.open(path, flags)
+        except OSError:
+            return 0, pathStat
+        ownDescriptor = True
+
+    try:
+        openedStat = os.fstat(descriptor)
+        if (
+            openedStat.st_dev != pathStat.st_dev
+            or openedStat.st_ino != pathStat.st_ino
+            or stat.S_IFMT(openedStat.st_mode) != stat.S_IFMT(pathStat.st_mode)
+        ):
+            raise OSError(errno.ESTALE, "The path changed while its identity was being captured")
+        handleBytes = _linuxFileHandleBytes(descriptor)
+        if handleBytes is None:
+            return 0, openedStat
+        digest = hashlib.blake2b(handleBytes, digest_size=8, person=b"UmbraEditID").digest()
+        return int.from_bytes(digest, byteorder="little", signed=False), openedStat
+    finally:
+        if ownDescriptor and descriptor is not None:
+            os.close(descriptor)
+
+
+def fileIdentity(
+    pathStat: os.stat_result,
+    path: Optional[Path] = None,
+    *,
+    dirFd: Optional[int] = None,
+    fileDescriptor: Optional[int] = None,
+    generationSource: Optional[int] = None,
+) -> FileIdentity:
+    """Return a replacement-resistant identity for a stat result.
+
+    ``path`` should be supplied whenever possible so Linux can obtain a
+    stable file handle. A descriptor may be supplied for fstat results.
+    Birth and change times are used as fallbacks on platforms without a
+    stronger filesystem identifier.
+    """
+    if os.name == "nt":
+        return _windowsFileIdentity(
+            pathStat,
+            path,
+            fileDescriptor=fileDescriptor,
+            generationSource=generationSource,
+        )
+
+    device = pathStat.st_dev
+    if sys.platform.startswith("linux") and generationSource in (None, _GENERATION_FILE_HANDLE):
+        handleGeneration, openedStat = _linuxFileHandleGeneration(
+            pathStat,
+            path,
+            dirFd=dirFd,
+            fileDescriptor=fileDescriptor,
+        )
+        if handleGeneration:
+            return FileIdentity(
+                0 if os.name == "nt" else openedStat.st_dev,
+                openedStat.st_ino,
+                handleGeneration,
+                _GENERATION_FILE_HANDLE,
+            )
+        if generationSource == _GENERATION_FILE_HANDLE:
+            return FileIdentity(device, pathStat.st_ino, 0, _GENERATION_FILE_HANDLE)
+
+    birthTime = getattr(pathStat, "st_birthtime_ns", None)
+    if birthTime is None:
+        birthSeconds = getattr(pathStat, "st_birthtime", None)
+        if birthSeconds is not None:
+            birthTime = int(birthSeconds * 1_000_000_000)
+
+    if sys.platform.startswith("linux") and generationSource in (None, _GENERATION_BIRTH):
+        statxBirthTime, statxInode = _linuxBirthTime(
+            path,
+            dirFd=dirFd,
+            fileDescriptor=fileDescriptor,
+        )
+        if statxBirthTime and statxInode == pathStat.st_ino:
+            return FileIdentity(
+                device,
+                pathStat.st_ino,
+                statxBirthTime,
+                _GENERATION_BIRTH,
+            )
+
+    if generationSource is None:
+        if birthTime is not None:
+            generationSource = _GENERATION_BIRTH
+        elif os.name == "nt":
+            # On Windows, ctime is the stable creation time.
+            generationSource = _GENERATION_BIRTH
+            birthTime = pathStat.st_ctime_ns
+        else:
+            generationSource = _GENERATION_CHANGE
+
+    if generationSource == _GENERATION_BIRTH:
+        generation = birthTime or 0
+    elif generationSource == _GENERATION_CHANGE:
+        generation = pathStat.st_ctime_ns
+    else:
+        generation = 0
+    return FileIdentity(device, pathStat.st_ino, generation, generationSource)
+
+
+def identityMatches(
+    expectedIdentity: FileIdentity,
+    pathStat: os.stat_result,
+    path: Optional[Path] = None,
+    *,
+    dirFd: Optional[int] = None,
+    fileDescriptor: Optional[int] = None,
+) -> bool:
+    """Return whether a stat result matches an expected file identity.
+
+    The generation source recorded with the expected identity is reused so
+    identities captured through the legacy stat-only helper remain
+    comparable with later observations of the same object.
+    """
+    currentIdentity = fileIdentity(
+        pathStat,
+        path,
+        dirFd=dirFd,
+        fileDescriptor=fileDescriptor,
+        generationSource=expectedIdentity.generationSource,
+    )
+    return currentIdentity == expectedIdentity
 
 
 def verifyPathIdentity(
@@ -102,11 +494,11 @@ def verifyPathIdentity(
         raise OSError(errno.ELOOP, "The path cannot be a link", str(path))
     if requireDirectory and not stat.S_ISDIR(pathStat.st_mode):
         raise OSError(errno.ENOTDIR, "The path is not a directory", str(path))
-    if fileIdentity(pathStat) != expectedIdentity:
+    if not identityMatches(expectedIdentity, pathStat, path):
         raise OSError(errno.EINVAL, "The path changed while it was being used", str(path))
     if expectedParent is not None:
         parentStat = os.lstat(path.parent)
-        if fileIdentity(parentStat) != expectedParent:
+        if not _identityMatchesObject(expectedParent, parentStat, path.parent):
             raise OSError(errno.EINVAL, "The parent directory changed while it was being used", str(path.parent))
     return pathStat
 
@@ -120,6 +512,7 @@ def isPathWithin(path: Path, ancestor: Path) -> bool:
     as a ``Path`` object.
     """
     ancestorStat = os.stat(ancestor)
+    ancestorIdentity = fileIdentity(ancestorStat, ancestor)
     current = path
     while True:
         try:
@@ -127,12 +520,37 @@ def isPathWithin(path: Path, ancestor: Path) -> bool:
         except FileNotFoundError:
             pass
         else:
-            if os.path.samestat(ancestorStat, currentStat):
+            if _identityMatchesObject(ancestorIdentity, currentStat, current):
                 return True
         parent = current.parent
         if parent == current:
             return False
         current = parent
+
+
+def directoryHasNonQuarantineEntries(directory: Path) -> bool:
+    """Return whether a directory contains anything besides retained quarantine.
+
+    The application-owned quarantine directory is excluded from direct-child
+    project scans. A link or non-directory using the reserved quarantine name
+    is treated as a real entry so it cannot silently make a target appear
+    empty.
+    """
+    try:
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                if entry.name != QUARANTINE_DIRECTORY_NAME:
+                    return True
+                entryStat = entry.stat(follow_symlinks=False)
+                if (
+                    stat.S_ISLNK(entryStat.st_mode)
+                    or getattr(entryStat, "st_file_attributes", 0) & _FILE_ATTRIBUTE_REPARSE_POINT
+                    or not stat.S_ISDIR(entryStat.st_mode)
+                ):
+                    return True
+    except OSError:
+        return True
+    return False
 
 
 def isLinkLike(path: Path) -> bool:
@@ -179,11 +597,17 @@ def openDirectory(path: Path) -> int:
     if not stat.S_ISDIR(beforeStat.st_mode):
         raise OSError(errno.ENOTDIR, "The path is not a directory", str(path))
 
+    beforeIdentity = fileIdentity(beforeStat, path)
     flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
     fileDesc = os.open(path, flags)
     try:
         afterStat = os.fstat(fileDesc)
-        if not stat.S_ISDIR(afterStat.st_mode) or not os.path.samestat(beforeStat, afterStat):
+        if not stat.S_ISDIR(afterStat.st_mode) or not _identityMatchesObject(
+            beforeIdentity,
+            afterStat,
+            path,
+            fileDescriptor=fileDesc,
+        ):
             raise OSError(errno.EINVAL, "The directory changed while it was being opened", str(path))
         return fileDesc
     except Exception:
@@ -210,7 +634,7 @@ def _verifyParent(path: Path, expectedParent: Optional[FileIdentity]) -> None:
     if expectedParent is None:
         return
     parentStat = os.lstat(path.parent)
-    if fileIdentity(parentStat) != expectedParent:
+    if not _identityMatchesObject(expectedParent, parentStat, path.parent):
         raise OSError(errno.EINVAL, "The parent directory changed while it was being used", str(path.parent))
 
 
@@ -236,16 +660,26 @@ def openRegularFile(
         raise OSError(errno.ELOOP, "The file cannot be a link", str(path))
     if not stat.S_ISREG(beforeStat.st_mode):
         raise OSError(errno.EINVAL, "The path is not a regular file", str(path))
-    if expectedIdentity is not None and fileIdentity(beforeStat) != expectedIdentity:
+    if expectedIdentity is not None and not identityMatches(expectedIdentity, beforeStat, path):
         raise OSError(errno.EINVAL, "The file changed before it could be opened", str(path))
 
+    beforeIdentity = fileIdentity(beforeStat, path)
     flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
     fileDesc = os.open(path, flags)
     try:
         afterStat = os.fstat(fileDesc)
-        if not stat.S_ISREG(afterStat.st_mode) or not os.path.samestat(beforeStat, afterStat):
+        if not stat.S_ISREG(afterStat.st_mode) or not _identityMatchesObject(
+            beforeIdentity,
+            afterStat,
+            path,
+            fileDescriptor=fileDesc,
+        ):
             raise OSError(errno.EINVAL, "The file changed while it was being opened", str(path))
-        if expectedIdentity is not None and fileIdentity(afterStat) != expectedIdentity:
+        if expectedIdentity is not None and not identityMatches(
+            expectedIdentity,
+            afterStat,
+            fileDescriptor=fileDesc,
+        ):
             raise OSError(errno.EINVAL, "The file changed while it was being opened", str(path))
         _verifyParent(path, expectedParent)
         return os.fdopen(fileDesc, mode="rb")
@@ -269,7 +703,7 @@ def captureRegularFileIdentity(path: Path) -> Optional[FileIdentity]:
         raise OSError(errno.ELOOP, "The file cannot be a link", str(path))
     if not stat.S_ISREG(pathStat.st_mode):
         raise OSError(errno.EINVAL, "The path is not a regular file", str(path))
-    return fileIdentity(pathStat)
+    return fileIdentity(pathStat, path)
 
 
 def openExclusiveFile(
@@ -338,10 +772,10 @@ def openExclusiveFile(
             descriptorFlags = os.O_RDWR if readable else os.O_WRONLY
             return msvcrt.open_osfhandle(handle, descriptorFlags | getattr(os, "O_BINARY", 0))
         except Exception:
-            closeHandle = kernel32.CloseHandle
-            closeHandle.argtypes = [ctypes.c_void_p]
-            closeHandle.restype = ctypes.c_int
-            closeHandle(handle)
+            try:
+                _closeWindowsHandle(handle)
+            except OSError:
+                logger.warning("Could not close a Windows file handle after descriptor conversion failed")
             raise
 
     accessFlags = os.O_RDWR if readable else os.O_WRONLY
@@ -369,6 +803,7 @@ def scanRegularFiles(directory: Path, *, expectedPath: Optional[Path] = None) ->
     if expectedLocation is not None and directory.resolve() != expectedLocation:
         raise OSError(errno.EINVAL, "The directory resolves outside the expected location", str(directory))
 
+    beforeIdentity = fileIdentity(beforeStat, directory)
     files: list[Path] = []
     fileIdentities: dict[str, FileIdentity] = {}
     with os.scandir(directory) as entries:
@@ -383,10 +818,10 @@ def scanRegularFiles(directory: Path, *, expectedPath: Optional[Path] = None) ->
                 raise OSError(errno.ELOOP, "The file cannot be a link", str(entryPath))
             if stat.S_ISREG(entryStat.st_mode):
                 files.append(entryPath)
-                fileIdentities[entryPath.name] = fileIdentity(entryStat)
+                fileIdentities[entryPath.name] = fileIdentity(entryStat, entryPath)
 
     afterStat = os.lstat(directory)
-    if not os.path.samestat(beforeStat, afterStat):
+    if not _identityMatchesObject(beforeIdentity, afterStat, directory):
         raise OSError(errno.EINVAL, "The directory changed while it was being scanned", str(directory))
     expectedLocation = Path(os.path.abspath(expectedPath)) if expectedPath is not None else None
     if expectedLocation is not None and directory.resolve() != expectedLocation:
@@ -394,7 +829,7 @@ def scanRegularFiles(directory: Path, *, expectedPath: Optional[Path] = None) ->
 
     return DirectorySnapshot(
         path=directory,
-        identity=fileIdentity(beforeStat),
+        identity=beforeIdentity,
         files=tuple(files),
         fileIdentities=fileIdentities,
     )
@@ -407,92 +842,1016 @@ def _entryStat(path: Path, dirFd: Optional[int]) -> os.stat_result:
     return os.lstat(path)
 
 
+def _entryIdentity(path: Path, dirFd: Optional[int], pathStat: os.stat_result) -> FileIdentity:
+    """Return an identity for a directory entry observed through a descriptor."""
+    if dirFd is not None:
+        return fileIdentity(pathStat, path, dirFd=dirFd)
+    return fileIdentity(pathStat, path)
+
+
+def _entryIdentityMatches(
+    expectedIdentity: FileIdentity,
+    path: Path,
+    dirFd: Optional[int],
+    pathStat: os.stat_result,
+) -> bool:
+    """Return whether a directory entry still matches its expected identity."""
+    return _identityMatchesObject(
+        expectedIdentity,
+        pathStat,
+        path,
+        dirFd=dirFd,
+    )
+
+
+def _windowsKernel32() -> Any:
+    """Return the Windows kernel32 DLL without importing it on POSIX."""
+    return cast("Any", ctypes).WinDLL("kernel32", use_last_error=True)
+
+
+def _windowsLastError() -> int:
+    """Return the last Windows error code."""
+    ctypesModule = cast("Any", ctypes)
+    getLastError = getattr(ctypesModule, "get_last_error", None)
+    if getLastError is None:
+        return ctypes.get_errno()
+    return int(getLastError())
+
+
+def _windowsError(errorNumber: int, path: Path) -> OSError:
+    """Return an OSError with a Windows-formatted error message."""
+    ctypesModule = cast("Any", ctypes)
+    formatError = getattr(ctypesModule, "FormatError", None)
+    message = formatError(errorNumber) if formatError is not None else os.strerror(errorNumber)
+    return OSError(errorNumber, message, str(path))
+
+
+def _openWindowsDeleteHandle(path: Path, *, directory: bool) -> int:
+    """Open a Windows path with delete access and return a native handle."""
+    kernel32 = _windowsKernel32()
+    createFile = kernel32.CreateFileW
+    createFile.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+    ]
+    createFile.restype = ctypes.c_void_p
+
+    flags = 0x00200000  # FILE_FLAG_OPEN_REPARSE_POINT
+    if directory:
+        flags |= 0x02000000  # FILE_FLAG_BACKUP_SEMANTICS
+    handle = createFile(
+        os.fspath(path),
+        0x00010000 | 0x00000080,  # DELETE | FILE_READ_ATTRIBUTES
+        0x00000001 | 0x00000002 | 0x00000004,  # Share read, write, and delete
+        None,
+        3,  # OPEN_EXISTING
+        flags,
+        None,
+    )
+    invalidHandle = ctypes.c_void_p(-1).value
+    if handle is None or handle == invalidHandle:
+        raise _windowsError(_windowsLastError(), path)
+    return int(handle)
+
+
+def _closeWindowsHandle(handle: int) -> None:
+    """Close a native Windows handle and report a failed close."""
+    kernel32 = _windowsKernel32()
+    closeHandle = kernel32.CloseHandle
+    closeHandle.argtypes = [ctypes.c_void_p]
+    closeHandle.restype = ctypes.c_int
+    if not closeHandle(handle):
+        raise _windowsError(_windowsLastError(), Path("."))
+
+
+def _windowsLegacyHandleInformation(handle: int) -> _WindowsHandleInformation:
+    """Return legacy Windows identity and attributes for a handle."""
+
+    class FileTime(ctypes.Structure):
+        _fields_ = [("low", ctypes.c_uint32), ("high", ctypes.c_uint32)]
+
+    class FileInformation(ctypes.Structure):
+        _fields_ = [
+            ("attributes", ctypes.c_uint32),
+            ("creationTime", FileTime),
+            ("accessTime", FileTime),
+            ("writeTime", FileTime),
+            ("volumeSerial", ctypes.c_uint32),
+            ("sizeHigh", ctypes.c_uint32),
+            ("sizeLow", ctypes.c_uint32),
+            ("links", ctypes.c_uint32),
+            ("indexHigh", ctypes.c_uint32),
+            ("indexLow", ctypes.c_uint32),
+        ]
+
+    kernel32 = _windowsKernel32()
+    getInformation = kernel32.GetFileInformationByHandle
+    getInformation.argtypes = [ctypes.c_void_p, ctypes.POINTER(FileInformation)]
+    getInformation.restype = ctypes.c_int
+
+    information = FileInformation()
+    if not getInformation(handle, ctypes.byref(information)):
+        raise _windowsError(_windowsLastError(), Path("."))
+    fileIndex = (int(information.indexHigh) << 32) | int(information.indexLow)
+    # Some filesystems, notably ReFS, can expose a zero legacy file index
+    # while still providing a valid 128-bit FILE_ID_INFO identifier. Keep the
+    # legacy value available so the caller can prefer FILE_ID_INFO before
+    # deciding that no stable identifier exists.
+    creationValue = (int(information.creationTime.high) << 32) | int(information.creationTime.low)
+    creationNanoseconds = (creationValue - 116444736000000000) * 100
+    identity = FileIdentity(
+        int(information.volumeSerial),
+        fileIndex,
+        creationNanoseconds,
+        _GENERATION_WINDOWS_LEGACY,
+    )
+    return _WindowsHandleInformation(
+        identity=identity,
+        attributes=int(information.attributes),
+        legacyIdentity=identity,
+    )
+
+
+def _windowsFileId(handle: int) -> Optional[tuple[int, int]]:
+    """Return the volume serial and 128-bit file ID for a handle."""
+    kernel32 = _windowsKernel32()
+    getInformation = kernel32.GetFileInformationByHandleEx
+    getInformation.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+    ]
+    getInformation.restype = ctypes.c_int
+
+    information = _WindowsFileIdInfo()
+    if not getInformation(handle, 18, ctypes.byref(information), ctypes.sizeof(information)):  # FileIdInfo
+        errorNumber = _windowsLastError()
+        if errorNumber in (1, 50, 87):  # ERROR_INVALID_FUNCTION, NOT_SUPPORTED, INVALID_PARAMETER
+            return None
+        raise _windowsError(errorNumber, Path("."))
+    fileId = int.from_bytes(bytes(information.fileId.identifier), byteorder="little")
+    if fileId == 0:
+        return None
+    return int(information.volumeSerialNumber), fileId
+
+
+def _windowsHandleInformation(
+    handle: int,
+    *,
+    identitySource: Optional[int] = None,
+) -> _WindowsHandleInformation:
+    """Return the identity and attributes of a Windows handle.
+
+    ``FILE_ID_INFO`` is preferred because its 128-bit identifier also works
+    on filesystems such as ReFS. The legacy 64-bit identifier remains a
+    fallback for older filesystems, but it is always combined with the
+    volume serial number and creation time.
+    """
+    legacyInformation = _windowsLegacyHandleInformation(handle)
+    if identitySource == _GENERATION_WINDOWS_LEGACY:
+        if legacyInformation.identity.inode == 0:
+            raise OSError(errno.EIO, "Windows returned an unusable legacy file identifier", str(Path(".")))
+        return legacyInformation
+
+    fileId = _windowsFileId(handle)
+    if fileId is not None:
+        identity = FileIdentity(
+            fileId[0],
+            fileId[1],
+            legacyInformation.identity.generation,
+            _GENERATION_WINDOWS_FILE_ID,
+        )
+        return _WindowsHandleInformation(
+            identity=identity,
+            attributes=legacyInformation.attributes,
+            legacyIdentity=legacyInformation.identity,
+        )
+    if identitySource == _GENERATION_WINDOWS_FILE_ID:
+        raise OSError(errno.EIO, "Windows did not return a 128-bit file identifier", str(Path(".")))
+    if legacyInformation.identity.inode == 0:
+        raise OSError(errno.EIO, "Windows returned an unusable file identifier", str(Path(".")))
+    return legacyInformation
+
+
+def _windowsHandleIdentity(handle: int) -> FileIdentity:
+    """Return the stable identity of the object held by a Windows handle."""
+    return _windowsHandleInformation(handle).identity
+
+
+def _openWindowsIdentityHandle(path: Path) -> int:
+    """Open a path for authoritative Windows identity observation."""
+    kernel32 = _windowsKernel32()
+    createFile = kernel32.CreateFileW
+    createFile.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+    ]
+    createFile.restype = ctypes.c_void_p
+
+    handle = createFile(
+        os.fspath(path),
+        0x00000080,  # FILE_READ_ATTRIBUTES
+        0x00000001 | 0x00000002 | 0x00000004,  # Share read, write, and delete
+        None,
+        3,  # OPEN_EXISTING
+        0x00200000 | 0x02000000,  # OPEN_REPARSE_POINT | BACKUP_SEMANTICS
+        None,
+    )
+    invalidHandle = ctypes.c_void_p(-1).value
+    if handle is None or handle == invalidHandle:
+        raise _windowsError(_windowsLastError(), path)
+    return int(handle)
+
+
+def _windowsDescriptorHandle(fileDescriptor: int) -> Optional[int]:
+    """Return the native handle associated with a Windows file descriptor."""
+    try:
+        import msvcrt
+
+        getOsfHandle = getattr(msvcrt, "get_osfhandle", None)
+        if getOsfHandle is None:
+            return None
+        handle = getOsfHandle(fileDescriptor)
+    except (ImportError, OSError, ValueError):
+        return None
+    if handle is None or handle < 0:
+        return None
+    return int(handle)
+
+
+def _windowsFileIdentity(
+    pathStat: os.stat_result,
+    path: Optional[Path],
+    *,
+    fileDescriptor: Optional[int],
+    generationSource: Optional[int],
+) -> FileIdentity:
+    """Return an identity observed through an authoritative Windows handle."""
+    if generationSource == _GENERATION_BIRTH:
+        # Preserve the stat-only fallback for identities that were created
+        # before a native handle could be opened.
+        return FileIdentity(
+            int(getattr(pathStat, "st_dev", 0)),
+            int(pathStat.st_ino),
+            int(pathStat.st_ctime_ns),
+            _GENERATION_BIRTH,
+        )
+
+    handle: Optional[int] = None
+    ownHandle = False
+    try:
+        if fileDescriptor is not None:
+            handle = _windowsDescriptorHandle(fileDescriptor)
+        elif path is not None:
+            handle = _openWindowsIdentityHandle(path)
+            ownHandle = True
+        if handle is None:
+            raise OSError(errno.EIO, "The Windows object identity is unavailable", str(path or Path(".")))
+
+        requestedSource = generationSource
+        if requestedSource not in (_GENERATION_WINDOWS_FILE_ID, _GENERATION_WINDOWS_LEGACY):
+            requestedSource = None
+        information = _windowsHandleInformation(handle, identitySource=requestedSource)
+        identity = information.identity
+    except OSError:
+        if generationSource in (_GENERATION_WINDOWS_FILE_ID, _GENERATION_WINDOWS_LEGACY):
+            raise
+        identity = FileIdentity(
+            int(getattr(pathStat, "st_dev", 0)),
+            int(pathStat.st_ino),
+            int(pathStat.st_ctime_ns),
+            _GENERATION_BIRTH,
+        )
+    finally:
+        if ownHandle and handle is not None:
+            try:
+                _closeWindowsHandle(handle)
+            except OSError:
+                if sys.exc_info()[0] is None:
+                    raise
+                logger.warning("Could not close a Windows identity handle", exc_info=True)
+
+    return identity
+
+
+def _windowsHandleFinalPath(handle: int) -> Path:
+    """Return the current path of the object held by a Windows handle."""
+    kernel32 = _windowsKernel32()
+    getFinalPath = kernel32.GetFinalPathNameByHandleW
+    getFinalPath.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+    ]
+    getFinalPath.restype = ctypes.c_uint32
+
+    bufferSize = 32768
+    while True:
+        buffer = ctypes.create_unicode_buffer(bufferSize)
+        length = getFinalPath(handle, buffer, bufferSize, 0)
+        if length == 0:
+            raise _windowsError(_windowsLastError(), Path("."))
+        if length < bufferSize:
+            pathText = buffer.value
+            break
+        bufferSize = length + 1
+
+    if pathText.startswith("\\\\?\\UNC\\"):
+        pathText = "\\\\" + pathText[8:]
+    elif pathText.startswith("\\\\?\\"):
+        pathText = pathText[4:]
+    return Path(pathText)
+
+
+def _windowsPathKey(path: Path) -> str:
+    """Return a normalised, case-insensitive Windows path key."""
+    return ntpath.normcase(ntpath.normpath(os.fspath(path)))
+
+
+def _windowsPathsEqual(left: Path, right: Path) -> bool:
+    """Return whether two Windows paths identify the same namespace entry."""
+    return _windowsPathKey(left) == _windowsPathKey(right)
+
+
+def _windowsPathIsDirectChild(parent: Path, child: Path) -> bool:
+    """Return whether a Windows path is a direct child of another path."""
+    parentKey = _windowsPathKey(parent)
+    childKey = _windowsPathKey(child)
+    return ntpath.dirname(childKey) == parentKey
+
+
+def _setWindowsDeleteDisposition(handle: int, path: Path) -> None:
+    """Mark the object held by a Windows handle for deletion."""
+
+    class FileDispositionInfo(ctypes.Structure):
+        _fields_ = [("deleteFile", ctypes.c_ubyte)]
+
+    kernel32 = _windowsKernel32()
+    setFileInformation = kernel32.SetFileInformationByHandle
+    setFileInformation.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+    ]
+    setFileInformation.restype = ctypes.c_int
+
+    disposition = FileDispositionInfo(deleteFile=1)
+    if not setFileInformation(
+        handle,
+        4,  # FileDispositionInfo
+        ctypes.byref(disposition),
+        ctypes.sizeof(disposition),
+    ):
+        raise _windowsError(_windowsLastError(), path)
+
+
+def _deleteWindowsEntryByHandle(path: Path, expectedIdentity: FileIdentity) -> None:
+    """Delete the exact Windows object referenced by an open handle."""
+    pathStat = os.lstat(path)
+    if not identityMatches(expectedIdentity, pathStat, path):
+        raise OSError(errno.EINVAL, "The file changed before it could be removed", str(path))
+    # Backup semantics are also used for regular files. This permits a
+    # directory symlink or junction to be opened as the reparse point
+    # itself instead of following it to its target.
+    handle = _openWindowsDeleteHandle(path, directory=True)
+    try:
+        identitySource = (
+            expectedIdentity.generationSource
+            if expectedIdentity.generationSource in (_GENERATION_WINDOWS_FILE_ID, _GENERATION_WINDOWS_LEGACY)
+            else None
+        )
+        handleInformation = (
+            _windowsHandleInformation(handle)
+            if identitySource is None
+            else _windowsHandleInformation(handle, identitySource=identitySource)
+        )
+        if handleInformation.identity != expectedIdentity:
+            raise OSError(errno.EINVAL, "The file changed before it could be removed", str(path))
+        _setWindowsDeleteDisposition(handle, path)
+    except BaseException:
+        try:
+            _closeWindowsHandle(handle)
+        except OSError:
+            logger.warning("Could not close a Windows deletion handle", exc_info=True)
+        raise
+    else:
+        _closeWindowsHandle(handle)
+
+
+def _windowsStatMatchesHandle(
+    pathStat: os.stat_result,
+    information: _WindowsHandleInformation,
+) -> bool:
+    """Return whether a stat snapshot describes the object held by a handle.
+
+    Python 3.9 exposes the legacy 64-bit Windows file index through
+    ``st_ino``. Python 3.12 and later may expose the full 128-bit file ID
+    instead. Comparing the stat snapshot with the handle's native identity
+    closes the race between enumerating a directory entry and opening that
+    entry for deletion.
+    """
+    legacyIdentity = information.legacyIdentity
+    if legacyIdentity is None:
+        return False
+    try:
+        statInode = int(pathStat.st_ino)
+    except (AttributeError, TypeError, ValueError):
+        return False
+
+    # Python's Windows ``st_dev`` is a drive number, not the filesystem
+    # volume serial returned by GetFileInformationByHandle. The two values
+    # cannot be compared. The validated parent final path establishes that
+    # the entry is on the same volume, while the file index (or the full
+    # 128-bit file ID) binds the stat snapshot to the opened object.
+    hasBirthTime = hasattr(pathStat, "st_birthtime_ns")
+    if hasBirthTime and information.identity.generationSource == _GENERATION_WINDOWS_FILE_ID:
+        expectedInode = information.identity.inode
+    else:
+        expectedInode = legacyIdentity.inode
+    if expectedInode == 0 or statInode != expectedInode:
+        return False
+
+    creationTime = getattr(pathStat, "st_birthtime_ns", None)
+    if creationTime is None:
+        creationTime = getattr(pathStat, "st_ctime_ns", None)
+    if creationTime is None or int(creationTime) != legacyIdentity.generation:
+        return False
+
+    statAttributes = int(getattr(pathStat, "st_file_attributes", 0))
+    handleAttributes = int(information.attributes)
+    statIsReparse = bool(statAttributes & _FILE_ATTRIBUTE_REPARSE_POINT)
+    handleIsReparse = bool(handleAttributes & _FILE_ATTRIBUTE_REPARSE_POINT)
+    if statIsReparse != handleIsReparse:
+        return False
+    if not statIsReparse:
+        statIsDirectory = stat.S_ISDIR(pathStat.st_mode)
+        handleIsDirectory = bool(handleAttributes & _FILE_ATTRIBUTE_DIRECTORY)
+        if statIsDirectory != handleIsDirectory:
+            return False
+    return True
+
+
+def _removeWindowsDirectoryContents(
+    directoryHandle: int,
+    directoryPath: Path,
+    expectedIdentity: FileIdentity,
+    expectedFinalPath: Path,
+) -> None:
+    """Remove the contents of one validated Windows directory handle.
+
+    The expected final path is captured while the directory is still known
+    to be below the validated root. A directory renamed out of that root
+    must be rejected before its new location is scanned or any child is
+    deleted.
+    """
+    directoryFinalPath = _windowsHandleFinalPath(directoryHandle)
+    if not _windowsPathsEqual(directoryFinalPath, expectedFinalPath):
+        raise OSError(errno.EINVAL, "The cleanup directory moved outside the validated root", str(directoryPath))
+    identitySource = (
+        expectedIdentity.generationSource
+        if expectedIdentity.generationSource in (_GENERATION_WINDOWS_FILE_ID, _GENERATION_WINDOWS_LEGACY)
+        else None
+    )
+    directoryInformation = (
+        _windowsHandleInformation(directoryHandle)
+        if identitySource is None
+        else _windowsHandleInformation(directoryHandle, identitySource=identitySource)
+    )
+    if directoryInformation.identity != expectedIdentity:
+        raise OSError(errno.EINVAL, "The cleanup directory changed before it was scanned", str(directoryPath))
+    children: list[tuple[Path, os.stat_result]] = []
+
+    # os.scandir cannot consume a Windows HANDLE. The directory handle is
+    # therefore used as the authority: the scanned pathname must continue
+    # to resolve to that exact handle, and every opened child must resolve
+    # to the same direct-child pathname below it. The stat snapshot is kept
+    # so that a replacement between enumeration and handle opening can be
+    # detected before the replacement is marked for deletion.
+    with os.scandir(directoryFinalPath) as entries:
+        for entry in entries:
+            entryPath = Path(entry.path)
+            # On Windows, DirEntry.stat(follow_symlinks=False) is built from
+            # the cached FindFirstFile data on both Python 3.9 and 3.12.
+            # That data does not contain a file index or FILE_ID_INFO, so it
+            # cannot safely bind the entry to a later native handle. A
+            # path-based lstat opens the object and supplies the legacy file
+            # index on Python 3.9 or the full 128-bit ID on Python 3.12+.
+            entryStat = os.lstat(entryPath)
+            children.append((entryPath, entryStat))
+
+    if not _windowsPathsEqual(expectedFinalPath, _windowsHandleFinalPath(directoryHandle)):
+        raise OSError(errno.EINVAL, "The cleanup directory changed before it was scanned", str(directoryPath))
+
+    for childPath, childStat in children:
+        if not _windowsPathsEqual(expectedFinalPath, _windowsHandleFinalPath(directoryHandle)):
+            raise OSError(errno.EINVAL, "The cleanup directory changed while it was being cleaned", str(directoryPath))
+
+        # Always request backup semantics so a reparse point is opened as
+        # the link object itself. Its target is never traversed or deleted.
+        childHandle = _openWindowsDeleteHandle(childPath, directory=True)
+        try:
+            childInformation = _windowsHandleInformation(childHandle)
+            if not _windowsStatMatchesHandle(childStat, childInformation):
+                raise OSError(errno.EINVAL, "The cleanup entry changed before it could be removed", str(childPath))
+            childIdentity = childInformation.identity
+
+            childFinalPath = _windowsHandleFinalPath(childHandle)
+            if not _windowsPathsEqual(childFinalPath, childPath):
+                raise OSError(errno.EINVAL, "The cleanup entry changed before it could be removed", str(childPath))
+            if not _windowsPathIsDirectChild(directoryFinalPath, childFinalPath):
+                raise OSError(errno.EINVAL, "The cleanup entry is outside the validated directory", str(childPath))
+
+            if childInformation.attributes & _FILE_ATTRIBUTE_REPARSE_POINT:
+                # Reparse points are leaves. Delete the link object through
+                # its handle without following it to another directory.
+                _setWindowsDeleteDisposition(childHandle, childPath)
+            else:
+                if childInformation.attributes & _FILE_ATTRIBUTE_DIRECTORY:
+                    _removeWindowsDirectoryContents(
+                        childHandle,
+                        childPath,
+                        childIdentity,
+                        childFinalPath,
+                    )
+                    if not _windowsPathsEqual(childFinalPath, _windowsHandleFinalPath(childHandle)):
+                        raise OSError(
+                            errno.EINVAL, "The cleanup directory changed while it was being cleaned", str(childPath)
+                        )
+
+                _setWindowsDeleteDisposition(childHandle, childPath)
+        except BaseException:
+            try:
+                _closeWindowsHandle(childHandle)
+            except OSError:
+                logger.warning("Could not close a Windows cleanup handle", exc_info=True)
+            raise
+        else:
+            _closeWindowsHandle(childHandle)
+
+    if not _windowsPathsEqual(expectedFinalPath, _windowsHandleFinalPath(directoryHandle)):
+        raise OSError(errno.EINVAL, "The cleanup directory changed while it was being cleaned", str(directoryPath))
+
+
+def _removeWindowsTreeByHandle(path: Path, expectedIdentity: FileIdentity) -> None:
+    """Remove a Windows tree through handles bound to the observed objects."""
+    pathStat = os.lstat(path)
+    if isLinkLike(path) or not stat.S_ISDIR(pathStat.st_mode):
+        raise OSError(errno.EINVAL, "The cleanup path is not a real directory", str(path))
+    if not identityMatches(expectedIdentity, pathStat, path):
+        raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
+
+    rootHandle = _openWindowsDeleteHandle(path, directory=True)
+    try:
+        identitySource = (
+            expectedIdentity.generationSource
+            if expectedIdentity.generationSource in (_GENERATION_WINDOWS_FILE_ID, _GENERATION_WINDOWS_LEGACY)
+            else None
+        )
+        rootInformation = (
+            _windowsHandleInformation(rootHandle)
+            if identitySource is None
+            else _windowsHandleInformation(rootHandle, identitySource=identitySource)
+        )
+        if rootInformation.identity != expectedIdentity:
+            raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
+        if rootInformation.attributes & _FILE_ATTRIBUTE_REPARSE_POINT:
+            raise OSError(errno.ELOOP, "The cleanup path cannot be a link", str(path))
+        if not rootInformation.attributes & _FILE_ATTRIBUTE_DIRECTORY:
+            raise OSError(errno.ENOTDIR, "The cleanup path is not a directory", str(path))
+
+        rootFinalPath = _windowsHandleFinalPath(rootHandle)
+        _removeWindowsDirectoryContents(
+            rootHandle,
+            path,
+            expectedIdentity,
+            rootFinalPath,
+        )
+        finalRootInformation = (
+            _windowsHandleInformation(rootHandle)
+            if identitySource is None
+            else _windowsHandleInformation(rootHandle, identitySource=identitySource)
+        )
+        if finalRootInformation.identity != expectedIdentity:
+            raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
+        _setWindowsDeleteDisposition(rootHandle, path)
+    except BaseException:
+        try:
+            _closeWindowsHandle(rootHandle)
+        except OSError:
+            logger.warning("Could not close a Windows cleanup handle", exc_info=True)
+        raise
+    else:
+        _closeWindowsHandle(rootHandle)
+
+
+def _sameFileObject(leftIdentity: FileIdentity, rightIdentity: FileIdentity) -> bool:
+    """Return whether two identities refer to the same device and inode."""
+    return leftIdentity.device == rightIdentity.device and leftIdentity.inode == rightIdentity.inode
+
+
+def _identityMatchesObject(
+    expectedIdentity: FileIdentity,
+    pathStat: os.stat_result,
+    path: Optional[Path] = None,
+    *,
+    dirFd: Optional[int] = None,
+    fileDescriptor: Optional[int] = None,
+) -> bool:
+    """Match an object while allowing rename-induced change-time updates."""
+    if expectedIdentity.generationSource == _GENERATION_CHANGE:
+        currentIdentity = fileIdentity(
+            pathStat,
+            path,
+            dirFd=dirFd,
+            fileDescriptor=fileDescriptor,
+            generationSource=_GENERATION_CHANGE,
+        )
+        return _sameFileObject(expectedIdentity, currentIdentity)
+    return identityMatches(
+        expectedIdentity,
+        pathStat,
+        path,
+        dirFd=dirFd,
+        fileDescriptor=fileDescriptor,
+    )
+
+
+def _descriptorHasEntries(directoryFd: int) -> bool:
+    """Return whether an open directory contains any entries.
+
+    Cleanup uses one validated project-level quarantine, so even a nested
+    quarantine-looking directory is significant. Treating it as ordinary
+    content prevents legacy cleanup from silently absorbing an object that
+    was not created by the current cleanup operation.
+    """
+    return bool(os.listdir(directoryFd))
+
+
+def _openQuarantineDirectory(parentPath: Path, parentFd: int) -> tuple[int, Path]:
+    """Open or create the application quarantine directory in a parent."""
+    with contextlib.suppress(FileExistsError):
+        os.mkdir(QUARANTINE_DIRECTORY_NAME, 0o700, dir_fd=parentFd)
+
+    quarantineStat = os.stat(
+        QUARANTINE_DIRECTORY_NAME,
+        dir_fd=parentFd,
+        follow_symlinks=False,
+    )
+    if stat.S_ISLNK(quarantineStat.st_mode) or (
+        getattr(quarantineStat, "st_file_attributes", 0) & _FILE_ATTRIBUTE_REPARSE_POINT
+    ):
+        raise OSError(errno.ELOOP, "The cleanup quarantine cannot be a link", str(parentPath))
+    if not stat.S_ISDIR(quarantineStat.st_mode):
+        raise OSError(errno.ENOTDIR, "The cleanup quarantine is not a directory", str(parentPath))
+
+    quarantineIdentity = fileIdentity(
+        quarantineStat,
+        Path(QUARANTINE_DIRECTORY_NAME),
+        dirFd=parentFd,
+    )
+    quarantineFd = openDirectoryAt(parentFd, QUARANTINE_DIRECTORY_NAME)
+    try:
+        openedStat = os.fstat(quarantineFd)
+        if not stat.S_ISDIR(openedStat.st_mode) or not _identityMatchesObject(
+            quarantineIdentity,
+            openedStat,
+            Path(QUARANTINE_DIRECTORY_NAME),
+            fileDescriptor=quarantineFd,
+        ):
+            raise OSError(errno.EINVAL, "The cleanup quarantine changed while it was being opened", str(parentPath))
+        if hasattr(os, "fchmod"):
+            os.fchmod(quarantineFd, 0o700)
+    except Exception:
+        os.close(quarantineFd)
+        raise
+    return quarantineFd, parentPath / QUARANTINE_DIRECTORY_NAME
+
+
+def _restoreQuarantinedEntry(
+    quarantineName: str,
+    quarantineFd: int,
+    sourceName: str,
+    parentFd: int,
+    expectedIdentity: FileIdentity,
+) -> bool:
+    """Restore a quarantined entry without replacing a new source entry."""
+    try:
+        quarantineStat = os.stat(quarantineName, dir_fd=quarantineFd, follow_symlinks=False)
+    except OSError:
+        return False
+    quarantineIdentity = fileIdentity(quarantineStat, Path(quarantineName), dirFd=quarantineFd)
+    if not _identityMatchesObject(
+        expectedIdentity,
+        quarantineStat,
+        Path(quarantineName),
+        dirFd=quarantineFd,
+    ):
+        return False
+    try:
+        moved = renameNoReplaceBetween(
+            Path(quarantineName),
+            Path(sourceName),
+            sourceDirFd=quarantineFd,
+            targetDirFd=parentFd,
+        )
+    except OSError:
+        return False
+    if not moved:
+        return False
+    try:
+        restoredStat = os.stat(sourceName, dir_fd=parentFd, follow_symlinks=False)
+    except OSError:
+        return False
+    restoredIdentity = fileIdentity(restoredStat, Path(sourceName), dirFd=parentFd)
+    return _identityMatchesObject(
+        expectedIdentity,
+        restoredStat,
+        Path(sourceName),
+        dirFd=parentFd,
+    )
+
+
+def _quarantineOwnedEntry(
+    path: Path,
+    expectedIdentity: Optional[FileIdentity] = None,
+    *,
+    dirFd: Optional[int] = None,
+    requireEmpty: bool = False,
+    quarantineParent: Optional[Path] = None,
+    expectedQuarantineParent: Optional[FileIdentity] = None,
+) -> Path:
+    """Move an owned entry into a retained POSIX quarantine directory.
+
+    POSIX does not expose an inode-bound unlink operation. The entry is
+    therefore moved to a private quarantine directory and retained. The
+    source pathname is never deleted, so a concurrent replacement cannot
+    be destroyed by the cleanup operation.
+    """
+    if quarantineParent is not None and expectedQuarantineParent is None:
+        raise ValueError("A central cleanup quarantine requires a validated parent identity")
+
+    ownParentFd = False
+    parentFd = dirFd
+    if parentFd is None:
+        parentFd = openDirectory(path.parent)
+        ownParentFd = True
+
+    ownQuarantineParentFd = False
+    quarantineParentFd = parentFd
+    quarantineParentPath = path.parent
+    try:
+        if quarantineParent is not None:
+            quarantineParentFd = openDirectory(quarantineParent)
+            ownQuarantineParentFd = True
+            quarantineParentPath = quarantineParent
+            quarantineParentStat = os.fstat(quarantineParentFd)
+            quarantineParentIdentity = fileIdentity(
+                quarantineParentStat,
+                fileDescriptor=quarantineParentFd,
+            )
+            if expectedQuarantineParent is not None and not _identityMatchesObject(
+                expectedQuarantineParent,
+                quarantineParentStat,
+                quarantineParent,
+                fileDescriptor=quarantineParentFd,
+            ):
+                raise OSError(
+                    errno.EINVAL,
+                    "The cleanup quarantine parent changed while it was being opened",
+                    str(quarantineParent),
+                )
+            if os.fstat(parentFd).st_dev != quarantineParentStat.st_dev:
+                raise OSError(
+                    errno.EXDEV,
+                    "The cleanup quarantine parent is on a different filesystem",
+                    str(quarantineParent),
+                )
+        elif expectedQuarantineParent is not None:
+            parentStat = os.fstat(parentFd)
+            if not _identityMatchesObject(
+                expectedQuarantineParent,
+                parentStat,
+                path.parent,
+                fileDescriptor=parentFd,
+            ):
+                raise OSError(
+                    errno.EINVAL,
+                    "The cleanup quarantine parent changed while it was being opened",
+                    str(path.parent),
+                )
+    except Exception:
+        if ownQuarantineParentFd and quarantineParentFd is not None:
+            os.close(quarantineParentFd)
+        if ownParentFd:
+            os.close(parentFd)
+        raise
+
+    guardFd: Optional[int] = None
+    quarantineFd: Optional[int] = None
+    try:
+        if os.stat in os.supports_dir_fd:
+            pathStat = os.stat(path.name, dir_fd=parentFd, follow_symlinks=False)
+        else:
+            pathStat = os.lstat(path)
+        if expectedIdentity is None:
+            expectedIdentity = fileIdentity(pathStat, path, dirFd=parentFd)
+        if not _identityMatchesObject(expectedIdentity, pathStat, path, dirFd=parentFd):
+            raise OSError(errno.EINVAL, "The file changed before it could be quarantined", str(path))
+
+        # A descriptor pins the inode while it is moved. This prevents an
+        # immediate unlink/recreate race from reusing the inode number.
+        guardIdentity: Optional[FileIdentity] = None
+        if stat.S_ISREG(pathStat.st_mode) or stat.S_ISDIR(pathStat.st_mode):
+            flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+            if stat.S_ISDIR(pathStat.st_mode):
+                flags |= getattr(os, "O_DIRECTORY", 0)
+            try:
+                if os.open in os.supports_dir_fd:
+                    guardFd = os.open(Path(path.name), flags, dir_fd=parentFd)
+                else:
+                    guardFd = os.open(path, flags)
+            except OSError:
+                if guardFd is not None:
+                    os.close(guardFd)
+                    guardFd = None
+                if requireEmpty:
+                    raise
+            else:
+                guardStat = os.fstat(guardFd)
+                guardIdentity = fileIdentity(guardStat, fileDescriptor=guardFd)
+                if not _identityMatchesObject(expectedIdentity, guardStat, fileDescriptor=guardFd):
+                    os.close(guardFd)
+                    guardFd = None
+                    raise OSError(errno.EINVAL, "The file changed before it could be quarantined", str(path))
+
+        if requireEmpty:
+            if guardFd is None:
+                raise OSError(errno.ENOTSUP, "The empty directory could not be opened safely", str(path))
+            if _descriptorHasEntries(guardFd):
+                raise OSError(errno.ENOTEMPTY, "The directory is not empty", str(path))
+
+        quarantineFd, quarantinePath = _openQuarantineDirectory(
+            quarantineParentPath,
+            quarantineParentFd,
+        )
+        sourceName = path.name
+        moved = False
+        quarantineName = ""
+        for _ in range(10):
+            quarantineName = f"entry-{uuid.uuid4().hex}.quarantine"
+            moved = renameNoReplaceBetween(
+                Path(sourceName),
+                Path(quarantineName),
+                sourceDirFd=parentFd,
+                targetDirFd=quarantineFd,
+            )
+            if moved:
+                break
+        if not moved:
+            raise OSError(errno.EEXIST, "Could not create a unique cleanup name", str(quarantinePath))
+
+        quarantineStat = os.stat(quarantineName, dir_fd=quarantineFd, follow_symlinks=False)
+        quarantineIdentity = fileIdentity(quarantineStat, Path(quarantineName), dirFd=quarantineFd)
+        if guardIdentity is not None:
+            identityMismatch = not _sameFileObject(quarantineIdentity, guardIdentity)
+        else:
+            identityMismatch = not _identityMatchesObject(
+                expectedIdentity,
+                quarantineStat,
+                Path(quarantineName),
+                dirFd=quarantineFd,
+            )
+        if identityMismatch:
+            restored = _restoreQuarantinedEntry(
+                quarantineName,
+                quarantineFd,
+                sourceName,
+                parentFd,
+                quarantineIdentity,
+            )
+            if restored:
+                raise OSError(errno.EINVAL, "The file changed before it could be quarantined", str(path))
+            retainedPath = quarantinePath / quarantineName
+            raise OSError(
+                errno.EINVAL,
+                f"The file changed before it could be quarantined; the replacement is preserved at '{retainedPath}'",
+                str(path),
+            )
+
+        if requireEmpty:
+            try:
+                quarantinedFd = openDirectoryAt(quarantineFd, quarantineName)
+            except OSError:
+                retainedPath = quarantinePath / quarantineName
+                raise OSError(
+                    errno.EINVAL,
+                    f"The empty directory changed while it was being quarantined; it is preserved at '{retainedPath}'",
+                    str(path),
+                ) from None
+            try:
+                quarantinedStat = os.fstat(quarantinedFd)
+                if not stat.S_ISDIR(quarantinedStat.st_mode) or not _identityMatchesObject(
+                    quarantineIdentity,
+                    quarantinedStat,
+                    Path(quarantineName),
+                    fileDescriptor=quarantinedFd,
+                ):
+                    raise OSError(
+                        errno.EINVAL,
+                        "The empty directory changed while it was being quarantined",
+                        str(path),
+                    )
+                hasUnexpectedEntries = _descriptorHasEntries(quarantinedFd)
+            finally:
+                os.close(quarantinedFd)
+            if hasUnexpectedEntries:
+                retainedPath = quarantinePath / quarantineName
+                restored = _restoreQuarantinedEntry(
+                    quarantineName,
+                    quarantineFd,
+                    sourceName,
+                    parentFd,
+                    quarantineIdentity,
+                )
+                if restored:
+                    raise OSError(errno.ENOTEMPTY, "The directory is not empty", str(path))
+                raise OSError(
+                    errno.ENOTEMPTY,
+                    f"The directory is not empty and is preserved at '{retainedPath}'",
+                    str(path),
+                )
+
+        retainedPath = quarantinePath / quarantineName
+        logger.debug("Quarantined owned entry at: %s", retainedPath)
+        return retainedPath
+    finally:
+        if quarantineFd is not None:
+            os.close(quarantineFd)
+        if guardFd is not None:
+            os.close(guardFd)
+        if ownQuarantineParentFd and quarantineParentFd is not None:
+            os.close(quarantineParentFd)
+        if ownParentFd:
+            os.close(parentFd)
+
+
 def unlinkEntryIfSameFile(
     path: Path,
     expectedIdentity: Optional[FileIdentity] = None,
     *,
     dirFd: Optional[int] = None,
+    quarantineParent: Optional[Path] = None,
+    expectedQuarantineParent: Optional[FileIdentity] = None,
 ) -> bool:
-    """Unlink a non-directory entry only when it has the expected identity.
+    """Remove a non-directory entry only when it has the expected identity.
 
-    The directory entry is first moved to a unique quarantine name. The
-    quarantined object is then checked again before it is unlinked. If a
-    replacement was installed after the first check, it is restored to
-    the original name and preserved. Unlike ``unlinkIfSameFile``, this
-    helper can also remove a symbolic link without following it.
+    Windows deletes the exact object through a handle, so a concurrent
+    pathname replacement is never removed. POSIX has no inode-bound unlink
+    operation. The entry is therefore moved to a private quarantine name
+    and retained there. This removes it from the requested namespace without
+    ever deleting a pathname that may have acquired a replacement after the
+    identity check.
+
+    Unlike ``unlinkIfSameFile``, this helper can also quarantine a symbolic
+    link without following it.
     """
-    if dirFd is None and os.name != "nt" and os.open in os.supports_dir_fd:
-        parentFd = openDirectory(path.parent)
-        try:
-            return unlinkEntryIfSameFile(path, expectedIdentity, dirFd=parentFd)
-        finally:
-            os.close(parentFd)
-
     try:
         pathStat = _entryStat(path, dirFd)
     except FileNotFoundError:
         return True
     if stat.S_ISDIR(pathStat.st_mode):
         raise OSError(errno.EINVAL, "The path is a directory", str(path))
-    if expectedIdentity is not None and fileIdentity(pathStat) != expectedIdentity:
-        raise OSError(errno.EINVAL, "The file changed before it could be removed", str(path))
 
-    quarantineName = f".umbraedit-unlink-{uuid.uuid4().hex}"
-    quarantinePath = path.parent / quarantineName
-
-    def restoreQuarantine() -> bool:
-        """Restore the quarantined entry without replacing a new entry."""
-        try:
-            if dirFd is not None:
-                return renameNoReplaceBetween(
-                    Path(quarantineName),
-                    Path(path.name),
-                    sourceDirFd=dirFd,
-                    targetDirFd=dirFd,
-                )
-            return renameNoReplace(quarantinePath, path)
-        except OSError:
-            return False
-
-    if dirFd is not None:
-        moved = renameNoReplaceBetween(
-            Path(path.name),
-            Path(quarantineName),
-            sourceDirFd=dirFd,
-            targetDirFd=dirFd,
-        )
-    else:
-        moved = renameNoReplace(path, quarantinePath)
-    if not moved:
-        raise OSError(errno.EEXIST, "Could not create a unique cleanup name", str(quarantinePath))
-
-    try:
-        quarantineStat = _entryStat(quarantinePath, dirFd)
-    except OSError:
-        raise
-    identityMismatch = expectedIdentity is not None and fileIdentity(quarantineStat) != expectedIdentity
-    if identityMismatch:
-        if not restoreQuarantine():
-            raise OSError(
-                errno.EINVAL,
-                f"The file changed before it could be removed; the replacement is preserved at '{quarantinePath}'",
-                str(path),
-            )
-        raise OSError(errno.EINVAL, "The file changed before it could be removed", str(path))
-
-    try:
-        if dirFd is not None and os.unlink in os.supports_dir_fd:
-            os.unlink(quarantineName, dir_fd=dirFd)
+    if expectedIdentity is None:
+        if dirFd is not None:
+            expectedIdentity = fileIdentity(pathStat, path, dirFd=dirFd)
         else:
-            quarantinePath.unlink()
-    except OSError as exc:
-        if restoreQuarantine():
-            raise OSError(exc.errno, exc.strerror, str(path)) from exc
-        raise OSError(
-            exc.errno,
-            f"The file could not be removed; it is preserved at '{quarantinePath}'",
-            str(quarantinePath),
-        ) from exc
+            expectedIdentity = fileIdentity(pathStat, path)
+
+    if os.name == "nt":
+        _deleteWindowsEntryByHandle(path, expectedIdentity)
+        return True
+
+    _quarantineOwnedEntry(
+        path,
+        expectedIdentity,
+        dirFd=dirFd,
+        quarantineParent=quarantineParent,
+        expectedQuarantineParent=expectedQuarantineParent,
+    )
     return True
 
 
@@ -501,6 +1860,8 @@ def unlinkIfSameFile(
     expectedIdentity: Optional[FileIdentity] = None,
     *,
     dirFd: Optional[int] = None,
+    quarantineParent: Optional[Path] = None,
+    expectedQuarantineParent: Optional[FileIdentity] = None,
 ) -> bool:
     """Unlink a regular file only when it still has the expected identity."""
     try:
@@ -509,132 +1870,50 @@ def unlinkIfSameFile(
         return True
     if not stat.S_ISREG(pathStat.st_mode):
         raise OSError(errno.EINVAL, "The path is not a regular file", str(path))
-    return unlinkEntryIfSameFile(path, expectedIdentity, dirFd=dirFd)
+    return unlinkEntryIfSameFile(
+        path,
+        expectedIdentity,
+        dirFd=dirFd,
+        quarantineParent=quarantineParent,
+        expectedQuarantineParent=expectedQuarantineParent,
+    )
 
 
-def _removeTreeContents(dirFd: int) -> None:
-    """Remove all entries below an open directory descriptor."""
-    for name in os.listdir(dirFd):
-        entryStat = os.stat(name, dir_fd=dirFd, follow_symlinks=False)
-        if stat.S_ISDIR(entryStat.st_mode):
-            flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
-            childFd = os.open(name, flags, dir_fd=dirFd)
-            try:
-                childStat = os.fstat(childFd)
-                if not stat.S_ISDIR(childStat.st_mode) or not os.path.samestat(entryStat, childStat):
-                    raise OSError(errno.EINVAL, "The cleanup directory changed while it was being removed", name)
-                _removeTreeContents(childFd)
-                currentStat = os.stat(name, dir_fd=dirFd, follow_symlinks=False)
-                if not os.path.samestat(entryStat, currentStat):
-                    raise OSError(errno.EINVAL, "The cleanup directory changed while it was being removed", name)
+def removeTreeIfOwned(
+    path: Path,
+    expectedIdentity: FileIdentity,
+    *,
+    quarantineParent: Optional[Path] = None,
+    expectedQuarantineParent: Optional[FileIdentity] = None,
+) -> bool:
+    """Remove an application-owned directory without following a replacement.
 
-                quarantineName = f".umbraedit-cleanup-{uuid.uuid4().hex}"
-                if not renameNoReplaceBetween(
-                    Path(name),
-                    Path(quarantineName),
-                    sourceDirFd=dirFd,
-                    targetDirFd=dirFd,
-                ):
-                    raise OSError(errno.EEXIST, "Could not create a unique cleanup name", quarantineName)
-                quarantineStat = os.stat(
-                    quarantineName,
-                    dir_fd=dirFd,
-                    follow_symlinks=False,
-                )
-                if not os.path.samestat(entryStat, quarantineStat):
-                    restored = renameNoReplaceBetween(
-                        Path(quarantineName),
-                        Path(name),
-                        sourceDirFd=dirFd,
-                        targetDirFd=dirFd,
-                    )
-                    if not restored:
-                        raise OSError(
-                            errno.EINVAL,
-                            f"The cleanup directory changed; the replacement is preserved at '{quarantineName}'",
-                            name,
-                        )
-                    raise OSError(errno.EINVAL, "The cleanup directory changed while it was being removed", name)
-                try:
-                    os.rmdir(quarantineName, dir_fd=dirFd)
-                except OSError as exc:
-                    raise OSError(
-                        exc.errno,
-                        f"The cleanup directory could not be removed; it is preserved at '{quarantineName}'",
-                        quarantineName,
-                    ) from exc
-            finally:
-                os.close(childFd)
-        else:
-            unlinkEntryIfSameFile(Path(name), fileIdentity(entryStat), dirFd=dirFd)
-
-
-def removeTreeIfOwned(path: Path, expectedIdentity: FileIdentity) -> bool:
-    """Remove an application-owned directory without following a replacement."""
+    Windows deletes the validated tree through native handles. POSIX has no
+    inode-bound recursive deletion operation, so the validated root is moved
+    into the retained quarantine directory instead. The requested pathname
+    is removed from the project namespace without ever deleting a pathname
+    that could have acquired an unexpected replacement.
+    """
     try:
         pathStat = os.lstat(path)
     except FileNotFoundError:
         return True
     if isLinkLike(path) or not stat.S_ISDIR(pathStat.st_mode):
         raise OSError(errno.EINVAL, "The cleanup path is not a real directory", str(path))
-    if fileIdentity(pathStat) != expectedIdentity:
+    if not identityMatches(expectedIdentity, pathStat, path):
         raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
 
-    dirFdSupported = (
-        os.name != "nt"
-        and os.open in os.supports_dir_fd
-        and os.listdir in os.supports_fd
-        and os.stat in os.supports_dir_fd
-        and os.unlink in os.supports_dir_fd
-        and os.rmdir in os.supports_dir_fd
-    )
-    if dirFdSupported:
-        parentFd = openDirectory(path.parent)
-        try:
-            currentStat = os.stat(path.name, dir_fd=parentFd, follow_symlinks=False)
-            if fileIdentity(currentStat) != expectedIdentity:
-                raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
+    if os.name == "nt":
+        _removeWindowsTreeByHandle(path, expectedIdentity)
+        return True
 
-            flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
-            treeFd = os.open(path.name, flags, dir_fd=parentFd)
-            try:
-                treeStat = os.fstat(treeFd)
-                if not stat.S_ISDIR(treeStat.st_mode) or not os.path.samestat(currentStat, treeStat):
-                    raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
-                _removeTreeContents(treeFd)
-                currentStat = os.stat(path.name, dir_fd=parentFd, follow_symlinks=False)
-                if fileIdentity(currentStat) != expectedIdentity:
-                    raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
-                os.rmdir(path.name, dir_fd=parentFd)
-            finally:
-                os.close(treeFd)
-        finally:
-            os.close(parentFd)
-    else:
-        quarantineName = f".umbraedit-cleanup-{uuid.uuid4().hex}"
-        quarantinePath = path.parent / quarantineName
-        if not renameNoReplace(path, quarantinePath):
-            raise OSError(errno.EEXIST, "Could not create a unique cleanup name", str(quarantinePath))
-        try:
-            quarantineStat = os.lstat(quarantinePath)
-            if fileIdentity(quarantineStat) != expectedIdentity:
-                restored = renameNoReplace(quarantinePath, path)
-                if not restored:
-                    raise OSError(
-                        errno.EINVAL,
-                        f"The cleanup path changed; the replacement is preserved at '{quarantinePath}'",
-                        str(path),
-                    )
-                raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
-            shutil.rmtree(quarantinePath)
-        except OSError as exc:
-            if os.path.lexists(quarantinePath):
-                raise OSError(
-                    exc.errno,
-                    f"The cleanup directory could not be removed; it is preserved at '{quarantinePath}'",
-                    str(quarantinePath),
-                ) from exc
-            raise
+    retainedPath = _quarantineOwnedEntry(
+        path,
+        expectedIdentity,
+        quarantineParent=quarantineParent,
+        expectedQuarantineParent=expectedQuarantineParent,
+    )
+    logger.debug("Quarantined owned directory at: %s", retainedPath)
     return True
 
 
@@ -643,20 +1922,21 @@ def removeEmptyDirectoryIfOwned(
     expectedIdentity: FileIdentity,
     *,
     expectedParent: Optional[FileIdentity] = None,
+    quarantineParent: Optional[Path] = None,
+    expectedQuarantineParent: Optional[FileIdentity] = None,
 ) -> bool:
     """Remove an empty directory only when it is still the owned object.
 
-    On POSIX, the directory is quarantined and removed relative to an
-    open parent descriptor. This prevents a replaced parent path from
-    redirecting the cleanup. The expected parent identity can be supplied
-    when the caller has already validated that directory.
+    Windows deletes the exact directory through a native handle. POSIX
+    moves the validated directory into the retained quarantine directory,
+    because supported systems do not provide an inode-bound rmdir operation.
     """
     try:
         pathStat = os.lstat(path)
     except FileNotFoundError:
         if expectedParent is not None:
             parentStat = os.lstat(path.parent)
-            if fileIdentity(parentStat) != expectedParent:
+            if not _identityMatchesObject(expectedParent, parentStat, path.parent):
                 raise OSError(
                     errno.EINVAL,
                     "The parent directory changed while it was being used",
@@ -665,112 +1945,60 @@ def removeEmptyDirectoryIfOwned(
         return True
     if isLinkLike(path) or not stat.S_ISDIR(pathStat.st_mode):
         raise OSError(errno.EINVAL, "The cleanup path is not a real directory", str(path))
-    if fileIdentity(pathStat) != expectedIdentity:
+    if not identityMatches(expectedIdentity, pathStat, path):
         raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
 
     parentStat = os.lstat(path.parent)
     if not stat.S_ISDIR(parentStat.st_mode):
         raise OSError(errno.ENOTDIR, "The cleanup parent is not a directory", str(path.parent))
-    if expectedParent is not None and fileIdentity(parentStat) != expectedParent:
+    parentIdentity = fileIdentity(parentStat, path.parent)
+    if expectedParent is not None and not _identityMatchesObject(expectedParent, parentStat, path.parent):
         raise OSError(errno.EINVAL, "The parent directory changed while it was being used", str(path.parent))
 
-    descriptorCleanupSupported = (
-        os.name != "nt"
-        and os.open in os.supports_dir_fd
-        and os.stat in os.supports_dir_fd
-        and os.rmdir in os.supports_dir_fd
-    )
-    if descriptorCleanupSupported:
+    if os.name == "nt":
+        _deleteWindowsEntryByHandle(path, expectedIdentity)
+        return True
+
+    if os.open in os.supports_dir_fd:
         parentFd = openDirectory(path.parent)
         try:
             openedParentStat = os.fstat(parentFd)
-            if not os.path.samestat(parentStat, openedParentStat):
+            if not _identityMatchesObject(
+                parentIdentity,
+                openedParentStat,
+                path.parent,
+                fileDescriptor=parentFd,
+            ):
                 raise OSError(errno.EINVAL, "The parent directory changed while it was being opened", str(path.parent))
-            if expectedParent is not None and fileIdentity(openedParentStat) != expectedParent:
+            if expectedParent is not None and not _identityMatchesObject(
+                expectedParent,
+                openedParentStat,
+                path.parent,
+                fileDescriptor=parentFd,
+            ):
                 raise OSError(errno.EINVAL, "The parent directory changed while it was being opened", str(path.parent))
-
-            currentStat = os.stat(path.name, dir_fd=parentFd, follow_symlinks=False)
-            if not stat.S_ISDIR(currentStat.st_mode) or fileIdentity(currentStat) != expectedIdentity:
-                raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
-
-            quarantineName = f".umbraedit-rmdir-{uuid.uuid4().hex}"
-            quarantinePath = path.parent / quarantineName
-            moved = renameNoReplaceBetween(
-                Path(path.name),
-                Path(quarantineName),
-                sourceDirFd=parentFd,
-                targetDirFd=parentFd,
+            retainedPath = _quarantineOwnedEntry(
+                path,
+                expectedIdentity,
+                dirFd=parentFd,
+                requireEmpty=True,
+                quarantineParent=quarantineParent,
+                expectedQuarantineParent=expectedQuarantineParent,
             )
-            if not moved:
-                raise OSError(errno.EEXIST, "Could not create a unique cleanup name", str(quarantinePath))
-
-            quarantineStat = os.stat(quarantineName, dir_fd=parentFd, follow_symlinks=False)
-            if fileIdentity(quarantineStat) != expectedIdentity:
-                restored = renameNoReplaceBetween(
-                    Path(quarantineName),
-                    Path(path.name),
-                    sourceDirFd=parentFd,
-                    targetDirFd=parentFd,
-                )
-                if not restored:
-                    raise OSError(
-                        errno.EINVAL,
-                        f"The cleanup path changed; the replacement is preserved at '{quarantinePath}'",
-                        str(path),
-                    )
-                raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
-
-            try:
-                os.rmdir(quarantineName, dir_fd=parentFd)
-            except OSError as exc:
-                restored = renameNoReplaceBetween(
-                    Path(quarantineName),
-                    Path(path.name),
-                    sourceDirFd=parentFd,
-                    targetDirFd=parentFd,
-                )
-                if not restored:
-                    raise OSError(
-                        exc.errno or errno.EINVAL,
-                        f"The cleanup directory could not be removed; it is preserved at '{quarantinePath}'",
-                        str(quarantinePath),
-                    ) from exc
-                raise OSError(exc.errno or errno.EINVAL, exc.strerror, str(path)) from exc
-
             currentParentStat = os.lstat(path.parent)
-            if not os.path.samestat(parentStat, currentParentStat):
+            if not _identityMatchesObject(parentIdentity, currentParentStat, path.parent):
                 raise OSError(errno.EINVAL, "The parent directory changed while it was being used", str(path.parent))
         finally:
             os.close(parentFd)
-        return True
-
-    quarantineName = f".umbraedit-rmdir-{uuid.uuid4().hex}"
-    quarantinePath = path.parent / quarantineName
-    if not renameNoReplace(path, quarantinePath):
-        raise OSError(errno.EEXIST, "Could not create a unique cleanup name", str(quarantinePath))
-    try:
-        quarantineStat = os.lstat(quarantinePath)
-        if fileIdentity(quarantineStat) != expectedIdentity:
-            restored = renameNoReplace(quarantinePath, path)
-            if not restored:
-                raise OSError(
-                    errno.EINVAL,
-                    f"The cleanup path changed; the replacement is preserved at '{quarantinePath}'",
-                    str(path),
-                )
-            raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
-        os.rmdir(quarantinePath)
-    except OSError as exc:
-        if os.path.lexists(quarantinePath):
-            restored = renameNoReplace(quarantinePath, path)
-            if not restored:
-                raise OSError(
-                    exc.errno or errno.EINVAL,
-                    f"The cleanup directory could not be removed; it is preserved at '{quarantinePath}'",
-                    str(quarantinePath),
-                ) from exc
-            raise OSError(exc.errno or errno.EINVAL, exc.strerror, str(path)) from exc
-        raise
+    else:
+        retainedPath = _quarantineOwnedEntry(
+            path,
+            expectedIdentity,
+            requireEmpty=True,
+            quarantineParent=quarantineParent,
+            expectedQuarantineParent=expectedQuarantineParent,
+        )
+    logger.debug("Quarantined owned empty directory at: %s", retainedPath)
     return True
 
 
@@ -778,19 +2006,32 @@ def getDefaultDirectoryMode(
     parent: Path,
     *,
     expectedParent: Optional[FileIdentity] = None,
+    quarantineParent: Optional[Path] = None,
+    expectedQuarantineParent: Optional[FileIdentity] = None,
 ) -> int:
     """Return the directory mode created in a parent under its current policy.
 
     A temporary directory is used as a probe so the process-wide umask is
     never changed, even briefly, while another thread may be creating a
     file. On POSIX, the probe is created relative to an open directory
-    descriptor and can be bound to an expected parent identity.
+    descriptor and can be bound to an expected parent identity. Cleanup
+    uses the same race-safe backend as other owned entries and requires a
+    validated central quarantine parent, so it cannot create a nested
+    quarantine directory beside the probed parent.
     """
+    if os.name != "nt" and (quarantineParent is None or expectedQuarantineParent is None):
+        raise ValueError("A validated central cleanup quarantine is required for the directory mode probe")
+
     if os.name != "nt" and os.mkdir in os.supports_dir_fd:
         parentFd = openDirectory(parent)
         try:
             parentStat = os.fstat(parentFd)
-            if expectedParent is not None and fileIdentity(parentStat) != expectedParent:
+            if expectedParent is not None and not _identityMatchesObject(
+                expectedParent,
+                parentStat,
+                parent,
+                fileDescriptor=parentFd,
+            ):
                 raise OSError(errno.EINVAL, "The parent directory changed while it was being used", str(parent))
             for _ in range(10):
                 probeName = f".umbraedit-mode-{uuid.uuid4().hex}"
@@ -798,20 +2039,28 @@ def getDefaultDirectoryMode(
                     os.mkdir(probeName, 0o777, dir_fd=parentFd)
                 except FileExistsError:
                     continue
+                probeStat = os.stat(probeName, dir_fd=parentFd, follow_symlinks=False)
+                if not stat.S_ISDIR(probeStat.st_mode):
+                    raise OSError(errno.ENOTDIR, "The mode probe is not a directory", probeName)
+                probeIdentity = fileIdentity(probeStat, Path(probeName), dirFd=parentFd)
+                mode = stat.S_IMODE(probeStat.st_mode)
                 try:
-                    probeStat = os.stat(probeName, dir_fd=parentFd, follow_symlinks=False)
-                    if not stat.S_ISDIR(probeStat.st_mode):
-                        raise OSError(errno.ENOTDIR, "The mode probe is not a directory", probeName)
-                    return stat.S_IMODE(probeStat.st_mode)
-                finally:
-                    with contextlib.suppress(OSError):
-                        os.rmdir(probeName, dir_fd=parentFd)
+                    _quarantineOwnedEntry(
+                        Path(probeName),
+                        probeIdentity,
+                        dirFd=parentFd,
+                        quarantineParent=quarantineParent,
+                        expectedQuarantineParent=expectedQuarantineParent,
+                    )
+                except OSError as exc:
+                    logger.warning("The directory mode probe could not be quarantined: %s", exc)
+                return mode
             raise OSError(errno.EEXIST, "Could not create a directory mode probe", str(parent))
         finally:
             os.close(parentFd)
 
     parentStat = os.lstat(parent)
-    if expectedParent is not None and fileIdentity(parentStat) != expectedParent:
+    if expectedParent is not None and not _identityMatchesObject(expectedParent, parentStat, parent):
         raise OSError(errno.EINVAL, "The parent directory changed while it was being used", str(parent))
     for _ in range(10):
         probePath = parent / f".umbraedit-mode-{uuid.uuid4().hex}"
@@ -819,14 +2068,22 @@ def getDefaultDirectoryMode(
             os.mkdir(probePath, 0o777)
         except FileExistsError:
             continue
+        probeStat = os.lstat(probePath)
+        if not stat.S_ISDIR(probeStat.st_mode):
+            raise OSError(errno.ENOTDIR, "The mode probe is not a directory", str(probePath))
+        mode = stat.S_IMODE(probeStat.st_mode)
+        probeIdentity = fileIdentity(probeStat, probePath)
         try:
-            probeStat = os.lstat(probePath)
-            if not stat.S_ISDIR(probeStat.st_mode):
-                raise OSError(errno.ENOTDIR, "The mode probe is not a directory", str(probePath))
-            return stat.S_IMODE(probeStat.st_mode)
-        finally:
-            with contextlib.suppress(OSError):
-                os.rmdir(probePath)
+            removeEmptyDirectoryIfOwned(
+                probePath,
+                probeIdentity,
+                expectedParent=expectedParent,
+                quarantineParent=quarantineParent,
+                expectedQuarantineParent=expectedQuarantineParent,
+            )
+        except OSError as exc:
+            logger.warning("The directory mode probe could not be removed: %s", exc)
+        return mode
     raise OSError(errno.EEXIST, "Could not create a directory mode probe", str(parent))
 
 
@@ -1056,7 +2313,9 @@ def renameNoReplaceIfSameFile(
             currentStat = _entryStat(quarantineEntry, sourceDirFd)
         except OSError:
             return False
-        if not stat.S_ISREG(currentStat.st_mode) or fileIdentity(currentStat) != identity:
+        if not stat.S_ISREG(currentStat.st_mode) or not _entryIdentityMatches(
+            identity, quarantineEntry, sourceDirFd, currentStat
+        ):
             return False
         if sourceDirFd is not None:
             moved = renameNoReplaceBetween(
@@ -1073,7 +2332,12 @@ def renameNoReplaceIfSameFile(
             restoredStat = _entryStat(sourceEntry, sourceDirFd)
         except OSError:
             return False
-        return stat.S_ISREG(restoredStat.st_mode) and fileIdentity(restoredStat) == identity
+        return stat.S_ISREG(restoredStat.st_mode) and _entryIdentityMatches(
+            identity,
+            sourceEntry,
+            sourceDirFd,
+            restoredStat,
+        )
 
     try:
         try:
@@ -1082,7 +2346,7 @@ def renameNoReplaceIfSameFile(
             raise OSError(errno.ENOENT, "The source file does not exist", str(source)) from exc
         if not stat.S_ISREG(sourceStat.st_mode):
             raise OSError(errno.ESTALE, "The source is not a regular file", str(source))
-        if fileIdentity(sourceStat) != expectedSourceIdentity:
+        if not _entryIdentityMatches(expectedSourceIdentity, sourceEntry, sourceDirFd, sourceStat):
             raise OSError(errno.ESTALE, "The source file changed before it could be renamed", str(source))
 
         if sourceDirFd is not None:
@@ -1101,8 +2365,13 @@ def renameNoReplaceIfSameFile(
             quarantineStat = _entryStat(quarantineEntry, sourceDirFd)
         except OSError:
             raise
-        quarantineIdentity = fileIdentity(quarantineStat)
-        if not stat.S_ISREG(quarantineStat.st_mode) or quarantineIdentity != expectedSourceIdentity:
+        quarantineIdentity = _entryIdentity(quarantineEntry, sourceDirFd, quarantineStat)
+        if not stat.S_ISREG(quarantineStat.st_mode) or not _entryIdentityMatches(
+            expectedSourceIdentity,
+            quarantineEntry,
+            sourceDirFd,
+            quarantineStat,
+        ):
             if restoreQuarantine(quarantineIdentity):
                 raise OSError(errno.ESTALE, "The source file changed before it could be renamed", str(source))
             raise OSError(
@@ -1158,10 +2427,49 @@ def renameNoReplaceIfSameFile(
             targetStat = _entryStat(targetEntry, targetDirFd)
         except OSError:
             raise
-        if not stat.S_ISREG(targetStat.st_mode) or fileIdentity(targetStat) != expectedSourceIdentity:
-            # A concurrently installed target is deliberately left in
-            # place. Only the expected identity may be considered moved.
-            raise OSError(errno.ESTALE, "The renamed target does not match the expected file", str(target))
+        if not stat.S_ISREG(targetStat.st_mode) or not _entryIdentityMatches(
+            expectedSourceIdentity,
+            targetEntry,
+            targetDirFd,
+            targetStat,
+        ):
+            # The quarantine entry was replaced after it was validated, or
+            # the published target was replaced immediately afterwards. A
+            # path-based rename cannot bind the operation to an inode, so
+            # preserve the unexpected object under a private name and leave
+            # the requested target unoccupied. Never unlink it.
+            conflictName = f".umbraedit-conflict-{uuid.uuid4().hex}"
+            conflictEntry = Path(conflictName) if targetDirFd is not None else target.parent / conflictName
+            conflictPath = target.parent / conflictName
+            try:
+                if targetDirFd is not None:
+                    preserved = renameNoReplaceBetween(
+                        targetEntry,
+                        conflictEntry,
+                        sourceDirFd=targetDirFd,
+                        targetDirFd=targetDirFd,
+                    )
+                else:
+                    preserved = renameNoReplace(targetEntry, conflictEntry)
+            except OSError:
+                preserved = False
+
+            restored = restoreQuarantine(expectedSourceIdentity)
+            if preserved:
+                raise OSError(
+                    errno.ESTALE,
+                    "The renamed target does not match the expected file; "
+                    f"the unexpected target is preserved at '{conflictPath}'",
+                    str(target),
+                )
+            if restored:
+                raise OSError(errno.ESTALE, "The renamed target does not match the expected file", str(target))
+            raise OSError(
+                errno.ESTALE,
+                "The renamed target does not match the expected file; "
+                f"the expected file is preserved at '{quarantineEntry}'",
+                str(target),
+            )
         return True
     finally:
         if ownTargetFd and targetDirFd is not None:
@@ -1243,8 +2551,13 @@ def linkNoReplaceIfSameFile(
             quarantineStat = _entryStat(quarantineEntry, sourceDirFd)
         except OSError:
             return False
-        quarantineIdentity = fileIdentity(quarantineStat)
-        if identity is not None and quarantineIdentity != identity:
+        quarantineIdentity = _entryIdentity(quarantineEntry, sourceDirFd, quarantineStat)
+        if identity is not None and not _entryIdentityMatches(
+            identity,
+            quarantineEntry,
+            sourceDirFd,
+            quarantineStat,
+        ):
             return False
         try:
             restored = renameEntry(
@@ -1261,25 +2574,29 @@ def linkNoReplaceIfSameFile(
             restoredStat = _entryStat(sourceEntry, sourceDirFd)
         except OSError:
             return False
-        return fileIdentity(restoredStat) == quarantineIdentity
+        return _entryIdentityMatches(
+            quarantineIdentity,
+            sourceEntry,
+            sourceDirFd,
+            restoredStat,
+        )
 
     def preserveUnexpectedTarget(targetIdentity: FileIdentity) -> None:
-        """Move an unexpected target out of the requested name."""
+        """Move an unexpected target out of the requested name.
+
+        If the target cannot be moved, it is left in place. It must never
+        be unlinked because its identity no longer matches the validated
+        publication.
+        """
         conflictName = f".umbraedit-conflict-{uuid.uuid4().hex}"
         conflictEntry = Path(conflictName) if targetDirFd is not None else target.parent / conflictName
-        try:
-            moved = renameEntry(
+        with contextlib.suppress(OSError):
+            renameEntry(
                 targetEntry,
                 conflictEntry,
                 entryDirFd=targetDirFd,
                 destinationDirFd=targetDirFd,
             )
-        except OSError:
-            moved = False
-        if moved:
-            return
-        with contextlib.suppress(OSError):
-            unlinkEntryIfSameFile(targetEntry, targetIdentity, dirFd=targetDirFd)
 
     try:
         try:
@@ -1288,7 +2605,7 @@ def linkNoReplaceIfSameFile(
             raise OSError(errno.ENOENT, "The source file does not exist", str(source)) from exc
         if not stat.S_ISREG(sourceStat.st_mode):
             raise OSError(errno.ESTALE, "The source is not a regular file", str(source))
-        if fileIdentity(sourceStat) != expectedSourceIdentity:
+        if not _entryIdentityMatches(expectedSourceIdentity, sourceEntry, sourceDirFd, sourceStat):
             raise OSError(errno.ESTALE, "The source file changed before it could be published", str(source))
 
         moved = renameEntry(
@@ -1304,8 +2621,13 @@ def linkNoReplaceIfSameFile(
             quarantineStat = _entryStat(quarantineEntry, sourceDirFd)
         except OSError:
             raise
-        quarantineIdentity = fileIdentity(quarantineStat)
-        if not stat.S_ISREG(quarantineStat.st_mode) or quarantineIdentity != expectedSourceIdentity:
+        quarantineIdentity = _entryIdentity(quarantineEntry, sourceDirFd, quarantineStat)
+        if not stat.S_ISREG(quarantineStat.st_mode) or not _entryIdentityMatches(
+            expectedSourceIdentity,
+            quarantineEntry,
+            sourceDirFd,
+            quarantineStat,
+        ):
             if not restoreQuarantine(quarantineIdentity):
                 raise OSError(
                     errno.ESTALE,
@@ -1352,20 +2674,48 @@ def linkNoReplaceIfSameFile(
         except OSError:
             currentQuarantineStat = None
 
-        targetIdentity = fileIdentity(targetStat) if targetStat is not None else None
-        currentQuarantineIdentity = fileIdentity(currentQuarantineStat) if currentQuarantineStat is not None else None
-        if targetIdentity != expectedSourceIdentity:
+        targetIdentity = _entryIdentity(targetEntry, targetDirFd, targetStat) if targetStat is not None else None
+        currentQuarantineIdentity = (
+            _entryIdentity(quarantineEntry, sourceDirFd, currentQuarantineStat)
+            if currentQuarantineStat is not None
+            else None
+        )
+        if (
+            targetStat is None
+            or targetIdentity is None
+            or not _entryIdentityMatches(
+                expectedSourceIdentity,
+                targetEntry,
+                targetDirFd,
+                targetStat,
+            )
+        ):
             if (
-                targetIdentity is not None
+                targetStat is not None
+                and targetIdentity is not None
                 and currentQuarantineIdentity is not None
-                and targetIdentity == currentQuarantineIdentity
+                and _entryIdentityMatches(
+                    currentQuarantineIdentity,
+                    targetEntry,
+                    targetDirFd,
+                    targetStat,
+                )
             ):
                 preserveUnexpectedTarget(targetIdentity)
             if currentQuarantineIdentity is not None:
                 restoreQuarantine(currentQuarantineIdentity)
             raise OSError(errno.ESTALE, "The published file does not match the expected file", str(target))
 
-        if currentQuarantineIdentity != expectedSourceIdentity:
+        if (
+            currentQuarantineStat is None
+            or currentQuarantineIdentity is None
+            or not _entryIdentityMatches(
+                expectedSourceIdentity,
+                quarantineEntry,
+                sourceDirFd,
+                currentQuarantineStat,
+            )
+        ):
             # The expected file was already linked to the target. Preserve
             # the raced private entry instead of deleting an unknown file.
             if currentQuarantineIdentity is not None:
@@ -1392,6 +2742,8 @@ def copyRegularFile(
     expectedSourceIdentity: Optional[FileIdentity] = None,
     expectedTargetParent: Optional[FileIdentity] = None,
     targetDirFd: Optional[int] = None,
+    quarantineParent: Optional[Path] = None,
+    expectedQuarantineParent: Optional[FileIdentity] = None,
 ) -> FileIdentity:
     """Copy a regular file to a new target without overwriting it.
 
@@ -1413,7 +2765,12 @@ def copyRegularFile(
             targetParentStat = os.lstat(target.parent)
         if not stat.S_ISDIR(targetParentStat.st_mode):
             raise OSError(errno.ENOTDIR, "The target parent is not a directory", str(target.parent))
-        if expectedTargetParent is not None and fileIdentity(targetParentStat) != expectedTargetParent:
+        targetParentIdentity = (
+            fileIdentity(targetParentStat, fileDescriptor=targetDirFd)
+            if targetDirFd is not None
+            else fileIdentity(targetParentStat, target.parent)
+        )
+        if expectedTargetParent is not None and targetParentIdentity != expectedTargetParent:
             raise OSError(errno.EINVAL, "The target parent changed while it was being used", str(target.parent))
 
         targetIdentity: Optional[FileIdentity] = None
@@ -1429,7 +2786,7 @@ def copyRegularFile(
                 fileDesc = openExclusiveFile(target)
             try:
                 targetStat = os.fstat(fileDesc)
-                targetIdentity = fileIdentity(targetStat)
+                targetIdentity = fileIdentity(targetStat, fileDescriptor=fileDesc)
             except Exception:
                 os.close(fileDesc)
                 raise
@@ -1442,27 +2799,48 @@ def copyRegularFile(
                         os.fchmod(outFile.fileno(), sourceMode)
 
                     currentStat = _entryStat(target, targetDirFd)
-                    if fileIdentity(currentStat) != targetIdentity:
+                    if not _entryIdentityMatches(targetIdentity, target, targetDirFd, currentStat):
                         raise OSError(errno.EINVAL, "The target file changed while it was being copied", str(target))
             except Exception:
                 with contextlib.suppress(OSError):
-                    unlinkIfSameFile(target, targetIdentity, dirFd=targetDirFd)
+                    unlinkIfSameFile(
+                        target,
+                        targetIdentity,
+                        dirFd=targetDirFd,
+                        quarantineParent=quarantineParent,
+                        expectedQuarantineParent=expectedQuarantineParent,
+                    )
                 raise
 
         if targetDirFd is not None:
             currentParentStat = os.fstat(targetDirFd)
         else:
             currentParentStat = os.lstat(target.parent)
-        if not os.path.samestat(targetParentStat, currentParentStat):
+        if not _identityMatchesObject(
+            targetParentIdentity,
+            currentParentStat,
+            target.parent,
+            fileDescriptor=targetDirFd,
+        ):
             raise OSError(errno.EINVAL, "The target parent changed while it was being used", str(target.parent))
         try:
             pathParentStat = os.lstat(target.parent)
         except OSError:
             pathParentStat = None
-        if pathParentStat is None or not os.path.samestat(targetParentStat, pathParentStat):
+        if pathParentStat is None or not _identityMatchesObject(
+            targetParentIdentity,
+            pathParentStat,
+            target.parent,
+        ):
             if targetIdentity is not None:
                 with contextlib.suppress(OSError):
-                    unlinkIfSameFile(target, targetIdentity, dirFd=targetDirFd)
+                    unlinkIfSameFile(
+                        target,
+                        targetIdentity,
+                        dirFd=targetDirFd,
+                        quarantineParent=quarantineParent,
+                        expectedQuarantineParent=expectedQuarantineParent,
+                    )
             raise OSError(errno.EINVAL, "The target parent changed while it was being used", str(target.parent))
         if targetIdentity is None:
             raise OSError(errno.EINVAL, "The copied file identity could not be determined", str(target))
@@ -1480,6 +2858,8 @@ def writeFileAtomic(
     expectedParent: Optional[FileIdentity] = None,
     expectedTarget: Optional[FileIdentity] = None,
     replaceExisting: bool = False,
+    quarantineParent: Optional[Path] = None,
+    expectedQuarantineParent: Optional[FileIdentity] = None,
 ) -> FileIdentity:
     """Write a file through a private staging file and publish it safely.
 
@@ -1487,23 +2867,20 @@ def writeFileAtomic(
     and its identity was explicitly supplied and still matches. The old
     target is first moved to a unique quarantine name, and the staged file
     is then published with no-replace semantics. A concurrently installed
-    target is therefore never overwritten. If ``replaceExisting`` is enabled
-    without an expected identity, the current target identity is captured
-    immediately before the replacement. The returned identity belongs to the
-    published file.
+    target is therefore never overwritten. Without an expected identity,
+    an existing target is treated as a namespace collision. The returned
+    identity belongs to the published file.
     """
     parentStat = os.lstat(target.parent)
     if not stat.S_ISDIR(parentStat.st_mode):
         raise OSError(errno.ENOTDIR, "The target parent is not a directory", str(target.parent))
-    if expectedParent is not None and fileIdentity(parentStat) != expectedParent:
+    parentIdentity = fileIdentity(parentStat, target.parent)
+    if expectedParent is not None and parentIdentity != expectedParent:
         raise OSError(errno.EINVAL, "The target parent changed while it was being used", str(target.parent))
-    if replaceExisting and expectedTarget is None:
-        expectedTarget = captureRegularFileIdentity(target)
-
     parentFd: Optional[int] = None
     if os.name != "nt" and os.open in os.supports_dir_fd:
         parentFd = openDirectory(target.parent)
-        if fileIdentity(os.fstat(parentFd)) != fileIdentity(parentStat):
+        if fileIdentity(os.fstat(parentFd), fileDescriptor=parentFd) != parentIdentity:
             os.close(parentFd)
             raise OSError(errno.EINVAL, "The target parent changed while it was being opened", str(target.parent))
 
@@ -1524,7 +2901,12 @@ def writeFileAtomic(
             currentQuarantineStat = _entryStat(quarantinePath, parentFd)
         except OSError:
             return False
-        if not stat.S_ISREG(currentQuarantineStat.st_mode) or fileIdentity(currentQuarantineStat) != quarantineIdentity:
+        if not stat.S_ISREG(currentQuarantineStat.st_mode) or not _entryIdentityMatches(
+            quarantineIdentity,
+            quarantinePath,
+            parentFd,
+            currentQuarantineStat,
+        ):
             return False
         try:
             if parentFd is not None:
@@ -1544,7 +2926,12 @@ def writeFileAtomic(
             restoredStat = _entryStat(target, parentFd)
         except OSError:
             return False
-        return stat.S_ISREG(restoredStat.st_mode) and fileIdentity(restoredStat) == quarantineIdentity
+        return stat.S_ISREG(restoredStat.st_mode) and _entryIdentityMatches(
+            quarantineIdentity,
+            target,
+            parentFd,
+            restoredStat,
+        )
 
     try:
         if parentFd is not None:
@@ -1557,7 +2944,7 @@ def writeFileAtomic(
             os.close(fileDesc)
             fileDesc = None
             raise
-        tempIdentity = fileIdentity(tempStat)
+        tempIdentity = fileIdentity(tempStat, fileDescriptor=fileDesc)
 
         with os.fdopen(fileDesc, mode="wb") as outFile:
             fileDesc = None
@@ -1580,7 +2967,7 @@ def writeFileAtomic(
             if not stat.S_ISREG(targetStat.st_mode):
                 raise OSError(errno.EINVAL, "The target is not a regular file", str(target))
             assert expectedTarget is not None
-            if fileIdentity(targetStat) != expectedTarget:
+            if not _entryIdentityMatches(expectedTarget, target, parentFd, targetStat):
                 raise OSError(errno.EINVAL, "The target changed before it could be replaced", str(target))
 
             quarantineName = f".umbraedit-replaced-{uuid.uuid4().hex}"
@@ -1608,8 +2995,13 @@ def writeFileAtomic(
                 quarantineStat = _entryStat(quarantinePath, parentFd)
             except OSError:
                 raise
-            quarantineIdentity = fileIdentity(quarantineStat)
-            if not stat.S_ISREG(quarantineStat.st_mode) or quarantineIdentity != expectedTarget:
+            quarantineIdentity = _entryIdentity(quarantinePath, parentFd, quarantineStat)
+            if not stat.S_ISREG(quarantineStat.st_mode) or not _entryIdentityMatches(
+                expectedTarget,
+                quarantinePath,
+                parentFd,
+                quarantineStat,
+            ):
                 if not restoreQuarantined():
                     raise OSError(
                         errno.EINVAL,
@@ -1650,16 +3042,49 @@ def writeFileAtomic(
             raise FileExistsError(errno.EEXIST, "The target already exists", str(target))
         published = True
 
-        currentStat = _entryStat(target, parentFd)
-        if not stat.S_ISREG(currentStat.st_mode) or fileIdentity(currentStat) != tempIdentity:
-            raise OSError(errno.EINVAL, "The published file does not match the staged file", str(target))
-        currentParentStat = os.lstat(target.parent)
-        if not os.path.samestat(parentStat, currentParentStat):
-            raise OSError(errno.EINVAL, "The target parent changed while it was being used", str(target.parent))
+        try:
+            currentStat = _entryStat(target, parentFd)
+        except OSError as exc:
+            raise PublishedFileError(
+                "The published file could not be verified",
+                target,
+                tempIdentity,
+            ) from exc
+        if not stat.S_ISREG(currentStat.st_mode) or not _entryIdentityMatches(
+            tempIdentity,
+            target,
+            parentFd,
+            currentStat,
+        ):
+            raise PublishedFileError(
+                "The published file does not match the staged file",
+                target,
+                tempIdentity,
+            )
+        try:
+            currentParentStat = os.lstat(target.parent)
+        except OSError as exc:
+            raise PublishedFileError(
+                "The target parent could not be verified",
+                target.parent,
+                tempIdentity,
+            ) from exc
+        if not _identityMatchesObject(parentIdentity, currentParentStat, target.parent):
+            raise PublishedFileError(
+                "The target parent changed while it was being used",
+                target.parent,
+                tempIdentity,
+            )
 
         if quarantinePath is not None and quarantineIdentity is not None:
             try:
-                unlinkIfSameFile(quarantinePath, quarantineIdentity, dirFd=parentFd)
+                unlinkIfSameFile(
+                    quarantinePath,
+                    quarantineIdentity,
+                    dirFd=parentFd,
+                    quarantineParent=quarantineParent,
+                    expectedQuarantineParent=expectedQuarantineParent,
+                )
             except OSError as exc:
                 logger.warning("The previous file is preserved at '%s': %s", quarantinePath, exc)
             quarantinePath = None
@@ -1671,7 +3096,13 @@ def writeFileAtomic(
                 os.close(fileDesc)
         if not published and tempIdentity is not None:
             with contextlib.suppress(OSError):
-                unlinkIfSameFile(tempPath, tempIdentity, dirFd=parentFd)
+                unlinkIfSameFile(
+                    tempPath,
+                    tempIdentity,
+                    dirFd=parentFd,
+                    quarantineParent=quarantineParent,
+                    expectedQuarantineParent=expectedQuarantineParent,
+                )
         if parentFd is not None:
             os.close(parentFd)
 
@@ -1693,13 +3124,18 @@ def publishRegularFileNoReplace(
     """
     _verifyParent(source, expectedSourceParent)
     sourceStat = os.lstat(source)
-    if not stat.S_ISREG(sourceStat.st_mode) or fileIdentity(sourceStat) != expectedSourceIdentity:
+    if not stat.S_ISREG(sourceStat.st_mode) or not _identityMatchesObject(
+        expectedSourceIdentity,
+        sourceStat,
+        source,
+    ):
         raise OSError(errno.EINVAL, "The staged file changed before it could be published", str(source))
 
     targetParentStat = os.lstat(target.parent)
     if not stat.S_ISDIR(targetParentStat.st_mode):
         raise OSError(errno.ENOTDIR, "The target parent is not a directory", str(target.parent))
-    if expectedTargetParent is not None and fileIdentity(targetParentStat) != expectedTargetParent:
+    targetParentIdentity = fileIdentity(targetParentStat, target.parent)
+    if expectedTargetParent is not None and targetParentIdentity != expectedTargetParent:
         raise OSError(errno.EINVAL, "The target parent changed while it was being used", str(target.parent))
 
     sourceFd: Optional[int] = None
@@ -1708,15 +3144,16 @@ def publishRegularFileNoReplace(
         sourceFd = openDirectory(source.parent)
         try:
             sourceParentStat = os.fstat(sourceFd)
-            if fileIdentity(sourceParentStat) != fileIdentity(os.lstat(source.parent)):
+            sourceParentIdentity = fileIdentity(sourceParentStat, fileDescriptor=sourceFd)
+            if sourceParentIdentity != fileIdentity(os.lstat(source.parent), source.parent):
                 raise OSError(errno.EINVAL, "The source parent changed while it was being opened", str(source.parent))
-            if expectedSourceParent is not None and fileIdentity(sourceParentStat) != expectedSourceParent:
+            if expectedSourceParent is not None and sourceParentIdentity != expectedSourceParent:
                 raise OSError(errno.EINVAL, "The source parent changed while it was being opened", str(source.parent))
             targetFd = openDirectory(target.parent)
-            targetParentIdentity = fileIdentity(os.fstat(targetFd))
-            if targetParentIdentity != fileIdentity(targetParentStat):
+            openedTargetParentIdentity = fileIdentity(os.fstat(targetFd), fileDescriptor=targetFd)
+            if openedTargetParentIdentity != targetParentIdentity:
                 raise OSError(errno.EINVAL, "The target parent changed while it was being opened", str(target.parent))
-            if expectedTargetParent is not None and targetParentIdentity != expectedTargetParent:
+            if expectedTargetParent is not None and openedTargetParentIdentity != expectedTargetParent:
                 raise OSError(errno.EINVAL, "The target parent changed while it was being opened", str(target.parent))
         except Exception:
             if targetFd is not None:
@@ -1754,10 +3191,15 @@ def publishRegularFileNoReplace(
             raise FileExistsError(errno.EEXIST, "The target already exists", str(target))
 
         currentStat = _entryStat(target, targetFd)
-        if not stat.S_ISREG(currentStat.st_mode) or fileIdentity(currentStat) != expectedSourceIdentity:
+        if not stat.S_ISREG(currentStat.st_mode) or not _entryIdentityMatches(
+            expectedSourceIdentity,
+            target,
+            targetFd,
+            currentStat,
+        ):
             raise OSError(errno.EINVAL, "The published file does not match the staged file", str(target))
         currentParentStat = os.lstat(target.parent)
-        if not os.path.samestat(targetParentStat, currentParentStat):
+        if not _identityMatchesObject(targetParentIdentity, currentParentStat, target.parent):
             raise OSError(errno.EINVAL, "The target parent changed while it was being used", str(target.parent))
         return expectedSourceIdentity
     finally:

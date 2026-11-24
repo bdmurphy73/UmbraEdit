@@ -49,7 +49,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pyqt6 libenchant-2-dev hunspell-en-us hunspell-en-gb
+          sudo apt-get install -y python3-pyqt6 libenchant-2-dev hunspell-en-us hunspell-en-gb qt6-image-formats-plugins
       - name: Install system deps (macOS)
         if: runner.os == 'macOS'
         run: |

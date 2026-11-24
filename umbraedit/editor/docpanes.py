@@ -32,8 +32,13 @@ from PyQt6.QtWidgets import QFileDialog, QSplitter, QVBoxLayout, QWidget
 from umbraedit import CONFIG, SHARED
 from umbraedit.common import formatFileFilter
 from umbraedit.constants import nwKeyWords
-from umbraedit.core.imageimport import ImageImportError, ImageImportReason, importProjectImage
-from umbraedit.core.safeio import unlinkIfSameFile
+from umbraedit.core.imageimport import (
+    ImageImportError,
+    ImageImportReason,
+    importProjectImage,
+    removeImportedProjectImage,
+    verifyImportedProjectImage,
+)
 from umbraedit.editor.editor import GuiDocEditor
 from umbraedit.editor.viewer import GuiDocViewer
 from umbraedit.editor.viewerpanel import GuiDocViewerPanel
@@ -254,12 +259,14 @@ class GuiDocPanes(QWidget):
 
         return True
 
-    def saveDocument(self, force: bool = False) -> None:
-        """Save the current documents."""
-        if SHARED.hasProject:
-            self.docEditor.saveCursorPosition()
-            if force or self.docEditor.docChanged:
-                self.docEditor.saveText()
+    def saveDocument(self, force: bool = False) -> bool:
+        """Save the current document and report whether it succeeded."""
+        if not SHARED.hasProject:
+            return False
+        self.docEditor.saveCursorPosition()
+        if force or self.docEditor.docChanged:
+            return self.docEditor.saveText()
+        return True
 
     def importDocument(self) -> None:
         """Import the text contained in an out-of-project text file, and
@@ -393,6 +400,26 @@ class GuiDocPanes(QWidget):
             SHARED.error(self.tr("Could not copy the image into the project."), exc=exc)
             return
 
+        try:
+            verifyImportedProjectImage(project, imported)
+        except OSError as exc:
+            cleanupFailed = False
+            try:
+                removeImportedProjectImage(project, imported)
+            except OSError:
+                cleanupFailed = True
+                logger.warning(
+                    "Could not remove an uninserted project image after validation failed",
+                    exc_info=exc,
+                )
+            details = self.tr("The imported image could not be removed.") if cleanupFailed else ""
+            SHARED.error(
+                self.tr("The active project or document changed while importing the image. Please try again."),
+                details=details,
+                exc=exc,
+            )
+            return
+
         currentDocument = self.docEditor.document()
         sameDocumentAfterImport = (
             currentDocument is not None
@@ -409,7 +436,7 @@ class GuiDocPanes(QWidget):
         if not (sameDocumentAfterImport and sameProjectAfterImport):
             cleanupFailed = False
             try:
-                unlinkIfSameFile(imported.path, imported.identity)
+                removeImportedProjectImage(project, imported)
             except OSError as exc:
                 cleanupFailed = True
                 logger.warning("Could not remove uninserted project image '%s'", imported.path, exc_info=exc)
@@ -433,7 +460,7 @@ class GuiDocPanes(QWidget):
                 self.docEditor.setTextCursor(capturedCursor)
             cleanupFailed = False
             try:
-                unlinkIfSameFile(imported.path, imported.identity)
+                removeImportedProjectImage(project, imported)
             except OSError as exc:
                 cleanupFailed = True
                 logger.warning("Could not remove uninserted project image '%s'", imported.path, exc_info=exc)

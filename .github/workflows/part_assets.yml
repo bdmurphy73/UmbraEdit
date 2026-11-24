@@ -16,7 +16,12 @@ jobs:
       - name: Install System Packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y qttools6-dev-tools latexmk texlive texlive-latex-extra
+          sudo apt-get install -y \
+            qttools6-dev-tools \
+            latexmk \
+            texlive \
+            texlive-latex-extra \
+            texlive-xetex
 
       - name: Install UV and Python
         uses: astral-sh/setup-uv@v5
@@ -31,6 +36,12 @@ jobs:
       - name: Build Assets
         run: |
           uv run --no-sync pkgutils.py build-assets
+
+      - name: Validate PDF Manuals
+        run: |
+          uv run --no-sync python -m utils.manual \
+            umbraedit/assets/manual.pdf \
+            umbraedit/assets/manual_fr.pdf
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4

@@ -40,7 +40,13 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from umbraedit.common import writeTextFile
-from umbraedit.umbra.hooks import DOCUMENT_SAVED, PROJECT_CLOSING, PROJECT_OPENED, register
+from umbraedit.umbra.hooks import (
+    DOCUMENT_SAVED,
+    PROJECT_CLOSING,
+    PROJECT_OPENED,
+    PROJECT_RELEASED,
+    register,
+)
 from umbraedit.umbra.jsonio import readJson, writeJson
 from umbraedit.umbra.paths import deviceFile, historyDir, journalFile
 
@@ -415,7 +421,7 @@ class HistoryManager:
         through the project API so the editor reloads.
         """
         # Take a pre_restore snapshot first
-        self.snapshot(handle, "pre_restore", f"Pre-restore of {revId}")
+        self.snapshot(handle, "pre_restore", f"Pre-restore of {revId}", force=True)
 
         # Read the revision text
         text = self.readRevision(handle, revId)
@@ -613,6 +619,11 @@ def _onProjectClosing(project: Any) -> None:
         unbindProject()
 
 
+def _onProjectReleased(project: Any) -> None:
+    """Unbind history without pruning or writing to a released project."""
+    unbindProject()
+
+
 def _onDocumentSaved(handle: str, text: str) -> None:
     mgr = _historyManager
     if mgr is not None:
@@ -660,4 +671,5 @@ def _writeJournalEntry(projectPath: Path, kind: str, message: str) -> None:
 
 register(PROJECT_OPENED, _onProjectOpened)
 register(PROJECT_CLOSING, _onProjectClosing)
+register(PROJECT_RELEASED, _onProjectReleased)
 register(DOCUMENT_SAVED, _onDocumentSaved)

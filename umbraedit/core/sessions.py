@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 
 from pathlib import Path
 from time import time
@@ -32,6 +33,7 @@ from typing import TYPE_CHECKING
 from umbraedit import CONFIG, SHARED
 from umbraedit.common import formatTimeStamp
 from umbraedit.constants import nwFiles
+from umbraedit.core.safeio import captureRegularFileIdentity, openRegularFile, writeFileAtomic
 from umbraedit.error import logException
 
 if TYPE_CHECKING:
@@ -71,9 +73,16 @@ class SessionLog:
         self._start = time()
 
     def appendSession(self, idleTime: float) -> bool:
-        """Append session statistics to the sessions log file."""
-        sessFile = self._project.storage.getMetaFile(nwFiles.SESS_FILE)
-        if not isinstance(sessFile, Path):
+        """Append session statistics to the sessions log file.
+
+        The log is rewritten atomically from its validated contents. This
+        avoids following a link or appending to a file that was replaced
+        concurrently after it was inspected.
+        """
+        storage = self._project.storage
+        sessFile = storage.getMetaFile(nwFiles.SESS_FILE)
+        parentIdentity = storage.metaIdentity
+        if not isinstance(sessFile, Path) or parentIdentity is None:
             return False
 
         now = time()
@@ -90,24 +99,42 @@ class SessionLog:
             logger.info("Session too short, skipping log entry")
             return False
 
+        record = self.createRecord(
+            start=formatTimeStamp(self._start),
+            end=formatTimeStamp(now),
+            novel=cWNovel,
+            notes=cWNotes,
+            idle=round(idleTime),
+            cnovel=cCNovel,
+            cnotes=cCNotes,
+        )
+        lineEnding = CONFIG.lineEnding if isinstance(CONFIG.lineEnding, str) else os.linesep
+
+        def encodeRecord(text: str) -> bytes:
+            """Encode a record with the configured line ending."""
+            return text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", lineEnding).encode("utf-8")
+
         try:
-            if not sessFile.exists():
-                with open(sessFile, mode="w", encoding="utf-8", newline=CONFIG.lineEnding) as fObj:
-                    fObj.write(self.createInitial(iWTotal))
+            targetIdentity = captureRegularFileIdentity(sessFile)
+            if targetIdentity is None:
+                payload = encodeRecord(self.createInitial(iWTotal)) + encodeRecord(record)
+            else:
+                with openRegularFile(
+                    sessFile,
+                    expectedParent=parentIdentity,
+                    expectedIdentity=targetIdentity,
+                ) as inFile:
+                    payload = inFile.read() + encodeRecord(record)
 
-            with open(sessFile, mode="a+", encoding="utf-8", newline=CONFIG.lineEnding) as fObj:
-                fObj.write(
-                    self.createRecord(
-                        start=formatTimeStamp(self._start),
-                        end=formatTimeStamp(now),
-                        novel=cWNovel,
-                        notes=cWNotes,
-                        idle=round(idleTime),
-                        cnovel=cCNovel,
-                        cnotes=cCNotes,
-                    )
-                )
-
+            writeFileAtomic(
+                sessFile,
+                payload,
+                expectedParent=parentIdentity,
+                expectedTarget=targetIdentity,
+                replaceExisting=targetIdentity is not None,
+                quarantineParent=storage.runtimePath,
+                expectedQuarantineParent=storage.rootIdentity,
+            )
         except Exception as exc:
             SHARED.appendErrorMessage(exc)
             logger.error("Failed to write to session stats file")
@@ -118,12 +145,20 @@ class SessionLog:
 
     def iterRecords(self) -> Iterable[dict]:
         """Iterate through all records in the log."""
-        sessFile = self._project.storage.getMetaFile(nwFiles.SESS_FILE)
+        storage = self._project.storage
+        sessFile = storage.getMetaFile(nwFiles.SESS_FILE)
+        parentIdentity = storage.metaIdentity
         try:
-            if isinstance(sessFile, Path) and sessFile.is_file():
-                with open(sessFile, mode="r", encoding="utf-8") as fObj:
-                    for line in fObj:
-                        yield json.loads(line)
+            if isinstance(sessFile, Path) and parentIdentity is not None:
+                targetIdentity = captureRegularFileIdentity(sessFile)
+                if targetIdentity is not None:
+                    with openRegularFile(
+                        sessFile,
+                        expectedParent=parentIdentity,
+                        expectedIdentity=targetIdentity,
+                    ) as inFile:
+                        for line in inFile:
+                            yield json.loads(line)
         except Exception:
             logger.error("Failed to process session stats file")
             logException()

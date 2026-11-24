@@ -241,6 +241,8 @@ class OptionState:
                 expectedParent=parentIdentity,
                 expectedTarget=targetIdentity,
                 replaceExisting=replaceTarget,
+                quarantineParent=self._project.storage.runtimePath,
+                expectedQuarantineParent=self._project.storage.rootIdentity,
             )
             self._lastIdentity = publishedIdentity
             self._identityKnown = True
@@ -269,7 +271,7 @@ class OptionState:
             parentStat = os.lstat(stateFile.parent)
             if isLinkLike(stateFile.parent) or not stat.S_ISDIR(parentStat.st_mode):
                 raise OSError("The project meta folder is not a real directory")
-            parentIdentity = fileIdentity(parentStat)
+            parentIdentity = fileIdentity(parentStat, stateFile.parent)
         verifyPathIdentity(stateFile.parent, parentIdentity, requireDirectory=True)
         return parentIdentity
 

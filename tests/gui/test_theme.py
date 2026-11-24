@@ -28,7 +28,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, Mock
 
 import pytest
-import tomllib
+import tomllib  # type: ignore[reportMissingImports]
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QColor, QFont, QFontDatabase, QIcon, QPalette, QPixmap, QStyleHints

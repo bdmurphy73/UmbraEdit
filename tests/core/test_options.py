@@ -32,6 +32,7 @@ import pytest
 from umbraedit.constants import nwFiles
 from umbraedit.core.options import OptionState
 from umbraedit.core.project import NWProject
+from umbraedit.core.safeio import fileIdentity
 from umbraedit.enum import nwNovelExtra
 
 from tests.mocked import MockGuiMain, causeOSError
@@ -74,6 +75,8 @@ def testOptionState_LoadSave(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMa
 
     # Set path
     project.storage._runtimePath = fncPath
+    project.storage._rootIdentity = fileIdentity(os.lstat(fncPath), fncPath)
+    project.storage._metaIdentity = fileIdentity(os.lstat(metaDir), metaDir)
     project.storage._ready = True
     assert project.storage.getMetaFile(nwFiles.OPTS_FILE) == optFile
 
@@ -122,6 +125,8 @@ def testOptionState_RejectsSymlink(fncPath: Path, mockGUI: MockGuiMain):
     metaDir = fncPath / "meta"
     metaDir.mkdir()
     project.storage._runtimePath = fncPath
+    project.storage._rootIdentity = fileIdentity(os.lstat(fncPath), fncPath)
+    project.storage._metaIdentity = fileIdentity(os.lstat(metaDir), metaDir)
     project.storage._ready = True
 
     outside = fncPath / "outside.json"

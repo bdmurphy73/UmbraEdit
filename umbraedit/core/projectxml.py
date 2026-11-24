@@ -208,7 +208,7 @@ class ProjectXMLReader:
         try:
             with openRegularFile(self._path, expectedParent=self._expectedParent) as inFile:
                 fileStat = os.fstat(inFile.fileno())
-                self._lastIdentity = fileIdentity(fileStat)
+                self._lastIdentity = fileIdentity(fileStat, fileDescriptor=inFile.fileno())
                 xml = ET.parse(inFile)
             self._state = XMLReadState.NO_ERROR
         except Exception as exc:
@@ -626,6 +626,14 @@ class ProjectXMLWriter:
 
         # Write the XML tree to file
         try:
+            targetIdentity = expectedTarget
+            replaceTarget = replaceExisting
+            if targetIdentity is None and replaceTarget and self._lastIdentity is not None:
+                # A writer remembers the identity of its own last successful
+                # publication. Reuse it so a repeated save replaces exactly
+                # that file while an unrelated replacement remains protected.
+                targetIdentity = self._lastIdentity
+
             xml = ET.ElementTree(xRoot)
             xmlIndent(xml)
             buffer = StringIO()
@@ -641,11 +649,12 @@ class ProjectXMLWriter:
                 self._path,
                 payload,
                 expectedParent=expectedParent,
-                expectedTarget=expectedTarget,
-                replaceExisting=replaceExisting,
+                expectedTarget=targetIdentity,
+                replaceExisting=replaceTarget,
             )
         except Exception as exc:
             SHARED.appendErrorMessage(exc)
+            logger.error("Failed to write project XML", exc_info=exc)
             return False
 
         logger.debug("Project XML saved in %.3f ms", (time() - tStart) * 1000)

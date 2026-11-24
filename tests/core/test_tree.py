@@ -22,6 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import os
 import random
 
 from copy import deepcopy
@@ -34,6 +35,7 @@ from pytestqt.qtbot import QtBot
 from umbraedit.constants import nwFiles
 from umbraedit.core.item import ProjectItem
 from umbraedit.core.project import NWProject
+from umbraedit.core.safeio import fileIdentity
 from umbraedit.core.tree import ProjectTree
 from umbraedit.enum import nwItemClass, nwItemLayout, nwItemType
 
@@ -964,8 +966,12 @@ def testProjectTree_ToCFile(
         return dItem.itemType == nwItemType.FILE
 
     monkeypatch.setattr("pathlib.Path.is_file", mockIsFile)
+    contentPath = fncPath / "content"
+    contentPath.mkdir(exist_ok=True)
     project._storage._runtimePath = fncPath
-    # (fncPath / "content").mkdir()
+    project._storage._rootIdentity = fileIdentity(os.lstat(fncPath), fncPath)
+    project._storage._contentIdentity = fileIdentity(os.lstat(contentPath), contentPath)
+    project._storage._ready = True
 
     # Block extraction of the path
     with monkeypatch.context() as mp:
@@ -974,7 +980,7 @@ def testProjectTree_ToCFile(
 
     # Block opening the file
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.tree.writeFileAtomic", causeOSError)
         assert tree.writeToCFile() is False
 
     # Allow writing
@@ -990,3 +996,29 @@ def testProjectTree_ToCFile(
         "content/000000000000e.md  NOVEL      DOCUMENT  New Chapter\n"
         "content/000000000000f.md  NOVEL      DOCUMENT  New Scene\n"
     )
+
+
+@pytest.mark.core
+def testProjectTree_ToCFileRejectsSymlink(
+    mockGUI: MockGuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that the ToC writer never follows a symbolic link."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    externalFile = fncPath / "outside.txt"
+    externalFile.write_text("outside", encoding="utf-8")
+    tocPath = projPath / nwFiles.TOC_FILE
+    tocPath.unlink(missing_ok=True)
+    try:
+        os.symlink(externalFile, tocPath)
+    except OSError:
+        pytest.skip("Symbolic links are not available")
+
+    assert project.tree.writeToCFile() is False
+    assert externalFile.read_text(encoding="utf-8") == "outside"
+    assert tocPath.is_symlink()

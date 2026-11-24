@@ -30,7 +30,7 @@ from pathlib import Path
 from shutil import copyfile
 
 import pytest
-import tomllib
+import tomllib  # type: ignore[reportMissingImports]
 
 from PyQt6.QtCore import QRect, Qt
 from PyQt6.QtGui import QFont, QFontDatabase
@@ -597,6 +597,69 @@ def testConfig_RecentCache(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths, 
 
 
 @pytest.mark.base
+def testConfig_RecentCacheRequiresInitialisedConfig(tmp_path: Path, nwGUI: GuiMain):
+    """Test that an uninitialised config cannot write a recent cache."""
+    config = Config()
+    config._dataPath = tmp_path
+    recent = RecentProjects(config)
+    project = NWProject()
+    project.data.setUuid("test-project")
+    project.data.setName("Test Project")
+
+    recent.update(tmp_path / "project", project.data, 1700000000)
+    assert recent.listEntries() == []
+    assert not (tmp_path / nwFiles.RECENT_FILE).exists()
+    assert recent.saveCache() is False
+
+    config.initConfig(confPath=tmp_path / "config", dataPath=tmp_path / "data")
+    recent.update(tmp_path / "project", project.data, 1700000000)
+    assert len(recent.listEntries()) == 1
+    assert (tmp_path / "data" / nwFiles.RECENT_FILE).exists()
+
+
+@pytest.mark.base
+def testConfig_FailedInitialisationKeepsCachesDisabled(tmp_path: Path, nwGUI: GuiMain):
+    """Test that failed path creation leaves the config uninitialised."""
+    config = Config()
+    blockedParent = tmp_path / "blocked"
+    blockedParent.write_text("not a directory", encoding="utf-8")
+
+    config.initConfig(confPath=tmp_path / "config", dataPath=blockedParent / "data")
+
+    assert config.isInitialised is False
+    recent = RecentProjects(config)
+    project = NWProject()
+    project.data.setUuid("test-project")
+    project.data.setName("Test Project")
+    recent.update(tmp_path / "project", project.data, 1700000000)
+
+    assert recent.listEntries() == []
+    assert recent.saveCache() is False
+    assert not (blockedParent / "data" / nwFiles.RECENT_FILE).exists()
+
+
+@pytest.mark.base
+def testConfig_OptionalFolderFailureKeepsCachesEnabled(tmp_path: Path, nwGUI: GuiMain):
+    """Test that an optional subfolder failure does not disable the cache."""
+    dataPath = tmp_path / "data"
+    dataPath.mkdir()
+    (dataPath / "cache").write_text("not a directory", encoding="utf-8")
+
+    config = Config()
+    config.initConfig(confPath=tmp_path / "config", dataPath=dataPath)
+
+    assert config.isInitialised is True
+    recent = RecentProjects(config)
+    project = NWProject()
+    project.data.setUuid("test-project")
+    project.data.setName("Test Project")
+    recent.update(tmp_path / "project", project.data, 1700000000)
+
+    assert len(recent.listEntries()) == 1
+    assert (dataPath / nwFiles.RECENT_FILE).exists()
+
+
+@pytest.mark.base
 def testConfig_RecentPaths(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths):
     """Test recent paths file."""
     cacheFile = tstPaths.cnfDir / nwFiles.RECENT_PATH
@@ -674,7 +737,7 @@ def testConfig_RecentPaths(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths):
 
 
 @pytest.mark.base
-def testConfig_IOError(monkeypatch: pytest.MonkeyPatch):
+def testConfig_IOError(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Test handling of I/O errors when using pathlib."""
     with monkeypatch.context() as mp:
         mp.setattr(Path, "iterdir", causeOSError)
@@ -691,7 +754,7 @@ def testConfig_IOError(monkeypatch: pytest.MonkeyPatch):
     with monkeypatch.context() as mp:
         config = Config()
         mp.setattr(Path, "is_dir", causeOSError)
-        config.initConfig()
+        config.initConfig(confPath=fncPath, dataPath=fncPath)
 
 
 @pytest.mark.base

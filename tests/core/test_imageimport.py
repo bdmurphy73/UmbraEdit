@@ -26,7 +26,9 @@ import errno
 import os
 import shutil
 import stat
+import struct
 import subprocess
+import zlib
 
 from pathlib import Path
 from time import time
@@ -38,7 +40,14 @@ import pytest
 from umbraedit import SHARED
 from umbraedit.constants import nwFiles
 from umbraedit.core import imageimport
-from umbraedit.core.imageimport import ImageImportError, ImageImportReason, importProjectImage, safeImageStem
+from umbraedit.core.imageimport import (
+    ImageImportError,
+    ImageImportReason,
+    importProjectImage,
+    removeImportedProjectImage,
+    safeImageStem,
+    verifyImportedProjectImage,
+)
 from umbraedit.core.project import NWProject, copyRegularFile
 from umbraedit.core.safeio import renameNoReplace, renameNoReplaceBetween, renameNoReplaceIfSameFile
 from umbraedit.core.storage import _addFileToZip
@@ -51,6 +60,36 @@ def _writeImage(path: Path, imageFormat: str = "PNG", size: tuple[int, int] = (4
     """Write a small valid test image."""
     path.parent.mkdir(parents=True, exist_ok=True)
     PIL.Image.new("RGB", size, (20, 40, 60)).save(path, format=imageFormat)
+
+
+def _writeCorruptApng(path: Path) -> None:
+    """Write an APNG whose second frame has corrupt compressed data."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    first = PIL.Image.new("RGBA", (8, 8), (255, 0, 0, 255))
+    second = PIL.Image.new("RGBA", (8, 8), (0, 255, 0, 255))
+    first.save(path, format="PNG", save_all=True, append_images=[second])
+
+    data = path.read_bytes()
+    output = bytearray(data[:8])
+    position = 8
+    frame = 0
+    while position < len(data):
+        length = struct.unpack(">I", data[position : position + 4])[0]
+        chunkType = data[position + 4 : position + 8]
+        payload = data[position + 8 : position + 8 + length]
+        if chunkType == b"fcTL":
+            frame += 1
+        if chunkType == b"fdAT" and frame == 2:
+            corrupted = bytearray(payload)
+            corrupted[8] ^= 0xFF
+            checksum = zlib.crc32(b"fdAT" + bytes(corrupted[4:])) & 0xFFFFFFFF
+            output.extend(b"fdAT")
+            output.extend(corrupted)
+            output.extend(struct.pack(">I", checksum))
+        else:
+            output.extend(data[position : position + 12 + length])
+        position += 12 + length
+    path.write_bytes(output)
 
 
 @pytest.mark.core
@@ -81,6 +120,105 @@ def testImageImport_ValidImages(
 
 
 @pytest.mark.core
+def testImageImport_RejectsCorruptApngFrame(
+    mockGUI: MockGuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that every animation frame is decoded before import."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    source = fncPath / "animated.png"
+    _writeCorruptApng(source)
+
+    with pytest.raises(ImageImportError) as exc:
+        importProjectImage(project, source)
+
+    assert exc.value.reason == ImageImportReason.INVALID_IMAGE
+    assert not (projPath / "assets" / "img").exists()
+
+
+@pytest.mark.core
+def testImageImport_ExclusiveFallbackHandlesCrossDevice(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that EXDEV errors use the exclusive-copy publication fallback."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    source = fncPath / "cover.png"
+    _writeImage(source)
+
+    def crossDevice(*args: object, **kwargs: object) -> None:
+        raise OSError(errno.EXDEV, "Cross-device link", str(source))
+
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.imageimport.os.link", crossDevice)
+        mp.setattr("umbraedit.core.imageimport.renameNoReplaceIfSameFile", crossDevice)
+        result = importProjectImage(project, source)
+
+    assert result.relativePath == "assets/img/cover.png"
+    assert result.path.read_bytes() == source.read_bytes()
+
+
+@pytest.mark.core
+def testImageImport_VerificationRejectsReplacement(
+    mockGUI: MockGuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that an imported image is revalidated before it is used."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    source = fncPath / "cover.png"
+    _writeImage(source)
+    imported = importProjectImage(project, source)
+    verifyImportedProjectImage(project, imported)
+
+    imported.path.unlink()
+    imported.path.write_bytes(b"replacement")
+
+    with pytest.raises(OSError):
+        verifyImportedProjectImage(project, imported)
+
+
+@pytest.mark.core
+def testImageImport_AcceptsJpegMarkerFillBytes(
+    mockGUI: MockGuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that valid JPEG fill bytes before the EOI marker are accepted."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    source = fncPath / "cover.jpg"
+    _writeImage(source, "JPEG")
+    imageData = source.read_bytes()
+    endMarker = imageData.rfind(b"\xff\xd9")
+    assert endMarker >= 0
+    source.write_bytes(imageData[:endMarker] + b"\xff\xff" + imageData[endMarker:])
+
+    result = importProjectImage(project, source)
+
+    assert result.relativePath == "assets/img/cover.jpg"
+    assert result.path.read_bytes() == source.read_bytes()
+
+
+@pytest.mark.core
 def testImageImport_CollisionSuffix(
     mockGUI: MockGuiMain,
     projPath: Path,
@@ -103,6 +241,87 @@ def testImageImport_CollisionSuffix(
     assert second.relativePath == "assets/img/cover_1.png"
     assert first.path.read_bytes() == original
     assert second.path.read_bytes() == original
+
+
+@pytest.mark.core
+def testImageImport_RemovalUsesProjectQuarantine(
+    mockGUI: MockGuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that cleanup retains removed images in the project quarantine."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    source = fncPath / "cover.png"
+    _writeImage(source)
+    imported = importProjectImage(project, source)
+
+    assert removeImportedProjectImage(project, imported) is True
+    assert not imported.path.exists()
+
+    if os.name != "nt":
+        quarantine = projPath / ".umbraedit-quarantine"
+        assert quarantine.is_dir()
+        assert list(quarantine.iterdir())
+        assert not (imported.path.parent / ".umbraedit-quarantine").exists()
+
+
+@pytest.mark.core
+def testImageImport_RemovalPreservesReplacement(
+    mockGUI: MockGuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that cleanup never removes a raced image replacement."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    source = fncPath / "cover.png"
+    _writeImage(source)
+    imported = importProjectImage(project, source)
+    imported.path.unlink()
+    imported.path.write_bytes(b"replacement")
+
+    with pytest.raises(OSError):
+        removeImportedProjectImage(project, imported)
+
+    assert imported.path.read_bytes() == b"replacement"
+    if os.name != "nt":
+        assert not (imported.path.parent / ".umbraedit-quarantine").exists()
+
+
+@pytest.mark.core
+def testImageImport_RemovalRejectsChangedAssetFolder(
+    mockGUI: MockGuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that cleanup cannot be redirected by replacing the asset folder."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    source = fncPath / "cover.png"
+    _writeImage(source)
+    imported = importProjectImage(project, source)
+    originalAssetDir = imported.path.parent
+    movedAssetDir = originalAssetDir.with_name("img-original")
+    originalAssetDir.rename(movedAssetDir)
+    originalAssetDir.mkdir()
+
+    with pytest.raises(OSError):
+        removeImportedProjectImage(project, imported)
+
+    assert (movedAssetDir / imported.path.name).is_file()
+    assert not list(originalAssetDir.iterdir())
+    if os.name != "nt":
+        assert not (originalAssetDir / ".umbraedit-quarantine").exists()
 
 
 @pytest.mark.core
@@ -464,7 +683,48 @@ def testImageImport_AtomicRenameFallbackPreservesConcurrentTarget(
     assert exc.value.reason == ImageImportReason.WRITE_FAILED
     assert injected is True
     target = projPath / "assets" / "img" / "cover.png"
-    assert target.read_bytes() == concurrentBytes
+    assert not target.exists()
+    conflicts = list((projPath / "assets" / "img").glob(".umbraedit-conflict-*"))
+    assert len(conflicts) == 1
+    assert conflicts[0].read_bytes() == concurrentBytes
+
+
+@pytest.mark.core
+def testImageImport_AtomicRenameFallbackPreservesUnrelatedTargetAfterRace(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that fallback recovery never quarantines an unrelated target."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    source = fncPath / "cover.png"
+    _writeImage(source)
+    unrelatedBytes = b"unrelated target"
+
+    def causeLinkError(*args, **kwargs):
+        raise OSError(errno.EPERM, "Hard links are not supported")
+
+    def failRename(*args, **kwargs):
+        target = projPath / "assets" / "img" / "cover.png"
+        target.write_bytes(unrelatedBytes)
+        raise OSError(errno.ESTALE, "The staged source changed")
+
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.imageimport.os.link", causeLinkError)
+        mp.setattr("umbraedit.core.imageimport.renameNoReplaceIfSameFile", failRename)
+        with pytest.raises(ImageImportError) as exc:
+            importProjectImage(project, source)
+
+    assert exc.value.reason == ImageImportReason.WRITE_FAILED
+    target = projPath / "assets" / "img" / "cover.png"
+    assert target.read_bytes() == unrelatedBytes
+    assert list((projPath / "assets" / "img").glob(".umbraedit-conflict-*")) == []
+    assert list(projPath.glob(".umbraedit-image-*.tmp")) == []
 
 
 @pytest.mark.core
@@ -551,7 +811,6 @@ def testImageImport_FallbackWithoutHardLinks(
     with monkeypatch.context() as mp:
         mp.setattr("umbraedit.core.imageimport.os.link", causeOSError)
         mp.setattr("umbraedit.core.imageimport.renameNoReplaceIfSameFile", unsupportedRename)
-        mp.setattr("umbraedit.core.imageimport.renameNoReplace", unsupportedRename)
         result = importProjectImage(project, source)
 
     assert result.relativePath == "assets/img/cover.png"
@@ -664,7 +923,6 @@ def testImageImport_ExclusiveFallbackHidesPartialFile(
     with monkeypatch.context() as mp:
         mp.setattr("umbraedit.core.imageimport.os.link", causeOSError)
         mp.setattr("umbraedit.core.imageimport.renameNoReplaceIfSameFile", unsupportedRename)
-        mp.setattr("umbraedit.core.imageimport.renameNoReplace", unsupportedRename)
         mp.setattr("umbraedit.core.imageimport.shutil.copyfileobj", inspectCopy)
         result = importProjectImage(project, source)
 

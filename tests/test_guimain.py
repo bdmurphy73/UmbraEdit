@@ -112,6 +112,84 @@ def testGuiMain_ProjectBlocker(caplog: pytest.LogCaptureFixture, nwGUI: GuiMain)
 
 
 @pytest.mark.gui
+def testGuiMain_CloseRetriesPendingLockCleanup(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+):
+    """Test that a failed lock cleanup can be retried from the GUI."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+
+    lockPath = projPath / nwFiles.PROJ_LOCK
+    assert lockPath.exists()
+
+    import umbraedit.core.storage as projectStorage
+
+    unlinkEntry = projectStorage.unlinkEntryIfSameFile
+    failed = False
+
+    def failLockCleanup(path: Path, *args: Any, **kwargs: Any) -> bool:
+        """Fail the first attempt to remove the project lock."""
+        nonlocal failed
+        if Path(path).name == nwFiles.PROJ_LOCK and not failed:
+            failed = True
+            raise OSError("lock cleanup failed")
+        return unlinkEntry(path, *args, **kwargs)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(projectStorage, "unlinkEntryIfSameFile", failLockCleanup)
+        assert nwGUI.closeProject(isYes=True) is False
+
+    assert failed is True
+    assert lockPath.exists()
+    assert SHARED.hasProject is False
+    assert SHARED.hasPendingProjectCleanup is True
+
+    assert nwGUI.closeProject(isYes=True) is True
+    assert not lockPath.exists()
+    assert SHARED.hasPendingProjectCleanup is False
+
+
+@pytest.mark.gui
+def testGuiMain_OpenFailureRetainsPendingLockCleanup(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+):
+    """Test that a failed open retains retryable lock ownership."""
+    buildTestProject(NWProject(), projPath)
+    lockPath = projPath / nwFiles.PROJ_LOCK
+
+    import umbraedit.core.storage as projectStorage
+
+    unlinkEntry = projectStorage.unlinkEntryIfSameFile
+
+    def failLockCleanup(path: Path, *args: Any, **kwargs: Any) -> bool:
+        """Fail removal of the project lock."""
+        if Path(path).name == nwFiles.PROJ_LOCK:
+            raise OSError("lock cleanup failed")
+        return unlinkEntry(path, *args, **kwargs)
+
+    def failLoadIndex(*args: object, **kwargs: object) -> None:
+        """Fail after the project lock has been acquired."""
+        raise RuntimeError("index load failed")
+
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.index.Index.loadIndex", failLoadIndex)
+        mp.setattr(projectStorage, "unlinkEntryIfSameFile", failLockCleanup)
+        assert nwGUI.openProject(projPath) is False
+
+    assert lockPath.exists()
+    assert SHARED.hasProject is False
+    assert SHARED.hasPendingProjectCleanup is True
+
+    assert nwGUI.closeProject(isYes=True) is True
+    assert not lockPath.exists()
+    assert SHARED.hasPendingProjectCleanup is False
+
+
+@pytest.mark.gui
 def testGuiMain_SaveAsUsesProjectFolder(
     monkeypatch: pytest.MonkeyPatch,
     nwGUI: GuiMain,

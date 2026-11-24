@@ -22,6 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import logging
 import random
@@ -37,7 +38,7 @@ else:
         TypeGuard = type  # type: ignore
 
 from PyQt6.QtCore import QPointF, Qt
-from PyQt6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPixmap, QPolygonF
+from PyQt6.QtGui import QColor, QGuiApplication, QIcon, QPainter, QPainterPath, QPixmap, QPolygonF
 
 from umbraedit import SHARED
 from umbraedit.common import simplified
@@ -91,7 +92,7 @@ class ItemStatus:
         self._store: dict[str, StatusEntry] = {}
         self._default = None
         self._prefix = prefix[:1]
-        self._height = SHARED.theme.baseIconHeight
+        self._height = SHARED.theme.baseIconHeight if SHARED.hasTheme else 16
 
     def __del__(self) -> None:  # pragma: no cover
         """Class destructor."""
@@ -117,7 +118,7 @@ class ItemStatus:
         """Add or update a status entry. If the key is invalid, a new
         key is generated.
         """
-        qColor = SHARED.theme.parseColor(color)
+        qColor = SHARED.theme.parseColor(color) if SHARED.hasTheme else self._parseColor(color)
         theme = color if color in nwLabels.THEME_COLORS else CUSTOM_COL
 
         try:
@@ -204,12 +205,30 @@ class ItemStatus:
         """Refresh all icons."""
         for entry in self._store.values():
             if entry.theme != CUSTOM_COL:
-                entry.color = SHARED.theme.parseColor(entry.theme)
+                entry.color = SHARED.theme.parseColor(entry.theme) if SHARED.hasTheme else self._parseColor(entry.theme)
             entry.icon = ItemStatus.createIcon(self._height, entry.color, entry.shape)
+
+    @staticmethod
+    def _parseColor(value: str) -> QColor:
+        """Parse a status colour without requiring the GUI theme."""
+        if value.startswith("#") and len(value) == 9:
+            return QColor.fromString(f"#{value[7:9]}{value[1:7]}")
+        if value.startswith("#") and len(value) == 7:
+            return QColor.fromString(value)
+        if "," in value:
+            values = [0, 0, 0, 255]
+            for index, item in enumerate(value.split(",")[:4]):
+                with contextlib.suppress(ValueError):
+                    values[index] = max(0, min(255, int(item.strip())))
+            return QColor(*values)
+        color = QColor(value)
+        return color if color.isValid() else QColor(0, 0, 0)
 
     @staticmethod
     def createIcon(height: int, color: QColor, shape: nwStatusShape) -> QIcon:
         """Generate an icon for a status label."""
+        if not isinstance(QGuiApplication.instance(), QGuiApplication):
+            return QIcon()
         pixmap = QPixmap(48, 48)
         pixmap.fill(QtTransparent)
 

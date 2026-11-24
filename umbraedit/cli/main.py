@@ -23,6 +23,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import logging
 import sys
@@ -31,6 +32,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 from umbraedit.cli.api import DEFAULT_PORT, cmd_serve
+from umbraedit.cli.api import _releaseProjects as _releaseApiProjects
+from umbraedit.cli.project_cleanup import releaseProjects
 
 logger = logging.getLogger(__name__)
 
@@ -38,16 +41,33 @@ EXIT_OK = 0
 EXIT_BLOCKED = 2
 EXIT_ERROR = 1
 
+_openProjects: list[Any] = []
+
 
 def _load_project(project_path: str | Path) -> Any:
     """Open a project without Qt."""
     from umbraedit.core.project import NWProject
 
     project = NWProject()
-    if not project.openProject(str(project_path)):
+    # Register before opening so an exception after lock acquisition is
+    # still cleaned up by the command dispatcher.
+    _openProjects.append(project)
+    if not project.openProject(str(project_path), updateRecent=False):
         print(f"Error: cannot open project '{project_path}'", file=sys.stderr)
         sys.exit(EXIT_ERROR)
     return project
+
+
+def _releaseProjects() -> bool:
+    """Release all project session locks opened by CLI commands."""
+    released = releaseProjects(_openProjects)
+    apiReleased = _releaseApiProjects()
+    if not released:
+        logger.warning("One or more project session locks are still pending cleanup")
+    return released and apiReleased
+
+
+atexit.register(_releaseProjects)
 
 
 def _write_json(data: Any) -> None:
@@ -856,12 +876,19 @@ def main(argv: Optional[list[str]] = None) -> int:
         parser.print_help()
         return EXIT_ERROR
 
+    exitCode = EXIT_ERROR
     try:
-        return args.func(args)
+        exitCode = args.func(args)
     except KeyboardInterrupt:
         print("\nInterrupted", file=sys.stderr)
-        return EXIT_ERROR
+        exitCode = EXIT_ERROR
     except Exception as exc:
         logger.exception("CLI error")
         print(f"Error: {exc}", file=sys.stderr)
-        return EXIT_ERROR
+        exitCode = EXIT_ERROR
+    finally:
+        cleanupReleased = _releaseProjects()
+    if not cleanupReleased and exitCode == EXIT_OK:
+        print("Error: one or more project locks could not be released", file=sys.stderr)
+        exitCode = EXIT_ERROR
+    return exitCode

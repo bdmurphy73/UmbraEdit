@@ -37,6 +37,7 @@ from pathlib import Path
 
 from utils.common import ROOT_DIR, apiRequest, getEnvValue, log, writeFile
 from utils.docs import buildPdfDocAssets
+from utils.manual import validate_manual_pdf
 
 UTC = timezone.utc
 
@@ -462,3 +463,9 @@ def buildAllAssets(args: argparse.Namespace) -> None:
     buildSampleZip()
     buildTranslationAssets()
     buildPdfDocAssets()
+
+    assetDir = ROOT_DIR / "umbraedit" / "assets"
+    for manualName in ("manual.pdf", "manual_fr.pdf"):
+        manualPath = assetDir / manualName
+        validate_manual_pdf(manualPath)
+        log(f"[cg]Validated:[e] {manualPath.relative_to(ROOT_DIR)}")

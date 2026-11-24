@@ -26,14 +26,14 @@ import logging
 
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from PyQt6.QtGui import QFont, QIcon
+
 from umbraedit import CONFIG, SHARED
 from umbraedit.common import checkInt, isHandle, isItemClass, isItemLayout, isItemType, simplified, yesNo
 from umbraedit.constants import nwLabels, nwStyles, trConst
 from umbraedit.enum import nwItemClass, nwItemLayout, nwItemType
 
 if TYPE_CHECKING:
-    from PyQt6.QtGui import QFont, QIcon
-
     from umbraedit.core.project import NWProject
 
 logger = logging.getLogger(__name__)
@@ -363,16 +363,22 @@ class ProjectItem:
         """Get the main item icon style."""
         if self._icon:
             return self._icon
+        if not SHARED.hasTheme:
+            return ""
         return SHARED.theme.getItemIconStyle(self._type, self._class, self._layout, self._heading)
 
     def getMainIcon(self) -> QIcon:
         """Get the main item icon."""
+        if not SHARED.hasTheme:
+            return QIcon()
         if self._icon:
             return SHARED.theme.getIcon(self._icon)
         return SHARED.theme.getItemIcon(self._type, self._class, self._layout, self._heading)
 
     def getMainFont(self) -> QFont:
         """Get the main item icon."""
+        if not SHARED.hasTheme:
+            return QFont()
         if CONFIG.emphLabels and self._layout == nwItemLayout.DOCUMENT:
             if self._heading == "H1":
                 return SHARED.theme.guiFontBU
@@ -400,6 +406,8 @@ class ProjectItem:
         else:
             icon = "noncheckable:disabled"
             text = ""
+        if not SHARED.hasTheme:
+            return text, QIcon()
         return text, SHARED.theme.getIcon(icon)
 
     ##

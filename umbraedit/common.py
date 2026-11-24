@@ -33,7 +33,7 @@ import xml.etree.ElementTree as ET
 from contextlib import suppress
 
 with suppress(ModuleNotFoundError):
-    import tomllib  # noqa: F401 - used via sys.modules alias
+    import tomllib  # type: ignore[reportMissingImports]  # noqa: F401 - used via sys.modules alias
 
 from datetime import date, datetime
 from pathlib import Path

@@ -67,10 +67,19 @@ rsync -a \
     --exclude='*.py[cod]' \
     --exclude='dist/' \
     --exclude='dist_*/' \
+    --exclude='umbraedit/assets/manual*.pdf' \
     --exclude='tests/_temp/' \
     --exclude='*.egg-info/' \
     --exclude='build/' \
     "${SRC_DIR}/" "${STAGE}/${RELEASE}/"
+
+# Generated manuals are release artifacts, not source files. They are built
+# and validated separately, and must never enter the source tarball.
+UNEXPECTED_MANUAL="$(find "${STAGE}/${RELEASE}/umbraedit/assets" -type f -name 'manual*.pdf' -print -quit 2>/dev/null || true)"
+if [ -n "${UNEXPECTED_MANUAL}" ]; then
+    echo "ERROR: Generated PDF manual entered the source tarball: ${UNEXPECTED_MANUAL}"
+    exit 1
+fi
 
 # The build scripts are shipped next to the tarball as well
 for script in build-linux.sh install-linux.sh; do

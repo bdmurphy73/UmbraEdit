@@ -165,8 +165,8 @@ class ProjectDocument:
             contentStat = os.lstat(content)
             if isLinkLike(content) or not stat.S_ISDIR(contentStat.st_mode):
                 raise OSError("The content folder is not a real directory")
-            parentIdentity = expectedParent if expectedParent is not None else fileIdentity(contentStat)
-            if fileIdentity(contentStat) != parentIdentity:
+            parentIdentity = expectedParent if expectedParent is not None else fileIdentity(contentStat, content)
+            if fileIdentity(contentStat, content) != parentIdentity:
                 raise OSError("The content folder changed since the project was opened")
             path = content / f"{tHandle}.md"
             try:
@@ -175,7 +175,7 @@ class ProjectDocument:
                 return ""
             if isLinkLike(path) or not stat.S_ISREG(targetStat.st_mode):
                 raise OSError("The document file is not a regular file")
-            targetIdentity = fileIdentity(targetStat)
+            targetIdentity = fileIdentity(targetStat, path)
             with (
                 openRegularFile(
                     path,
@@ -262,7 +262,7 @@ class ProjectDocument:
             try:
                 if isLinkLike(docPath) or not stat.S_ISREG(targetStat.st_mode):
                     raise OSError("The document file is not a regular file")
-                targetIdentity = fileIdentity(targetStat)
+                targetIdentity = fileIdentity(targetStat, docPath)
                 with (
                     openRegularFile(
                         docPath,
@@ -281,7 +281,7 @@ class ProjectDocument:
                     # can detect a concurrent replacement without relying
                     # only on timestamps and file size.
                     fileStat = os.fstat(inFile.fileno())
-                    self._lastIdentity = fileIdentity(fileStat)
+                    self._lastIdentity = fileIdentity(fileStat, fileDescriptor=inFile.fileno())
                     self._identityKnown = True
                     self._lastStat = (fileStat.st_mtime_ns, fileStat.st_size)
 
@@ -320,7 +320,7 @@ class ProjectDocument:
             contentStat = os.lstat(contentPath)
             if isLinkLike(contentPath) or not stat.S_ISDIR(contentStat.st_mode):
                 raise OSError("The content folder is not a real directory")
-            contentIdentity = fileIdentity(contentStat)
+            contentIdentity = fileIdentity(contentStat, contentPath)
         except OSError as exc:
             self._error = formatException(exc)
             return False
@@ -344,7 +344,7 @@ class ProjectDocument:
             if isLinkLike(docPath) or not stat.S_ISREG(targetStat.st_mode):
                 self._error = "The document file is not a regular file"
                 return False
-            currentIdentity = fileIdentity(targetStat)
+            currentIdentity = fileIdentity(targetStat, docPath)
 
         if self._identityKnown:
             if self._lastIdentity != currentIdentity:
@@ -427,6 +427,8 @@ class ProjectDocument:
                 expectedParent=contentIdentity,
                 expectedTarget=expectedTarget,
                 replaceExisting=replaceExisting,
+                quarantineParent=self._project.storage.runtimePath,
+                expectedQuarantineParent=self._project.storage.rootIdentity,
             )
         except Exception as exc:
             self._error = formatException(exc)
@@ -474,7 +476,7 @@ class ProjectDocument:
             parentFd: Optional[int] = None
             if os.name != "nt" and os.open in os.supports_dir_fd:
                 parentFd = openDirectory(contentPath)
-                if fileIdentity(os.fstat(parentFd)) != contentIdentity:
+                if fileIdentity(os.fstat(parentFd), fileDescriptor=parentFd) != contentIdentity:
                     raise OSError("The content folder changed before the document could be removed")
             try:
                 for targetPath in (docPath, docTemp):
@@ -487,7 +489,18 @@ class ProjectDocument:
                         continue
                     if isLinkLike(targetPath) or not stat.S_ISREG(targetStat.st_mode):
                         raise OSError("The document file is not a regular file")
-                    unlinkIfSameFile(targetPath, fileIdentity(targetStat), dirFd=parentFd)
+                    targetIdentity = (
+                        fileIdentity(targetStat, Path(targetPath.name), dirFd=parentFd)
+                        if parentFd is not None
+                        else fileIdentity(targetStat, targetPath)
+                    )
+                    unlinkIfSameFile(
+                        targetPath,
+                        targetIdentity,
+                        dirFd=parentFd,
+                        quarantineParent=self._project.storage.runtimePath,
+                        expectedQuarantineParent=self._project.storage.rootIdentity,
+                    )
             finally:
                 if parentFd is not None:
                     os.close(parentFd)
@@ -506,7 +519,7 @@ class ProjectDocument:
         contentStat = os.lstat(contentPath)
         if isLinkLike(contentPath) or not stat.S_ISDIR(contentStat.st_mode):
             raise OSError("The content folder is not a real directory")
-        contentIdentity = fileIdentity(contentStat)
+        contentIdentity = fileIdentity(contentStat, contentPath)
         expectedIdentity = self._project.storage.contentIdentity
         if expectedIdentity is not None and contentIdentity != expectedIdentity:
             raise OSError("The content folder changed since the project was opened")

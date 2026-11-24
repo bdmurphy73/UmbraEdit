@@ -12,14 +12,24 @@ on:
 
 jobs:
   testLinux:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest]
         python-version:
           - "3.9"
           - "3.11"
           - "3.12"
           - "3.13"
+        exclude:
+          # setup-python cannot install Python 3.9 on Ubuntu 26.04, which
+          # is currently the ubuntu-latest image. Keep the declared minimum
+          # version covered on the last Ubuntu image that provides it.
+          - os: ubuntu-latest
+            python-version: "3.9"
+        include:
+          - os: ubuntu-22.04
+            python-version: "3.9"
       fail-fast: false
     name: Linux Python ${{ matrix.python-version }}
     permissions:
@@ -42,7 +52,8 @@ jobs:
             qt6-l10n-tools \
             libenchant-2-dev \
             hunspell-en-us \
-            hunspell-en-gb
+            hunspell-en-gb \
+            qt6-image-formats-plugins
 
       - name: Install UV and Python
         uses: astral-sh/setup-uv@v5

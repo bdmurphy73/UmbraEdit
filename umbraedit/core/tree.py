@@ -23,6 +23,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import logging
+import os
 import random
 
 from pathlib import Path
@@ -34,6 +35,7 @@ from umbraedit import CONFIG, SHARED
 from umbraedit.common import safeIsFile
 from umbraedit.constants import nwFiles, nwLabels, nwStyles, trConst
 from umbraedit.core.item import ProjectItem
+from umbraedit.core.safeio import captureRegularFileIdentity, writeFileAtomic
 from umbraedit.enum import nwChange, nwItemClass, nwItemLayout, nwItemType
 from umbraedit.error import logException
 from umbraedit.models.itemmodel import ProjectModel, ProjectNode
@@ -397,10 +399,16 @@ class ProjectTree:
     def writeToCFile(self) -> bool:
         """Write the convenience table of contents file in the root of
         the project directory.
+
+        The write is atomic and bound to the validated project root. A
+        pre-existing link or a concurrently replaced root is rejected
+        rather than followed.
         """
-        runtimePath = self._project.storage.runtimePath
-        contentPath = self._project.storage.contentPath
-        if not (isinstance(contentPath, Path) and isinstance(runtimePath, Path)):
+        storage = self._project.storage
+        runtimePath = storage.runtimePath
+        contentPath = storage.contentPath
+        rootIdentity = storage.rootIdentity
+        if not (isinstance(contentPath, Path) and isinstance(runtimePath, Path) and rootIdentity is not None):
             return False
 
         entries = []
@@ -418,19 +426,30 @@ class ProjectTree:
                 entries.append(tocLine)
                 maxLen = max(maxLen, len(tocLine))
 
-        try:
-            with open(runtimePath / nwFiles.TOC_FILE, mode="w", encoding="utf-8", newline=CONFIG.lineEnding) as toc:
-                toc.write("\n")
-                toc.write("Table of Contents\n")
-                toc.write("=================\n")
-                toc.write("\n")
-                toc.write(
-                    "{0:<24s}  {1:<9s}  {2:<8s}  {3:s}\n".format("File Name", "Class", "Layout", "Document Label")
-                )
-                toc.write("-" * max(maxLen, 61) + "\n")
-                toc.write("\n".join(entries))
-                toc.write("\n")
+        tocText = (
+            "\n"
+            "Table of Contents\n"
+            "=================\n"
+            "\n"
+            + "{0:<24s}  {1:<9s}  {2:<8s}  {3:s}\n".format("File Name", "Class", "Layout", "Document Label")
+            + "-" * max(maxLen, 61)
+            + "\n"
+            + "\n".join(entries)
+            + "\n"
+        )
+        lineEnding = CONFIG.lineEnding if isinstance(CONFIG.lineEnding, str) else os.linesep
+        payload = tocText.replace("\r\n", "\n").replace("\r", "\n").replace("\n", lineEnding).encode("utf-8")
 
+        try:
+            tocPath = runtimePath / nwFiles.TOC_FILE
+            targetIdentity = captureRegularFileIdentity(tocPath)
+            writeFileAtomic(
+                tocPath,
+                payload,
+                expectedParent=rootIdentity,
+                expectedTarget=targetIdentity,
+                replaceExisting=targetIdentity is not None,
+            )
         except Exception as exc:
             SHARED.appendErrorMessage(exc)
             logger.error("Could not write ToC file")

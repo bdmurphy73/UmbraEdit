@@ -76,10 +76,17 @@ html_sidebars = {
 
 # -- Options for LaTeX Output ------------------------------------------------
 
+latex_engine = "xelatex"
 latex_elements = {
     "papersize": "a4paper",
     "pointsize": "11pt",
-    "preamble": ("\\usepackage[utf8]{inputenc}\n\\DeclareUnicodeCharacter{2212}{\\textendash}\n"),
+    "preamble": (
+        "\\usepackage{iftex}\n"
+        "\\ifPDFTeX\n"
+        "\\usepackage[utf8]{inputenc}\n"
+        "\\DeclareUnicodeCharacter{2212}{\\textendash}\n"
+        "\\fi\n"
+    ),
     "figure_align": "htbp",
 }
 latex_logo = "_static/umbraedit-pdf.png"

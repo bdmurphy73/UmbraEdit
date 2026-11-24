@@ -37,6 +37,7 @@ from umbraedit.constants import nwFiles
 from umbraedit.core.index import Index, TagsIndex
 from umbraedit.core.item import ProjectItem
 from umbraedit.core.project import NWProject
+from umbraedit.core.safeio import fileIdentity
 from umbraedit.enum import nwComment, nwItemClass, nwItemLayout, nwNovelExtra
 from umbraedit.guimain import GuiMain
 from umbraedit.models.novelmodel import NovelModel
@@ -53,6 +54,8 @@ def testIndex_RejectsSymlink(fncPath: Path, mockGUI: MockGuiMain):
     metaDir = fncPath / "meta"
     metaDir.mkdir()
     project.storage._runtimePath = fncPath
+    project.storage._rootIdentity = fileIdentity(os.lstat(fncPath), fncPath)
+    project.storage._metaIdentity = fileIdentity(os.lstat(metaDir), metaDir)
     project.storage._ready = True
 
     outside = fncPath / "outside.json"

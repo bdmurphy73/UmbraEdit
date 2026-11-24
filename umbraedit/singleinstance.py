@@ -7,8 +7,8 @@ This file is a part of UmbraEdit.
 Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 
 Created: Ensures only one instance of UmbraEdit runs at a time. If
-another instance is running, tries to switch to it. If it appears
-hung, kills the existing instance and starts a new one.
+another instance is running, tries to switch to it. Indeterminate lock
+states fail closed and require explicit recovery.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,170 +26,131 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-import contextlib
+import atexit
 import logging
-import os
-import signal
 import subprocess
+import sys
 
 from pathlib import Path
+from typing import Optional
+
+from PyQt6.QtCore import QLockFile, QStandardPaths
 
 logger = logging.getLogger(__name__)
 
-LOCK_FILE = Path("/tmp/umbraedit_instance.lock")
+_dataRoot = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.GenericDataLocation)
+LOCK_FILE = Path(_dataRoot) / "umbraedit" / "instance.lock"
+
+_instanceLock: Optional[QLockFile] = None
+_LOCK_FAILED_ERROR = QLockFile.LockError.LockFailedError
 
 
-def _getRunningPids() -> list[int]:
-    """Find all running UmbraEdit process IDs (excluding this one)."""
-    myPid = os.getpid()
-    pids = []
-    for _procDir in Path("/proc").glob("[0-9]*") if Path("/proc").is_dir() else Path("/dev/null").glob("x"):
-        pass
-    # macOS doesn't have /proc, use ps instead
+class SingleInstanceError(RuntimeError):
+    """Raised when the single-instance lock cannot be used safely."""
+
+
+def _activateExistingInstance() -> None:
+    """Try to bring an existing UmbraEdit window to the foreground."""
+    if sys.platform == "darwin":
+        command = ["osascript", "-e", 'tell application "UmbraEdit" to activate']
+    elif sys.platform.startswith("linux"):
+        command = ["wmctrl", "-a", "UmbraEdit"]
+    else:
+        # There is no portable Windows activation command in this module.
+        return
+
     try:
         result = subprocess.run(
-            ["ps", "aux"],
+            command,
             capture_output=True,
-            text=True,
             timeout=5,
+            check=False,
         )
-        for line in result.stdout.splitlines():
-            # Match the actual Python interpreter running UmbraEdit.py
-            # Not just any process with "umbraedit" in the path (like node/esbuild)
-            if "UmbraEdit.py" not in line:
-                continue
-            if "python" not in line and "Python" not in line:
-                continue
-            if "grep" in line:
-                continue
-            parts = line.split()
-            if len(parts) >= 2:
-                try:
-                    pid = int(parts[1])
-                    if pid != myPid:
-                        pids.append(pid)
-                except (ValueError, IndexError):
-                    pass
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        pass
-    return pids
+    except (OSError, subprocess.SubprocessError) as exc:
+        logger.warning("Could not activate existing UmbraEdit instance: %s", exc)
+        return
 
-
-def _isHung(pid: int) -> bool:
-    """Check if a process with the given PID appears to be hung.
-
-    A process is considered hung if it has been in a sleeping or
-    stopped state for a long time with no CPU activity.
-    """
-    try:
-        result = subprocess.run(
-            ["ps", "-o", "state=,cputime=,etime=", "-p", str(pid)],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        parts = result.stdout.strip().split()
-        if not parts:
-            return False
-        state = parts[0] if parts else "?"
-        # States: S=sleeping, T=stopped, Z=zombie, R=running
-        # Consider S (sleeping) for > 30 min or Z (zombie) as hung
-        cputime = parts[1] if len(parts) > 1 else "0:00"
-        etime = parts[2] if len(parts) > 2 else "0:00"
-        if state == "Z":
-            return True
-        # Parse elapsed time, if running for > 30 min with minimal CPU, consider hung
-        if ":" in etime:
-            timeParts = etime.split(":")
-            if len(timeParts) >= 2:
-                try:
-                    if "days" in etime or "-" in etime:
-                        return False  # Running for days, not hung
-                    totalSecs = 0
-                    if len(timeParts) == 3:
-                        totalSecs = int(timeParts[0]) * 3600 + int(timeParts[1]) * 60 + int(timeParts[2])
-                    elif len(timeParts) == 2:
-                        totalSecs = int(timeParts[0]) * 60 + int(timeParts[1])
-                    if totalSecs > 1800 and cputime in ("0:00", "0:00.00"):
-                        return True  # Running > 30 min with no CPU
-                except (ValueError, IndexError):
-                    pass
-        return False
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        return False
+    if result.returncode == 0:
+        logger.info("Switched to existing UmbraEdit instance")
+    else:
+        logger.warning("Could not activate existing UmbraEdit instance")
 
 
 def checkSingleInstance() -> bool:
-    """Check for running UmbraEdit instances.
+    """Check whether this process may continue starting.
 
-    Returns True if this instance should continue starting.
-    Returns False if another instance took over (or is running fine).
+    The lock is retained for the lifetime of the process. A second call
+    from the same process is idempotent. If another process owns the
+    lock, the existing window is activated and ``False`` is returned.
+
+    An indeterminate lock state raises :class:`SingleInstanceError`.
+    Failing closed is required because allowing a second instance to
+    start without proven exclusivity could corrupt shared application
+    data.
     """
-    myPid = os.getpid()
-    pids = _getRunningPids()
+    global _instanceLock
 
-    if not pids:
+    if _instanceLock is not None and _instanceLock.isLocked():
+        return True
+
+    try:
+        LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise SingleInstanceError(
+            f"Could not create the UmbraEdit instance lock directory '{LOCK_FILE.parent}'."
+        ) from exc
+
+    lock = QLockFile(str(LOCK_FILE))
+    lock.setStaleLockTime(0)
+
+    if lock.tryLock(0):
+        _instanceLock = lock
         logger.debug("No other UmbraEdit instances running")
-        _writeLockFile(myPid)
         return True
 
-    # Check each existing instance
-    alivePids = []
-    for pid in pids:
-        try:
-            os.kill(pid, 0)  # Check if process exists
-            alivePids.append(pid)
-        except (ProcessLookupError, PermissionError):  # noqa: PERF203
-            pass  # Process doesn't exist anymore
+    if lock.error() != _LOCK_FAILED_ERROR:
+        raise SingleInstanceError(f"Could not acquire the UmbraEdit instance lock '{LOCK_FILE}': {lock.error()}.")
 
-    if not alivePids:
-        logger.debug("All previous instances are dead")
-        _writeLockFile(myPid)
-        return True
-
-    # Try to bring the first alive instance to the foreground
-    import platform as plat
-
-    if plat.system() == "Darwin":
-        # On macOS, use AppleScript to activate the app
-        try:
-            script = 'tell application "UmbraEdit" to activate'
-            subprocess.run(["osascript", "-e", script], capture_output=True, timeout=5)
-            logger.info("Switched to existing UmbraEdit instance")
-            return False
-        except Exception:
-            logger.warning("Could not activate existing instance, checking if hung...")
-    else:
-        # On Linux, use wmctrl or xdotool if available
-        try:
-            subprocess.run(["wmctrl", "-a", "UmbraEdit"], capture_output=True, timeout=5)
-            logger.info("Switched to existing UmbraEdit instance")
-            return False
-        except FileNotFoundError:
-            pass
-
-    # Check if any instances appear hung
-    hungPids = [pid for pid in alivePids if _isHung(pid)]
-    if hungPids:
-        logger.warning("Found hung UmbraEdit instance(s): %s, killing...", hungPids)
-        for pid in hungPids:
-            try:
-                os.kill(pid, signal.SIGKILL)
-                logger.info("Killed hung process %d", pid)
-            except (ProcessLookupError, PermissionError):  # noqa: PERF203
-                pass
-        # Remove hung pids from alive list
-        alivePids = [pid for pid in alivePids if pid not in hungPids]
-        if not alivePids:
-            _writeLockFile(myPid)
+    lockInfo = lock.getLockInfo()
+    if not lockInfo[0]:
+        # The owner may have exited between the failed acquisition and the
+        # metadata read, or it may still be writing the lock metadata. A
+        # bounded retry distinguishes an exited owner from malformed data.
+        if lock.tryLock(100):
+            _instanceLock = lock
+            logger.debug("No other UmbraEdit instances running")
             return True
 
-    # There's a healthy instance running that we can't switch to
-    logger.info("Another healthy UmbraEdit instance is already running (PID: %s)", alivePids[0])
+        if lock.error() != _LOCK_FAILED_ERROR:
+            raise SingleInstanceError(f"Could not acquire the UmbraEdit instance lock '{LOCK_FILE}': {lock.error()}.")
+        lockInfo = lock.getLockInfo()
+
+    if not lockInfo[0]:
+        raise SingleInstanceError(
+            f"The UmbraEdit instance lock '{LOCK_FILE}' has malformed metadata. "
+            "UmbraEdit cannot verify that another instance is not running. "
+            "Close any running UmbraEdit instance and remove the lock file manually to recover."
+        )
+
+    logger.info("Another UmbraEdit instance is already running (PID: %s)", lockInfo[1])
+
+    # Failure to activate the existing window must never allow a second
+    # instance to start and mutate the same application data.
+    _activateExistingInstance()
     return False
 
 
-def _writeLockFile(pid: int) -> None:
-    """Write the current PID to the lock file."""
-    with contextlib.suppress(OSError):
-        LOCK_FILE.write_text(str(pid), encoding="utf-8")
+def releaseSingleInstance() -> None:
+    """Release the retained application instance lock."""
+    global _instanceLock
+
+    lock = _instanceLock
+    _instanceLock = None
+    if lock is not None:
+        try:
+            lock.unlock()
+        except Exception as exc:
+            logger.warning("Could not release the UmbraEdit instance lock: %s", exc)
+
+
+atexit.register(releaseSingleInstance)

@@ -2,11 +2,25 @@
 
 from __future__ import annotations
 
+from argparse import Namespace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from umbraedit.cli.main import EXIT_BLOCKED, EXIT_ERROR, EXIT_OK, build_parser, main
+import umbraedit.cli.api as apiMain
+import umbraedit.cli.main as cliMain
+
+from umbraedit.cli.api import cmd_serve
+from umbraedit.cli.main import (
+    EXIT_BLOCKED,
+    EXIT_ERROR,
+    EXIT_OK,
+    _load_project,
+    _releaseProjects,
+    build_parser,
+    main,
+)
 
 
 class TestParser:
@@ -32,6 +46,228 @@ class TestParser:
         assert EXIT_OK == 0
         assert EXIT_BLOCKED == 2
         assert EXIT_ERROR == 1
+
+
+class TestRecentProjectIsolation:
+    """Tests that standalone project opens do not update the recent cache."""
+
+    @pytest.fixture(autouse=True)
+    def clearApiSessions(self):
+        """Keep deliberately stuck API sessions out of later tests."""
+        apiMain._openProjects.clear()
+        yield
+        apiMain._openProjects.clear()
+
+    def test_cli_loader_opts_out(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        """The CLI loader must not track standalone project opens."""
+        calls: list[tuple[str, dict[str, object]]] = []
+
+        class FakeProject:
+            def openProject(self, path: str, **kwargs: object) -> bool:
+                calls.append((path, kwargs))
+                return True
+
+            def releaseSession(self) -> None:
+                pass
+
+        monkeypatch.setattr("umbraedit.core.project.NWProject", FakeProject)
+        project = _load_project(tmp_path)
+
+        assert isinstance(project, FakeProject)
+        assert calls == [(str(tmp_path), {"updateRecent": False})]
+        _releaseProjects()
+
+    def test_api_server_opts_out(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        """The local API server must not track standalone project opens."""
+        calls: list[tuple[str, dict[str, object]]] = []
+
+        class FakeProject:
+            def openProject(self, path: str, **kwargs: object) -> bool:
+                calls.append((path, kwargs))
+                return True
+
+            def releaseSession(self) -> None:
+                pass
+
+        monkeypatch.setattr("umbraedit.core.project.NWProject", FakeProject)
+        monkeypatch.setattr("umbraedit.cli.api.serve", lambda project, port: None)
+
+        assert cmd_serve(Namespace(project=str(tmp_path), port=8123)) == EXIT_OK
+        assert calls == [(str(tmp_path), {"updateRecent": False})]
+
+    def test_api_open_failure_releases_session(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        """The API must release a partially opened project session."""
+        released = False
+
+        class FailingProject:
+            def openProject(self, path: str, **kwargs: object) -> bool:
+                raise RuntimeError("open failed")
+
+            def releaseSession(self) -> bool:
+                nonlocal released
+                released = True
+                return True
+
+        monkeypatch.setattr("umbraedit.core.project.NWProject", FailingProject)
+        with pytest.raises(RuntimeError):
+            cmd_serve(Namespace(project=str(tmp_path), port=8123))
+        assert released is True
+
+    def test_api_reports_failed_lock_cleanup(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        """The API must fail when the project lock remains held."""
+        released = False
+
+        class StuckProject:
+            def openProject(self, path: str, **kwargs: object) -> bool:
+                return True
+
+            def releaseSession(self) -> bool:
+                nonlocal released
+                released = True
+                return False
+
+        monkeypatch.setattr("umbraedit.core.project.NWProject", StuckProject)
+        monkeypatch.setattr("umbraedit.cli.api.serve", lambda project, port: None)
+
+        assert cmd_serve(Namespace(project=str(tmp_path), port=8123)) == EXIT_ERROR
+        assert released is True
+
+    def test_api_reports_lock_cleanup_error(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        """The API must fail when project lock cleanup raises an error."""
+
+        class FailingCleanupProject:
+            def openProject(self, path: str, **kwargs: object) -> bool:
+                return True
+
+            def releaseSession(self) -> bool:
+                raise OSError("cleanup failed")
+
+        monkeypatch.setattr("umbraedit.core.project.NWProject", FailingCleanupProject)
+        monkeypatch.setattr("umbraedit.cli.api.serve", lambda project, port: None)
+
+        assert cmd_serve(Namespace(project=str(tmp_path), port=8123)) == EXIT_ERROR
+
+    def test_benchmark_opts_out(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        """The benchmark must not track standalone project opens."""
+        from utils import umbra_bench
+
+        calls: list[tuple[Path, dict[str, object]]] = []
+
+        class FakeIndex:
+            def rebuild(self) -> None:
+                pass
+
+        class FakeProject:
+            index = FakeIndex()
+            tree: list[object] = []
+            storage = SimpleNamespace(contentPath=None)
+
+            def openProject(self, path: Path, **kwargs: object) -> bool:
+                calls.append((path, kwargs))
+                return True
+
+            def releaseSession(self) -> None:
+                pass
+
+        monkeypatch.setattr("umbraedit.core.project.NWProject", FakeProject)
+
+        assert isinstance(umbra_bench.bench(tmp_path), dict)
+        assert calls == [
+            (tmp_path, {"updateRecent": False}),
+            (tmp_path, {"updateRecent": False}),
+            (tmp_path, {"updateRecent": False}),
+        ]
+
+    def test_benchmark_failure_releases_session(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        """A failed benchmark phase must release the project session."""
+        from utils import umbra_bench
+
+        releases = 0
+
+        class FailingIndex:
+            def rebuild(self) -> None:
+                raise RuntimeError("rebuild failed")
+
+        class FakeProject:
+            index = FailingIndex()
+
+            def openProject(self, path: Path, **kwargs: object) -> bool:
+                return True
+
+            def releaseSession(self) -> bool:
+                nonlocal releases
+                releases += 1
+                return True
+
+        monkeypatch.setattr("umbraedit.core.project.NWProject", FakeProject)
+        with pytest.raises(RuntimeError):
+            umbra_bench.bench(tmp_path)
+        assert releases >= 1
+
+
+class TestProjectSessionCleanup:
+    """Tests for standalone project session ownership."""
+
+    def test_loader_registers_project_before_open(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        """A failed open must remain registered for dispatcher cleanup."""
+        released = False
+
+        class FailingProject:
+            def openProject(self, path: str, **kwargs: object) -> bool:
+                raise RuntimeError("open failed")
+
+            def releaseSession(self) -> bool:
+                nonlocal released
+                released = True
+                return True
+
+        monkeypatch.setattr("umbraedit.core.project.NWProject", FailingProject)
+        cliMain._openProjects.clear()
+        with pytest.raises(RuntimeError):
+            _load_project(tmp_path)
+
+        assert len(cliMain._openProjects) == 1
+        _releaseProjects()
+        assert released is True
+        assert cliMain._openProjects == []
+
+    def test_release_projects_retries_failed_cleanup(self, monkeypatch: pytest.MonkeyPatch):
+        """A failed release must remain pending for a later retry."""
+        attempts = 0
+
+        class RetryProject:
+            def releaseSession(self) -> bool:
+                nonlocal attempts
+                attempts += 1
+                return attempts > 1
+
+        project = RetryProject()
+        monkeypatch.setattr(cliMain, "_openProjects", [project])
+        _releaseProjects()
+        assert cliMain._openProjects == [project]
+
+        _releaseProjects()
+        assert cliMain._openProjects == []
+        assert attempts == 2
+
+    def test_main_reports_pending_lock_cleanup(self, monkeypatch: pytest.MonkeyPatch):
+        """A successful command must fail if its project lock remains."""
+        apiMain._openProjects.clear()
+
+        class StuckProject:
+            def releaseSession(self) -> bool:
+                return False
+
+        parser = SimpleNamespace(
+            parse_args=lambda argv: SimpleNamespace(
+                command="test",
+                func=lambda args: EXIT_OK,
+            )
+        )
+        monkeypatch.setattr(cliMain, "build_parser", lambda: parser)
+        monkeypatch.setattr(cliMain, "_openProjects", [StuckProject()])
+
+        assert main([]) == EXIT_ERROR
 
 
 class TestVerify:

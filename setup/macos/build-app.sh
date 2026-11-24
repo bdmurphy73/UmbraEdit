@@ -135,7 +135,8 @@ uv export --frozen --no-dev --no-emit-project --no-hashes --format requirements-
 # Check that all assets are present
 echo "Checking assets"
 for asset in "umbraedit/assets/sample.zip" "umbraedit/assets/manual.pdf" \
-    "umbraedit/assets/i18n/project_en_US.json" "setup/icons/umbraedit.png" \
+    "umbraedit/assets/manual_fr.pdf" "umbraedit/assets/i18n/project_en_US.json" \
+    "setup/icons/umbraedit.png" \
     "setup/macos/umbraedit.icns" "setup/macos/umbraedit_launcher.sh"; do
     if [ -f "$SRC_DIR/$asset" ]; then
         echo "Found: $asset"
@@ -144,6 +145,15 @@ for asset in "umbraedit/assets/sample.zip" "umbraedit/assets/manual.pdf" \
         die "Missing asset: $asset"
     fi
 done
+
+# Reject empty or malformed manuals before copying the source tree into the
+# application bundle. Validate every manual so stale placeholders for other
+# languages cannot slip into the release either.
+MANUAL_FILES=("$SRC_DIR"/umbraedit/assets/manual*.pdf)
+if [ "${#MANUAL_FILES[@]}" -lt 2 ]; then
+    die "Both English and French PDF manuals are required"
+fi
+python3 -m utils.manual "${MANUAL_FILES[@]}" || die "Invalid PDF manual asset"
 
 popd || die "Could not leave $SRC_DIR"
 

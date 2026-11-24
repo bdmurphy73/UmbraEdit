@@ -28,6 +28,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from shutil import copyfile
+from typing import Any
 from zipfile import ZipFile
 
 import pytest
@@ -36,12 +37,26 @@ from umbraedit import CONFIG, SHARED
 from umbraedit.constants import nwFiles
 from umbraedit.core.project import NWProject, NWProjectState
 from umbraedit.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLReadState
-from umbraedit.core.safeio import renameNoReplace
+from umbraedit.core.safeio import FileIdentity, copyRegularFile, renameNoReplace
 from umbraedit.enum import nwItemClass, nwProjectKind
 from umbraedit.shared import _GuiAlert
 
 from tests.helpers import XML_IGNORE, C, MockRnd, TstPaths, buildTestProject, cmpFiles
 from tests.mocked import MockGuiMain, causeOSError
+
+
+@pytest.mark.core
+def testNWProject_HeadlessConstruction(monkeypatch: pytest.MonkeyPatch):
+    """Test that core project objects can be built without a GUI theme."""
+    monkeypatch.setattr(SHARED, "_gui", None)
+    monkeypatch.setattr(SHARED, "_theme", None)
+
+    project = NWProject()
+
+    assert project.isValid is False
+    assert project.state == NWProjectState.UNKNOWN
+    SHARED.error("Headless error")
+    assert SHARED.question("Headless question", default=True) is True
 
 
 @pytest.mark.core
@@ -439,6 +454,208 @@ def testNWProject_ReopenResetsFileIdentityReceipts(
 
 
 @pytest.mark.core
+def testNWProject_CloseDoesNotFollowMetadataLinks(
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that close-time metadata writes cannot follow symbolic links."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+
+    tocTarget = fncPath.parent / "outside-toc.txt"
+    sessionTarget = fncPath.parent / "outside-sessions.jsonl"
+    tocTarget.write_text("outside toc", encoding="utf-8")
+    sessionTarget.write_text("outside session", encoding="utf-8")
+
+    tocPath = fncPath / nwFiles.TOC_FILE
+    sessionPath = fncPath / "meta" / nwFiles.SESS_FILE
+    tocPath.unlink(missing_ok=True)
+    sessionPath.unlink(missing_ok=True)
+    try:
+        os.symlink(tocTarget, tocPath)
+        os.symlink(sessionTarget, sessionPath)
+    except OSError:
+        pytest.skip("Symbolic links are not available")
+
+    project.data.setInitCounts(50, 60, 500, 600)
+    project.data.setCurrCounts(160, 150, 1600, 1500)
+    project.session._start -= 350.0
+
+    project.closeProject()
+
+    assert tocTarget.read_text(encoding="utf-8") == "outside toc"
+    assert sessionTarget.read_text(encoding="utf-8") == "outside session"
+    assert tocPath.is_symlink()
+    assert sessionPath.is_symlink()
+
+
+@pytest.mark.core
+def testNWProject_CloseRejectsReplacedProjectRoot(
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that close-time writes cannot enter a replacement project root."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+
+    movedProject = fncPath.parent / f"{fncPath.name}-moved"
+    externalProject = fncPath.parent / f"{fncPath.name}-external"
+    externalProject.mkdir()
+    fncPath.rename(movedProject)
+    try:
+        os.symlink(externalProject, fncPath, target_is_directory=True)
+    except OSError:
+        movedProject.rename(fncPath)
+        pytest.skip("Symbolic links are not available")
+
+    project.closeProject()
+
+    assert list(externalProject.iterdir()) == []
+    assert fncPath.is_symlink()
+
+    # Restore the fixture path for the shared test cleanup.
+    fncPath.unlink()
+    movedProject.rename(fncPath)
+
+
+@pytest.mark.core
+def testNWProject_OpenRecentTrackingPolicy(
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that standalone opens can opt out of recent-project tracking."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+    project.closeProject()
+    CONFIG.recentProjects.remove(str(fncPath))
+
+    assert project.openProject(fncPath / "missing", updateRecent=False) is False
+    assert project.openProject(fncPath, updateRecent=False) is True
+    assert str(fncPath) not in [entry[0] for entry in CONFIG.recentProjects.listEntries()]
+    assert project.saveProject() is True
+    assert str(fncPath) not in [entry[0] for entry in CONFIG.recentProjects.listEntries()]
+    project.closeProject()
+
+    assert project.openProject(fncPath) is True
+    assert str(fncPath) in [entry[0] for entry in CONFIG.recentProjects.listEntries()]
+    project.closeProject()
+
+
+@pytest.mark.core
+def testNWProject_ReleaseSessionRemovesLockAndAllowsSecondOpen(
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that a standalone release removes the exclusive lock."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+
+    assert project.openProject(fncPath, updateRecent=False) is True
+    lockPath = fncPath / nwFiles.PROJ_LOCK
+    assert lockPath.exists()
+
+    assert project.releaseSession() is True
+    assert not lockPath.exists()
+    assert project.isValid is False
+    assert project.state == NWProjectState.UNKNOWN
+
+    # Releasing again is idempotent.
+    assert project.releaseSession() is True
+    assert project.openProject(fncPath, updateRecent=False) is True
+    project.releaseSession()
+
+
+@pytest.mark.core
+def testNWProject_OpenExceptionReleasesLock(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that an exception after lock acquisition releases the lock."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+    lockPath = fncPath / nwFiles.PROJ_LOCK
+
+    def failLoadIndex(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("index load failed")
+
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.index.Index.loadIndex", failLoadIndex)
+        assert project.openProject(fncPath, updateRecent=False) is False
+
+    assert not lockPath.exists()
+    assert project.isValid is False
+    assert project.openProject(fncPath, updateRecent=False) is True
+    project.releaseSession()
+
+
+@pytest.mark.core
+def testNWProject_CloseWriteFailureStillReleasesLock(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that close-time write failures cannot retain the project lock."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+    assert project.openProject(fncPath, updateRecent=False) is True
+    lockPath = fncPath / nwFiles.PROJ_LOCK
+    assert lockPath.exists()
+
+    def failSave(*args: object, **kwargs: object) -> bool:
+        raise RuntimeError("settings write failed")
+
+    monkeypatch.setattr("umbraedit.core.options.OptionState.saveSettings", failSave)
+    assert project.closeProject() is True
+    assert not lockPath.exists()
+    assert project.isValid is False
+    assert project.state == NWProjectState.UNKNOWN
+
+
+@pytest.mark.core
+def testNWProject_ReleaseSessionRetainsFailedCleanupOwnership(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that failed lock cleanup can be retried with the same identity."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+    assert project.openProject(fncPath, updateRecent=False) is True
+    lockPath = fncPath / nwFiles.PROJ_LOCK
+    assert lockPath.exists()
+
+    def failUnlink(*args: object, **kwargs: object) -> bool:
+        raise OSError("cleanup failed")
+
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.storage.unlinkEntryIfSameFile", failUnlink)
+        assert project.releaseSession() is False
+
+    assert lockPath.exists()
+    assert project.storage.isOpen() is True
+    assert project.storage._lockFileIdentity is not None
+
+    assert project.releaseSession() is True
+    assert not lockPath.exists()
+    assert project.storage.isOpen() is False
+
+
+@pytest.mark.core
 def testNWProject_OpenConvertsOldDocuments(
     monkeypatch: pytest.MonkeyPatch,
     mockGUI: MockGuiMain,
@@ -658,6 +875,31 @@ def testNWProject_SaveAsRejectsUnsafeTargets(
 
 
 @pytest.mark.core
+def testNWProject_SaveAsRejectsMissingMetadataFolder(
+    mockGUI: MockGuiMain,
+    mockRnd: MockRnd,
+    fncPath: Path,
+    projPath: Path,
+):
+    """Test that Save As does not silently omit validated metadata."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    metaPath = projPath / "meta"
+    movedMetaPath = fncPath / "moved-meta"
+    metaPath.rename(movedMetaPath)
+    target = fncPath / "missing-meta-copy"
+    try:
+        assert project.saveProjectAs(target, "Missing Metadata Copy") is False
+    finally:
+        movedMetaPath.rename(metaPath)
+
+    assert not target.exists()
+    assert project.storage.storagePath == projPath
+
+
+@pytest.mark.core
 def testNWProject_SaveAsPathFallback(
     monkeypatch: pytest.MonkeyPatch,
     mockGUI: MockGuiMain,
@@ -681,6 +923,69 @@ def testNWProject_SaveAsPathFallback(
     assert (target / "meta").is_dir()
     assert (target / "content").is_dir()
     assert (target / nwFiles.PROJ_FILE).is_file()
+    assert not list(fncPath.glob(".umbraedit-stage-*"))
+
+
+@pytest.mark.core
+def testNWProject_SaveAsRetainsPublishedFileIdentities(
+    mockGUI: MockGuiMain,
+    mockRnd: MockRnd,
+    fncPath: Path,
+    projPath: Path,
+):
+    """Test that a project remains saveable after Save As."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    target = fncPath / "save-as-copy"
+    assert project.saveProjectAs(target, "Save As Copy") is True
+    assert project.storage.xmlIdentity is not None
+    assert project.storage.lastManifestIdentity is not None
+
+    assert project.saveProject() is True
+    assert project.saveProject() is True
+    project.closeProject()
+
+
+@pytest.mark.core
+def testNWProject_SaveAsRejectsReplacedAssetFolder(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that Save As copies assets from the validated source snapshot."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    assetDir = projPath / "assets" / "img"
+    assetDir.mkdir(parents=True)
+    assetFile = assetDir / "cover.png"
+    assetFile.write_bytes(b"original image")
+    originalPath = project.storage.storagePath
+
+    realCopy = copyRegularFile
+    movedDir = projPath / "assets" / "img-original"
+
+    def replaceAssetFolder(source: Path, target: Path, **kwargs: Any) -> FileIdentity:
+        if source.parent == assetDir:
+            assetDir.rename(movedDir)
+            assetDir.mkdir()
+            (assetDir / source.name).write_bytes(b"replacement image")
+        return realCopy(source, target, **kwargs)
+
+    target = fncPath / "replaced-asset-copy"
+    with monkeypatch.context() as mp:
+        mp.setattr("umbraedit.core.project.copyRegularFile", replaceAssetFolder)
+        assert project.saveProjectAs(target, "Replaced Asset Copy") is False
+
+    assert project.storage.storagePath == originalPath
+    assert not target.exists()
+    assert (movedDir / "cover.png").read_bytes() == b"original image"
+    assert (assetDir / "cover.png").read_bytes() == b"replacement image"
     assert not list(fncPath.glob(".umbraedit-stage-*"))
 
 
@@ -892,7 +1197,7 @@ def testNWProject_Backup(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, 
     # Test correct settings
     assert project.backupProject(doNotify=True) is True
 
-    files = sorted((tstPaths.tmpDir / "Test Minimal").iterdir())
+    files = sorted(item for item in (tstPaths.tmpDir / "Test Minimal").iterdir() if item.suffix == ".zip")
     assert len(files) in (1, 2)  # Sometimes 2 due to clock tick
 
     zipFile = files[0]

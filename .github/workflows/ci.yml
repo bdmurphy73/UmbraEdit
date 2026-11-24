@@ -52,6 +52,14 @@ jobs:
           # macOS + 3.11 sometimes has PyQt6 issues on GH Actions
           - os: macos-latest
             python-version: "3.11"
+          # setup-python cannot install Python 3.9 on Ubuntu 26.04, which
+          # is currently the ubuntu-latest image. Keep the declared minimum
+          # version covered on the last Ubuntu image that provides it.
+          - os: ubuntu-latest
+            python-version: "3.9"
+        include:
+          - os: ubuntu-22.04
+            python-version: "3.9"
 
     steps:
       - name: Checkout repository
@@ -80,7 +88,8 @@ jobs:
             libfreetype6 \
             libenchant-2-dev \
             hunspell-en-us \
-            hunspell-en-gb
+            hunspell-en-gb \
+            qt6-image-formats-plugins
 
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
@@ -137,7 +146,8 @@ jobs:
             libfreetype6 \
             libenchant-2-dev \
             hunspell-en-us \
-            hunspell-en-gb
+            hunspell-en-gb \
+            qt6-image-formats-plugins
 
       - name: Install dependencies
         run: |

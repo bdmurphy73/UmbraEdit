@@ -26,6 +26,9 @@ import argparse
 import os
 import shutil
 import subprocess
+import sys
+
+from pathlib import Path
 
 try:
     import tomllib
@@ -33,6 +36,7 @@ except ImportError:
     import tomli as tomllib
 
 from utils.common import ROOT_DIR, extractVersion, formatVersion, log, splitVersion, systemCall
+from utils.manual import validate_manual_pdf
 
 
 def updateDocsTranslationSources(args: argparse.Namespace) -> None:
@@ -69,6 +73,59 @@ def updateDocsTranslationSources(args: argparse.Namespace) -> None:
     log("")
 
 
+def _buildTectonicPdf(docsDir: Path, code: str, env: dict[str, str]) -> str:
+    """Build a PDF manual with Sphinx and Tectonic.
+
+    Tectonic is used as a local fallback when latexmk is unavailable. The
+    release CI uses latexmk, while this path keeps manual generation
+    reproducible on developer machines that do not install a full TeX
+    distribution.
+    """
+    latexDir = docsDir / "build" / "latex"
+    doctreeDir = docsDir / "build" / "doctrees"
+    if latexDir.exists():
+        shutil.rmtree(latexDir)
+    if doctreeDir.exists():
+        shutil.rmtree(doctreeDir)
+
+    sphinxCmd = [sys.executable, "-m", "sphinx", "-b", "latex"]
+    if code != "en":
+        sphinxCmd.extend(["-D", f"language={code}"])
+    sphinxCmd.extend([str(docsDir / "source"), str(latexDir)])
+    sphinxResult = subprocess.run(
+        sphinxCmd,
+        cwd=docsDir,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    tectonic = shutil.which("tectonic")
+    if not tectonic:
+        raise RuntimeError("Neither latexmk nor tectonic is available to build PDF manuals")
+    tectonicCmd = [
+        tectonic,
+        "-X",
+        "compile",
+        "-r",
+        "2",
+        "--keep-logs",
+        "--outdir",
+        str(latexDir),
+        str(latexDir / "manual.tex"),
+    ]
+    tectonicResult = subprocess.run(
+        tectonicCmd,
+        cwd=latexDir,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return "\n".join((sphinxResult.stdout, sphinxResult.stderr, tectonicResult.stdout, tectonicResult.stderr))
+
+
 def buildDocs(args: argparse.Namespace | None = None, *, pdf: bool = False) -> None:
     """Build the documentation files, either as HTML or PDF."""
     log("")
@@ -79,7 +136,7 @@ def buildDocs(args: argparse.Namespace | None = None, *, pdf: bool = False) -> N
     bldRoot = ROOT_DIR / "dist_doc" / "html"
     docsDir = ROOT_DIR / "docs"
     locsDir = ROOT_DIR / "docs" / "source" / "locales"
-    pdfFile = ROOT_DIR / "docs" / "build" / "latex" / "manual.pdf"
+    pdfFile = docsDir / "build" / "latex" / "manual.pdf"
     locsDir.mkdir(exist_ok=True)
     bldRoot.mkdir(exist_ok=True, parents=True)
     locConf = tomllib.loads((locsDir / "config.toml").read_text(encoding="utf-8"))
@@ -100,12 +157,10 @@ def buildDocs(args: argparse.Namespace | None = None, *, pdf: bool = False) -> N
         outDir = bldRoot / code
         env = os.environ.copy()
         env["SPHINX_I18N_VERSION"] = formatVersion(currVersion)
-        cmd = "make clean latexpdf" if pdf else "make clean html"
         pdfName = "manual.pdf"
         if code != "en":
             if code not in locConf:
-                log(f"[cr]ERROR:[e] No config for language code '{code}' in config.toml")
-                continue
+                raise RuntimeError(f"No config for language code '{code}' in config.toml")
 
             locVersion = locConf[code].get("version", "")
             locMajor, locMinor, _ = splitVersion(locVersion)
@@ -116,22 +171,39 @@ def buildDocs(args: argparse.Namespace | None = None, *, pdf: bool = False) -> N
 
             env["SPHINX_I18N_VERSION"] = formatVersion(locVersion)
             env["SPHINX_I18N_AUTHORS"] = ", ".join(locConf[code].get("authors", []))
-            cmd += f" -e SPHINXOPTS=\"-D language='{code}'\""
             pdfName = f"manual_{code}.pdf"
 
+        env["SPHINXOPTS"] = f"-D language={code}" if code != "en" else ""
+
         try:
-            output = subprocess.check_output(cmd, cwd=docsDir, env=env, shell=True)
-            log("\n".join(output.decode("utf-8", errors="replace").rstrip().splitlines()[-11:]))
+            if pdf and not (shutil.which("latexmk") and shutil.which("make")):
+                output = _buildTectonicPdf(docsDir, code, env)
+            else:
+                target = "latexpdf" if pdf else "html"
+                result = subprocess.run(
+                    ["make", "clean", target],
+                    cwd=docsDir,
+                    env=env,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                output = "\n".join((result.stdout, result.stderr))
+            log("\n".join(output.rstrip().splitlines()[-11:]))
             log("")
             if pdf:
-                log("")
-                pdfFile.rename(ROOT_DIR / "umbraedit" / "assets" / pdfName)
+                validate_manual_pdf(pdfFile)
+                assetDir = ROOT_DIR / "umbraedit" / "assets"
+                assetDir.mkdir(exist_ok=True, parents=True)
+                os.replace(pdfFile, assetDir / pdfName)
             else:
                 if outDir.exists():
                     shutil.rmtree(outDir)
                 (docsDir / "build" / "html").rename(outDir)
-        except subprocess.CalledProcessError as ex:
-            log(f"[cr]ERROR:[e] Build returned error code {ex.returncode}")
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError(f"Documentation build returned error code {exc.returncode}") from exc
+        except Exception as exc:
+            raise RuntimeError(f"Documentation build failed for '{code}': {exc}") from exc
 
     log("")
 

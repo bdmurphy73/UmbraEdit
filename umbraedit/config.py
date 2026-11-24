@@ -27,7 +27,7 @@ import logging
 import sys
 
 try:
-    import tomllib
+    import tomllib  # type: ignore[reportMissingImports]
 except ModuleNotFoundError:
     import tomli as tomllib  # type: ignore
 
@@ -119,6 +119,7 @@ class Config:
         "_errData",
         "_hasError",
         "_homePath",
+        "_isInitialised",
         "_lastAuthor",
         "_manuals",
         "_projPath",
@@ -289,6 +290,7 @@ class Config:
         # Runtime Settings and Variables
         self._hasError = False  # True if the config class encountered an error
         self._errData = []  # List of error messages
+        self._isInitialised = False
 
         # Localisation
         # Note that these paths must be strings
@@ -500,6 +502,11 @@ class Config:
     def hasError(self) -> bool:
         """Return True if the config class encountered an error."""
         return self._hasError
+
+    @property
+    def isInitialised(self) -> bool:
+        """Return whether the configuration paths and caches are ready."""
+        return self._isInitialised
 
     @property
     def pdfDocs(self) -> Optional[Path]:
@@ -773,6 +780,7 @@ class Config:
         and dataPath is mainly intended for the test suite.
         """
         logger.debug("Initialising Config ...")
+        self._isInitialised = False
         if isinstance(confPath, (str, Path)):
             logger.info("Setting alternative config path: %s", confPath)
             self._confPath = Path(confPath)
@@ -786,24 +794,38 @@ class Config:
         logger.debug("App Path: %s", self._appPath)
         logger.debug("PDF Manual: %s", self.pdfDocs)
 
-        # If the config and data folders don't exist, create them
-        # This assumes that the os config and data folders exist
-        # Also create the themes and icons folders if possible
+        # The config and data roots are required. Cache files live directly
+        # in the data root, so failure to create the optional theme, icon,
+        # or cache subfolders must not disable otherwise valid cache writes.
+        pathsReady = False
         try:
-            self._confPath.mkdir(exist_ok=True)
-            self._dataPath.mkdir(exist_ok=True)
-            if self._dataPath.is_dir():
-                (self._dataPath / "cache").mkdir(exist_ok=True)
-                (self._dataPath / "icons").mkdir(exist_ok=True)
-                (self._dataPath / "themes").mkdir(exist_ok=True)
+            self._confPath.mkdir(parents=True, exist_ok=True)
+            self._dataPath.mkdir(parents=True, exist_ok=True)
+            pathsReady = self._confPath.is_dir() and self._dataPath.is_dir()
         except Exception:
             logException()
+
+        if pathsReady:
+
+            def createOptionalFolder(folderName: str) -> None:
+                try:
+                    (self._dataPath / folderName).mkdir(exist_ok=True)
+                except Exception:
+                    logger.warning("Could not create optional config folder '%s'", folderName)
+                    logException()
+
+            for folderName in ("cache", "icons", "themes"):
+                createOptionalFolder(folderName)
 
         self._recentPaths.loadCache()
         self._recentProjects.loadCache()
         self._checkOptionalPackages()
+        self._isInitialised = pathsReady
 
-        logger.debug("Config instance initialised")
+        if pathsReady:
+            logger.debug("Config instance initialised")
+        else:
+            logger.error("Config paths could not be initialised; cache writes are disabled")
 
     def initLocalisation(self, nwApp: QApplication) -> None:
         """Initialise the localisation of the GUI."""
@@ -1237,7 +1259,16 @@ class RecentProjects:
         return True
 
     def saveCache(self) -> bool:
-        """Save the cache dictionary of recent projects."""
+        """Save the cache dictionary of recent projects.
+
+        An uninitialised configuration has not established an isolated or
+        user-approved cache location. Refuse to write it in that state so
+        standalone tools and audit probes cannot modify the real user
+        cache by accident.
+        """
+        if not self._conf.isInitialised:
+            logger.debug("Refusing to save the recent project cache before config initialisation")
+            return False
         cacheFile = self._conf.dataPath(nwFiles.RECENT_FILE)
         cacheTemp = cacheFile.with_suffix(".tmp")
         try:
@@ -1264,6 +1295,9 @@ class RecentProjects:
 
     def update(self, path: str | Path, data: ProjectData, saved: float | int) -> None:
         """Add or update recent cache information on a given project."""
+        if not self._conf.isInitialised:
+            logger.debug("Refusing to update the recent project cache before config initialisation")
+            return
         try:
             # A project with the same UUID at another path has been moved, unless it still exists
             if (other := self._otherPath(str(path), data.uuid)) and not safeIsFile(Path(other) / nwFiles.PROJ_FILE):
@@ -1378,6 +1412,9 @@ class RecentPaths:
 
     def saveCache(self) -> bool:
         """Save the cache dictionary of recent paths."""
+        if not self._conf.isInitialised:
+            logger.debug("Refusing to save the recent path cache before config initialisation")
+            return False
         cacheFile = self._conf.dataPath(nwFiles.RECENT_PATH)
         cacheTemp = cacheFile.with_suffix(".tmp")
         try:

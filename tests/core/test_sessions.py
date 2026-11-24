@@ -22,6 +22,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import os
+
 from pathlib import Path
 from time import sleep
 
@@ -31,7 +33,7 @@ from umbraedit.constants import nwFiles
 from umbraedit.core.project import NWProject
 from umbraedit.core.sessions import SessionLog
 
-from tests.helpers import buildTestProject
+from tests.helpers import MockRnd, buildTestProject
 from tests.mocked import MockGuiMain, causeOSError
 
 
@@ -102,16 +104,47 @@ def testNWSessionLog_Main(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain,
 
     # Make the file open fail, and check that it's handled
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.sessions.openRegularFile", causeOSError)
         assert sessLog.appendSession(1.6) is False
     assert len(list(sessLog.iterRecords())) == 3
 
     # Make the file load fail, and check that it's handled
     with monkeypatch.context() as mp:
-        mp.setattr("builtins.open", causeOSError)
+        mp.setattr("umbraedit.core.sessions.openRegularFile", causeOSError)
         assert len(list(sessLog.iterRecords())) == 0
 
     # Make file path unresolvable
     with monkeypatch.context() as mp:
         mp.setattr("umbraedit.core.storage.ProjectStorage.getMetaFile", lambda *a: None)
         assert len(list(sessLog.iterRecords())) == 0
+
+
+@pytest.mark.core
+def testNWSessionLog_RejectsSymlink(
+    mockGUI: MockGuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that the session log never follows a symbolic link."""
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, projPath)
+
+    externalFile = fncPath / "outside.txt"
+    externalFile.write_text("outside", encoding="utf-8")
+    logFile = project.storage.getMetaFile(nwFiles.SESS_FILE)
+    assert isinstance(logFile, Path)
+    logFile.unlink(missing_ok=True)
+    try:
+        os.symlink(externalFile, logFile)
+    except OSError:
+        pytest.skip("Symbolic links are not available")
+
+    project.data.setInitCounts(50, 60, 500, 600)
+    project.data.setCurrCounts(160, 150, 1600, 1500)
+    project.session._start -= 350.0
+
+    assert project.session.appendSession(1.6) is False
+    assert externalFile.read_text(encoding="utf-8") == "outside"
+    assert logFile.is_symlink()

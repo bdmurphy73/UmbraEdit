@@ -47,7 +47,6 @@ from umbraedit.common import (
     safeExists,
     safeIsDir,
     safeIsFile,
-    safeIterDir,
     simplified,
 )
 from umbraedit.constants import nwFiles
@@ -55,6 +54,8 @@ from umbraedit.core.document import ProjectDocument
 from umbraedit.core.projectxml import FILE_REVISION, FILE_VERSION, ProjectXMLReader, ProjectXMLWriter
 from umbraedit.core.safeio import (
     FileIdentity,
+    PublishedFileError,
+    directoryHasNonQuarantineEntries,
     ensureDirectory,
     fileIdentity,
     isLinkLike,
@@ -235,16 +236,24 @@ class ProjectStorage:
 
     @property
     def contentPath(self) -> Optional[Path]:
-        """Return the path used for project content. The folder must
-        already exist and must not be a link.
+        """Return the validated path used for project content.
+
+        Both the project root and the content directory must still refer
+        to the objects that were validated when the project was opened.
         """
-        if isinstance(self._runtimePath, Path):
-            contentPath = self._runtimePath / "content"
+        runtimePath = self._validatedRuntimePath()
+        if runtimePath is not None and self._contentIdentity is not None:
+            contentPath = runtimePath / "content"
             try:
                 contentStat = os.lstat(contentPath)
             except OSError:
                 contentStat = None
-            if contentStat is not None and stat.S_ISDIR(contentStat.st_mode) and not isLinkLike(contentPath):
+            if (
+                contentStat is not None
+                and stat.S_ISDIR(contentStat.st_mode)
+                and not isLinkLike(contentPath)
+                and fileIdentity(contentStat, contentPath) == self._contentIdentity
+            ):
                 return contentPath
         logger.error("Content path cannot be resolved")
         return None
@@ -282,7 +291,7 @@ class ProjectStorage:
         directories so a link introduced at the path is not followed.
         """
         inPath = Path(path).expanduser().absolute() if not resolvePath else Path(path).resolve()
-        if safeIsDir(inPath) and len(list(safeIterDir(inPath))) > 0:
+        if safeIsDir(inPath) and directoryHasNonQuarantineEntries(inPath):
             logger.error("Folder is not empty: %s", inPath)
             return ProjectStorageCreate.NOT_EMPTY
 
@@ -306,6 +315,7 @@ class ProjectStorage:
                 rootFd = openDirectory(basePath)
                 try:
                     rootStat = os.fstat(rootFd)
+                    createdRootIdentity = fileIdentity(rootStat, fileDescriptor=rootFd)
                     for childName in ("meta", "content"):
                         with suppress(FileExistsError):
                             os.mkdir(childName, 0o700, dir_fd=rootFd)
@@ -317,7 +327,7 @@ class ProjectStorage:
                         finally:
                             os.close(childFd)
                     currentRootStat = os.lstat(basePath)
-                    if not os.path.samestat(rootStat, currentRootStat):
+                    if fileIdentity(currentRootStat, basePath) != createdRootIdentity:
                         raise OSError("The project folder changed while it was being created")
                 finally:
                     os.close(rootFd)
@@ -335,7 +345,7 @@ class ProjectStorage:
             rootStat = os.lstat(basePath)
             if isLinkLike(basePath) or not stat.S_ISDIR(rootStat.st_mode):
                 raise OSError("The project folder is not a real directory")
-            self._rootIdentity = fileIdentity(rootStat)
+            self._rootIdentity = fileIdentity(rootStat, basePath)
             metaStat = os.lstat(metaPath)
             contentStat = os.lstat(contPath)
             if (
@@ -345,8 +355,8 @@ class ProjectStorage:
                 or not stat.S_ISDIR(contentStat.st_mode)
             ):
                 raise OSError("The project folders are not real directories")
-            self._metaIdentity = fileIdentity(metaStat)
-            self._contentIdentity = fileIdentity(contentStat)
+            self._metaIdentity = fileIdentity(metaStat, metaPath)
+            self._contentIdentity = fileIdentity(contentStat, contPath)
         except Exception as exc:
             self._exception = exc
             logger.error("Failed to validate the project folder", exc_info=exc)
@@ -389,7 +399,7 @@ class ProjectStorage:
             rootStat = os.lstat(nwxPath)
             if isLinkLike(nwxPath) or not stat.S_ISDIR(rootStat.st_mode):
                 raise OSError("The project folder is not a real directory")
-            rootIdentity = fileIdentity(rootStat)
+            rootIdentity = fileIdentity(rootStat, nwxPath)
         except OSError as exc:
             self._exception = exc
             logger.error("Failed to validate the project folder", exc_info=exc)
@@ -421,13 +431,15 @@ class ProjectStorage:
         self._ready = True
         if not self.lockSession(expectedParent=rootIdentity):
             self._readLockFile()
-            self.clear()
+            if self._lockFileIdentity is not None:
+                self.closeSession()
+            else:
+                self.clear()
             logger.error("Project lock could not be acquired")
             return ProjectStorageOpen.LOCKED
 
         if not self._readManifest():
-            self._clearLockFile()
-            self.clear()
+            self.closeSession()
             return ProjectStorageOpen.FAILED
 
         # Prepare Folder
@@ -440,7 +452,7 @@ class ProjectStorage:
             if supportsDirectoryDescriptors():
                 rootFd = openDirectory(basePath)
                 try:
-                    if fileIdentity(os.fstat(rootFd)) != rootIdentity:
+                    if fileIdentity(os.fstat(rootFd), fileDescriptor=rootFd) != rootIdentity:
                         raise OSError("The project folder changed while it was being opened")
                     for childName in ("meta", "content"):
                         with suppress(FileExistsError):
@@ -451,27 +463,27 @@ class ProjectStorage:
                             if not stat.S_ISDIR(childStat.st_mode):
                                 raise OSError("The project folders are not real directories")
                             if childName == "meta":
-                                self._metaIdentity = fileIdentity(childStat)
+                                self._metaIdentity = fileIdentity(childStat, fileDescriptor=childFd)
                             else:
-                                self._contentIdentity = fileIdentity(childStat)
+                                self._contentIdentity = fileIdentity(childStat, fileDescriptor=childFd)
                         finally:
                             os.close(childFd)
                     currentRootStat = os.lstat(basePath)
-                    if fileIdentity(currentRootStat) != rootIdentity:
+                    if fileIdentity(currentRootStat, basePath) != rootIdentity:
                         raise OSError("The project folder changed while it was being opened")
                 finally:
                     os.close(rootFd)
             else:
                 currentRootStat = os.lstat(basePath)
-                if isLinkLike(basePath) or fileIdentity(currentRootStat) != rootIdentity:
+                if isLinkLike(basePath) or fileIdentity(currentRootStat, basePath) != rootIdentity:
                     raise OSError("The project folder changed while it was being opened")
                 ensureDirectory(metaPath)
                 currentRootStat = os.lstat(basePath)
-                if fileIdentity(currentRootStat) != rootIdentity:
+                if fileIdentity(currentRootStat, basePath) != rootIdentity:
                     raise OSError("The project folder changed while it was being opened")
                 ensureDirectory(contPath)
                 currentRootStat = os.lstat(basePath)
-                if fileIdentity(currentRootStat) != rootIdentity:
+                if fileIdentity(currentRootStat, basePath) != rootIdentity:
                     raise OSError("The project folder changed while it was being opened")
                 metaStat = os.lstat(metaPath)
                 contentStat = os.lstat(contPath)
@@ -482,12 +494,11 @@ class ProjectStorage:
                     or not stat.S_ISDIR(contentStat.st_mode)
                 ):
                     raise OSError("The project folders are not real directories")
-                self._metaIdentity = fileIdentity(metaStat)
-                self._contentIdentity = fileIdentity(contentStat)
+                self._metaIdentity = fileIdentity(metaStat, metaPath)
+                self._contentIdentity = fileIdentity(contentStat, contPath)
         except Exception as exc:
             logger.error("Failed to create project folders", exc_info=exc)
-            self._clearLockFile()
-            self.clear()
+            self.closeSession()
             return ProjectStorageOpen.FAILED
 
         # Check for legacy data folders
@@ -501,7 +512,7 @@ class ProjectStorage:
             if supportsDirectoryDescriptors():
                 rootFd = openDirectory(basePath)
                 try:
-                    if fileIdentity(os.fstat(rootFd)) != rootIdentity:
+                    if fileIdentity(os.fstat(rootFd), fileDescriptor=rootFd) != rootIdentity:
                         raise OSError("The project folder changed before legacy data could be scanned")
                     with os.scandir(rootFd) as entries:
                         for entry in entries:
@@ -521,7 +532,7 @@ class ProjectStorage:
                     os.close(rootFd)
             else:
                 currentRootStat = os.lstat(basePath)
-                if isLinkLike(basePath) or fileIdentity(currentRootStat) != rootIdentity:
+                if isLinkLike(basePath) or fileIdentity(currentRootStat, basePath) != rootIdentity:
                     raise OSError("The project folder changed before legacy data could be scanned")
                 with os.scandir(basePath) as entries:
                     for entry in entries:
@@ -538,7 +549,7 @@ class ProjectStorage:
                                 expectedContent=self._contentIdentity,
                             )
                 currentRootStat = os.lstat(basePath)
-                if fileIdentity(currentRootStat) != rootIdentity:
+                if fileIdentity(currentRootStat, basePath) != rootIdentity:
                     raise OSError("The project folder changed while legacy data was being scanned")
             self._oldDocuments = legacy.findOldDocuments(
                 contPath,
@@ -546,8 +557,7 @@ class ProjectStorage:
             )
         except Exception as exc:
             logger.error("Failed to scan project folder content", exc_info=exc)
-            self._clearLockFile()
-            self.clear()
+            self.closeSession()
             return ProjectStorageOpen.FAILED
 
         return ProjectStorageOpen.READY
@@ -556,8 +566,15 @@ class ProjectStorage:
         """Run tasks after the project XML has been loaded."""
         if self._oldDocuments:
             try:
+                runtimePath = self._validatedRuntimePath()
+                if runtimePath is None or self._rootIdentity is None:
+                    raise OSError("The project folder changed before legacy documents could be converted")
                 legacy = _LegacyDocuments(self._project)
-                legacy.convertDocuments(self._oldDocuments)
+                legacy.convertDocuments(
+                    self._oldDocuments,
+                    quarantineParent=runtimePath,
+                    expectedQuarantineParent=self._rootIdentity,
+                )
             except Exception as exc:
                 self._exception = exc
                 return False
@@ -608,7 +625,7 @@ class ProjectStorage:
             try:
                 if self._rootIdentity is not None:
                     parentStat = os.lstat(self._lockFilePath.parent)
-                    if fileIdentity(parentStat) != self._rootIdentity:
+                    if fileIdentity(parentStat, self._lockFilePath.parent) != self._rootIdentity:
                         return False
                 currentStat = os.lstat(self._lockFilePath)
             except OSError:
@@ -616,17 +633,24 @@ class ProjectStorage:
             return bool(
                 currentStat is not None
                 and stat.S_ISREG(currentStat.st_mode)
-                and fileIdentity(currentStat) == self._lockFileIdentity
+                and fileIdentity(currentStat, self._lockFilePath) == self._lockFileIdentity
             )
         parentIdentity = expectedParent if expectedParent is not None else self._rootIdentity
         if parentIdentity is None:
             return False
         return self._writeLockFile(expectedParent=parentIdentity)
 
-    def closeSession(self) -> None:
-        """Run tasks related to closing the session."""
-        self._clearLockFile()
+    def closeSession(self) -> bool:
+        """Run tasks related to closing the session.
+
+        The validated lock ownership is retained when cleanup fails so
+        the caller can retry without losing the ability to identify the
+        exact lock object that must be removed.
+        """
+        if not self._clearLockFile():
+            return False
         self.clear()
+        return True
 
     ##
     #  Content Access Methods
@@ -654,10 +678,33 @@ class ProjectStorage:
         return ProjectDocument(self._project, None)
 
     def getMetaFile(self, fileName: str) -> Optional[Path]:
-        """Return the path to a file in the project meta folder."""
-        if isinstance(self._runtimePath, Path) and self._ready:
-            return self._runtimePath / "meta" / fileName
-        return None
+        """Return the validated path to a file in the project meta folder.
+
+        The runtime root and metadata directory must still refer to the
+        objects that were validated when the project was opened. File
+        names are restricted to direct children so a caller cannot use
+        this accessor to escape the metadata directory.
+        """
+        runtimePath = self._validatedRuntimePath()
+        if runtimePath is None or not self._ready or self._metaIdentity is None:
+            return None
+        if not fileName or Path(fileName).name != fileName or fileName in (".", ".."):
+            logger.error("Invalid project metadata file name: %s", fileName)
+            return None
+        metaPath = runtimePath / "meta"
+        try:
+            metaStat = os.lstat(metaPath)
+        except OSError:
+            logger.error("Project metadata path cannot be resolved")
+            return None
+        if (
+            isLinkLike(metaPath)
+            or not stat.S_ISDIR(metaStat.st_mode)
+            or fileIdentity(metaStat, metaPath) != self._metaIdentity
+        ):
+            logger.error("Project metadata path changed while it was being used")
+            return None
+        return metaPath / fileName
 
     def getDocumentText(self, tHandle: str) -> str:
         """Return the text of a document in a fast and efficient way."""
@@ -679,7 +726,7 @@ class ProjectStorage:
         contentStat = os.lstat(contentPath)
         if isLinkLike(contentPath) or not stat.S_ISDIR(contentStat.st_mode):
             return []
-        contentIdentity = fileIdentity(contentStat)
+        contentIdentity = fileIdentity(contentStat, contentPath)
         if self._contentIdentity is not None and contentIdentity != self._contentIdentity:
             logger.error("The content folder changed while it was being scanned")
             return []
@@ -691,7 +738,7 @@ class ProjectStorage:
                     if isHandle(handle):
                         handles.append(handle)
         currentStat = os.lstat(contentPath)
-        if not os.path.samestat(contentStat, currentStat):
+        if fileIdentity(currentStat, contentPath) != contentIdentity:
             logger.error("The content folder changed while it was being scanned")
             return []
         return handles
@@ -718,10 +765,10 @@ class ProjectStorage:
             targetParentStat = os.lstat(targetPath.parent)
             if not stat.S_ISDIR(targetParentStat.st_mode):
                 raise OSError("The archive folder is not a directory")
-            targetParentIdentity = fileIdentity(targetParentStat)
+            targetParentIdentity = fileIdentity(targetParentStat, targetPath.parent)
             if os.name != "nt" and os.open in os.supports_dir_fd:
                 targetParentFd = openDirectory(targetPath.parent)
-                if fileIdentity(os.fstat(targetParentFd)) != targetParentIdentity:
+                if fileIdentity(os.fstat(targetParentFd), fileDescriptor=targetParentFd) != targetParentIdentity:
                     raise OSError("The archive folder changed while it was being opened")
             if targetPath.exists():
                 targetStat = os.lstat(targetPath)
@@ -736,7 +783,7 @@ class ProjectStorage:
             rootStat = os.lstat(basePath)
             if isLinkLike(basePath) or not stat.S_ISDIR(rootStat.st_mode):
                 raise OSError("The project folder is not a real directory")
-            rootIdentity = fileIdentity(rootStat)
+            rootIdentity = fileIdentity(rootStat, basePath)
             if self._rootIdentity is not None and rootIdentity != self._rootIdentity:
                 raise OSError("The project folder changed before the backup could be created")
 
@@ -751,7 +798,7 @@ class ProjectStorage:
                     projectFile,
                     nwFiles.PROJ_FILE,
                     rootIdentity,
-                    fileIdentity(os.lstat(projectFile)),
+                    fileIdentity(os.lstat(projectFile), projectFile),
                 ))
 
             if baseMeta.exists() or isLinkLike(baseMeta):
@@ -819,7 +866,7 @@ class ProjectStorage:
                 stageFd = openExclusiveFile(Path(stageName), targetParentFd, mode=0o600)
             else:
                 stageFd = openExclusiveFile(stagePath, mode=0o600)
-            stageIdentity = fileIdentity(os.fstat(stageFd))
+            stageIdentity = fileIdentity(os.fstat(stageFd), fileDescriptor=stageFd)
             with os.fdopen(stageFd, mode="wb") as stageFile:
                 with ZipFile(stageFile, mode="w", compression=comp, compresslevel=level) as zipObj:
                     logger.info("Creating archive: %s", targetPath)
@@ -845,7 +892,12 @@ class ProjectStorage:
                     dir_fd=targetParentFd,
                     follow_symlinks=False,
                 )
-                if not stat.S_ISREG(currentStageStat.st_mode) or fileIdentity(currentStageStat) != stageIdentity:
+                currentStageIdentity = fileIdentity(
+                    currentStageStat,
+                    Path(stageName),
+                    dirFd=targetParentFd,
+                )
+                if not stat.S_ISREG(currentStageStat.st_mode) or currentStageIdentity != stageIdentity:
                     raise OSError("The staged archive changed before it could be published")
                 if not renameNoReplaceBetween(
                     Path(stageName),
@@ -859,16 +911,24 @@ class ProjectStorage:
                     dir_fd=targetParentFd,
                     follow_symlinks=False,
                 )
-                if not stat.S_ISREG(publishedStat.st_mode) or fileIdentity(publishedStat) != stageIdentity:
+                publishedIdentity = fileIdentity(
+                    publishedStat,
+                    Path(targetPath.name),
+                    dirFd=targetParentFd,
+                )
+                if not stat.S_ISREG(publishedStat.st_mode) or publishedIdentity != stageIdentity:
                     raise OSError("The published archive does not match the staged archive")
                 currentParentStat = os.lstat(targetPath.parent)
-                if not os.path.samestat(os.fstat(targetParentFd), currentParentStat):
+                if fileIdentity(currentParentStat, targetPath.parent) != targetParentIdentity:
                     with suppress(OSError):
                         unlinkEntryIfSameFile(targetPath, stageIdentity, dirFd=targetParentFd)
                     raise OSError("The archive folder changed while the archive was being published")
             else:
                 currentStageStat = os.lstat(stagePath)
-                if not stat.S_ISREG(currentStageStat.st_mode) or fileIdentity(currentStageStat) != stageIdentity:
+                if (
+                    not stat.S_ISREG(currentStageStat.st_mode)
+                    or fileIdentity(currentStageStat, stagePath) != stageIdentity
+                ):
                     raise OSError("The staged archive changed before it could be published")
                 publishRegularFileNoReplace(
                     stagePath,
@@ -902,6 +962,23 @@ class ProjectStorage:
     ##
     #  Internal Functions
     ##
+
+    def _validatedRuntimePath(self) -> Optional[Path]:
+        """Return the runtime path if it still refers to the validated root."""
+        if not isinstance(self._runtimePath, Path) or self._rootIdentity is None:
+            return None
+        try:
+            rootStat = os.lstat(self._runtimePath)
+        except OSError:
+            return None
+        if (
+            isLinkLike(self._runtimePath)
+            or not stat.S_ISDIR(rootStat.st_mode)
+            or fileIdentity(rootStat, self._runtimePath) != self._rootIdentity
+        ):
+            logger.error("The project folder changed while it was being used")
+            return None
+        return self._runtimePath
 
     def _readLockFile(self) -> None:
         """Read the project lock file without following links."""
@@ -944,7 +1021,7 @@ class ProjectStorage:
             parentStat = os.lstat(path.parent)
             if not stat.S_ISDIR(parentStat.st_mode):
                 raise OSError("The project folder is not a directory")
-            parentIdentity = fileIdentity(parentStat)
+            parentIdentity = fileIdentity(parentStat, path.parent)
             if expectedParent is not None and parentIdentity != expectedParent:
                 raise OSError("The project folder changed before the lockfile could be created")
             if isLinkLike(path):
@@ -964,68 +1041,107 @@ class ProjectStorage:
                 expectedTarget=None,
             )
             return True
+        except PublishedFileError as exc:
+            # The lock was published, but its final validation failed. Keep
+            # the exact staged identity and remove only that object. A
+            # failed cleanup remains retryable instead of orphaning the
+            # lock and blocking all future project opens.
+            self._lockFileIdentity = exc.publishedIdentity
+            if not self._clearLockFile():
+                logger.error("Failed to clean up project lockfile after publication validation failed")
+            else:
+                self._lockFileIdentity = None
+            logger.error("Failed to write project lockfile")
+            logException()
+            return False
         except Exception:
             self._lockFileIdentity = None
             logger.error("Failed to write project lockfile")
             logException()
             return False
 
-    def _clearLockFile(self, force: bool = False) -> None:
+    def _clearLockFile(self, force: bool = False) -> bool:
         """Remove the lock file only when it is owned by this session.
 
         ``force`` is reserved for the explicit "clear lock" recovery
         action. Normal session shutdown never removes a lock that was
         installed by another process.
+
+        The ownership identity is retained when cleanup fails so the
+        caller can retry the exact same validated object.
         """
         path = self._lockFilePath
         if not isinstance(path, Path):
-            return
+            return True
         try:
             pathStat = os.lstat(path)
         except FileNotFoundError:
             self._lockedBy = None
             self._lockFileIdentity = None
-            return
+            return True
         except OSError:
             logger.error("Failed to remove project lockfile")
             logException()
-            return
+            return False
 
         if not stat.S_ISREG(pathStat.st_mode) or isLinkLike(path):
             logger.error("The project lockfile is not a regular file")
-            return
-        currentIdentity = fileIdentity(pathStat)
+            return False
+        currentIdentity = fileIdentity(pathStat, path)
         if not force:
             if self._lockFileIdentity is None:
                 logger.warning("The project lockfile is not owned by this session")
-                return
+                self._lockedBy = None
+                return True
             if currentIdentity != self._lockFileIdentity:
                 logger.warning("The project lockfile changed and was preserved")
-                return
+                self._lockFileIdentity = None
+                self._lockedBy = None
+                return True
         try:
             if self._rootIdentity is not None:
                 parentStat = os.lstat(path.parent)
-                if fileIdentity(parentStat) != self._rootIdentity:
+                if fileIdentity(parentStat, path.parent) != self._rootIdentity:
                     raise OSError("The project folder changed before the lockfile could be removed")
             if os.name != "nt" and os.open in os.supports_dir_fd:
                 parentFd = openDirectory(path.parent)
                 try:
-                    if self._rootIdentity is not None and fileIdentity(os.fstat(parentFd)) != self._rootIdentity:
+                    if (
+                        self._rootIdentity is not None
+                        and fileIdentity(
+                            os.fstat(parentFd),
+                            fileDescriptor=parentFd,
+                        )
+                        != self._rootIdentity
+                    ):
                         raise OSError("The project folder changed before the lockfile could be removed")
                     entryStat = os.stat(path.name, dir_fd=parentFd, follow_symlinks=False)
-                    if not stat.S_ISREG(entryStat.st_mode) or fileIdentity(entryStat) != currentIdentity:
+                    entryIdentity = fileIdentity(entryStat, Path(path.name), dirFd=parentFd)
+                    if not stat.S_ISREG(entryStat.st_mode) or entryIdentity != currentIdentity:
                         raise OSError("The project lockfile changed before it could be removed")
-                    unlinkEntryIfSameFile(path, currentIdentity, dirFd=parentFd)
+                    unlinkEntryIfSameFile(
+                        path,
+                        currentIdentity,
+                        dirFd=parentFd,
+                        quarantineParent=path.parent if self._rootIdentity is not None else None,
+                        expectedQuarantineParent=self._rootIdentity,
+                    )
                 finally:
                     os.close(parentFd)
             else:
-                unlinkIfSameFile(path, currentIdentity)
+                unlinkIfSameFile(
+                    path,
+                    currentIdentity,
+                    quarantineParent=path.parent if self._rootIdentity is not None else None,
+                    expectedQuarantineParent=self._rootIdentity,
+                )
         except Exception:
             logger.error("Failed to remove project lockfile")
             logException()
-            return
+            return False
         self._lockFileIdentity = None
         self._lockedBy = None
+        return True
 
     def _generateManifest(self, kind: nwProjectKind, saveTime: float) -> str:
         """Generate the manifest JSON content."""
@@ -1055,7 +1171,7 @@ class ProjectStorage:
         except FileNotFoundError:
             if self._rootIdentity is not None:
                 parentStat = os.lstat(path.parent)
-                if isLinkLike(path.parent) or fileIdentity(parentStat) != self._rootIdentity:
+                if isLinkLike(path.parent) or fileIdentity(parentStat, path.parent) != self._rootIdentity:
                     self._exception = OSError("The project folder changed before the manifest could be read")
                     return False
             return True
@@ -1069,7 +1185,10 @@ class ProjectStorage:
             return False
         try:
             with openRegularFile(path, expectedParent=self._rootIdentity) as inFile:
-                manifestIdentity = fileIdentity(os.fstat(inFile.fileno()))
+                manifestIdentity = fileIdentity(
+                    os.fstat(inFile.fileno()),
+                    fileDescriptor=inFile.fileno(),
+                )
                 data = json.loads(inFile.read().decode("utf-8"))
             self._lastManifestIdentity = manifestIdentity
             self._kind = nwProjectKind(data.get("kind"))
@@ -1141,18 +1260,18 @@ class _LegacyStorage:
             rootStat = os.lstat(path)
             if isLinkLike(path) or not stat.S_ISDIR(rootStat.st_mode):
                 raise OSError("The project folder is not a real directory")
-            rootIdentity = fileIdentity(rootStat)
+            rootIdentity = fileIdentity(rootStat, path)
             if expectedRoot is not None and rootIdentity != expectedRoot:
                 raise OSError("The project folder changed before the legacy folder could be processed")
             childStat = os.lstat(child)
             if isLinkLike(child) or not stat.S_ISDIR(childStat.st_mode):
                 raise OSError("The legacy data folder is not a real directory")
-            childIdentity = fileIdentity(childStat)
+            childIdentity = fileIdentity(childStat, child)
             contentPath = path / "content"
             contentStat = os.lstat(contentPath)
             if isLinkLike(contentPath) or not stat.S_ISDIR(contentStat.st_mode):
                 raise OSError("The project content folder is not a real directory")
-            contentIdentity = fileIdentity(contentStat)
+            contentIdentity = fileIdentity(contentStat, contentPath)
             if expectedContent is not None and contentIdentity != expectedContent:
                 raise OSError("The project content folder changed before the legacy folder could be processed")
         except OSError as exc:
@@ -1165,21 +1284,21 @@ class _LegacyStorage:
         try:
             if supportsDirectoryDescriptors():
                 rootFd = openDirectory(path)
-                if fileIdentity(os.fstat(rootFd)) != rootIdentity:
+                if fileIdentity(os.fstat(rootFd), fileDescriptor=rootFd) != rootIdentity:
                     raise OSError("The project folder changed while the legacy folder was opened")
                 childFd = openDirectoryAt(rootFd, child.name)
-                if fileIdentity(os.fstat(childFd)) != childIdentity:
+                if fileIdentity(os.fstat(childFd), fileDescriptor=childFd) != childIdentity:
                     raise OSError("The legacy data folder changed while it was being opened")
                 contentFd = openDirectoryAt(rootFd, "content")
-                if fileIdentity(os.fstat(contentFd)) != contentIdentity:
+                if fileIdentity(os.fstat(contentFd), fileDescriptor=contentFd) != contentIdentity:
                     raise OSError("The project content folder changed while it was being opened")
             else:
                 currentChildStat = os.lstat(child)
-                if isLinkLike(child) or fileIdentity(currentChildStat) != childIdentity:
+                if isLinkLike(child) or fileIdentity(currentChildStat, child) != childIdentity:
                     raise OSError("The legacy data folder changed before it could be processed")
                 currentContentStat = os.lstat(contentPath)
-                if isLinkLike(contentPath) or fileIdentity(currentContentStat) != contentIdentity:
-                    raise OSError("The project content folder changed before it could be processed")
+                if isLinkLike(contentPath) or fileIdentity(currentContentStat, contentPath) != contentIdentity:
+                    raise OSError("The project content folder changed before it was being processed")
                 childFd = None
                 contentFd = None
 
@@ -1192,8 +1311,12 @@ class _LegacyStorage:
                     if not stat.S_ISREG(entryStat.st_mode):
                         continue
                     name = entry.name
-                    itemIdentity = fileIdentity(entryStat)
                     itemPath = Path(name) if childFd is not None else child / name
+                    itemIdentity = fileIdentity(
+                        entryStat,
+                        itemPath,
+                        dirFd=childFd,
+                    )
                     if len(name) == 21 and name.endswith("_main.nwd"):
                         newName = f"{first}{name[:12]}.nwd"
                         newPath = path / "content" / newName
@@ -1213,7 +1336,13 @@ class _LegacyStorage:
                             logger.warning("Failed to move: %s", itemPath, exc_info=exc)
                     elif len(name) == 21 and name.endswith("_main.bak"):
                         try:
-                            unlinkEntryIfSameFile(itemPath, itemIdentity, dirFd=childFd)
+                            unlinkEntryIfSameFile(
+                                itemPath,
+                                itemIdentity,
+                                dirFd=childFd,
+                                quarantineParent=path,
+                                expectedQuarantineParent=rootIdentity,
+                            )
                             logger.info("Deleted file: %s", itemPath)
                         except Exception as exc:
                             logger.warning("Failed to delete: %s", itemPath, exc_info=exc)
@@ -1235,11 +1364,17 @@ class _LegacyStorage:
             if (
                 isLinkLike(child)
                 or isLinkLike(contentPath)
-                or fileIdentity(currentChildStat) != childIdentity
-                or fileIdentity(currentContentStat) != contentIdentity
+                or fileIdentity(currentChildStat, child) != childIdentity
+                or fileIdentity(currentContentStat, contentPath) != contentIdentity
             ):
                 raise OSError("The legacy or content folder changed before cleanup")
-            if removeEmptyDirectoryIfOwned(child, childIdentity, expectedParent=rootIdentity):
+            if removeEmptyDirectoryIfOwned(
+                child,
+                childIdentity,
+                expectedParent=rootIdentity,
+                quarantineParent=path,
+                expectedQuarantineParent=rootIdentity,
+            ):
                 logger.info("Deleted folder: %s", child)
         except Exception as exc:
             logger.warning("Failed to delete: %s", child, exc_info=exc)
@@ -1252,23 +1387,42 @@ class _LegacyStorage:
         expectedMeta: Optional[FileIdentity] = None,
     ) -> None:
         """Handle files that are no longer used by UmbraEdit."""
-        if expectedRoot is not None:
-            rootStat = os.lstat(path)
-            if isLinkLike(path) or fileIdentity(rootStat) != expectedRoot:
-                logger.error("The project folder changed before deprecated files could be processed")
-                return
+        rootStat = os.lstat(path)
+        if isLinkLike(path) or not stat.S_ISDIR(rootStat.st_mode):
+            logger.error("The project folder changed before deprecated files could be processed")
+            return
+        rootIdentity = fileIdentity(rootStat, path)
+        if expectedRoot is not None and rootIdentity != expectedRoot:
+            logger.error("The project folder changed before deprecated files could be processed")
+            return
         self._convertOldWordList(  # Changed in 2.1 Beta 1
             path / "meta" / "wordlist.txt",
             path / "meta" / nwFiles.DICT_FILE,
             expectedParent=expectedMeta,
+            quarantineParent=path,
+            expectedQuarantineParent=rootIdentity,
         )
         self._convertOldLogFile(  # Changed in 2.1 Beta 1
             path / "meta" / "sessionStats.log",
             path / "meta" / nwFiles.SESS_FILE,
             expectedParent=expectedMeta,
+            quarantineParent=path,
+            expectedQuarantineParent=rootIdentity,
         )
 
         # Delete removed files
+        cachePath = path / "cache"
+        cacheIdentity: Optional[FileIdentity] = None
+        try:
+            cacheStat = os.lstat(cachePath)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            pass
+        else:
+            if stat.S_ISDIR(cacheStat.st_mode) and not isLinkLike(cachePath):
+                cacheIdentity = fileIdentity(cacheStat, cachePath)
+
         remove = [
             (path / "meta" / "tagsIndex.json", expectedMeta),  # Renamed in 2.1 Beta 1
             (path / "meta" / "mainOptions.json", expectedMeta),  # Replaced in 0.5
@@ -1277,14 +1431,19 @@ class _LegacyStorage:
             (path / "meta" / "timelineOptions.json", expectedMeta),  # Replaced in 0.5
             (path / "meta" / "docMergeOptions.json", expectedMeta),  # Replaced in 0.5
             (path / "meta" / "sessionLogOptions.json", expectedMeta),  # Replaced in 0.5
-            (path / "cache" / "prevBuild.json", expectedRoot),  # Dropped in 2.1 Beta 1
-            (path / "cache", expectedRoot),  # Dropped in 2.1 Beta 1
+            (cachePath / "prevBuild.json", cacheIdentity),  # Dropped in 2.1 Beta 1
+            (cachePath, expectedRoot),  # Dropped in 2.1 Beta 1
             (path / "ToC.json", expectedRoot),  # Dropped in 1.0 RC 1
             (path / "nwProject.bak", expectedRoot),  # Dropped in 2.3 Beta 1
         ]
         for item, expectedParent in remove:
             try:
-                self._removeDeprecatedEntry(item, expectedParent=expectedParent)
+                self._removeDeprecatedEntry(
+                    item,
+                    expectedParent=expectedParent,
+                    quarantineParent=path,
+                    expectedQuarantineParent=rootIdentity,
+                )
                 if not os.path.lexists(item):
                     logger.info("Deleted: %s", item)
             except Exception as exc:  # noqa: PERF203
@@ -1300,7 +1459,7 @@ class _LegacyStorage:
         contentStat = os.lstat(content)
         if isLinkLike(content) or not stat.S_ISDIR(contentStat.st_mode):
             raise OSError("The content folder is not a real directory")
-        parentIdentity = fileIdentity(contentStat)
+        parentIdentity = fileIdentity(contentStat, content)
         if expectedParent is not None and parentIdentity != expectedParent:
             raise OSError("The content folder changed before it could be scanned")
         snapshot = scanRegularFiles(content)
@@ -1326,6 +1485,8 @@ class _LegacyStorage:
         path: Path,
         *,
         expectedParent: Optional[FileIdentity] = None,
+        quarantineParent: Optional[Path] = None,
+        expectedQuarantineParent: Optional[FileIdentity] = None,
     ) -> None:
         """Remove one deprecated entry without following links."""
         try:
@@ -1334,55 +1495,88 @@ class _LegacyStorage:
             return
         if stat.S_ISLNK(pathStat.st_mode) or isLinkLike(path):
             raise OSError("The deprecated entry cannot be a link")
-        identity = fileIdentity(pathStat)
+        identity = fileIdentity(pathStat, path)
         parentStat = os.lstat(path.parent)
         if isLinkLike(path.parent) or not stat.S_ISDIR(parentStat.st_mode):
             raise OSError("The deprecated entry parent is not a real directory")
-        parentIdentity = fileIdentity(parentStat)
+        parentIdentity = fileIdentity(parentStat, path.parent)
         if expectedParent is not None and parentIdentity != expectedParent:
             raise OSError("The deprecated entry parent changed")
         if stat.S_ISDIR(pathStat.st_mode):
-            removeEmptyDirectoryIfOwned(path, identity, expectedParent=parentIdentity)
+            removeEmptyDirectoryIfOwned(
+                path,
+                identity,
+                expectedParent=parentIdentity,
+                quarantineParent=quarantineParent,
+                expectedQuarantineParent=expectedQuarantineParent,
+            )
             return
         if os.name != "nt" and os.open in os.supports_dir_fd:
             parentFd = openDirectory(path.parent)
             try:
-                if fileIdentity(os.fstat(parentFd)) != parentIdentity:
+                if fileIdentity(os.fstat(parentFd), fileDescriptor=parentFd) != parentIdentity:
                     raise OSError("The deprecated entry parent changed")
                 entryStat = os.stat(path.name, dir_fd=parentFd, follow_symlinks=False)
-                if not stat.S_ISREG(entryStat.st_mode) or fileIdentity(entryStat) != identity:
+                entryIdentity = fileIdentity(entryStat, Path(path.name), dirFd=parentFd)
+                if not stat.S_ISREG(entryStat.st_mode) or entryIdentity != identity:
                     raise OSError("The deprecated entry changed before it could be removed")
-                unlinkEntryIfSameFile(Path(path.name), identity, dirFd=parentFd)
+                unlinkEntryIfSameFile(
+                    Path(path.name),
+                    identity,
+                    dirFd=parentFd,
+                    quarantineParent=quarantineParent,
+                    expectedQuarantineParent=expectedQuarantineParent,
+                )
             finally:
                 os.close(parentFd)
         else:
-            unlinkIfSameFile(path, identity)
+            unlinkIfSameFile(
+                path,
+                identity,
+                quarantineParent=quarantineParent,
+                expectedQuarantineParent=expectedQuarantineParent,
+            )
 
     def _unlinkExpectedFile(
         self,
         path: Path,
         expectedIdentity: FileIdentity,
         expectedParent: FileIdentity,
+        *,
+        quarantineParent: Optional[Path] = None,
+        expectedQuarantineParent: Optional[FileIdentity] = None,
     ) -> None:
         """Remove a source file only if it is still the observed object."""
         parentStat = os.lstat(path.parent)
         if isLinkLike(path.parent) or not stat.S_ISDIR(parentStat.st_mode):
             raise OSError("The source parent is not a real directory")
-        if fileIdentity(parentStat) != expectedParent:
+        if fileIdentity(parentStat, path.parent) != expectedParent:
             raise OSError("The source parent changed before cleanup")
         if os.name != "nt" and os.open in os.supports_dir_fd:
             parentFd = openDirectory(path.parent)
             try:
-                if fileIdentity(os.fstat(parentFd)) != expectedParent:
+                if fileIdentity(os.fstat(parentFd), fileDescriptor=parentFd) != expectedParent:
                     raise OSError("The source parent changed before cleanup")
                 entryStat = os.stat(path.name, dir_fd=parentFd, follow_symlinks=False)
-                if not stat.S_ISREG(entryStat.st_mode) or fileIdentity(entryStat) != expectedIdentity:
+                entryIdentity = fileIdentity(entryStat, Path(path.name), dirFd=parentFd)
+                if not stat.S_ISREG(entryStat.st_mode) or entryIdentity != expectedIdentity:
                     raise OSError("The source changed before cleanup")
-                unlinkEntryIfSameFile(Path(path.name), expectedIdentity, dirFd=parentFd)
+                unlinkEntryIfSameFile(
+                    Path(path.name),
+                    expectedIdentity,
+                    dirFd=parentFd,
+                    quarantineParent=quarantineParent,
+                    expectedQuarantineParent=expectedQuarantineParent,
+                )
             finally:
                 os.close(parentFd)
         else:
-            unlinkIfSameFile(path, expectedIdentity)
+            unlinkIfSameFile(
+                path,
+                expectedIdentity,
+                quarantineParent=quarantineParent,
+                expectedQuarantineParent=expectedQuarantineParent,
+            )
 
     def _convertOldWordList(
         self,
@@ -1390,6 +1584,8 @@ class _LegacyStorage:
         wordJson: Path,
         *,
         expectedParent: Optional[FileIdentity] = None,
+        quarantineParent: Optional[Path] = None,
+        expectedQuarantineParent: Optional[FileIdentity] = None,
     ) -> None:
         """Convert the old word list plain text file to new format."""
         try:
@@ -1415,10 +1611,10 @@ class _LegacyStorage:
             parentStat = os.lstat(wordList.parent)
             if isLinkLike(wordList.parent) or not stat.S_ISDIR(parentStat.st_mode):
                 raise OSError("The word list parent is not a real directory")
-            parentIdentity = fileIdentity(parentStat)
+            parentIdentity = fileIdentity(parentStat, wordList.parent)
             if expectedParent is not None and parentIdentity != expectedParent:
                 raise OSError("The word list parent changed before conversion")
-            sourceIdentity = fileIdentity(sourceStat)
+            sourceIdentity = fileIdentity(sourceStat, wordList)
 
             logger.info("Converting: %s", wordList)
             words: list[str] = []
@@ -1437,8 +1633,16 @@ class _LegacyStorage:
                 expectedParent=parentIdentity,
                 expectedTarget=None,
                 replaceExisting=False,
+                quarantineParent=quarantineParent,
+                expectedQuarantineParent=expectedQuarantineParent,
             )
-            self._unlinkExpectedFile(wordList, sourceIdentity, parentIdentity)
+            self._unlinkExpectedFile(
+                wordList,
+                sourceIdentity,
+                parentIdentity,
+                quarantineParent=quarantineParent,
+                expectedQuarantineParent=expectedQuarantineParent,
+            )
         except Exception:
             logger.error("Failed to convert old word list file")
             logException()
@@ -1449,6 +1653,8 @@ class _LegacyStorage:
         sessJson: Path,
         *,
         expectedParent: Optional[FileIdentity] = None,
+        quarantineParent: Optional[Path] = None,
+        expectedQuarantineParent: Optional[FileIdentity] = None,
     ) -> None:
         """Convert the old text log file format to JSON Lines."""
         try:
@@ -1474,10 +1680,10 @@ class _LegacyStorage:
             parentStat = os.lstat(sessLog.parent)
             if isLinkLike(sessLog.parent) or not stat.S_ISDIR(parentStat.st_mode):
                 raise OSError("The session log parent is not a real directory")
-            parentIdentity = fileIdentity(parentStat)
+            parentIdentity = fileIdentity(parentStat, sessLog.parent)
             if expectedParent is not None and parentIdentity != expectedParent:
                 raise OSError("The session log parent changed before conversion")
-            sourceIdentity = fileIdentity(sourceStat)
+            sourceIdentity = fileIdentity(sourceStat, sessLog)
 
             data = []
             offset = 0
@@ -1512,8 +1718,16 @@ class _LegacyStorage:
                 expectedParent=parentIdentity,
                 expectedTarget=None,
                 replaceExisting=False,
+                quarantineParent=quarantineParent,
+                expectedQuarantineParent=expectedQuarantineParent,
             )
-            self._unlinkExpectedFile(sessLog, sourceIdentity, parentIdentity)
+            self._unlinkExpectedFile(
+                sessLog,
+                sourceIdentity,
+                parentIdentity,
+                quarantineParent=quarantineParent,
+                expectedQuarantineParent=expectedQuarantineParent,
+            )
         except Exception:
             logger.error("Failed to convert old stats file")
             logException()
@@ -1525,7 +1739,13 @@ class _LegacyDocuments:
     def __init__(self, project: NWProject) -> None:
         self._project = project
 
-    def convertDocuments(self, documents: Sequence[LegacyDocument | Path]) -> None:
+    def convertDocuments(
+        self,
+        documents: Sequence[LegacyDocument | Path],
+        *,
+        quarantineParent: Path,
+        expectedQuarantineParent: FileIdentity,
+    ) -> None:
         """Convert verified .nwd documents to the current .md format."""
         for document in documents:
             if isinstance(document, LegacyDocument):
@@ -1548,8 +1768,8 @@ class _LegacyDocuments:
                     or item.suffix != ".nwd"
                 ):
                     continue
-                sourceIdentity = fileIdentity(sourceStat)
-                parentIdentity = fileIdentity(parentStat)
+                sourceIdentity = fileIdentity(sourceStat, item)
+                parentIdentity = fileIdentity(parentStat, item.parent)
 
             output = item.with_suffix(".md")
             if os.path.lexists(output):
@@ -1589,6 +1809,8 @@ class _LegacyDocuments:
                     expectedParent=parentIdentity,
                     expectedTarget=None,
                     replaceExisting=False,
+                    quarantineParent=quarantineParent,
+                    expectedQuarantineParent=expectedQuarantineParent,
                 )
             except FileExistsError:
                 # The target may have appeared after the initial check. It
@@ -1612,7 +1834,13 @@ class _LegacyDocuments:
                 )
                 if not stat.S_ISREG(outputStat.st_mode):
                     raise OSError("The converted document is not a regular file")
-                self._removeConvertedSource(item, sourceIdentity, parentIdentity)
+                self._removeConvertedSource(
+                    item,
+                    sourceIdentity,
+                    parentIdentity,
+                    quarantineParent=quarantineParent,
+                    expectedQuarantineParent=expectedQuarantineParent,
+                )
             except Exception:
                 # Publication and source cleanup are separate operations.
                 # A cleanup failure must not turn a successful conversion
@@ -1640,7 +1868,7 @@ class _LegacyDocuments:
         try:
             if os.name != "nt" and os.open in os.supports_dir_fd:
                 parentFd = openDirectory(source.parent)
-                if fileIdentity(os.fstat(parentFd)) != parentIdentity:
+                if fileIdentity(os.fstat(parentFd), fileDescriptor=parentFd) != parentIdentity:
                     raise OSError("The legacy document parent changed before it could be preserved")
                 moved = renameNoReplaceIfSameFile(
                     Path(source.name),
@@ -1683,26 +1911,41 @@ class _LegacyDocuments:
         path: Path,
         expectedIdentity: FileIdentity,
         expectedParent: FileIdentity,
+        *,
+        quarantineParent: Path,
+        expectedQuarantineParent: FileIdentity,
     ) -> None:
         """Remove a converted source only if it is still the same file."""
         parentStat = os.lstat(path.parent)
         if isLinkLike(path.parent) or not stat.S_ISDIR(parentStat.st_mode):
             raise OSError("The legacy document parent is not a real directory")
-        if fileIdentity(parentStat) != expectedParent:
+        if fileIdentity(parentStat, path.parent) != expectedParent:
             raise OSError("The legacy document parent changed before cleanup")
         if os.name != "nt" and os.open in os.supports_dir_fd:
             parentFd = openDirectory(path.parent)
             try:
-                if fileIdentity(os.fstat(parentFd)) != expectedParent:
+                if fileIdentity(os.fstat(parentFd), fileDescriptor=parentFd) != expectedParent:
                     raise OSError("The legacy document parent changed before cleanup")
                 entryStat = os.stat(path.name, dir_fd=parentFd, follow_symlinks=False)
-                if not stat.S_ISREG(entryStat.st_mode) or fileIdentity(entryStat) != expectedIdentity:
+                entryIdentity = fileIdentity(entryStat, Path(path.name), dirFd=parentFd)
+                if not stat.S_ISREG(entryStat.st_mode) or entryIdentity != expectedIdentity:
                     raise OSError("The legacy document changed before cleanup")
-                unlinkEntryIfSameFile(Path(path.name), expectedIdentity, dirFd=parentFd)
+                unlinkEntryIfSameFile(
+                    Path(path.name),
+                    expectedIdentity,
+                    dirFd=parentFd,
+                    quarantineParent=quarantineParent,
+                    expectedQuarantineParent=expectedQuarantineParent,
+                )
             finally:
                 os.close(parentFd)
         else:
-            unlinkIfSameFile(path, expectedIdentity)
+            unlinkIfSameFile(
+                path,
+                expectedIdentity,
+                quarantineParent=quarantineParent,
+                expectedQuarantineParent=expectedQuarantineParent,
+            )
 
     def _parseOldDocumentMeta(self, lines: list[str]) -> T_TomlObject:
         """Parse a line from the document starting with the characters

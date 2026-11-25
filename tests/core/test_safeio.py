@@ -1131,6 +1131,92 @@ def testSafeIO_WindowsRenameInformationUsesNoReplaceSemantics(
 
 
 @pytest.mark.core
+def testSafeIO_WindowsRenameInformationFallsBackToNativeRootHandle(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that Windows' rejected RootDirectory form uses the native path."""
+    target = tmp_path / "target"
+
+    class FakeSetFileInformation:
+        argtypes = None
+        restype = None
+
+        def __call__(self, handle: int, infoClass: int, info: Any, size: int) -> int:
+            return 0
+
+    class FakeNtSetInformationFile:
+        argtypes = None
+        restype = None
+
+        def __call__(
+            self,
+            handle: int,
+            ioStatus: Any,
+            info: Any,
+            size: int,
+            infoClass: int,
+        ) -> int:
+            assert handle == 11
+            assert infoClass == 10
+            raw = ctypes.string_at(info, size)
+            information = safeio._WindowsFileRenameInfo.from_buffer_copy(raw)
+            assert information.flags == 0
+            assert information.rootDirectory == 22
+            assert information.fileNameLength == len("target".encode("utf-16-le"))
+            nameOffset = safeio._WindowsFileRenameInfo.fileName.offset
+            nameBytes = raw[nameOffset : nameOffset + information.fileNameLength]
+            assert nameBytes.decode("utf-16-le") == "target"
+            return 0
+
+    fakeKernel = SimpleNamespace(SetFileInformationByHandle=FakeSetFileInformation())
+    fakeNtdll = SimpleNamespace(NtSetInformationFile=FakeNtSetInformationFile())
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_windowsKernel32", lambda: fakeKernel)
+        mp.setattr(safeio, "_windowsNtdll", lambda: fakeNtdll)
+        mp.setattr(safeio, "_windowsLastError", lambda: safeio._WINDOWS_ERROR_INVALID_PARAMETER)
+        assert safeio._setWindowsRenameInformation(11, 22, "target", target) is True
+
+
+@pytest.mark.core
+def testSafeIO_WindowsNativeRenameCollisionClassification(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that a native rename collision is not treated as an error."""
+    target = tmp_path / "target"
+
+    class FakeSetFileInformation:
+        argtypes = None
+        restype = None
+
+        def __call__(self, handle: int, infoClass: int, info: Any, size: int) -> int:
+            return 0
+
+    class FakeNtSetInformationFile:
+        argtypes = None
+        restype = None
+
+        def __call__(
+            self,
+            handle: int,
+            ioStatus: Any,
+            info: Any,
+            size: int,
+            infoClass: int,
+        ) -> int:
+            return safeio._WINDOWS_STATUS_OBJECT_NAME_COLLISION
+
+    fakeKernel = SimpleNamespace(SetFileInformationByHandle=FakeSetFileInformation())
+    fakeNtdll = SimpleNamespace(NtSetInformationFile=FakeNtSetInformationFile())
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_windowsKernel32", lambda: fakeKernel)
+        mp.setattr(safeio, "_windowsNtdll", lambda: fakeNtdll)
+        mp.setattr(safeio, "_windowsLastError", lambda: safeio._WINDOWS_ERROR_INVALID_PARAMETER)
+        assert safeio._setWindowsRenameInformation(11, 22, "target", target) is False
+
+
+@pytest.mark.core
 def testSafeIO_WindowsRenameCollisionClassification(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

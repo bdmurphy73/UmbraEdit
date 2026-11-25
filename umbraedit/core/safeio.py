@@ -170,12 +170,31 @@ class _WindowsFileRenameInfo(ctypes.Structure):
     ]
 
 
+class _WindowsIoStatusBlock(ctypes.Structure):
+    """Windows IO_STATUS_BLOCK structure.
+
+    The native structure contains a pointer-sized status union followed by a
+    pointer-sized information value. Expressing the status as a signed
+    32-bit field preserves the native padding on 64-bit Windows.
+    """
+
+    _fields_ = [
+        ("status", ctypes.c_int32),
+        ("information", ctypes.c_size_t),
+    ]
+
+
 # Relevant Win32 error codes. These are stable values from the Windows API
 # and are not the same as every POSIX errno value.
 _WINDOWS_ERROR_ACCESS_DENIED = 5
 _WINDOWS_ERROR_FILE_EXISTS = 80
 _WINDOWS_ERROR_INVALID_PARAMETER = 87
 _WINDOWS_ERROR_ALREADY_EXISTS = 183
+
+# Relevant NTSTATUS values used by the native rename fallback.
+_WINDOWS_STATUS_SUCCESS = 0
+_WINDOWS_STATUS_OBJECT_NAME_EXISTS = 0x40000000
+_WINDOWS_STATUS_OBJECT_NAME_COLLISION = 0xC0000035
 
 
 class _IdentityWitness:
@@ -979,6 +998,21 @@ def _entryIdentityMatches(
 def _windowsKernel32() -> Any:
     """Return the Windows kernel32 DLL without importing it on POSIX."""
     return cast("Any", ctypes).WinDLL("kernel32", use_last_error=True)
+
+
+def _windowsNtdll() -> Any:
+    """Return the Windows ntdll DLL without importing it on POSIX."""
+    return cast("Any", ctypes).WinDLL("ntdll")
+
+
+def _windowsNtStatusToDosError(status: int) -> int:
+    """Translate an NTSTATUS value to a Win32 error number."""
+    ntdll = _windowsNtdll()
+    translate = ntdll.RtlNtStatusToDosError
+    translate.argtypes = [ctypes.c_int32]
+    translate.restype = ctypes.c_uint32
+    signedStatus = status if status < 0x80000000 else status - 0x100000000
+    return int(translate(signedStatus))
 
 
 def _windowsLastError() -> int:
@@ -2288,6 +2322,72 @@ def _renameResult(result: int, target: Path) -> bool:
     raise OSError(errorNumber, os.strerror(errorNumber), str(target))
 
 
+def _setWindowsNativeRenameInformation(
+    sourceHandle: int,
+    buffer: Any,
+    bufferSize: int,
+    target: Path,
+) -> bool:
+    """Rename through the native path that honors ``RootDirectory``.
+
+    Several Windows releases expose a Win32 compatibility defect:
+    ``SetFileInformationByHandle(FileRenameInfo)`` rejects every non-null
+    ``RootDirectory`` with ``ERROR_INVALID_PARAMETER`` even though the
+    documented structure permits it. The native information class uses the
+    same structure and does honor the directory handle. It is therefore used
+    only as a compatibility fallback, with the exact same no-replace flags,
+    source handle, parent handle, filename bytes, and buffer length.
+    """
+    ntdll = _windowsNtdll()
+    setInformation = ntdll.NtSetInformationFile
+    setInformation.argtypes = [
+        ctypes.c_void_p,
+        ctypes.POINTER(_WindowsIoStatusBlock),
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.c_int,
+    ]
+    setInformation.restype = ctypes.c_int32
+
+    ioStatus = _WindowsIoStatusBlock()
+    status = int(
+        setInformation(
+            sourceHandle,
+            ctypes.byref(ioStatus),
+            ctypes.byref(buffer),
+            bufferSize,
+            10,  # FileRenameInformation
+        )
+    )
+    if status == _WINDOWS_STATUS_SUCCESS:
+        return True
+
+    unsignedStatus = status & 0xFFFFFFFF
+    if unsignedStatus in (
+        _WINDOWS_STATUS_OBJECT_NAME_COLLISION,
+        _WINDOWS_STATUS_OBJECT_NAME_EXISTS,
+    ):
+        return False
+
+    errorNumber = _windowsNtStatusToDosError(unsignedStatus)
+    if errorNumber == _WINDOWS_ERROR_ACCESS_DENIED:
+        # Some Windows filesystems report access denied rather than a
+        # namespace collision when the destination already exists. Only
+        # classify the error as a collision when the target is still
+        # present; a genuine ACL failure must remain visible to the caller.
+        try:
+            os.lstat(target)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            pass
+        else:
+            return False
+    if errorNumber == 0:
+        errorNumber = errno.EIO
+    raise _windowsError(errorNumber, target)
+
+
 def _setWindowsRenameInformation(
     sourceHandle: int,
     targetParentHandle: int,
@@ -2329,6 +2429,11 @@ def _setWindowsRenameInformation(
         return True
 
     errorNumber = _windowsLastError()
+    if errorNumber == _WINDOWS_ERROR_INVALID_PARAMETER:
+        # The Win32 wrapper rejects a non-null RootDirectory on affected
+        # Windows releases. The native information class supports the same
+        # handle-relative request and preserves the validated parent object.
+        return _setWindowsNativeRenameInformation(sourceHandle, buffer, bufferSize, target)
     if errorNumber in (_WINDOWS_ERROR_FILE_EXISTS, _WINDOWS_ERROR_ALREADY_EXISTS):
         return False
     if errorNumber == _WINDOWS_ERROR_ACCESS_DENIED:

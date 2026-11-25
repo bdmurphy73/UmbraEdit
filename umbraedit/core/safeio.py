@@ -2455,13 +2455,24 @@ def _setWindowsRenameInformation(
     raise _windowsError(errorNumber, target)
 
 
-def _renameNoReplaceWindows(source: Path, target: Path) -> bool:
+def _renameNoReplaceWindows(
+    source: Path,
+    target: Path,
+    *,
+    allowReparseSource: bool = False,
+    expectedSourceIdentity: Optional[FileIdentity] = None,
+) -> bool:
     """Atomically rename a Windows object without replacing its target.
 
     The source is opened with delete access and the target parent is opened
     separately. Both handles are checked against fresh path observations
     before the native rename, so a pathname replacement cannot silently
     redirect the operation to another object or parent.
+
+    Reparse-point sources are rejected by default. ``allowReparseSource``
+    is reserved for preserving an unexpected target that was already
+    observed to be a link; the source handle is opened with
+    ``FILE_FLAG_OPEN_REPARSE_POINT`` and remains bound to the link object.
     """
     targetName = target.name
     if not targetName or targetName in (".", "..") or "/" in targetName or "\\" in targetName:
@@ -2469,8 +2480,9 @@ def _renameNoReplaceWindows(source: Path, target: Path) -> bool:
 
     sourceStat = os.lstat(source)
     targetParentStat = os.lstat(target.parent)
-    if stat.S_ISLNK(sourceStat.st_mode) or (
-        getattr(sourceStat, "st_file_attributes", 0) & _FILE_ATTRIBUTE_REPARSE_POINT
+    if not allowReparseSource and (
+        stat.S_ISLNK(sourceStat.st_mode)
+        or (getattr(sourceStat, "st_file_attributes", 0) & _FILE_ATTRIBUTE_REPARSE_POINT)
     ):
         raise OSError(errno.ELOOP, "The rename source cannot be a link", str(source))
     if stat.S_ISLNK(targetParentStat.st_mode) or (
@@ -2483,6 +2495,8 @@ def _renameNoReplaceWindows(source: Path, target: Path) -> bool:
         raise OSError(errno.ENOTDIR, "The rename target parent is not a directory", str(target.parent))
 
     sourceIdentity = fileIdentity(sourceStat, source)
+    if expectedSourceIdentity is not None and sourceIdentity != expectedSourceIdentity:
+        raise OSError(errno.ESTALE, "The rename source changed before it could be renamed", str(source))
     targetParentIdentity = fileIdentity(targetParentStat, target.parent)
     sourceHandle: Optional[int] = None
     targetParentHandle: Optional[int] = None
@@ -2500,7 +2514,7 @@ def _renameNoReplaceWindows(source: Path, target: Path) -> bool:
                 "The rename target parent changed before it could be used",
                 str(target.parent),
             )
-        if sourceInformation.attributes & _FILE_ATTRIBUTE_REPARSE_POINT:
+        if not allowReparseSource and sourceInformation.attributes & _FILE_ATTRIBUTE_REPARSE_POINT:
             raise OSError(errno.ELOOP, "The rename source cannot be a link", str(source))
         if targetParentInformation.attributes & _FILE_ATTRIBUTE_REPARSE_POINT:
             raise OSError(errno.ELOOP, "The rename target parent cannot be a link", str(target.parent))
@@ -2680,6 +2694,53 @@ def renameNoReplaceAt(source: Path, targetName: str, targetDirFd: int) -> bool:
     if sys.platform.startswith("linux"):
         return _renameNoReplaceLinux(sourcePath, targetPath, None, targetDirFd)
     raise OSError(errno.ENOTSUP, "Atomic no-replace rename is not supported")
+
+
+def _preserveUnexpectedEntry(
+    source: Path,
+    target: Path,
+    expectedIdentity: FileIdentity,
+    *,
+    sourceDirFd: Optional[int] = None,
+    targetDirFd: Optional[int] = None,
+) -> bool:
+    """Move an unexpected entry to a private name without deleting it.
+
+    Windows uses a handle-bound rename that permits a reparse-point source
+    only for this preservation path. The source identity is checked before
+    the rename so a further concurrent replacement is left untouched.
+    """
+    if os.name == "nt":
+        if sourceDirFd is not None or targetDirFd is not None:
+            raise OSError(errno.ENOTSUP, "Directory descriptors are not supported on Windows")
+        return _renameNoReplaceWindows(
+            source,
+            target,
+            allowReparseSource=True,
+            expectedSourceIdentity=expectedIdentity,
+        )
+    if sourceDirFd is not None and targetDirFd is not None:
+        return renameNoReplaceBetween(
+            source,
+            target,
+            sourceDirFd=sourceDirFd,
+            targetDirFd=targetDirFd,
+        )
+    if sourceDirFd is not None:
+        return renameNoReplaceBetween(
+            source,
+            target,
+            sourceDirFd=sourceDirFd,
+            targetDirFd=None,
+        )
+    if targetDirFd is not None:
+        return renameNoReplaceBetween(
+            source,
+            target,
+            sourceDirFd=None,
+            targetDirFd=targetDirFd,
+        )
+    return renameNoReplaceBetween(source, target)
 
 
 def renameNoReplaceBetween(
@@ -2887,15 +2948,14 @@ def renameNoReplaceIfSameFile(
             conflictEntry = Path(conflictName) if targetDirFd is not None else target.parent / conflictName
             conflictPath = target.parent / conflictName
             try:
-                if targetDirFd is not None:
-                    preserved = renameNoReplaceBetween(
-                        targetEntry,
-                        conflictEntry,
-                        sourceDirFd=targetDirFd,
-                        targetDirFd=targetDirFd,
-                    )
-                else:
-                    preserved = renameNoReplaceBetween(targetEntry, conflictEntry)
+                unexpectedIdentity = _entryIdentity(targetEntry, targetDirFd, targetStat)
+                preserved = _preserveUnexpectedEntry(
+                    targetEntry,
+                    conflictEntry,
+                    unexpectedIdentity,
+                    sourceDirFd=targetDirFd,
+                    targetDirFd=targetDirFd,
+                )
             except OSError:
                 preserved = False
 
@@ -3036,11 +3096,12 @@ def linkNoReplaceIfSameFile(
         conflictName = f".umbraedit-conflict-{uuid.uuid4().hex}"
         conflictEntry = Path(conflictName) if targetDirFd is not None else target.parent / conflictName
         with contextlib.suppress(OSError):
-            renameEntry(
+            _preserveUnexpectedEntry(
                 targetEntry,
                 conflictEntry,
-                entryDirFd=targetDirFd,
-                destinationDirFd=targetDirFd,
+                targetIdentity,
+                sourceDirFd=targetDirFd,
+                targetDirFd=targetDirFd,
             )
 
     try:

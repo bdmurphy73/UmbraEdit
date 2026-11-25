@@ -281,6 +281,35 @@ def testProjectDocument_LoadSave(
 
 
 @pytest.mark.core
+def testProjectDocument_NormalisesLineEndings(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that project documents use LF line endings on every platform."""
+    # The legacy preference must not change the canonical on-disk format
+    # of project documents.
+    monkeypatch.setattr("umbraedit.CONFIG.forceUnixLineEndings", False)
+    project = NWProject()
+    mockRnd.reset()
+    buildTestProject(project, fncPath)
+
+    docPath = fncPath / "content" / f"{C.hSceneDoc}.md"
+    docPath.write_bytes(b"First line\r\nSecond line\rThird line")
+
+    doc = ProjectDocument(project, C.hSceneDoc)
+    assert doc.readDocument() == "First line\nSecond line\nThird line"
+    assert ProjectDocument.quickReadText(fncPath / "content", C.hSceneDoc) == ("First line\nSecond line\nThird line")
+
+    assert doc.writeDocument("First line\nSecond line\n") is True
+    payload = docPath.read_bytes()
+    assert b"\r\n" not in payload
+    assert b"\r" not in payload
+    assert payload.endswith(b"First line\nSecond line\n")
+
+
+@pytest.mark.core
 def testProjectDocument_RejectsSymlinkedFile(
     mockGUI: MockGuiMain,
     fncPath: Path,

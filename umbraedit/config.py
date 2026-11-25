@@ -363,7 +363,7 @@ class Config:
         self.backupInterval = "session"  # Backup interval
         self.askBeforeBackup = True  # Flag for asking before running automatic backup
         self.askBeforeExit = True  # Flag for asking before exiting the app
-        self.forceUnixLineEndings = False  # Always use LF line endings, never CRLF
+        self.forceUnixLineEndings = True  # Always use LF line endings, never CRLF
 
         # Text Document Settings
         self.textFont = QFont()  # Editor font

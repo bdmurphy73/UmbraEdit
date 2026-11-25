@@ -33,7 +33,6 @@ from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING, Optional, TextIO, Union
 
-from umbraedit import CONFIG
 from umbraedit.common import formatTimeStamp, isHandle, stripUnsafe
 from umbraedit.core.safeio import (
     FileIdentity,
@@ -182,7 +181,7 @@ class ProjectDocument:
                     expectedParent=parentIdentity,
                     expectedIdentity=targetIdentity,
                 ) as binaryFile,
-                io.TextIOWrapper(binaryFile, encoding="utf-8", newline="") as inFile,
+                io.TextIOWrapper(binaryFile, encoding="utf-8", newline=None) as inFile,
             ):
                 _, text = ProjectDocument._splitHeader(inFile)
                 return text
@@ -269,7 +268,7 @@ class ProjectDocument:
                         expectedParent=contentIdentity,
                         expectedIdentity=targetIdentity,
                     ) as binaryFile,
-                    io.TextIOWrapper(binaryFile, encoding="utf-8", newline="") as inFile,
+                    io.TextIOWrapper(binaryFile, encoding="utf-8", newline=None) as inFile,
                 ):
                     metaLines, text = self._splitHeader(inFile)
                     if metaLines:
@@ -418,9 +417,10 @@ class ProjectDocument:
         _umbraHooks.call(_umbraHooks.DOCUMENT_PRE_SAVE, self._handle, str(docPath))
 
         try:
-            payloadText = (docMeta + text).replace("\r\n", "\n").replace("\r", "\n")
-            lineEnding = CONFIG.lineEnding if isinstance(CONFIG.lineEnding, str) else os.linesep
-            payload = payloadText.replace("\n", lineEnding).encode("utf-8")
+            # Project documents have a canonical LF format on every
+            # platform. Normalise both legacy CRLF and legacy CR input
+            # before writing so the on-disk representation is stable.
+            payload = (docMeta + text).replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
             publishedIdentity = writeFileAtomic(
                 docPath,
                 payload,

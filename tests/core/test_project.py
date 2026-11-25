@@ -37,7 +37,7 @@ from umbraedit import CONFIG, SHARED
 from umbraedit.constants import nwFiles
 from umbraedit.core.project import NWProject, NWProjectState
 from umbraedit.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLReadState
-from umbraedit.core.safeio import FileIdentity, copyRegularFile, renameNoReplace
+from umbraedit.core.safeio import FileIdentity, copyRegularFile, renameNoReplaceBetween
 from umbraedit.enum import nwItemClass, nwProjectKind
 from umbraedit.shared import _GuiAlert
 
@@ -1005,17 +1005,17 @@ def testNWProject_SaveAsPathFallbackRollsBack(
 
     target = fncPath / "path-fallback-rollback"
     target.mkdir()
-    realRename = renameNoReplace
+    realRename = renameNoReplaceBetween
 
-    def failPublication(sourcePath: Path, targetPath: Path) -> bool:
+    def failPublication(sourcePath: Path, targetPath: Path, **kwargs: Any) -> bool:
         if Path(sourcePath).name.startswith(".umbraedit-stage-") and Path(targetPath) == target:
             raise OSError(errno.EIO, "Simulated publication failure", str(targetPath))
-        return realRename(sourcePath, targetPath)
+        return realRename(sourcePath, targetPath, **kwargs)
 
     with monkeypatch.context() as mp:
         mp.setattr("umbraedit.core.project.supportsDirectoryDescriptors", lambda: False)
         mp.setattr("umbraedit.core.storage.supportsDirectoryDescriptors", lambda: False)
-        mp.setattr("umbraedit.core.project.renameNoReplace", failPublication)
+        mp.setattr("umbraedit.core.project.renameNoReplaceBetween", failPublication)
         assert project.saveProjectAs(target, "Failed Copy") is False
 
     assert project.storage.storagePath == originalPath

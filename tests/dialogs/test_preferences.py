@@ -422,9 +422,9 @@ def testGuiPreferences_Settings(
     prefs.vimMode.setChecked(True)
 
     # Advanced
-    assert CONFIG.forceUnixLineEndings is False
+    assert CONFIG.forceUnixLineEndings is True
 
-    prefs.forceUnixLineEndings.setChecked(True)
+    prefs.forceUnixLineEndings.setChecked(False)
 
     # Save Settings
     with monkeypatch.context() as mp:
@@ -547,7 +547,7 @@ def testGuiPreferences_Settings(
     ]
 
     # Advanced
-    assert CONFIG.forceUnixLineEndings is True
+    assert CONFIG.forceUnixLineEndings is False
 
     # qtbot.stop()
 

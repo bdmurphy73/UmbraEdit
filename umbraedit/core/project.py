@@ -67,7 +67,6 @@ from umbraedit.core.safeio import (
     openDirectoryAt,
     removeEmptyDirectoryIfOwned,
     removeTreeIfOwned,
-    renameNoReplace,
     renameNoReplaceBetween,
     scanRegularFiles,
     supportsDirectoryDescriptors,
@@ -884,6 +883,7 @@ class NWProject:
                 removeTreeIfOwned(
                     stagingPath,
                     stagingIdentity,
+                    expectedParent=stagingParentIdentity,
                     quarantineParent=newPath.parent,
                     expectedQuarantineParent=stagingParentIdentity,
                 )
@@ -972,7 +972,7 @@ class NWProject:
                             "Could not restore the target project folder; it is preserved at '%s'", targetBackupPath
                         )
                         return False
-                    if not renameNoReplace(targetBackupPath, newPath):
+                    if not renameNoReplaceBetween(targetBackupPath, newPath):
                         raise OSError("Could not restore the target project folder")
                     restoredStat = os.lstat(newPath)
                     restoredIdentity = fileIdentity(restoredStat, newPath)
@@ -1003,7 +1003,7 @@ class NWProject:
                                 parentStat = os.lstat(newPath.parent)
                                 if fileIdentity(parentStat, newPath.parent) != stagingParentIdentity:
                                     raise OSError("The destination folder changed while saving")
-                            if renameNoReplace(newPath, conflictCandidate):
+                            if renameNoReplaceBetween(newPath, conflictCandidate):
                                 conflictPath = conflictCandidate
                             else:
                                 conflictPath = newPath
@@ -1498,7 +1498,7 @@ class NWProject:
                         parentStat = os.lstat(newPath.parent)
                         if fileIdentity(parentStat, newPath.parent) != stagingParentIdentity:
                             raise OSError("The destination folder changed while saving")
-                    moved = renameNoReplace(newPath, targetBackupCandidate)
+                    moved = renameNoReplaceBetween(newPath, targetBackupCandidate)
                 if not moved:
                     errorMessage = self.tr("The target project location changed while saving. Please try again.")
                     raise OSError("Could not move the existing target project folder aside")
@@ -1572,7 +1572,7 @@ class NWProject:
                     stageStat = os.lstat(stagingPath)
                     if isLinkLike(stagingPath) or fileIdentity(stageStat, stagingPath) != stagingIdentity:
                         raise OSError("The project staging directory changed before publication")
-                    published = renameNoReplace(stagingPath, newPath)
+                    published = renameNoReplaceBetween(stagingPath, newPath)
             except Exception:
                 restoreTargetBackup()
                 raise
@@ -1641,7 +1641,7 @@ class NWProject:
                             parentStat = os.lstat(newPath.parent)
                             if fileIdentity(parentStat, newPath.parent) != stagingParentIdentity:
                                 raise OSError("The destination folder changed while saving")
-                        if renameNoReplace(newPath, conflictCandidate):
+                        if renameNoReplaceBetween(newPath, conflictCandidate):
                             conflictPath = conflictCandidate
                         else:
                             conflictPath = newPath

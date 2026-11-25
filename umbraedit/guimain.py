@@ -674,9 +674,15 @@ class GuiMain(QMainWindow):
 
         return True
 
-    @pyqtSlot(Qt.ColorScheme)
-    def _colorSchemeChanged(self, schemeHint: Qt.ColorScheme) -> None:
-        """Apply an operating-system colour scheme change."""
+    def _colorSchemeChanged(self, schemeHint: Any) -> None:
+        """Apply an operating-system colour scheme change.
+
+        ``Qt.ColorScheme`` was added in Qt 6.5. Keep this bound QObject
+        method independent of that enum so UmbraEdit can still be imported
+        with the Qt 6.4 runtime provided by some supported Linux
+        distributions. Qt still recognises the bound receiver and
+        disconnects it automatically when the main window is destroyed.
+        """
         self.checkThemeUpdate(schemeHint=schemeHint)
 
     def checkThemeUpdate(self, *, schemeHint: Optional[Any] = None) -> None:

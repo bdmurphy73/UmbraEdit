@@ -30,7 +30,7 @@ import sys
 
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
-from typing import BinaryIO, Optional, cast
+from typing import Any, BinaryIO, Optional, cast
 
 import pytest
 
@@ -871,6 +871,109 @@ def testSafeIO_WindowsTreeDeletionReportsCloseFailure(monkeypatch: pytest.Monkey
 
 
 @pytest.mark.core
+@pytest.mark.skipif(os.name != "nt", reason="Windows native deletion integration test")
+def testSafeIO_WindowsNativeDeletionPreservesRacedReplacement(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that Windows deletion disposes only the exact validated file."""
+    path = tmp_path / "file"
+    movedPath = tmp_path / "moved-file"
+    path.write_text("original", encoding="utf-8")
+    expectedIdentity = safeio.fileIdentity(os.lstat(path), path)
+    realOpenHandle = safeio._openWindowsDeleteHandle
+    replaced = False
+
+    def replaceBeforeOpen(observed: Path, *, directory: bool) -> int:
+        nonlocal replaced
+        if Path(observed) == path and not replaced:
+            replaced = True
+            path.rename(movedPath)
+            path.write_text("replacement", encoding="utf-8")
+        return realOpenHandle(observed, directory=directory)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_openWindowsDeleteHandle", replaceBeforeOpen)
+        with pytest.raises(OSError, match="changed before it could be removed"):
+            safeio.unlinkEntryIfSameFile(path, expectedIdentity)
+
+    assert replaced is True
+    assert path.read_text(encoding="utf-8") == "replacement"
+    assert movedPath.read_text(encoding="utf-8") == "original"
+
+
+@pytest.mark.core
+@pytest.mark.skipif(os.name != "nt", reason="Windows native cleanup integration test")
+def testSafeIO_WindowsNativeCleanupPreservesRacedDescendant(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that recursive cleanup preserves a child replaced after its scan."""
+    root = tmp_path / "root"
+    child = root / "child"
+    movedChild = tmp_path / "moved-child"
+    root.mkdir()
+    child.write_text("original", encoding="utf-8")
+    rootIdentity = safeio.fileIdentity(os.lstat(root), root)
+    realOpenHandle = safeio._openWindowsDeleteHandle
+    replaced = False
+
+    def replaceBeforeOpen(observed: Path, *, directory: bool) -> int:
+        nonlocal replaced
+        if Path(observed) == child and not replaced:
+            replaced = True
+            child.rename(movedChild)
+            child.write_text("replacement", encoding="utf-8")
+        return realOpenHandle(observed, directory=directory)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_openWindowsDeleteHandle", replaceBeforeOpen)
+        with pytest.raises(OSError, match="cleanup entry changed"):
+            safeio.removeTreeIfOwned(root, rootIdentity)
+
+    assert replaced is True
+    assert child.read_text(encoding="utf-8") == "replacement"
+    assert movedChild.read_text(encoding="utf-8") == "original"
+    assert root.is_dir()
+
+
+@pytest.mark.core
+@pytest.mark.skipif(os.name != "nt", reason="Windows native cleanup integration test")
+def testSafeIO_WindowsNativeCleanupPreservesReplacedParent(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that replacing a cleanup parent cannot redirect root deletion."""
+    parent = tmp_path / "parent"
+    movedParent = tmp_path / "moved-parent"
+    root = parent / "root"
+    parent.mkdir()
+    root.mkdir()
+    parentIdentity = safeio.fileIdentity(os.lstat(parent), parent)
+    rootIdentity = safeio.fileIdentity(os.lstat(root), root)
+    realOpenHandle = safeio._openWindowsDeleteHandle
+    replaced = False
+
+    def replaceParentBeforeOpen(observed: Path, *, directory: bool) -> int:
+        nonlocal replaced
+        if Path(observed) == root and not replaced:
+            replaced = True
+            parent.rename(movedParent)
+            parent.mkdir()
+            root.mkdir()
+        return realOpenHandle(observed, directory=directory)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_openWindowsDeleteHandle", replaceParentBeforeOpen)
+        with pytest.raises(OSError, match="cleanup path changed"):
+            safeio.removeTreeIfOwned(root, rootIdentity, expectedParent=parentIdentity)
+
+    assert replaced is True
+    assert root.is_dir()
+    assert (movedParent / "root").is_dir()
+
+
+@pytest.mark.core
 def testSafeIO_WindowsDescriptorConversionPreservesPrimaryError(
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -908,26 +1011,253 @@ def testSafeIO_WindowsDescriptorConversionPreservesPrimaryError(
 
 
 @pytest.mark.core
-def testSafeIO_WindowsRenameFallback(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    """Test that the Windows path-based fallback never replaces a target."""
+def testSafeIO_WindowsRenameValidatesNativeObjects(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that the Windows rename binds source and parent handles."""
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    source.write_text("source", encoding="utf-8")
+    sourceIdentity = safeio.FileIdentity(44, 1, 100, safeio._GENERATION_WINDOWS_LEGACY)
+    parentIdentity = safeio.FileIdentity(44, 2, 200, safeio._GENERATION_WINDOWS_LEGACY)
+    closedHandles: list[int] = []
+    renameCalls: list[tuple[int, int, str, Path]] = []
+
+    def handleInformation(handle: int, **kwargs: object) -> safeio._WindowsHandleInformation:
+        if handle == 11:
+            return safeio._WindowsHandleInformation(identity=sourceIdentity, attributes=0)
+        return safeio._WindowsHandleInformation(
+            identity=parentIdentity,
+            attributes=safeio._FILE_ATTRIBUTE_DIRECTORY,
+        )
+
+    def setRenameInformation(
+        sourceHandle: int,
+        targetParentHandle: int,
+        targetName: str,
+        renameTarget: Path,
+    ) -> bool:
+        renameCalls.append((sourceHandle, targetParentHandle, targetName, renameTarget))
+        return True
+
+    with monkeypatch.context() as mp:
+        mp.setattr(
+            safeio,
+            "fileIdentity",
+            lambda observedStat, observedPath=None, *args, **kwargs: (
+                sourceIdentity if observedPath is not None and Path(observedPath) == source else parentIdentity
+            ),
+        )
+        mp.setattr(safeio, "_openWindowsDeleteHandle", lambda observed, directory: 11)
+        mp.setattr(safeio, "_openWindowsRenameParentHandle", lambda observed: 22)
+        mp.setattr(safeio, "_windowsHandleInformation", handleInformation)
+        mp.setattr(
+            safeio,
+            "_windowsHandleFinalPath",
+            lambda handle: source if handle == 11 else target.parent,
+        )
+        mp.setattr(safeio, "_setWindowsRenameInformation", setRenameInformation)
+        mp.setattr(safeio, "_closeWindowsHandle", closedHandles.append)
+
+        assert safeio._renameNoReplaceWindows(source, target) is True
+
+    assert renameCalls == [(11, 22, target.name, target)]
+    assert sorted(closedHandles) == [11, 22]
+
+
+@pytest.mark.core
+def testSafeIO_WindowsRenameRejectsReparseSource(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that a Windows rename cannot publish a reparse-point source."""
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    source.write_text("source", encoding="utf-8")
+    realLstat = os.lstat
+
+    def observe(path: Path) -> os.stat_result:
+        observed = realLstat(path)
+        if Path(path) == source:
+            return cast(
+                os.stat_result,
+                SimpleNamespace(
+                    st_mode=observed.st_mode,
+                    st_file_attributes=safeio._FILE_ATTRIBUTE_REPARSE_POINT,
+                ),
+            )
+        return observed
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio.os, "lstat", observe)
+        with pytest.raises(OSError) as excInfo:
+            safeio._renameNoReplaceWindows(source, target)
+
+    assert excInfo.value.errno == errno.ELOOP
+    assert source.read_text(encoding="utf-8") == "source"
+    assert not target.exists()
+
+
+@pytest.mark.core
+def testSafeIO_WindowsRenameInformationUsesNoReplaceSemantics(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that native rename information is encoded for no replacement."""
+    target = tmp_path / "target"
+
+    class FakeSetFileInformation:
+        argtypes = None
+        restype = None
+
+        def __call__(self, handle: int, infoClass: int, info: Any, size: int) -> int:
+            assert handle == 11
+            assert infoClass == 3
+            raw = ctypes.string_at(info, size)
+            information = safeio._WindowsFileRenameInfo.from_buffer_copy(raw)
+            assert information.flags == 0
+            assert information.rootDirectory == 22
+            assert information.fileNameLength == len("target".encode("utf-16-le"))
+            nameOffset = safeio._WindowsFileRenameInfo.fileName.offset
+            nameBytes = raw[nameOffset : nameOffset + information.fileNameLength]
+            assert nameBytes.decode("utf-16-le") == "target"
+            return 1
+
+    fakeKernel = SimpleNamespace(SetFileInformationByHandle=FakeSetFileInformation())
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_windowsKernel32", lambda: fakeKernel)
+        assert safeio._setWindowsRenameInformation(11, 22, "target", target) is True
+
+
+@pytest.mark.core
+def testSafeIO_WindowsRenameCollisionClassification(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that Windows rename collisions are distinguished from ACL errors."""
+    target = tmp_path / "target"
+
+    class FakeSetFileInformation:
+        argtypes = None
+        restype = None
+
+        def __call__(self, handle: int, infoClass: int, info: object, size: int) -> int:
+            return 0
+
+    fakeKernel = SimpleNamespace(SetFileInformationByHandle=FakeSetFileInformation())
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_windowsKernel32", lambda: fakeKernel)
+        mp.setattr(safeio, "_windowsLastError", lambda: safeio._WINDOWS_ERROR_FILE_EXISTS)
+        assert safeio._setWindowsRenameInformation(11, 22, "target", target) is False
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_windowsKernel32", lambda: fakeKernel)
+        mp.setattr(safeio, "_windowsLastError", lambda: safeio._WINDOWS_ERROR_ACCESS_DENIED)
+        mp.setattr(safeio.os, "lstat", lambda observed: SimpleNamespace(st_mode=0o100000))
+        assert safeio._setWindowsRenameInformation(11, 22, "target", target) is False
+
+    def missingTarget(observed: Path) -> os.stat_result:
+        raise FileNotFoundError(str(observed))
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_windowsKernel32", lambda: fakeKernel)
+        mp.setattr(safeio, "_windowsLastError", lambda: safeio._WINDOWS_ERROR_ACCESS_DENIED)
+        mp.setattr(safeio.os, "lstat", missingTarget)
+        with pytest.raises(OSError) as excInfo:
+            safeio._setWindowsRenameInformation(11, 22, "target", target)
+
+    assert excInfo.value.errno == safeio._WINDOWS_ERROR_ACCESS_DENIED
+
+
+@pytest.mark.core
+@pytest.mark.skipif(os.name != "nt", reason="Windows native rename integration test")
+def testSafeIO_WindowsNativeRenameNoReplace(tmp_path: Path):
+    """Test the native Windows rename against real files."""
     source = tmp_path / "source"
     target = tmp_path / "target"
     source.write_text("source", encoding="utf-8")
     target.write_text("target", encoding="utf-8")
-    realRename = os.rename
 
-    def windowsRename(sourcePath, targetPath):
-        if Path(targetPath).exists():
-            raise FileExistsError(errno.EEXIST, "File exists", str(targetPath))
-        return realRename(sourcePath, targetPath)
-
-    fakeOS = SimpleNamespace(name="nt", rename=windowsRename)
-    with monkeypatch.context() as mp:
-        mp.setattr(safeio, "os", fakeOS)
-        assert safeio.renameNoReplace(source, target) is False
-
+    assert safeio.renameNoReplace(source, target) is False
     assert source.read_text(encoding="utf-8") == "source"
     assert target.read_text(encoding="utf-8") == "target"
+
+    target.unlink()
+    assert safeio.renameNoReplace(source, target) is True
+    assert not source.exists()
+    assert target.read_text(encoding="utf-8") == "source"
+
+
+@pytest.mark.core
+@pytest.mark.skipif(os.name != "nt", reason="Windows native rename integration test")
+def testSafeIO_WindowsNativeRenameUsesExactSource(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that a replaced source pathname cannot redirect publication."""
+    source = tmp_path / "source"
+    movedSource = tmp_path / "moved-source"
+    target = tmp_path / "target"
+    source.write_text("original", encoding="utf-8")
+    realSetRename = safeio._setWindowsRenameInformation
+    replaced = False
+
+    def replaceSource(
+        sourceHandle: int,
+        targetParentHandle: int,
+        targetName: str,
+        renameTarget: Path,
+    ) -> bool:
+        nonlocal replaced
+        if not replaced:
+            replaced = True
+            source.rename(movedSource)
+            source.write_text("replacement", encoding="utf-8")
+        return realSetRename(sourceHandle, targetParentHandle, targetName, renameTarget)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_setWindowsRenameInformation", replaceSource)
+        assert safeio.renameNoReplace(source, target) is True
+
+    assert replaced is True
+    assert source.read_text(encoding="utf-8") == "replacement"
+    assert target.read_text(encoding="utf-8") == "original"
+
+
+@pytest.mark.core
+@pytest.mark.skipif(os.name != "nt", reason="Windows native rename integration test")
+def testSafeIO_WindowsNativeRenameBindsReplacedParent(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that a replaced target parent cannot redirect publication."""
+    sourceDir = tmp_path / "source"
+    targetDir = tmp_path / "target"
+    movedTargetDir = tmp_path / "moved-target"
+    sourceDir.mkdir()
+    targetDir.mkdir()
+    source = sourceDir / "source"
+    source.write_text("source", encoding="utf-8")
+    realSetRename = safeio._setWindowsRenameInformation
+
+    def replaceParent(
+        sourceHandle: int,
+        targetParentHandle: int,
+        targetName: str,
+        target: Path,
+    ) -> bool:
+        targetDir.rename(movedTargetDir)
+        targetDir.mkdir()
+        return realSetRename(sourceHandle, targetParentHandle, targetName, target)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_setWindowsRenameInformation", replaceParent)
+        assert safeio.renameNoReplace(source, targetDir / "published") is True
+
+    assert (movedTargetDir / "published").read_text(encoding="utf-8") == "source"
+    assert not (targetDir / "published").exists()
+    assert not source.exists()
 
 
 @pytest.mark.core
@@ -960,6 +1290,94 @@ def testSafeIO_LinuxFileHandleDistinguishesReplacement(tmp_path: Path):
     replacementIdentity = safeio.fileIdentity(os.lstat(path), path)
 
     assert replacementIdentity != identity
+
+
+@pytest.mark.core
+@pytest.mark.skipif(not safeio.sys.platform.startswith("linux"), reason="Linux descriptor witness")
+def testSafeIO_LinuxWitnessPreventsInodeReuse(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that the descriptor fallback prevents inode-number reuse."""
+    path = tmp_path / "file"
+    path.write_text("original", encoding="utf-8")
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_linuxFileHandleBytes", lambda descriptor: None)
+        mp.setattr(safeio, "_linuxBirthTime", lambda *args, **kwargs: (0, 0))
+        identity = safeio.fileIdentity(os.lstat(path), path)
+
+        assert identity.generationSource == safeio._GENERATION_WITNESS
+        assert identity._witness is not None
+
+        path.unlink()
+        path.write_text("replacement", encoding="utf-8")
+        replacementIdentity = safeio.fileIdentity(os.lstat(path), path)
+
+    assert replacementIdentity.inode != identity.inode
+    assert replacementIdentity != identity
+
+
+@pytest.mark.core
+@pytest.mark.skipif(not safeio.sys.platform.startswith("linux"), reason="Linux descriptor witness")
+def testSafeIO_LinuxWitnessIsSharedForOneObject(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that repeated observations share one inode witness."""
+    path = tmp_path / "file"
+    path.write_text("original", encoding="utf-8")
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_linuxFileHandleBytes", lambda descriptor: None)
+        mp.setattr(safeio, "_linuxBirthTime", lambda *args, **kwargs: (0, 0))
+        firstIdentity = safeio.fileIdentity(os.lstat(path), path)
+        secondIdentity = safeio.fileIdentity(os.lstat(path), path)
+
+    assert firstIdentity.generationSource == safeio._GENERATION_WITNESS
+    assert firstIdentity._witness is not None
+    assert secondIdentity._witness is firstIdentity._witness
+
+
+@pytest.mark.core
+@pytest.mark.skipif(not safeio.sys.platform.startswith("linux"), reason="Linux descriptor witness")
+def testSafeIO_LinuxBirthTimeDoesNotReplaceWitness(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that a repeated birth time cannot replace the witness fallback."""
+    path = tmp_path / "file"
+    path.write_text("original", encoding="utf-8")
+    pathStat = os.lstat(path)
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_linuxFileHandleBytes", lambda descriptor: None)
+        mp.setattr(safeio, "_linuxBirthTime", lambda *args, **kwargs: (123456, pathStat.st_ino))
+        identity = safeio.fileIdentity(pathStat, path)
+
+    assert identity.generationSource == safeio._GENERATION_WITNESS
+    assert identity._witness is not None
+
+
+@pytest.mark.core
+@pytest.mark.skipif(not safeio.sys.platform.startswith("linux"), reason="Linux descriptor witness")
+def testSafeIO_LinuxWitnessSurvivesDirectoryMetadataChange(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that a witness identity tolerates a child directory update."""
+    root = tmp_path / "root"
+    root.mkdir()
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "_linuxFileHandleBytes", lambda descriptor: None)
+        mp.setattr(safeio, "_linuxBirthTime", lambda *args, **kwargs: (0, 0))
+        identity = safeio.fileIdentity(os.lstat(root), root)
+        (root / "child").mkdir()
+        currentIdentity = safeio.fileIdentity(os.lstat(root), root)
+
+    assert identity.generationSource == safeio._GENERATION_WITNESS
+    assert currentIdentity == identity
 
 
 @pytest.mark.core
@@ -1789,11 +2207,26 @@ def testSafeIO_RemoveEmptyDirectoryUsesDescriptorRelativeCleanup(
     parentIdentity = safeio.fileIdentity(os.lstat(parent), parent)
     ownedIdentity = safeio.fileIdentity(os.lstat(owned), owned)
 
-    def failPathRename(*args: object, **kwargs: object) -> bool:
-        raise AssertionError("The path-based cleanup fallback was used")
+    realRename = safeio.renameNoReplaceBetween
+
+    def failPathRename(
+        source: Path,
+        target: Path,
+        *,
+        sourceDirFd: Optional[int] = None,
+        targetDirFd: Optional[int] = None,
+    ) -> bool:
+        if sourceDirFd is None and targetDirFd is None:
+            raise AssertionError("The path-based cleanup fallback was used")
+        return realRename(
+            source,
+            target,
+            sourceDirFd=sourceDirFd,
+            targetDirFd=targetDirFd,
+        )
 
     with monkeypatch.context() as mp:
-        mp.setattr(safeio, "renameNoReplace", failPathRename)
+        mp.setattr(safeio, "renameNoReplaceBetween", failPathRename)
         assert safeio.removeEmptyDirectoryIfOwned(
             owned,
             ownedIdentity,

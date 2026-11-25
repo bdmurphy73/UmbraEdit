@@ -70,7 +70,6 @@ from umbraedit.core.safeio import (
     scanRegularFiles,
     supportsDirectoryDescriptors,
     unlinkEntryIfSameFile,
-    unlinkIfSameFile,
     verifyPathIdentity,
     writeFileAtomic,
 )
@@ -518,7 +517,7 @@ class ProjectStorage:
                         for entry in entries:
                             if not entry.name.startswith("data_"):
                                 continue
-                            entryStat = entry.stat(follow_symlinks=False)
+                            entryStat = os.stat(entry.name, dir_fd=rootFd, follow_symlinks=False)
                             if stat.S_ISLNK(entryStat.st_mode) or isLinkLike(basePath / entry.name):
                                 raise OSError("Legacy project folders cannot be links")
                             if stat.S_ISDIR(entryStat.st_mode):
@@ -538,7 +537,7 @@ class ProjectStorage:
                     for entry in entries:
                         if not entry.name.startswith("data_"):
                             continue
-                        entryStat = entry.stat(follow_symlinks=False)
+                        entryStat = os.lstat(entry.path)
                         if stat.S_ISLNK(entryStat.st_mode) or isLinkLike(basePath / entry.name):
                             raise OSError("Legacy project folders cannot be links")
                         if stat.S_ISDIR(entryStat.st_mode):
@@ -1129,7 +1128,7 @@ class ProjectStorage:
                 finally:
                     os.close(parentFd)
             else:
-                unlinkIfSameFile(
+                unlinkEntryIfSameFile(
                     path,
                     currentIdentity,
                     quarantineParent=path.parent if self._rootIdentity is not None else None,
@@ -1305,7 +1304,11 @@ class _LegacyStorage:
             entries = os.scandir(childFd) if childFd is not None else os.scandir(child)
             with entries as scandirEntries:
                 for entry in scandirEntries:
-                    entryStat = entry.stat(follow_symlinks=False)
+                    entryStat = (
+                        os.stat(entry.name, dir_fd=childFd, follow_symlinks=False)
+                        if childFd is not None
+                        else os.lstat(entry.path)
+                    )
                     if stat.S_ISLNK(entryStat.st_mode) or getattr(entryStat, "st_file_attributes", 0) & 0x400:
                         raise OSError("Legacy project files cannot be links")
                     if not stat.S_ISREG(entryStat.st_mode):
@@ -1530,7 +1533,7 @@ class _LegacyStorage:
             finally:
                 os.close(parentFd)
         else:
-            unlinkIfSameFile(
+            unlinkEntryIfSameFile(
                 path,
                 identity,
                 quarantineParent=quarantineParent,
@@ -1571,7 +1574,7 @@ class _LegacyStorage:
             finally:
                 os.close(parentFd)
         else:
-            unlinkIfSameFile(
+            unlinkEntryIfSameFile(
                 path,
                 expectedIdentity,
                 quarantineParent=quarantineParent,
@@ -1940,7 +1943,7 @@ class _LegacyDocuments:
             finally:
                 os.close(parentFd)
         else:
-            unlinkIfSameFile(
+            unlinkEntryIfSameFile(
                 path,
                 expectedIdentity,
                 quarantineParent=quarantineParent,

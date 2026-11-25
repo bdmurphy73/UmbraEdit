@@ -916,8 +916,13 @@ def testImageImport_ExclusiveFallbackHidesPartialFile(
         if copyCalls == 2:
             target = projPath / "assets" / "img" / "cover.png"
             assert target.exists()
-            with pytest.raises(OSError):
-                target.read_bytes()
+            if hasattr(os, "geteuid") and os.geteuid() == 0:
+                # The superuser bypasses mode 000, but the descriptor must
+                # still be inaccessible to ordinary users while it is copied.
+                assert stat.S_IMODE(target.stat().st_mode) == 0
+            else:
+                with pytest.raises(OSError):
+                    target.read_bytes()
         return realCopy(sourceFile, targetFile, *args, **kwargs)
 
     with monkeypatch.context() as mp:

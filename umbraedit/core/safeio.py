@@ -34,8 +34,9 @@ import shutil
 import stat
 import sys
 import uuid
+import weakref
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, BinaryIO, NamedTuple, Optional, cast
 
@@ -135,6 +136,7 @@ _GENERATION_CHANGE = 2
 _GENERATION_FILE_HANDLE = 3
 _GENERATION_WINDOWS_FILE_ID = 4
 _GENERATION_WINDOWS_LEGACY = 5
+_GENERATION_WITNESS = 6
 
 
 class _WindowsFileId128(ctypes.Structure):
@@ -152,7 +154,62 @@ class _WindowsFileIdInfo(ctypes.Structure):
     ]
 
 
-class FileIdentity(NamedTuple):
+class _WindowsFileRenameInfo(ctypes.Structure):
+    """Windows FILE_RENAME_INFO structure.
+
+    The first member is a union containing either ``ReplaceIfExists`` or
+    ``Flags``. A zero DWORD therefore requests the classic FileRenameInfo
+    behaviour without replacing an existing target.
+    """
+
+    _fields_ = [
+        ("flags", ctypes.c_uint32),
+        ("rootDirectory", ctypes.c_void_p),
+        ("fileNameLength", ctypes.c_uint32),
+        ("fileName", ctypes.c_wchar * 1),
+    ]
+
+
+# Relevant Win32 error codes. These are stable values from the Windows API
+# and are not the same as every POSIX errno value.
+_WINDOWS_ERROR_ACCESS_DENIED = 5
+_WINDOWS_ERROR_FILE_EXISTS = 80
+_WINDOWS_ERROR_INVALID_PARAMETER = 87
+_WINDOWS_ERROR_ALREADY_EXISTS = 183
+
+
+class _IdentityWitness:
+    """Keep a Linux inode allocated while an identity is in use.
+
+    Some Linux filesystems expose neither file handles nor a unique birth
+    time. An inode number can then be recycled within one filesystem clock
+    tick, making a pathname replacement indistinguishable by ``stat`` data
+    alone. An ``O_PATH`` descriptor pins the original inode, preventing that
+    reuse until every identity referring to it has been released.
+    """
+
+    __slots__ = ("__weakref__", "fileDescriptor")
+
+    def __init__(self, fileDescriptor: int) -> None:
+        self.fileDescriptor = fileDescriptor
+
+    def _close(self) -> None:
+        """Release the descriptor, if it is still open."""
+        fileDescriptor = self.fileDescriptor
+        self.fileDescriptor = -1
+        if fileDescriptor >= 0:
+            with contextlib.suppress(OSError):
+                os.close(fileDescriptor)
+
+    def __del__(self) -> None:
+        self._close()
+
+
+_IDENTITY_WITNESSES: weakref.WeakValueDictionary[tuple[int, int], _IdentityWitness] = weakref.WeakValueDictionary()
+
+
+@dataclass(frozen=True)
+class FileIdentity:
     """Identify a filesystem object across pathname replacements.
 
     Device and inode numbers alone are not sufficient on Linux, where an
@@ -163,12 +220,21 @@ class FileIdentity(NamedTuple):
     operations, but differs for a new object that reuses the same device
     and inode numbers. Windows file IDs include their volume serial number
     so objects on different volumes can never compare equal.
+
+    On Linux filesystems without file handles, a private descriptor witness
+    is retained with the identity. The witness prevents inode-number reuse
+    while the identity is live. It is deliberately excluded from equality
+    and hashing because it is an implementation detail, not object data.
+    Witness-backed identities use a dedicated generation source so normal
+    metadata changes, such as a directory ctime update after publishing a
+    child, do not invalidate the identity.
     """
 
     device: int
     inode: int
     generation: int
     generationSource: int
+    _witness: Optional[_IdentityWitness] = field(default=None, compare=False, repr=False)
 
 
 class PublishedFileError(OSError):
@@ -337,26 +403,31 @@ def _linuxFileHandleGeneration(
     *,
     dirFd: Optional[int] = None,
     fileDescriptor: Optional[int] = None,
-) -> tuple[int, os.stat_result]:
-    """Return a stable generation derived from a Linux file handle."""
+) -> tuple[int, os.stat_result, Optional[_IdentityWitness]]:
+    """Return a stable generation derived from a Linux file handle.
+
+    A file handle is the preferred generation source, but not every
+    filesystem supports one. When it is unavailable, an ``O_PATH`` witness
+    is retained so the inode cannot be recycled while the identity is live.
+    """
     if not sys.platform.startswith("linux"):
-        return 0, pathStat
+        return 0, pathStat, None
 
     ownDescriptor = False
     descriptor = fileDescriptor
     if descriptor is None:
         if path is None:
-            return 0, pathStat
+            return 0, pathStat, None
         flags = getattr(os, "O_PATH", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
         if not flags:
-            return 0, pathStat
+            return 0, pathStat, None
         try:
             if dirFd is not None and os.open in os.supports_dir_fd:
                 descriptor = os.open(path.name, flags, dir_fd=dirFd)
             else:
                 descriptor = os.open(path, flags)
         except OSError:
-            return 0, pathStat
+            return 0, pathStat, None
         ownDescriptor = True
 
     try:
@@ -367,11 +438,20 @@ def _linuxFileHandleGeneration(
             or stat.S_IFMT(openedStat.st_mode) != stat.S_IFMT(pathStat.st_mode)
         ):
             raise OSError(errno.ESTALE, "The path changed while its identity was being captured")
+
         handleBytes = _linuxFileHandleBytes(descriptor)
         if handleBytes is None:
-            return 0, openedStat
+            witness = _IDENTITY_WITNESSES.get((openedStat.st_dev, openedStat.st_ino))
+            if witness is None:
+                try:
+                    witness = _IdentityWitness(os.dup(descriptor))
+                except OSError:
+                    witness = None
+                else:
+                    _IDENTITY_WITNESSES[(openedStat.st_dev, openedStat.st_ino)] = witness
+            return 0, openedStat, witness
         digest = hashlib.blake2b(handleBytes, digest_size=8, person=b"UmbraEditID").digest()
-        return int.from_bytes(digest, byteorder="little", signed=False), openedStat
+        return int.from_bytes(digest, byteorder="little", signed=False), openedStat, None
     finally:
         if ownDescriptor and descriptor is not None:
             os.close(descriptor)
@@ -401,14 +481,15 @@ def fileIdentity(
         )
 
     device = pathStat.st_dev
-    if sys.platform.startswith("linux") and generationSource in (None, _GENERATION_FILE_HANDLE):
-        handleGeneration, openedStat = _linuxFileHandleGeneration(
+    witness: Optional[_IdentityWitness] = None
+    if sys.platform.startswith("linux"):
+        handleGeneration, openedStat, witness = _linuxFileHandleGeneration(
             pathStat,
             path,
             dirFd=dirFd,
             fileDescriptor=fileDescriptor,
         )
-        if handleGeneration:
+        if generationSource in (None, _GENERATION_FILE_HANDLE) and handleGeneration:
             return FileIdentity(
                 0 if os.name == "nt" else openedStat.st_dev,
                 openedStat.st_ino,
@@ -416,7 +497,25 @@ def fileIdentity(
                 _GENERATION_FILE_HANDLE,
             )
         if generationSource == _GENERATION_FILE_HANDLE:
-            return FileIdentity(device, pathStat.st_ino, 0, _GENERATION_FILE_HANDLE)
+            return FileIdentity(
+                device,
+                pathStat.st_ino,
+                0,
+                _GENERATION_FILE_HANDLE,
+                _witness=witness,
+            )
+        if generationSource is None and witness is not None:
+            # Without a native file handle, the descriptor witness is the
+            # only reliable way to prevent inode-number reuse. In
+            # particular, overlayfs can repeat a statx birth time for
+            # different objects, so birth time alone is not sufficient.
+            return FileIdentity(
+                device,
+                pathStat.st_ino,
+                0,
+                _GENERATION_WITNESS,
+                _witness=witness,
+            )
 
     birthTime = getattr(pathStat, "st_birthtime_ns", None)
     if birthTime is None:
@@ -436,6 +535,7 @@ def fileIdentity(
                 pathStat.st_ino,
                 statxBirthTime,
                 _GENERATION_BIRTH,
+                _witness=witness,
             )
 
     if generationSource is None:
@@ -445,6 +545,11 @@ def fileIdentity(
             # On Windows, ctime is the stable creation time.
             generationSource = _GENERATION_BIRTH
             birthTime = pathStat.st_ctime_ns
+        elif witness is not None:
+            # The descriptor keeps the inode allocated. Device and inode
+            # therefore identify the object without relying on its ctime,
+            # which can legitimately change when a child is published.
+            generationSource = _GENERATION_WITNESS
         else:
             generationSource = _GENERATION_CHANGE
 
@@ -452,9 +557,16 @@ def fileIdentity(
         generation = birthTime or 0
     elif generationSource == _GENERATION_CHANGE:
         generation = pathStat.st_ctime_ns
+    elif generationSource == _GENERATION_WITNESS and witness is None:
+        # A witness-backed identity cannot be verified without a fresh
+        # descriptor. Fall back to the stricter change-time identity so
+        # the comparison fails closed instead of accepting an unverified
+        # inode number.
+        generationSource = _GENERATION_CHANGE
+        generation = pathStat.st_ctime_ns
     else:
         generation = 0
-    return FileIdentity(device, pathStat.st_ino, generation, generationSource)
+    return FileIdentity(device, pathStat.st_ino, generation, generationSource, _witness=witness)
 
 
 def identityMatches(
@@ -541,7 +653,7 @@ def directoryHasNonQuarantineEntries(directory: Path) -> bool:
             for entry in entries:
                 if entry.name != QUARANTINE_DIRECTORY_NAME:
                     return True
-                entryStat = entry.stat(follow_symlinks=False)
+                entryStat = os.lstat(entry.path)
                 if (
                     stat.S_ISLNK(entryStat.st_mode)
                     or getattr(entryStat, "st_file_attributes", 0) & _FILE_ATTRIBUTE_REPARSE_POINT
@@ -1074,6 +1186,42 @@ def _openWindowsIdentityHandle(path: Path) -> int:
     return int(handle)
 
 
+def _openWindowsRenameParentHandle(path: Path) -> int:
+    """Open a Windows directory for use as a rename root handle.
+
+    The handle is opened on the directory object itself and remains valid
+    if the directory's pathname is concurrently replaced. ``FILE_TRAVERSE``
+    is requested in addition to attribute access so the handle can be used
+    as the ``RootDirectory`` of ``FILE_RENAME_INFO``.
+    """
+    kernel32 = _windowsKernel32()
+    createFile = kernel32.CreateFileW
+    createFile.argtypes = [
+        ctypes.c_wchar_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+    ]
+    createFile.restype = ctypes.c_void_p
+
+    handle = createFile(
+        os.fspath(path),
+        0x00000020 | 0x00000080,  # FILE_TRAVERSE | FILE_READ_ATTRIBUTES
+        0x00000001 | 0x00000002 | 0x00000004,  # Share read, write, and delete
+        None,
+        3,  # OPEN_EXISTING
+        0x00200000 | 0x02000000,  # OPEN_REPARSE_POINT | BACKUP_SEMANTICS
+        None,
+    )
+    invalidHandle = ctypes.c_void_p(-1).value
+    if handle is None or handle == invalidHandle:
+        raise _windowsError(_windowsLastError(), path)
+    return int(handle)
+
+
 def _windowsDescriptorHandle(fileDescriptor: int) -> Optional[int]:
     """Return the native handle associated with a Windows file descriptor."""
     try:
@@ -1097,10 +1245,17 @@ def _windowsFileIdentity(
     fileDescriptor: Optional[int],
     generationSource: Optional[int],
 ) -> FileIdentity:
-    """Return an identity observed through an authoritative Windows handle."""
+    """Return an identity observed through an authoritative Windows handle.
+
+    A pathname observation and a later handle observation must describe the
+    same object. The stat snapshot is therefore bound to the native handle
+    before its identity is accepted. If the native handle cannot be opened,
+    or the snapshot cannot be bound safely, this function fails closed
+    instead of silently weakening the identity to stat metadata.
+    """
     if generationSource == _GENERATION_BIRTH:
-        # Preserve the stat-only fallback for identities that were created
-        # before a native handle could be opened.
+        # Preserve the stat-only fallback only for identities explicitly
+        # created through the legacy compatibility path.
         return FileIdentity(
             int(getattr(pathStat, "st_dev", 0)),
             int(pathStat.st_ino),
@@ -1123,16 +1278,13 @@ def _windowsFileIdentity(
         if requestedSource not in (_GENERATION_WINDOWS_FILE_ID, _GENERATION_WINDOWS_LEGACY):
             requestedSource = None
         information = _windowsHandleInformation(handle, identitySource=requestedSource)
+        if path is not None and fileDescriptor is None and not _windowsStatMatchesHandle(pathStat, information):
+            raise OSError(
+                errno.ESTALE,
+                "The path changed while its Windows identity was being captured",
+                str(path),
+            )
         identity = information.identity
-    except OSError:
-        if generationSource in (_GENERATION_WINDOWS_FILE_ID, _GENERATION_WINDOWS_LEGACY):
-            raise
-        identity = FileIdentity(
-            int(getattr(pathStat, "st_dev", 0)),
-            int(pathStat.st_ino),
-            int(pathStat.st_ctime_ns),
-            _GENERATION_BIRTH,
-        )
     finally:
         if ownHandle and handle is not None:
             try:
@@ -1177,7 +1329,12 @@ def _windowsHandleFinalPath(handle: int) -> Path:
 
 def _windowsPathKey(path: Path) -> str:
     """Return a normalised, case-insensitive Windows path key."""
-    return ntpath.normcase(ntpath.normpath(os.fspath(path)))
+    pathText = os.fspath(path)
+    if pathText.startswith("\\\\?\\UNC\\"):
+        pathText = "\\\\" + pathText[8:]
+    elif pathText.startswith("\\\\?\\"):
+        pathText = pathText[4:]
+    return ntpath.normcase(ntpath.normpath(ntpath.abspath(pathText)))
 
 
 def _windowsPathsEqual(left: Path, right: Path) -> bool:
@@ -1185,11 +1342,14 @@ def _windowsPathsEqual(left: Path, right: Path) -> bool:
     return _windowsPathKey(left) == _windowsPathKey(right)
 
 
+def _windowsPathParentKey(path: Path) -> str:
+    """Return the normalised parent key of a Windows path."""
+    return ntpath.dirname(_windowsPathKey(path))
+
+
 def _windowsPathIsDirectChild(parent: Path, child: Path) -> bool:
     """Return whether a Windows path is a direct child of another path."""
-    parentKey = _windowsPathKey(parent)
-    childKey = _windowsPathKey(child)
-    return ntpath.dirname(childKey) == parentKey
+    return _windowsPathParentKey(child) == _windowsPathKey(parent)
 
 
 def _setWindowsDeleteDisposition(handle: int, path: Path) -> None:
@@ -1259,35 +1419,36 @@ def _windowsStatMatchesHandle(
 
     Python 3.9 exposes the legacy 64-bit Windows file index through
     ``st_ino``. Python 3.12 and later may expose the full 128-bit file ID
-    instead. Comparing the stat snapshot with the handle's native identity
-    closes the race between enumerating a directory entry and opening that
-    entry for deletion.
+    instead. A snapshot may therefore be bound through either identifier,
+    provided the native handle exposes a matching value.
+
+    Python's Windows ``st_dev`` is a drive number, not the filesystem
+    volume serial returned by ``GetFileInformationByHandle``. The two
+    values cannot be compared. The validated parent final path establishes
+    that the entry is on the expected volume, while the file identifier
+    and creation time bind the stat snapshot to the opened object.
     """
-    legacyIdentity = information.legacyIdentity
-    if legacyIdentity is None:
-        return False
     try:
         statInode = int(pathStat.st_ino)
     except (AttributeError, TypeError, ValueError):
         return False
 
-    # Python's Windows ``st_dev`` is a drive number, not the filesystem
-    # volume serial returned by GetFileInformationByHandle. The two values
-    # cannot be compared. The validated parent final path establishes that
-    # the entry is on the same volume, while the file index (or the full
-    # 128-bit file ID) binds the stat snapshot to the opened object.
-    hasBirthTime = hasattr(pathStat, "st_birthtime_ns")
-    if hasBirthTime and information.identity.generationSource == _GENERATION_WINDOWS_FILE_ID:
-        expectedInode = information.identity.inode
-    else:
-        expectedInode = legacyIdentity.inode
-    if expectedInode == 0 or statInode != expectedInode:
+    legacyIdentity = information.legacyIdentity
+    inodeMatches = statInode != 0 and statInode == information.identity.inode
+    if not inodeMatches and legacyIdentity is not None:
+        inodeMatches = statInode != 0 and statInode == legacyIdentity.inode
+    if not inodeMatches:
+        # A Python 3.9 snapshot can expose only the legacy 64-bit index.
+        # If the filesystem also suppresses that value, the snapshot
+        # cannot be bound safely to the native handle and callers must
+        # fail closed.
         return False
 
     creationTime = getattr(pathStat, "st_birthtime_ns", None)
     if creationTime is None:
         creationTime = getattr(pathStat, "st_ctime_ns", None)
-    if creationTime is None or int(creationTime) != legacyIdentity.generation:
+    expectedCreationTime = legacyIdentity.generation if legacyIdentity is not None else information.identity.generation
+    if creationTime is None or int(creationTime) != expectedCreationTime:
         return False
 
     statAttributes = int(getattr(pathStat, "st_file_attributes", 0))
@@ -1405,7 +1566,11 @@ def _removeWindowsDirectoryContents(
         raise OSError(errno.EINVAL, "The cleanup directory changed while it was being cleaned", str(directoryPath))
 
 
-def _removeWindowsTreeByHandle(path: Path, expectedIdentity: FileIdentity) -> None:
+def _removeWindowsTreeByHandle(
+    path: Path,
+    expectedIdentity: FileIdentity,
+    expectedParent: Optional[FileIdentity] = None,
+) -> None:
     """Remove a Windows tree through handles bound to the observed objects."""
     pathStat = os.lstat(path)
     if isLinkLike(path) or not stat.S_ISDIR(pathStat.st_mode):
@@ -1413,8 +1578,19 @@ def _removeWindowsTreeByHandle(path: Path, expectedIdentity: FileIdentity) -> No
     if not identityMatches(expectedIdentity, pathStat, path):
         raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
 
-    rootHandle = _openWindowsDeleteHandle(path, directory=True)
+    if expectedParent is not None:
+        parentStat = os.lstat(path.parent)
+        if isLinkLike(path.parent) or not stat.S_ISDIR(parentStat.st_mode):
+            raise OSError(errno.EINVAL, "The cleanup parent is not a real directory", str(path.parent))
+        parentIdentity = fileIdentity(parentStat, path.parent)
+        if parentIdentity != expectedParent:
+            raise OSError(errno.EINVAL, "The cleanup parent changed before it could be removed", str(path.parent))
+
+    rootHandle: Optional[int] = None
+    primaryFailure = False
     try:
+        rootHandle = _openWindowsDeleteHandle(path, directory=True)
+
         identitySource = (
             expectedIdentity.generationSource
             if expectedIdentity.generationSource in (_GENERATION_WINDOWS_FILE_ID, _GENERATION_WINDOWS_LEGACY)
@@ -1433,6 +1609,10 @@ def _removeWindowsTreeByHandle(path: Path, expectedIdentity: FileIdentity) -> No
             raise OSError(errno.ENOTDIR, "The cleanup path is not a directory", str(path))
 
         rootFinalPath = _windowsHandleFinalPath(rootHandle)
+        if not _windowsPathsEqual(rootFinalPath, path):
+            raise OSError(errno.EINVAL, "The cleanup path moved before it could be removed", str(path))
+        if _windowsPathParentKey(rootFinalPath) != _windowsPathParentKey(path):
+            raise OSError(errno.EINVAL, "The cleanup path moved outside its validated parent", str(path))
         _removeWindowsDirectoryContents(
             rootHandle,
             path,
@@ -1448,13 +1628,21 @@ def _removeWindowsTreeByHandle(path: Path, expectedIdentity: FileIdentity) -> No
             raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
         _setWindowsDeleteDisposition(rootHandle, path)
     except BaseException:
-        try:
-            _closeWindowsHandle(rootHandle)
-        except OSError:
-            logger.warning("Could not close a Windows cleanup handle", exc_info=True)
+        primaryFailure = True
         raise
-    else:
-        _closeWindowsHandle(rootHandle)
+    finally:
+        closeError: Optional[OSError] = None
+        for handle, description in ((rootHandle, "cleanup"),):
+            if handle is None:
+                continue
+            try:
+                _closeWindowsHandle(handle)
+            except OSError as exc:
+                if closeError is None:
+                    closeError = exc
+                logger.warning("Could not close a Windows %s handle", description, exc_info=True)
+        if closeError is not None and not primaryFailure:
+            raise closeError
 
 
 def _sameFileObject(leftIdentity: FileIdentity, rightIdentity: FileIdentity) -> bool:
@@ -1883,6 +2071,7 @@ def removeTreeIfOwned(
     path: Path,
     expectedIdentity: FileIdentity,
     *,
+    expectedParent: Optional[FileIdentity] = None,
     quarantineParent: Optional[Path] = None,
     expectedQuarantineParent: Optional[FileIdentity] = None,
 ) -> bool:
@@ -1904,7 +2093,7 @@ def removeTreeIfOwned(
         raise OSError(errno.EINVAL, "The cleanup path changed before it could be removed", str(path))
 
     if os.name == "nt":
-        _removeWindowsTreeByHandle(path, expectedIdentity)
+        _removeWindowsTreeByHandle(path, expectedIdentity, expectedParent)
         return True
 
     retainedPath = _quarantineOwnedEntry(
@@ -2099,6 +2288,157 @@ def _renameResult(result: int, target: Path) -> bool:
     raise OSError(errorNumber, os.strerror(errorNumber), str(target))
 
 
+def _setWindowsRenameInformation(
+    sourceHandle: int,
+    targetParentHandle: int,
+    targetName: str,
+    target: Path,
+) -> bool:
+    """Rename an exact Windows object without replacing an existing target.
+
+    The source object is bound to an open handle and the destination name is
+    resolved relative to an open target-parent handle. ``ReplaceIfExists``
+    remains false, so an existing target causes the operation to fail
+    without modifying either namespace entry.
+    """
+    fileNameBytes = targetName.encode("utf-16-le")
+    fileNameOffset = _WindowsFileRenameInfo.fileName.offset
+    bufferSize = max(ctypes.sizeof(_WindowsFileRenameInfo), fileNameOffset + len(fileNameBytes) + 2)
+    buffer = ctypes.create_string_buffer(bufferSize)
+    information = _WindowsFileRenameInfo.from_buffer(buffer)
+    information.flags = 0  # ReplaceIfExists is false.
+    information.rootDirectory = targetParentHandle
+    information.fileNameLength = len(fileNameBytes)
+    ctypes.memmove(ctypes.byref(buffer, fileNameOffset), fileNameBytes, len(fileNameBytes))
+
+    kernel32 = _windowsKernel32()
+    setFileInformation = kernel32.SetFileInformationByHandle
+    setFileInformation.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+    ]
+    setFileInformation.restype = ctypes.c_int
+    if setFileInformation(
+        sourceHandle,
+        3,  # FileRenameInfo
+        ctypes.byref(buffer),
+        bufferSize,
+    ):
+        return True
+
+    errorNumber = _windowsLastError()
+    if errorNumber in (_WINDOWS_ERROR_FILE_EXISTS, _WINDOWS_ERROR_ALREADY_EXISTS):
+        return False
+    if errorNumber == _WINDOWS_ERROR_ACCESS_DENIED:
+        # Some Windows filesystems report access denied rather than a
+        # namespace collision when the destination already exists. Only
+        # classify the error as a collision when the target is still
+        # present; a genuine ACL failure must remain visible to the caller.
+        try:
+            os.lstat(target)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            pass
+        else:
+            return False
+    raise _windowsError(errorNumber, target)
+
+
+def _renameNoReplaceWindows(source: Path, target: Path) -> bool:
+    """Atomically rename a Windows object without replacing its target.
+
+    The source is opened with delete access and the target parent is opened
+    separately. Both handles are checked against fresh path observations
+    before the native rename, so a pathname replacement cannot silently
+    redirect the operation to another object or parent.
+    """
+    targetName = target.name
+    if not targetName or targetName in (".", "..") or "/" in targetName or "\\" in targetName:
+        raise OSError(errno.EINVAL, "The rename target name is invalid", str(target))
+
+    sourceStat = os.lstat(source)
+    targetParentStat = os.lstat(target.parent)
+    if stat.S_ISLNK(sourceStat.st_mode) or (
+        getattr(sourceStat, "st_file_attributes", 0) & _FILE_ATTRIBUTE_REPARSE_POINT
+    ):
+        raise OSError(errno.ELOOP, "The rename source cannot be a link", str(source))
+    if stat.S_ISLNK(targetParentStat.st_mode) or (
+        getattr(targetParentStat, "st_file_attributes", 0) & _FILE_ATTRIBUTE_REPARSE_POINT
+    ):
+        raise OSError(errno.ELOOP, "The rename target parent cannot be a link", str(target.parent))
+    if not (stat.S_ISREG(sourceStat.st_mode) or stat.S_ISDIR(sourceStat.st_mode)):
+        raise OSError(errno.EINVAL, "The rename source is not a file or directory", str(source))
+    if not stat.S_ISDIR(targetParentStat.st_mode):
+        raise OSError(errno.ENOTDIR, "The rename target parent is not a directory", str(target.parent))
+
+    sourceIdentity = fileIdentity(sourceStat, source)
+    targetParentIdentity = fileIdentity(targetParentStat, target.parent)
+    sourceHandle: Optional[int] = None
+    targetParentHandle: Optional[int] = None
+    primaryFailure = False
+    try:
+        sourceHandle = _openWindowsDeleteHandle(source, directory=True)
+        targetParentHandle = _openWindowsRenameParentHandle(target.parent)
+        sourceInformation = _windowsHandleInformation(sourceHandle)
+        targetParentInformation = _windowsHandleInformation(targetParentHandle)
+        if sourceInformation.identity != sourceIdentity:
+            raise OSError(errno.ESTALE, "The rename source changed before it could be renamed", str(source))
+        if targetParentInformation.identity != targetParentIdentity:
+            raise OSError(
+                errno.ESTALE,
+                "The rename target parent changed before it could be used",
+                str(target.parent),
+            )
+        if sourceInformation.attributes & _FILE_ATTRIBUTE_REPARSE_POINT:
+            raise OSError(errno.ELOOP, "The rename source cannot be a link", str(source))
+        if targetParentInformation.attributes & _FILE_ATTRIBUTE_REPARSE_POINT:
+            raise OSError(errno.ELOOP, "The rename target parent cannot be a link", str(target.parent))
+        if not targetParentInformation.attributes & _FILE_ATTRIBUTE_DIRECTORY:
+            raise OSError(errno.ENOTDIR, "The rename target parent is not a directory", str(target.parent))
+        if sourceInformation.identity.device != targetParentInformation.identity.device:
+            raise OSError(errno.EXDEV, "The rename source and target are on different volumes", str(target))
+
+        sourceFinalPath = _windowsHandleFinalPath(sourceHandle)
+        if not _windowsPathsEqual(sourceFinalPath, source):
+            raise OSError(errno.ESTALE, "The rename source moved before it could be renamed", str(source))
+        targetParentFinalPath = _windowsHandleFinalPath(targetParentHandle)
+        if not _windowsPathsEqual(targetParentFinalPath, target.parent):
+            raise OSError(
+                errno.ESTALE,
+                "The rename target parent moved before it could be used",
+                str(target.parent),
+            )
+
+        return _setWindowsRenameInformation(
+            sourceHandle,
+            targetParentHandle,
+            targetName,
+            target,
+        )
+    except BaseException:
+        primaryFailure = True
+        raise
+    finally:
+        closeError: Optional[OSError] = None
+        for handle, description in (
+            (sourceHandle, "source"),
+            (targetParentHandle, "target-parent"),
+        ):
+            if handle is None:
+                continue
+            try:
+                _closeWindowsHandle(handle)
+            except OSError as exc:
+                if closeError is None:
+                    closeError = exc
+                logger.warning("Could not close a Windows rename %s handle", description, exc_info=True)
+        if closeError is not None and not primaryFailure:
+            raise closeError
+
+
 def _renameNoReplaceDarwin(source: Path, target: Path) -> bool:
     """Rename without replacement on macOS using renamex_np()."""
     libc = ctypes.CDLL(None, use_errno=True)
@@ -2213,11 +2553,7 @@ def renameNoReplace(source: Path, target: Path) -> bool:
     provide an atomic no-replace rename operation.
     """
     if os.name == "nt":
-        try:
-            os.rename(source, target)
-        except FileExistsError:
-            return False
-        return True
+        return _renameNoReplaceWindows(source, target)
     if sys.platform == "darwin":
         return _renameNoReplaceDarwin(source, target)
     if sys.platform.startswith("linux"):
@@ -2253,6 +2589,16 @@ def renameNoReplaceBetween(
     replaced concurrently. A side without a descriptor is resolved from
     the current working directory using its full path.
     """
+    if sys.platform == "darwin":
+        sourcePath = Path(os.path.abspath(source)) if sourceDirFd is None else Path(source.name)
+        targetPath = Path(os.path.abspath(target)) if targetDirFd is None else Path(target.name)
+        return _renameNoReplaceDarwinAt(sourcePath, targetPath, sourceDirFd, targetDirFd)
+
+    if sys.platform.startswith("linux"):
+        sourcePath = Path(os.path.abspath(source)) if sourceDirFd is None else Path(source.name)
+        targetPath = Path(os.path.abspath(target)) if targetDirFd is None else Path(target.name)
+        return _renameNoReplaceLinux(sourcePath, targetPath, sourceDirFd, targetDirFd)
+
     if os.name == "nt":
         if sourceDirFd is not None or targetDirFd is not None:
             raise OSError(errno.ENOTSUP, "Directory descriptors are not supported on Windows")
@@ -2260,15 +2606,6 @@ def renameNoReplaceBetween(
 
     if sourceDirFd is None and targetDirFd is None:
         return renameNoReplace(source, target)
-
-    sourcePath = Path(os.path.abspath(source)) if sourceDirFd is None else Path(source.name)
-    targetPath = Path(os.path.abspath(target)) if targetDirFd is None else Path(target.name)
-
-    if sys.platform == "darwin":
-        return _renameNoReplaceDarwinAt(sourcePath, targetPath, sourceDirFd, targetDirFd)
-
-    if sys.platform.startswith("linux"):
-        return _renameNoReplaceLinux(sourcePath, targetPath, sourceDirFd, targetDirFd)
     raise OSError(errno.ENOTSUP, "Atomic no-replace rename is not supported")
 
 
@@ -2325,7 +2662,7 @@ def renameNoReplaceIfSameFile(
                 targetDirFd=sourceDirFd,
             )
         else:
-            moved = renameNoReplace(quarantineEntry, sourceEntry)
+            moved = renameNoReplaceBetween(quarantineEntry, sourceEntry)
         if not moved:
             return False
         try:
@@ -2357,7 +2694,7 @@ def renameNoReplaceIfSameFile(
                 targetDirFd=sourceDirFd,
             )
         else:
-            moved = renameNoReplace(sourceEntry, quarantineEntry)
+            moved = renameNoReplaceBetween(sourceEntry, quarantineEntry)
         if not moved:
             raise OSError(errno.EEXIST, "Could not create a unique rename name", str(quarantineEntry))
 
@@ -2404,7 +2741,7 @@ def renameNoReplaceIfSameFile(
                     targetDirFd=targetDirFd,
                 )
             else:
-                published = renameNoReplace(quarantineEntry, targetEntry)
+                published = renameNoReplaceBetween(quarantineEntry, targetEntry)
         except OSError as exc:
             if not restoreQuarantine(expectedSourceIdentity):
                 raise OSError(
@@ -2450,7 +2787,7 @@ def renameNoReplaceIfSameFile(
                         targetDirFd=targetDirFd,
                     )
                 else:
-                    preserved = renameNoReplace(targetEntry, conflictEntry)
+                    preserved = renameNoReplaceBetween(targetEntry, conflictEntry)
             except OSError:
                 preserved = False
 
@@ -2543,7 +2880,7 @@ def linkNoReplaceIfSameFile(
                 sourceDirFd=None,
                 targetDirFd=destinationDirFd,
             )
-        return renameNoReplace(entry, destination)
+        return renameNoReplaceBetween(entry, destination)
 
     def restoreQuarantine(identity: Optional[FileIdentity] = None) -> bool:
         """Restore the private source entry without replacing a new one."""
@@ -2917,7 +3254,7 @@ def writeFileAtomic(
                     targetDirFd=parentFd,
                 )
             else:
-                restored = renameNoReplace(quarantinePath, target)
+                restored = renameNoReplaceBetween(quarantinePath, target)
         except OSError:
             return False
         if not restored:
@@ -2980,7 +3317,7 @@ def writeFileAtomic(
                     targetDirFd=parentFd,
                 )
             else:
-                moved = renameNoReplace(target, quarantinePath)
+                moved = renameNoReplaceBetween(target, quarantinePath)
             if not moved:
                 quarantinePath = None
                 quarantineName = None
@@ -3022,7 +3359,7 @@ def writeFileAtomic(
                     targetDirFd=parentFd,
                 )
             else:
-                moved = renameNoReplace(tempPath, target)
+                moved = renameNoReplaceBetween(tempPath, target)
         except Exception as exc:
             if quarantinePath is not None and not restoreQuarantined():
                 raise OSError(

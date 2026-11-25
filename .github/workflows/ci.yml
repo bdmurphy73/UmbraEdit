@@ -58,7 +58,10 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.9"
         include:
-          - os: ubuntu-22.04
+          # Ubuntu 22.04 does not package PyQt6. Ubuntu 24.04 is the oldest
+          # current runner image that provides the required system packages
+          # and still supports Python 3.9 through setup-python.
+          - os: ubuntu-24.04
             python-version: "3.9"
 
     steps:
@@ -102,6 +105,14 @@ jobs:
           pip install "pyqt6>=6.4,!=6.12.1" "pyenchant>=3.3.0" "jsonschema>=4.25.1" "python-docx>=1.1.0" "lxml>=5.0.0" "httpx>=0.28.0" "pillow>=11.3.0"
           pip install "fastapi>=0.115" "uvicorn>=0.34"
           pip install "pytest>=6.0.0" pytest-qt pytest-timeout coverage tzdata
+
+      - name: Verify Minimum Qt Compatibility
+        if: matrix.os == 'ubuntu-24.04' && matrix.python-version == '3.9'
+        run: |
+          pip install --upgrade --force-reinstall \
+            "pyqt6==6.4.2" \
+            "pyqt6-qt6==6.4.2"
+          QT_QPA_PLATFORM=offscreen python -c "import umbraedit.guimain"
 
       - name: Run tests
         env:

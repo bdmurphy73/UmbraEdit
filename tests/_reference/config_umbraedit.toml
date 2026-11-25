@@ -42,7 +42,7 @@ backupOnClose = true
 backupInterval = "session"
 askBeforeBackup = true
 askBeforeExit = true
-forceUnixLineEndings = false
+forceUnixLineEndings = true
 lastAuthor = ""
 
 [Editor]

@@ -843,15 +843,18 @@ def openExclusiveFile(
     mode: int = 0o000,
     *,
     readable: bool = False,
+    shareDelete: bool = False,
 ) -> int:
     """Create a new regular file exclusively and return its descriptor.
 
     On Windows, the file is opened with exclusive sharing so another
-    process cannot read the partially written contents. On POSIX, the
-    descriptor is created with the requested mode. The default mode 000
-    keeps a staging file inaccessible until its contents are complete.
-    Set ``readable`` when the completed descriptor must be decoded before
-    it is closed.
+    process cannot read the partially written contents. ``shareDelete``
+    additionally permits delete and rename access, which is required when
+    the descriptor remains open while the file is published. Read and write
+    access remains denied to other processes. On POSIX, the descriptor is
+    created with the requested mode. The default mode 000 keeps a staging
+    file inaccessible until its contents are complete. Set ``readable`` when
+    the completed descriptor must be decoded before it is closed.
     """
     if os.name == "nt":
         if dirFd is not None:
@@ -874,7 +877,7 @@ def openExclusiveFile(
         handle = createFile(
             os.fspath(path),
             0xC0000000 if readable else 0x40000000,  # GENERIC_READ | GENERIC_WRITE
-            0,  # No sharing while the copy is in progress
+            0x00000004 if shareDelete else 0,  # FILE_SHARE_DELETE
             None,
             1,  # CREATE_NEW
             0x80,  # FILE_ATTRIBUTE_NORMAL

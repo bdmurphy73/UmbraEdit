@@ -29,7 +29,6 @@ import os
 import shutil
 import stat
 import struct
-import tempfile
 import uuid
 import warnings
 import zlib
@@ -538,18 +537,29 @@ def _prepareAssetDir(
 
 def _createStagingFile(projectRoot: Path, rootFd: Optional[int]) -> tuple[Path, int]:
     """Create a private staging file in the validated project root."""
-    if rootFd is not None:
-        for _ in range(10):
-            stageName = f".umbraedit-image-{uuid.uuid4().hex}.tmp"
-            try:
-                fileDesc = openExclusiveFile(Path(stageName), rootFd, mode=0o600, readable=True)
-            except FileExistsError:
-                continue
-            return projectRoot / stageName, fileDesc
-        raise OSError("Could not create a unique project image staging file")
-
-    fileDesc, tmpName = tempfile.mkstemp(dir=projectRoot, prefix=".umbraedit-image-", suffix=".tmp")
-    return Path(tmpName), fileDesc
+    for _ in range(10):
+        stageName = f".umbraedit-image-{uuid.uuid4().hex}.tmp"
+        stagePath = projectRoot / stageName
+        try:
+            if rootFd is not None:
+                fileDesc = openExclusiveFile(
+                    Path(stageName),
+                    rootFd,
+                    mode=0o600,
+                    readable=True,
+                    shareDelete=True,
+                )
+            else:
+                fileDesc = openExclusiveFile(
+                    stagePath,
+                    mode=0o600,
+                    readable=True,
+                    shareDelete=True,
+                )
+        except FileExistsError:
+            continue
+        return stagePath, fileDesc
+    raise OSError("Could not create a unique project image staging file")
 
 
 def _copyUnique(

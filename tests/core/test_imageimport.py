@@ -32,6 +32,7 @@ import zlib
 
 from pathlib import Path
 from time import time
+from typing import Optional
 from zipfile import ZipFile
 
 import PIL.Image
@@ -90,6 +91,52 @@ def _writeCorruptApng(path: Path) -> None:
             output.extend(data[position : position + 12 + length])
         position += 12 + length
     path.write_bytes(output)
+
+
+@pytest.mark.core
+def testImageImport_StagingFileAllowsPublication(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that the staging descriptor permits its own publication."""
+    createCalls: list[dict[str, object]] = []
+
+    def createExclusive(
+        path: Path,
+        dirFd: Optional[int] = None,
+        mode: int = 0o000,
+        *,
+        readable: bool = False,
+        shareDelete: bool = False,
+    ) -> int:
+        createCalls.append({
+            "path": path,
+            "dirFd": dirFd,
+            "mode": mode,
+            "readable": readable,
+            "shareDelete": shareDelete,
+        })
+        flags = os.O_RDWR | os.O_CREAT | os.O_EXCL
+        return os.open(path, flags, mode)
+
+    monkeypatch.setattr(imageimport, "openExclusiveFile", createExclusive)
+    stagePath, stageFd = imageimport._createStagingFile(tmp_path, None)
+    try:
+        assert stagePath.parent == tmp_path
+        assert stagePath.name.startswith(".umbraedit-image-")
+        assert stagePath.name.endswith(".tmp")
+        assert createCalls == [
+            {
+                "path": stagePath,
+                "dirFd": None,
+                "mode": 0o600,
+                "readable": True,
+                "shareDelete": True,
+            }
+        ]
+    finally:
+        os.close(stageFd)
+        stagePath.unlink()
 
 
 @pytest.mark.core

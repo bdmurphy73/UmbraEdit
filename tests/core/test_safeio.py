@@ -974,6 +974,39 @@ def testSafeIO_WindowsNativeCleanupPreservesReplacedParent(
 
 
 @pytest.mark.core
+def testSafeIO_WindowsExclusiveFileCanShareDelete(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Test that a publishable staging file permits delete access only."""
+    createCalls: list[tuple[object, ...]] = []
+
+    class FakeCreateFile:
+        argtypes = None
+        restype = None
+
+        def __call__(self, *args: object) -> int:
+            createCalls.append(args)
+            return 123
+
+    fakeKernel = SimpleNamespace(CreateFileW=FakeCreateFile())
+    fakeMsvcrt = ModuleType("msvcrt")
+    fakeMsvcrt.__dict__["open_osfhandle"] = lambda handle, flags: 456
+    fakeOS = SimpleNamespace(**vars(os))
+    fakeOS.name = "nt"
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio, "os", fakeOS)
+        mp.setattr(safeio.ctypes, "WinDLL", lambda *args, **kwargs: fakeKernel, raising=False)
+        mp.setitem(sys.modules, "msvcrt", fakeMsvcrt)
+
+        assert safeio.openExclusiveFile(Path("C:\\project\\file"), shareDelete=True) == 456
+        assert safeio.openExclusiveFile(Path("C:\\project\\private")) == 456
+
+    assert createCalls[0][2] == 0x00000004
+    assert createCalls[1][2] == 0
+
+
+@pytest.mark.core
 def testSafeIO_WindowsDescriptorConversionPreservesPrimaryError(
     monkeypatch: pytest.MonkeyPatch,
 ):

@@ -57,6 +57,7 @@ mkdir -p "${STAGE}/${RELEASE}"
 echo "Staging the source tree ..."
 rsync -a \
     --delete \
+    --exclude='.git' \
     --exclude='.git/' \
     --exclude='.venv/' \
     --exclude='.pytest_cache/' \
@@ -68,16 +69,42 @@ rsync -a \
     --exclude='dist/' \
     --exclude='dist_*/' \
     --exclude='umbraedit/assets/manual*.pdf' \
+    --exclude='umbraedit/assets/i18n/*.qm' \
+    --exclude='docs/build/' \
+    --exclude='docs/source/locales/**/*.mo' \
+    --exclude='setup/macos/Info.plist' \
     --exclude='tests/_temp/' \
     --exclude='*.egg-info/' \
     --exclude='build/' \
     "${SRC_DIR}/" "${STAGE}/${RELEASE}/"
 
-# Generated manuals are release artifacts, not source files. They are built
+# Generated assets are release artifacts, not source files. They are built
 # and validated separately, and must never enter the source tarball.
 UNEXPECTED_MANUAL="$(find "${STAGE}/${RELEASE}/umbraedit/assets" -type f -name 'manual*.pdf' -print -quit 2>/dev/null || true)"
 if [ -n "${UNEXPECTED_MANUAL}" ]; then
     echo "ERROR: Generated PDF manual entered the source tarball: ${UNEXPECTED_MANUAL}"
+    exit 1
+fi
+
+for excludedPath in \
+    ".git" \
+    "docs/build" \
+    "setup/macos/Info.plist"; do
+    if [ -e "${STAGE}/${RELEASE}/${excludedPath}" ]; then
+        echo "ERROR: Generated path entered the source tarball: ${excludedPath}"
+        exit 1
+    fi
+done
+
+UNEXPECTED_TRANSLATION="$(find "${STAGE}/${RELEASE}/docs/source/locales" -type f -name '*.mo' -print -quit 2>/dev/null || true)"
+if [ -n "${UNEXPECTED_TRANSLATION}" ]; then
+    echo "ERROR: Generated translation entered the source tarball: ${UNEXPECTED_TRANSLATION}"
+    exit 1
+fi
+
+UNEXPECTED_QM="$(find "${STAGE}/${RELEASE}/umbraedit/assets/i18n" -type f -name '*.qm' -print -quit 2>/dev/null || true)"
+if [ -n "${UNEXPECTED_QM}" ]; then
+    echo "ERROR: Generated Qt translation entered the source tarball: ${UNEXPECTED_QM}"
     exit 1
 fi
 
@@ -106,7 +133,11 @@ echo "  Done"
 echo "============================================================"
 echo ""
 ls -lh "${DIST_DIR}/${TARBALL}"
-shasum -a 256 "${DIST_DIR}/${TARBALL}" | tee "${DIST_DIR}/${TARBALL}.sha256"
+if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "${DIST_DIR}/${TARBALL}" | tee "${DIST_DIR}/${TARBALL}.sha256"
+else
+    shasum -a 256 "${DIST_DIR}/${TARBALL}" | tee "${DIST_DIR}/${TARBALL}.sha256"
+fi
 echo ""
 
 # The build and install scripts are copied next to the tarball, so that

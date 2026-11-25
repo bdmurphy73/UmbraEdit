@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
+import sys
+import tarfile
 
 from pathlib import Path
 
 import pytest
 
 from utils.manual import InvalidManualError, main, validate_manual_pdf
+
+_REPO_ROOT = Path(__file__).parent.parent
+_TARBALL_SCRIPT = _REPO_ROOT / "setup" / "linux" / "build-tarball.sh"
 
 
 def _validPdf() -> bytes:
@@ -63,3 +70,50 @@ def testValidateManualPdf_CommandReportsFailure(tmp_path: Path, capsys: pytest.C
 
     assert main([str(manual)]) == 1
     assert "ERROR" in capsys.readouterr().out
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="The tarball build script requires Bash")
+@pytest.mark.skipif(shutil.which("rsync") is None, reason="rsync is required")
+def testBuildTarball_ExcludesGeneratedFiles(tmp_path: Path):
+    """Test that generated release and worktree files stay out of the source tarball."""
+    sourceRoot = tmp_path / "source"
+    scriptPath = sourceRoot / "setup" / "linux" / "build-tarball.sh"
+    scriptPath.parent.mkdir(parents=True)
+    shutil.copy2(_TARBALL_SCRIPT, scriptPath)
+
+    includedFiles = (
+        "umbraedit/core/project.py",
+        "tests/_files/ue_en_GB.qm",
+    )
+    excludedFiles = (
+        ".git",
+        "docs/build/latex/manual.pdf",
+        "docs/source/locales/fr/LC_MESSAGES/index.mo",
+        "setup/macos/Info.plist",
+        "umbraedit/assets/i18n/ue_fr_FR.qm",
+        "umbraedit/assets/manual.pdf",
+    )
+    for relativePath in includedFiles + excludedFiles:
+        filePath = sourceRoot / relativePath
+        filePath.parent.mkdir(parents=True, exist_ok=True)
+        filePath.write_bytes(b"test content\n")
+
+    result = subprocess.run(
+        ["bash", str(scriptPath), "9.9.9"],
+        cwd=sourceRoot,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+    tarballPath = sourceRoot / "dist" / "umbraedit-9.9.9.tar.gz"
+    assert tarballPath.is_file()
+    with tarfile.open(tarballPath, "r:gz") as archive:
+        members = set(archive.getnames())
+
+    prefix = "umbraedit-9.9.9/"
+    for relativePath in includedFiles:
+        assert prefix + relativePath in members
+    for relativePath in excludedFiles:
+        assert prefix + relativePath not in members

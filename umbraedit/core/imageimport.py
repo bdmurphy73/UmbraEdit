@@ -843,7 +843,13 @@ def _publishTemp(
             published = None
         if published is True:
             try:
-                return _validatePublishedTarget(target, stageIdentity, expectedFormat, assetFd)
+                return _validatePublishedTarget(
+                    target,
+                    stageIdentity,
+                    expectedFormat,
+                    assetFd,
+                    validationFile=stageFile,
+                )
             except Exception:
                 _removePublishedTarget(
                     target,
@@ -871,7 +877,13 @@ def _publishTemp(
         return None
 
     try:
-        return _validatePublishedTarget(target, stageIdentity, expectedFormat, assetFd)
+        return _validatePublishedTarget(
+            target,
+            stageIdentity,
+            expectedFormat,
+            assetFd,
+            validationFile=stageFile,
+        )
     except Exception:
         _removePublishedTarget(
             target,
@@ -901,36 +913,31 @@ def _validatePublishedTarget(
     expectedIdentity: FileIdentity,
     expectedFormat: str,
     assetFd: Optional[int] = None,
+    *,
+    validationFile: BinaryIO,
 ) -> FileIdentity:
-    """Verify the identity and decoded bytes of a published target."""
+    """Verify the identity and decoded bytes of a published target.
+
+    The retained staging descriptor is the byte authority. On Windows it
+    deliberately denies read sharing, so opening the published path with a
+    second handle would fail even though publication succeeded. The
+    published path is still verified by identity before and after decoding.
+    """
     targetIdentity = _publishedTargetIdentity(target, target.name, assetFd)
     if targetIdentity != expectedIdentity:
         raise OSError("The published project image does not match the validated image")
 
-    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
-    fileDesc: Optional[int] = None
-    try:
-        if assetFd is not None and os.open in os.supports_dir_fd:
-            fileDesc = os.open(target.name, flags, dir_fd=assetFd)
-        else:
-            fileDesc = os.open(target, flags)
-        openedStat = os.fstat(fileDesc)
-        if (
-            not stat.S_ISREG(openedStat.st_mode)
-            or fileIdentity(
-                openedStat,
-                fileDescriptor=fileDesc,
-            )
-            != expectedIdentity
-        ):
-            raise OSError("The published project image changed before it could be validated")
-        publishedFile = os.fdopen(fileDesc, mode="rb")
-        fileDesc = None
-        with publishedFile:
-            actualFormat = _validateImageFile(publishedFile)
-    finally:
-        if fileDesc is not None:
-            os.close(fileDesc)
+    validationStat = os.fstat(validationFile.fileno())
+    if (
+        not stat.S_ISREG(validationStat.st_mode)
+        or fileIdentity(
+            validationStat,
+            fileDescriptor=validationFile.fileno(),
+        )
+        != expectedIdentity
+    ):
+        raise OSError("The published project image changed before it could be validated")
+    actualFormat = _validateImageFile(validationFile)
 
     if actualFormat != expectedFormat:
         raise ImageImportError(

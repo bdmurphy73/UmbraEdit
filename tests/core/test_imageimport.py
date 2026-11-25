@@ -140,6 +140,43 @@ def testImageImport_StagingFileAllowsPublication(
 
 
 @pytest.mark.core
+def testImageImport_PublishedValidationUsesRetainedDescriptor(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that publication validation does not reopen a locked target."""
+    stagePath = tmp_path / "stage.png"
+    targetPath = tmp_path / "target.png"
+    _writeImage(stagePath)
+    os.link(stagePath, targetPath)
+
+    with open(stagePath, "r+b") as stageFile:
+        expectedIdentity = imageimport.fileIdentity(
+            os.fstat(stageFile.fileno()),
+            fileDescriptor=stageFile.fileno(),
+        )
+        monkeypatch.setattr(
+            imageimport,
+            "_publishedTargetIdentity",
+            lambda target, targetName, assetFd: expectedIdentity,
+        )
+
+        def rejectTargetOpen(*args: object, **kwargs: object) -> int:
+            raise AssertionError("The published target must not be reopened")
+
+        monkeypatch.setattr(imageimport.os, "open", rejectTargetOpen)
+        assert (
+            imageimport._validatePublishedTarget(
+                targetPath,
+                expectedIdentity,
+                "PNG",
+                validationFile=stageFile,
+            )
+            == expectedIdentity
+        )
+
+
+@pytest.mark.core
 def testImageImport_ValidImages(
     mockGUI: MockGuiMain,
     projPath: Path,

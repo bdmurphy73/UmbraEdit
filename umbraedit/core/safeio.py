@@ -2713,12 +2713,27 @@ def _preserveUnexpectedEntry(
     if os.name == "nt":
         if sourceDirFd is not None or targetDirFd is not None:
             raise OSError(errno.ENOTSUP, "Directory descriptors are not supported on Windows")
-        return _renameNoReplaceWindows(
-            source,
-            target,
-            allowReparseSource=True,
-            expectedSourceIdentity=expectedIdentity,
-        )
+        try:
+            return _renameNoReplaceWindows(
+                source,
+                target,
+                allowReparseSource=True,
+                expectedSourceIdentity=expectedIdentity,
+            )
+        except OSError:
+            sourceStat = os.lstat(source)
+            if not (
+                stat.S_ISLNK(sourceStat.st_mode)
+                or (getattr(sourceStat, "st_file_attributes", 0) & _FILE_ATTRIBUTE_REPARSE_POINT)
+            ):
+                raise
+            # Some Windows filesystems refuse handle-relative renames of
+            # reparse points even when the handle was opened on the link
+            # object. A path rename still moves the link itself rather than
+            # its target. ``os.rename`` never replaces an existing Windows
+            # destination, so the private conflict name remains exclusive.
+            os.rename(source, target)
+            return True
     if sourceDirFd is not None and targetDirFd is not None:
         return renameNoReplaceBetween(
             source,

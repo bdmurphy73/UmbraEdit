@@ -641,9 +641,17 @@ def testProjectStorage_ZipRejectsReplacedParent(
     monkeypatch.setattr("umbraedit.core.storage._addFileToZip", replaceParent)
     assert project.storage.zipIt(target, 1000.0) is False
     assert list(backupDir.iterdir()) == []
-    quarantine = originalParent / ".umbraedit-quarantine"
-    assert quarantine.is_dir()
-    assert list(quarantine.iterdir())
+    if os.name == "nt":
+        # Windows cannot rename a directory while the staged archive inside
+        # it is open. The failed replacement leaves the original directory
+        # in place and the staged archive is removed by exact identity.
+        assert backupDir.is_dir()
+        assert not originalParent.exists()
+        assert not target.exists()
+    else:
+        quarantine = originalParent / ".umbraedit-quarantine"
+        assert quarantine.is_dir()
+        assert list(quarantine.iterdir())
 
 
 @pytest.mark.core
@@ -827,11 +835,16 @@ def testProjectStorage_LegacyDataFolder(monkeypatch: pytest.MonkeyPatch, fncPath
     assert data[7].exists()
     assert data[8].exists()
 
-    # Cleanup artifacts are retained in one project-level quarantine. They
+    # POSIX retains cleanup artifacts in one project-level quarantine. They
     # are not nested inside the legacy folders that are being removed.
+    # Windows deletes the exact validated objects through native handles and
+    # therefore does not create quarantine artifacts.
     quarantine = fncPath / safeio.QUARANTINE_DIRECTORY_NAME
-    assert quarantine.is_dir()
-    assert not any(path != quarantine for path in quarantine.rglob(safeio.QUARANTINE_DIRECTORY_NAME))
+    if os.name == "nt":
+        assert not quarantine.exists()
+    else:
+        assert quarantine.is_dir()
+        assert not any(path != quarantine for path in quarantine.rglob(safeio.QUARANTINE_DIRECTORY_NAME))
     assert not (data[7] / safeio.QUARANTINE_DIRECTORY_NAME).exists()
     assert not (data[8] / safeio.QUARANTINE_DIRECTORY_NAME).exists()
 
@@ -899,20 +912,34 @@ def testProjectStorage_LegacyDataFolderRejectsReplacedChild(
 
     injected = False
 
-    def replaceChild(parentFd: int, name: str) -> int:
+    def replaceLegacyFolder() -> None:
         nonlocal injected
-        if not injected and name == "data_0":
+        if not injected:
             injected = True
             legacyFolder.rename(movedFolder)
             legacyFolder.mkdir()
             (legacyFolder / "foreign.txt").write_text("foreign", encoding="utf-8")
+
+    def replaceChild(parentFd: int, name: str) -> int:
+        if name == "data_0":
+            replaceLegacyFolder()
         return openDirectoryAt(parentFd, name)
+
+    realScandir = os.scandir
+
+    def replaceDuringScan(observed: Any, *args: Any, **kwargs: Any) -> Any:
+        if isinstance(observed, (str, Path)) and Path(observed) == legacyFolder:
+            replaceLegacyFolder()
+        return realScandir(observed, *args, **kwargs)
 
     rootIdentity = fileIdentity(os.lstat(fncPath), fncPath)
     contentIdentity = fileIdentity(os.lstat(content), content)
     legacy = _LegacyStorage(MockProject())  # type: ignore
     with monkeypatch.context() as mp:
-        mp.setattr("umbraedit.core.storage.openDirectoryAt", replaceChild)
+        if os.name == "nt":
+            mp.setattr("umbraedit.core.storage.os.scandir", replaceDuringScan)
+        else:
+            mp.setattr("umbraedit.core.storage.openDirectoryAt", replaceChild)
         legacy.legacyDataFolder(
             fncPath,
             legacyFolder,
@@ -942,20 +969,34 @@ def testProjectStorage_LegacyDataFolderRejectsReplacedContent(
 
     injected = False
 
-    def replaceContent(parentFd: int, name: str) -> int:
+    def replaceContentFolder() -> None:
         nonlocal injected
-        if not injected and name == "content":
+        if not injected:
             injected = True
             content.rename(movedContent)
             content.mkdir()
             (content / "foreign.txt").write_text("foreign", encoding="utf-8")
+
+    def replaceContent(parentFd: int, name: str) -> int:
+        if name == "content":
+            replaceContentFolder()
         return openDirectoryAt(parentFd, name)
+
+    realScandir = os.scandir
+
+    def replaceDuringScan(observed: Any, *args: Any, **kwargs: Any) -> Any:
+        if isinstance(observed, (str, Path)) and Path(observed) == legacyFolder:
+            replaceContentFolder()
+        return realScandir(observed, *args, **kwargs)
 
     rootIdentity = fileIdentity(os.lstat(fncPath), fncPath)
     contentIdentity = fileIdentity(os.lstat(content), content)
     legacy = _LegacyStorage(MockProject())  # type: ignore
     with monkeypatch.context() as mp:
-        mp.setattr("umbraedit.core.storage.openDirectoryAt", replaceContent)
+        if os.name == "nt":
+            mp.setattr("umbraedit.core.storage.os.scandir", replaceDuringScan)
+        else:
+            mp.setattr("umbraedit.core.storage.openDirectoryAt", replaceContent)
         legacy.legacyDataFolder(
             fncPath,
             legacyFolder,
@@ -1059,7 +1100,10 @@ def testLegacyDocuments_ConvertDocuments(monkeypatch: pytest.MonkeyPatch, fncPat
 
     assert not nwdFile.exists()
     assert not (content / safeio.QUARANTINE_DIRECTORY_NAME).exists()
-    assert (fncPath / safeio.QUARANTINE_DIRECTORY_NAME).is_dir()
+    if os.name == "nt":
+        assert not (fncPath / safeio.QUARANTINE_DIRECTORY_NAME).exists()
+    else:
+        assert (fncPath / safeio.QUARANTINE_DIRECTORY_NAME).is_dir()
     mdFile = content / f"{C.hSceneDoc}.md"
     assert mdFile.read_text(encoding="utf-8") == (
         "+++\n"

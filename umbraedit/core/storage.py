@@ -1320,6 +1320,21 @@ class _LegacyStorage:
                         itemPath,
                         dirFd=childFd,
                     )
+                    if childFd is None and contentFd is None:
+                        # The Windows path fallback cannot bind the source
+                        # and destination directories to open handles. Check
+                        # both validated identities immediately before every
+                        # mutation so a replacement observed during scanning
+                        # cannot redirect conversion into another folder.
+                        currentChildStat = os.lstat(child)
+                        currentContentStat = os.lstat(contentPath)
+                        if (
+                            isLinkLike(child)
+                            or isLinkLike(contentPath)
+                            or fileIdentity(currentChildStat, child) != childIdentity
+                            or fileIdentity(currentContentStat, contentPath) != contentIdentity
+                        ):
+                            raise OSError("The legacy or content folder changed before conversion")
                     if len(name) == 21 and name.endswith("_main.nwd"):
                         newName = f"{first}{name[:12]}.nwd"
                         newPath = path / "content" / newName

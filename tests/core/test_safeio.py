@@ -1959,6 +1959,7 @@ def testSafeIO_WriteFileAtomicRetainsPublishedIdentityOnValidationFailure(
 
 
 @pytest.mark.core
+@pytest.mark.skipif(os.name == "nt", reason="POSIX quarantine race test")
 def testSafeIO_UnlinkRacePreservesReplacement(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -2011,6 +2012,7 @@ def testSafeIO_UnlinkRacePreservesReplacement(
 
 
 @pytest.mark.core
+@pytest.mark.skipif(os.name == "nt", reason="POSIX replaceable-target race test")
 def testSafeIO_CopyPreservesReplacedTarget(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -2032,6 +2034,31 @@ def testSafeIO_CopyPreservesReplacedTarget(
             safeio.copyRegularFile(source, target)
 
     assert target.read_text(encoding="utf-8") == "foreign"
+
+
+@pytest.mark.core
+@pytest.mark.skipif(os.name != "nt", reason="Windows exclusive-sharing integration test")
+def testSafeIO_WindowsCopyTargetCannotBeReplaced(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that Windows copy locks the target against pathname replacement."""
+    source = tmp_path / "source"
+    target = tmp_path / "target"
+    source.write_text("source", encoding="utf-8")
+    realCopy = safeio.shutil.copyfileobj
+
+    def rejectReplacement(sourceFile: BinaryIO, targetFile: BinaryIO, length: int = 0) -> None:
+        realCopy(sourceFile, targetFile, length)
+        with pytest.raises(PermissionError):
+            target.unlink()
+
+    with monkeypatch.context() as mp:
+        mp.setattr(safeio.shutil, "copyfileobj", rejectReplacement)
+        identity = safeio.copyRegularFile(source, target)
+
+    assert identity == safeio.fileIdentity(os.lstat(target), target)
+    assert target.read_text(encoding="utf-8") == "source"
 
 
 @pytest.mark.core
@@ -2175,6 +2202,7 @@ def testSafeIO_WriteFileAtomicRestoresRacedQuarantine(
 
 
 @pytest.mark.core
+@pytest.mark.skipif(os.name == "nt", reason="POSIX hard-link symlink race test")
 def testSafeIO_PublishRejectsRacedSourceEntry(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

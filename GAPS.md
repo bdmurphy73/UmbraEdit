@@ -32,14 +32,12 @@ specified, with reasons.
 | G13 | R6: `requireGates` not wired into `docbuild.py` | The `build.started` hook call is placed, but `requireGates("build.run", ...)` is not called before writing output. This is because wiring it requires modifying the build flow to check gates before starting the build, which needs testing against the full test suite. Deferred to avoid breaking existing builds. |
 | G14 | A5: GUI test for clicking finding not created | Requires pytest-qt with `nwGUI` fixture, which is complex to set up without a full project fixture. Deferred with R5 (Gates panel). |
 
-## P03 (Part A: Asset Store)
+## P03 (Asset Store and Project Images)
 
 | # | Gap | Reason |
 |---|-----|--------|
-| G15 | Part B (tokenizer, format writers, editor) deferred | The tokenizer requires adding a new BlockTyp.IMAGE enum member and handling it in 7+ format writers (ODT, DOCX, HTML, EPUB, Markdown, Qt doc, raw). Each writer needs its own image embedding approach. This is a significant multi-file change best done as a focused follow-up. |
-| G16 | Asset panel (R5) deferred | GUI dock panel requires understanding the novelWriter dock creation system. Same reason as G12. |
-| G17 | Editor changes (R8) deferred | Highlighter and hover card changes depend on the tokenizer IMAGE block type (G15). |
-| G18 | Gate rules for images (R9) deferred | Gate rules `imageAltMissing`, `imageResolutionLow`, `imageUnused` depend on the tokenizer IMAGE block type to parse the syntax. |
+| G15 | General project images are not embedded in manuscript or export formats | The project image manager, `@Image` metadata grammar, editor highlighting, index validation, and viewer-only rendering are implemented. The manuscript preview, PDF, HTML, EPUB, DOCX, ODT, Markdown, and Typst writers remain unchanged by design. Supporting those outputs requires format-specific image embedding and resource handling rather than a new `BlockTyp.IMAGE` enum member. |
+| G18 | Gate rules for images (R9) deferred | Gate rules `imageAltMissing`, `imageResolutionLow`, and `imageUnused` require project-wide image analysis and settled export semantics. The `@Image` metadata is now validated and deliberately excluded from the heading-reference index, but these advisory gates are not implemented. |
 
 ## P05
 
@@ -59,7 +57,7 @@ specified, with reasons.
 |---|-----|--------|
 | G32 | R3: editor-document integration for undo deferred | `applySheetEdit` (umbraedit/umbra/sheetedit.py) does the Qt-free note rewriting with byte-for-byte preservation. Routing the result through the open editor document (so undo works) requires the editor document API and GUI wiring; deferred with the table view (G34). |
 | G33 | R6: slot assignment on note/picker creation deferred | `SheetManager.nextSlot` and duplicate detection are implemented; assigning a slot when an entity is created through the GUI table or the picker depends on the table view (G34) and the picker (P09). |
-| G34 | R4: Sheets table view dock (gui/sheetview.py) deferred | The dock needs the novelWriter dock creation system (same blocker as G12/G16), plus a tab-per-kind table model with chips, combo editors, and column management. Deferred as a focused GUI follow-up; all backing data APIs (iterEntities, setAttr, sheet.json columns) are implemented and tested. |
+| G34 | R4: Sheets table view dock (gui/sheetview.py) deferred | The dock needs the novelWriter dock creation system (same blocker as G12), plus a tab-per-kind table model with chips, combo editors, and column management. Deferred as a focused GUI follow-up; all backing data APIs (iterEntities, setAttr, sheet.json columns) are implemented and tested. |
 | G35 | R5: tone-set dialog GUI deferred | The tone set storage, seeding, and round-trip are implemented and tested (loadTones/saveTones, 16 defaults, corrupt-file recovery, unknown tones kept). The add/rename/reorder dialog is GUI work deferred with G34. |
 | G36 | R7: one-off promotion rewrite of %Voice: lines deferred | `SheetManager.promoteOneOff` creates the tag, slot, and alias. Rewriting `spk=~label` to `spk=<tag>` across all project documents as one undoable batch is an editor batch operation; deferred with the GUI (G34). |
 | G37 | R1: @alias/@attr deliberately not in ALL_KEYS | Adding them to ALL_KEYS would add entries to the Insert menu and require shortcut table entries. They are valid parser keys (VALID_KEYS), accepted by the editor completer, and stored by the index. The Insert-menu entry can be added with the Sheets GUI work. |
@@ -69,7 +67,7 @@ specified, with reasons.
 
 | # | Gap | Reason |
 |---|-----|--------|
-| G39 | R4: Pronunciation dock GUI deferred | The dock table (kind, status, respelling, IPA, mentions per chapter; Missing/Mentioned filters; inline edit; Mark as written; Copy from language) requires the novelWriter dock creation system (same blocker as G12/G16/G34). All backing data (getPronunciation/setPronunciation/markAsWritten, mention detection, lexicon export) is implemented and tested. |
+| G39 | R4: Pronunciation dock GUI deferred | The dock table (kind, status, respelling, IPA, mentions per chapter; Missing/Mentioned filters; inline edit; Mark as written; Copy from language) requires the novelWriter dock creation system (same blocker as G12/G34). All backing data (getPronunciation/setPronunciation/markAsWritten, mention detection, lexicon export) is implemented and tested. |
 | G40 | R5: Preview button deferred | `runPronPreview(command, text, ipa)` is implemented and tested; wiring it to a dock button with the `pron.previewCommand` setting is GUI work deferred with G39. No preview command exists by default. |
 | G41 | R6: "Names without a sheet" dock section deferred | `findUntrackedNames` is implemented and tested; the dock section and "Create entity" button (kind choice, uses P06 note creation with `pron_status = todo`) are GUI work deferred with G39. |
 | G42 | Pronunciation dock not keyboard-complete | Deferred with G39 (dock GUI). |
@@ -99,7 +97,7 @@ specified, with reasons.
 | G56 | R3: alias-prompt dialog and `speakers.addAliasesAutomatically` wiring deferred | The prompt UI and the setting hook into the picker are GUI work. `addAlias` and the setting default are implemented and tested. |
 | G57 | R4: Enter alternation/unclosed-quote proposal UI deferred | Showing the proposed chip and accepting on Enter/click are editor GUI work. The proposal logic (`enterProposal`) is implemented and tested. |
 | G58 | R5: Split/merge integration with editor document changes deferred | Observing `document.changed` and making the edit + notice one undo step is GUI work. `splitParagraph`/`mergeParagraphs` are implemented and tested. |
-| G59 | R6: Speakers dock deferred | The dock (Summary/Needs a speaker/Proposals/New in this scene/Cast) requires the dock creation system (same blocker as G12/G16/G34/G46). |
+| G59 | R6: Speakers dock deferred | The dock (Summary/Needs a speaker/Proposals/New in this scene/Cast) requires the dock creation system (same blocker as G12/G34/G46). |
 | G60 | R7: review flag marking in the editor deferred | Marking the amber-dot chip until clicked is editor GUI work. `loadReviewFlags`/`saveReviewFlags`/`toggleReviewFlag` are implemented and tested. |
 | G61 | R8: attribution name red underline deferred | The underline drawing and click-to-actions are editor/highlighter GUI work. `unattributedNames` is implemented and tested. |
 | G62 | R9: gates implemented but not wired into docbuild/audio flow | `speakerUnassigned` and `oneoffUnpromoted` are registered via `umbra.gates`; calling `requireGates` before audio.chapter/build.run is deferred (same blocker as G13). |

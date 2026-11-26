@@ -27,7 +27,10 @@ jobs:
       - name: Install System Packages
         run: |
           sudo apt update
-          sudo apt install qttools6-dev-tools
+          # The Qt 6 Linguist tools live in qt6-l10n-tools. The old
+          # qttools6-dev-tools package is no longer available on the
+          # current Ubuntu runner images.
+          sudo apt install -y qt6-l10n-tools
 
       - name: Build Assets
         run: python pkgutils.py qtlrelease

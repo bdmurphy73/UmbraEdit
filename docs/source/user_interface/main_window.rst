@@ -22,8 +22,43 @@ views you can switch between, a quick link to the **Manuscript Build** tool, and
 project-related tools and quick access to settings at the bottom.
 
 
-Inserting Project Images
-========================
+Project Image Assets
+--------------------
+
+The **View > Image Assets** command opens a panel on the right side of the main window. It lists
+every JPEG or PNG image stored in the current project's ``assets/img`` folder, with a thumbnail
+and the file name for each image.
+
+Selecting an image makes its layout settings available below the list. The **Width** and **Height**
+controls are linked, so changing either value updates the other one and preserves the source
+image's aspect ratio. The **Position** control can be set to **Left**, **Center**, or **Right**.
+The default position is **Center**. These settings are used the next time the image is inserted
+into a document.
+
+The panel provides three actions:
+
+* **Add** opens a file chooser and adds the selected image to the project. The file must be a JPEG
+  (``.jpg``) or PNG (``.png``) image, and both its extension and its contents must be valid. The
+  image is copied to the project's ``assets/img`` folder. Existing files are never overwritten;
+  when a file name is already in use, a numeric suffix is added. **Add** does not change the
+  current document.
+* **Select** inserts the selected image into the current document at the exact cursor position.
+  The inserted ``@Image`` metadata includes the project-relative path, the selected dimensions,
+  and the page position, for example
+  ``@Image: assets/img/landscape.png | width=640 | height=480 | position=center``. If no document
+  is open, UmbraEdit opens an available document and inserts the metadata at its bottom.
+* **Delete** removes an unreferenced image from the project after confirmation. An image referenced
+  by an ``@Image``, ``@Cover``, or ``@icon`` entry cannot be deleted.
+
+General images are separate from the **Cover** and **Icon** book images described below. Undoing
+an **Image Assets** insertion removes only the metadata from the document; the project image itself
+remains available in the asset panel.
+
+.. versionadded:: 2026.11.0006
+
+
+Book Cover and Icon
+-------------------
 
 The **Insert > Images** submenu provides **Cover** and **Icon** commands. Each command opens a file
 chooser for JPEG (``.jpg``) or PNG (``.png``) images. The selected image is validated and copied to
@@ -32,8 +67,10 @@ name is already in use, a numeric suffix is added.
 
 The command then inserts an ``@Cover:`` or ``@icon:`` line at the cursor in the current document.
 The value is the project-relative path of the imported file, for example
-``@Cover: assets/img/cover.png``. Undoing the insertion removes the tag from the document but
-leaves the imported image in the project.
+``@Cover: assets/img/cover.png``. If the cursor is above the document's first heading, the entry is
+inserted immediately after that heading instead. If no document is open, UmbraEdit opens an
+available document and inserts the entry at its bottom. Undoing the insertion removes the tag from
+the document but leaves the imported image in the project.
 
 .. versionadded:: 2026.11.0006
 

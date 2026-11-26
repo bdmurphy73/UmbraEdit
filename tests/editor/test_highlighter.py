@@ -165,6 +165,22 @@ def testGuiDocHighlighter_Keywords(syntax: GuiDocHighlighter):
     assert formats[3].foreground().color().getRgb() == colKey
     assert formats[4].underlineColor().getRgb() == colErr
 
+    # Image metadata is rendered as a value, not as a project tag
+    doc.setPlainText("@Image: assets/img/foo.png | width=640 | height=480 | position=center\n")
+    syntax.rehighlightByType(BLOCK_META)
+
+    pieces, formats = getFragments(syntax)
+    assert pieces == [
+        (0, 0, 6, "@Image"),
+        (0, 8, 61, "assets/img/foo.png | width=640 | height=480 | position=center"),
+    ]
+    assert formats[0].foreground().color().getRgb() == colKey
+    assert formats[1].foreground().color().getRgb() == theme.syntaxTheme.val.getRgb()
+
+    data = doc.findBlockByNumber(0).userData()
+    assert isinstance(data, TextBlockData)
+    assert data.metaData == []
+
     # # Unicode <= 0xFFFF
     doc.setPlainText("@tag: Zoë | Zoë Smith\n@char: Олексій\n")
     syntax.rehighlightByType(BLOCK_META)

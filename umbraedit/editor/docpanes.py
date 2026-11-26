@@ -35,16 +35,24 @@ from umbraedit.constants import nwKeyWords
 from umbraedit.core.imageimport import (
     ImageImportError,
     ImageImportReason,
+    ProjectImage,
     importProjectImage,
+    listProjectImages,
+    readProjectImageByPath,
     removeImportedProjectImage,
+    removeProjectImage,
     verifyImportedProjectImage,
 )
+from umbraedit.core.imagemeta import ImageMetadata, formatImageMetadata, referencedImagePaths
+from umbraedit.core.safeio import captureRegularFileIdentity
 from umbraedit.editor.editor import GuiDocEditor
 from umbraedit.editor.viewer import GuiDocViewer
 from umbraedit.editor.viewerpanel import GuiDocViewerPanel
 from umbraedit.enum import nwDocAction, nwDocInsert, nwDocMode, nwView
 
 if TYPE_CHECKING:
+    from umbraedit.core.imageimport import ImportedImage
+    from umbraedit.core.project import NWProject
     from umbraedit.dialogs.preferences import GuiNeedsUpdate
     from umbraedit.guimain import GuiMain
 
@@ -113,6 +121,7 @@ class GuiDocPanes(QWidget):
         SHARED.statusLabelsChanged.connect(self.docViewerPanel.updateStatusLabels)
 
         self.docEditor.closeEditorRequest.connect(self.closeDocEditor)
+        self.docEditor.formattedViewRequest.connect(self.showFormattedView)
         self.docEditor.loadDocumentTagRequest.connect(self._followTag)
         self.docEditor.openDocumentRequest.connect(self.openDocumentInMode)
         self.docEditor.requestNextDocument.connect(self.openNextDocument)
@@ -183,6 +192,7 @@ class GuiDocPanes(QWidget):
         """Run open project tasks, and restore the last open documents."""
         self.docEditor.toggleSpellCheck(SHARED.project.data.spellCheck)
         self.docViewerPanel.openProjectTasks()
+        self.mainGui.imageAssets.refreshAssets()
 
         # If no document was recorded, open the first one found
         lastEdited = SHARED.project.data.getLastHandle("editor")
@@ -206,6 +216,7 @@ class GuiDocPanes(QWidget):
         self.docViewer.clearNavHistory()
         self.closeViewerPanel(byUser=False)
         self.docViewerPanel.closeProjectTasks()
+        self.mainGui.imageAssets.clearAssets()
 
     ##
     #  Document Methods
@@ -305,6 +316,179 @@ class GuiDocPanes(QWidget):
 
         self.docEditor.replaceText(text)
 
+    @pyqtSlot()
+    def addProjectImage(self) -> None:
+        """Add an image asset to the project without changing a document."""
+        if not SHARED.hasProject:
+            SHARED.error(self.tr("Please open a project before importing an image."))
+            return
+
+        project = SHARED.project
+        projectPath = project.storage.storagePath
+        lastPath = CONFIG.lastPath("image")
+        fileFilter = formatFileFilter(["*.jpg", "*.png"])
+        loadFile, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("Select Image"),
+            str(lastPath),
+            filter=fileFilter,
+        )
+        if not loadFile.strip():
+            SHARED.newStatusMessage(self.tr("Image import cancelled. No changes were made."))
+            return
+
+        if not (
+            SHARED.hasProject
+            and SHARED.project is project
+            and project.storage.storagePath == projectPath
+            and project.storage.isOpen()
+        ):
+            SHARED.error(self.tr("The active project changed while selecting an image. Please try again."))
+            return
+
+        try:
+            imported = importProjectImage(project, loadFile)
+        except ImageImportError as exc:
+            SHARED.error(self._imageImportErrorMessage(exc), exc=exc)
+            return
+        except Exception as exc:
+            logger.error("Unexpected error while importing a project image", exc_info=exc)
+            SHARED.error(self.tr("Could not copy the image into the project."), exc=exc)
+            return
+
+        try:
+            verifyImportedProjectImage(project, imported)
+        except OSError as exc:
+            cleanupFailed = not self._cleanupImportedImage(project, imported)
+            details = self.tr("The imported image could not be removed.") if cleanupFailed else ""
+            SHARED.error(
+                self.tr("The active project changed while importing the image. Please try again."),
+                details=details,
+                exc=exc,
+            )
+            return
+
+        if not (
+            SHARED.hasProject
+            and SHARED.project is project
+            and project.storage.storagePath == projectPath
+            and project.storage.isOpen()
+        ):
+            cleanupFailed = not self._cleanupImportedImage(project, imported)
+            details = self.tr("The imported image could not be removed.") if cleanupFailed else ""
+            SHARED.error(
+                self.tr("The active project changed while importing the image. Please try again."),
+                details=details,
+            )
+            return
+
+        CONFIG.setLastPath("image", loadFile)
+        self.mainGui.imageAssets.refreshAssets()
+        self.mainGui.imageAssets.selectAsset(imported.relativePath)
+        SHARED.newStatusMessage(self.tr("Imported image: {0}").format(imported.relativePath))
+
+    @pyqtSlot(object, int, int, str)
+    def insertProjectImage(self, image: ProjectImage, width: int, height: int, position: str) -> None:
+        """Insert a stored project image into the current document."""
+        if not isinstance(image, ProjectImage):
+            logger.error("Invalid project image")
+            SHARED.error(self.tr("The selected image is not valid."))
+            return
+        if not SHARED.hasProject:
+            SHARED.error(self.tr("Please open a project before inserting an image."))
+            return
+
+        try:
+            current = next(
+                (entry for entry in listProjectImages(SHARED.project) if entry.relativePath == image.relativePath),
+                None,
+            )
+            if current is None or current.identity != image.identity:
+                raise OSError("The project image changed before it could be inserted")
+            readProjectImageByPath(SHARED.project, image.relativePath)
+            value = formatImageMetadata(
+                ImageMetadata(
+                    relativePath=image.relativePath,
+                    width=width,
+                    height=height,
+                    position=position,
+                )
+            )
+        except Exception as exc:
+            logger.error("Could not validate the selected project image", exc_info=exc)
+            SHARED.error(self.tr("The selected image is not valid."), exc=exc)
+            self.mainGui.imageAssets.refreshAssets()
+            return
+
+        atEnd = False
+        if self.docEditor.docHandle is None:
+            if not self._openFallbackDocument():
+                SHARED.error(self.tr("Please open a document to insert the image into."))
+                return
+            atEnd = True
+
+        if not self.docEditor.insertMetaValueAt(nwKeyWords.IMAGE_KEY, value, atEnd=atEnd):
+            SHARED.error(self.tr("Could not insert the image reference into the document."))
+            return
+
+        SHARED.newStatusMessage(self.tr("Inserted image: {0}").format(image.relativePath))
+
+    @pyqtSlot(object)
+    def deleteProjectImage(self, image: ProjectImage) -> None:
+        """Delete an unreferenced image asset from the project."""
+        if not isinstance(image, ProjectImage):
+            logger.error("Invalid project image")
+            SHARED.error(self.tr("The selected image is not valid."))
+            return
+        if not SHARED.hasProject:
+            SHARED.error(self.tr("Please open a project before deleting an image."))
+            return
+
+        try:
+            current = next(
+                (entry for entry in listProjectImages(SHARED.project) if entry.relativePath == image.relativePath),
+                None,
+            )
+            if current is None or current.identity != image.identity:
+                raise OSError("The project image changed before it could be deleted")
+            references = self._referencedProjectImages()
+        except Exception as exc:
+            logger.error("Could not verify project image references", exc_info=exc)
+            SHARED.error(self.tr("Could not verify whether the image is still in use."), exc=exc)
+            self.mainGui.imageAssets.refreshAssets()
+            return
+
+        if self._projectImageIsReferenced(image, references):
+            SHARED.error(self.tr("The selected image is referenced by a document and cannot be deleted."))
+            return
+
+        if not SHARED.question(self.tr("Delete the selected image from the project?")):
+            return
+
+        # A document can change while the confirmation dialog is open.
+        # Check again immediately before the identity-bound deletion so
+        # a newly added reference always wins over deletion.
+        try:
+            references = self._referencedProjectImages()
+        except Exception as exc:
+            logger.error("Could not recheck project image references", exc_info=exc)
+            SHARED.error(self.tr("Could not verify whether the image is still in use."), exc=exc)
+            return
+        if self._projectImageIsReferenced(image, references):
+            SHARED.error(self.tr("The selected image is referenced by a document and cannot be deleted."))
+            return
+
+        try:
+            removeProjectImage(SHARED.project, image)
+        except Exception as exc:
+            logger.error("Could not delete project image '%s'", image.relativePath, exc_info=exc)
+            SHARED.error(self.tr("Could not delete the selected image from the project."), exc=exc)
+            self.mainGui.imageAssets.refreshAssets()
+            return
+
+        self.mainGui.imageAssets.refreshAssets()
+        SHARED.newStatusMessage(self.tr("Deleted image: {0}").format(image.relativePath))
+
     @pyqtSlot(str)
     def insertImage(self, keyword: str) -> None:
         """Import a project image and insert its reference in the document."""
@@ -317,18 +501,12 @@ class GuiDocPanes(QWidget):
             SHARED.error(self.tr("Please open a project before importing an image."))
             return
 
-        documentHandle = self.docEditor.docHandle
-        if documentHandle is None:
-            SHARED.error(self.tr("Please open a document to import the image into."))
-            return
-
         project = SHARED.project
         projectPath = project.storage.storagePath
+        atEnd = self.docEditor.docHandle is None
+        documentHandle = self.docEditor.docHandle
         document = self.docEditor.document()
-        if document is None:
-            SHARED.error(self.tr("Please open a document to import the image into."))
-            return
-        documentRevision = document.revision()
+        documentRevision = document.revision() if document is not None else -1
         capturedCursor = self.docEditor.textCursor()
         lastPath = CONFIG.lastPath("image")
         fileFilter = formatFileFilter(["*.jpg", "*.png"])
@@ -344,12 +522,18 @@ class GuiDocPanes(QWidget):
         # paths leave the editor exactly where it was before the chooser
         # was opened. Do not restore it into a changed context.
         currentDocument = self.docEditor.document()
-        sameDocument = (
-            currentDocument is not None
-            and self.docEditor.docHandle == documentHandle
-            and capturedCursor.document() is currentDocument
-        )
-        sameRevision = currentDocument is not None and sameDocument and currentDocument.revision() == documentRevision
+        if atEnd:
+            sameDocument = self.docEditor.docHandle is None
+            sameRevision = True
+        else:
+            sameDocument = (
+                currentDocument is not None
+                and self.docEditor.docHandle == documentHandle
+                and capturedCursor.document() is currentDocument
+            )
+            sameRevision = (
+                currentDocument is not None and sameDocument and currentDocument.revision() == documentRevision
+            )
         sameProject = (
             SHARED.hasProject
             and SHARED.project is project
@@ -357,7 +541,7 @@ class GuiDocPanes(QWidget):
             and project.storage.isOpen()
         )
         sameContext = sameProject and sameDocument and sameRevision
-        if sameContext:
+        if sameContext and not atEnd:
             self.docEditor.setTextCursor(capturedCursor)
         if not loadFile.strip():
             if sameContext:
@@ -375,7 +559,7 @@ class GuiDocPanes(QWidget):
         try:
             imported = importProjectImage(project, loadFile)
         except ImageImportError as exc:
-            if sameDocument:
+            if sameDocument and not atEnd:
                 self.docEditor.setTextCursor(capturedCursor)
             if exc.reason == ImageImportReason.NO_PROJECT:
                 message = self.tr("Please open a project before importing an image.")
@@ -394,7 +578,7 @@ class GuiDocPanes(QWidget):
             SHARED.error(message, exc=exc)
             return
         except Exception as exc:
-            if sameDocument:
+            if sameDocument and not atEnd:
                 self.docEditor.setTextCursor(capturedCursor)
             logger.error("Unexpected error while importing a project image", exc_info=exc)
             SHARED.error(self.tr("Could not copy the image into the project."), exc=exc)
@@ -403,15 +587,7 @@ class GuiDocPanes(QWidget):
         try:
             verifyImportedProjectImage(project, imported)
         except OSError as exc:
-            cleanupFailed = False
-            try:
-                removeImportedProjectImage(project, imported)
-            except OSError:
-                cleanupFailed = True
-                logger.warning(
-                    "Could not remove an uninserted project image after validation failed",
-                    exc_info=exc,
-                )
+            cleanupFailed = not self._cleanupImportedImage(project, imported)
             details = self.tr("The imported image could not be removed.") if cleanupFailed else ""
             SHARED.error(
                 self.tr("The active project or document changed while importing the image. Please try again."),
@@ -421,25 +597,28 @@ class GuiDocPanes(QWidget):
             return
 
         currentDocument = self.docEditor.document()
-        sameDocumentAfterImport = (
-            currentDocument is not None
-            and self.docEditor.docHandle == documentHandle
-            and capturedCursor.document() is currentDocument
-            and currentDocument.revision() == documentRevision
-        )
         sameProjectAfterImport = (
             SHARED.hasProject
             and SHARED.project is project
             and project.storage.storagePath == projectPath
             and project.storage.isOpen()
         )
-        if not (sameDocumentAfterImport and sameProjectAfterImport):
-            cleanupFailed = False
-            try:
-                removeImportedProjectImage(project, imported)
-            except OSError as exc:
-                cleanupFailed = True
-                logger.warning("Could not remove uninserted project image '%s'", imported.path, exc_info=exc)
+        if atEnd:
+            sameDocumentAfterImport = self.docEditor.docHandle is None
+            sameRevisionAfterImport = True
+        else:
+            sameDocumentAfterImport = (
+                currentDocument is not None
+                and self.docEditor.docHandle == documentHandle
+                and capturedCursor.document() is currentDocument
+            )
+            sameRevisionAfterImport = (
+                currentDocument is not None
+                and sameDocumentAfterImport
+                and currentDocument.revision() == documentRevision
+            )
+        if not (sameDocumentAfterImport and sameRevisionAfterImport and sameProjectAfterImport):
+            cleanupFailed = not self._cleanupImportedImage(project, imported)
             details = self.tr("The imported image could not be removed.") if cleanupFailed else ""
             SHARED.error(
                 self.tr("The active project or document changed while importing the image. Please try again."),
@@ -447,23 +626,61 @@ class GuiDocPanes(QWidget):
             )
             return
 
+        if atEnd:
+            # Defer opening a fallback document until the image has been
+            # selected and imported. Cancelling the chooser must not
+            # change which document is open.
+            if not self._openFallbackDocument():
+                cleanupFailed = not self._cleanupImportedImage(project, imported)
+                details = self.tr("The imported image could not be removed.") if cleanupFailed else ""
+                SHARED.error(
+                    self.tr("Please open a document to insert the image into."),
+                    details=details,
+                )
+                return
+
+            documentHandle = self.docEditor.docHandle
+            document = self.docEditor.document()
+            sameProjectAfterFallback = (
+                SHARED.hasProject
+                and SHARED.project is project
+                and project.storage.storagePath == projectPath
+                and project.storage.isOpen()
+            )
+            if not sameProjectAfterFallback:
+                cleanupFailed = not self._cleanupImportedImage(project, imported)
+                details = self.tr("The imported image could not be removed.") if cleanupFailed else ""
+                SHARED.error(
+                    self.tr("The active project or document changed while importing the image. Please try again."),
+                    details=details,
+                )
+                return
+            if document is None or documentHandle is None:
+                cleanupFailed = not self._cleanupImportedImage(project, imported)
+                details = self.tr("The imported image could not be removed.") if cleanupFailed else ""
+                SHARED.error(
+                    self.tr("Please open a document to insert the image into."),
+                    details=details,
+                )
+                return
+
         insertError: Optional[Exception] = None
         try:
-            inserted = self.docEditor.insertMetaValue(keyword, imported.relativePath)
+            inserted = self.docEditor.insertMetaValueAt(
+                keyword,
+                imported.relativePath,
+                afterHeading=True,
+                atEnd=atEnd,
+            )
         except Exception as exc:
             logger.error("Unexpected error while inserting an image reference", exc_info=exc)
             inserted = False
             insertError = exc
 
         if not inserted:
-            if sameDocument:
+            if sameDocument and not atEnd:
                 self.docEditor.setTextCursor(capturedCursor)
-            cleanupFailed = False
-            try:
-                removeImportedProjectImage(project, imported)
-            except OSError as exc:
-                cleanupFailed = True
-                logger.warning("Could not remove uninserted project image '%s'", imported.path, exc_info=exc)
+            cleanupFailed = not self._cleanupImportedImage(project, imported)
             if cleanupFailed:
                 message = self.tr(
                     "Could not insert the image reference into the document. The imported image could not be removed."
@@ -474,6 +691,8 @@ class GuiDocPanes(QWidget):
             return
 
         CONFIG.setLastPath("image", loadFile)
+        self.mainGui.imageAssets.refreshAssets()
+        self.mainGui.imageAssets.selectAsset(imported.relativePath)
         SHARED.newStatusMessage(self.tr("Imported image: {0}").format(imported.relativePath))
 
     def viewDocument(
@@ -545,6 +764,94 @@ class GuiDocPanes(QWidget):
         if cursorVisible:
             self.docEditor.ensureCursorVisible(centre=False)
 
+    def _openFallbackDocument(self) -> bool:
+        """Open a document to use when no insertion location is active."""
+        handles = self._projectDocumentHandles()
+        lastHandle = SHARED.project.data.getLastHandle("editor")
+        if lastHandle:
+            handles = [lastHandle, *(handle for handle in handles if handle != lastHandle)]
+        return any(self.openDocument(handle) for handle in handles)
+
+    def _projectDocumentHandles(self) -> list[str]:
+        """Return the current file handles from the live project tree.
+
+        ``ProjectTree.allDocs()`` is a cached list intended for novel
+        structure queries. It is not invalidated for documents added
+        below non-novel roots, so destructive reference checks must not
+        rely on it.
+        """
+        return [item.itemHandle for item in SHARED.project.tree if item.isFileType()]
+
+    def _referencedProjectImages(self) -> set[str]:
+        """Return all image paths referenced by project documents."""
+        references: set[str] = set()
+        currentHandle = self.docEditor.docHandle
+        handles = self._projectDocumentHandles()
+        if currentHandle and currentHandle not in handles:
+            handles.append(currentHandle)
+
+        for handle in handles:
+            if handle == currentHandle:
+                text = self.docEditor.getText()
+            else:
+                text = SHARED.project.storage.getDocument(handle).readDocument()
+                if text is None:
+                    raise OSError(f"Could not read document '{handle}'")
+            references.update(referencedImagePaths(text))
+
+        return references
+
+    @staticmethod
+    def _projectImageIsReferenced(image: ProjectImage, references: set[str]) -> bool:
+        """Check whether any reference resolves to the selected image object.
+
+        Exact path matches cover normal metadata. The identity comparison
+        also protects projects on case-insensitive file systems, where a
+        differently cased path can refer to the same image file.
+        """
+        if image.relativePath in references:
+            return True
+
+        for relativePath in references:
+            fileName = relativePath.rsplit("/", 1)[-1]
+            referencePath = image.path.parent / fileName
+            try:
+                identity = captureRegularFileIdentity(referencePath)
+            except OSError:
+                # Fail closed if a referenced path cannot be inspected
+                # safely. It may be the selected image under another name.
+                return True
+            if identity is not None and identity == image.identity:
+                return True
+
+        return False
+
+    def _imageImportErrorMessage(self, exc: ImageImportError) -> str:
+        """Return a user-facing message for an image import error."""
+        if exc.reason == ImageImportReason.NO_PROJECT:
+            return self.tr("Please open a project before importing an image.")
+        elif exc.reason == ImageImportReason.NOT_FOUND:
+            return self.tr("The selected image file could not be found.")
+        elif exc.reason == ImageImportReason.UNSUPPORTED_TYPE:
+            return self.tr("The selected file must be a JPG or PNG image.")
+        elif exc.reason == ImageImportReason.INVALID_IMAGE:
+            return self.tr("The selected file is not a valid JPG or PNG image.")
+        elif exc.reason == ImageImportReason.FORMAT_MISMATCH:
+            return self.tr("The selected image format does not match its file extension.")
+        elif exc.reason == ImageImportReason.IMAGE_TOO_LARGE:
+            return self.tr("The selected image is too large to import safely.")
+        else:
+            return self.tr("Could not copy the image into the project.")
+
+    def _cleanupImportedImage(self, project: NWProject, imported: ImportedImage) -> bool:
+        """Remove an imported image after its project context was lost."""
+        try:
+            removeImportedProjectImage(project, imported)
+        except OSError:
+            logger.warning("Could not remove an uninserted project image after validation failed", exc_info=True)
+            return False
+        return True
+
     ##
     #  Public Slots
     ##
@@ -559,6 +866,22 @@ class GuiDocPanes(QWidget):
     def closeDocViewer(self) -> None:
         """Close the document viewer."""
         self.closeViewerPanel()
+
+    @pyqtSlot()
+    def showFormattedView(self) -> None:
+        """Open the current document in the formatted right-hand panel."""
+        if not SHARED.hasProject:
+            return
+        if handle := self.docEditor.docHandle:
+            # The viewer renders project content read from storage. Save
+            # first so the formatted panel always represents the current
+            # editor text, even when another document is already open in
+            # the viewer.
+            if not self.saveDocument():
+                return
+            self.viewDocument(tHandle=handle, changeFocus=True)
+        else:
+            self.viewDocument(changeFocus=True)
 
     @pyqtSlot(nwDocAction)
     def passDocumentAction(self, action: nwDocAction) -> None:

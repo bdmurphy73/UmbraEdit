@@ -45,7 +45,11 @@ from umbraedit.core.imageimport import (
     ImageImportError,
     ImageImportReason,
     importProjectImage,
+    listProjectImages,
+    readProjectImage,
+    readProjectImageByPath,
     removeImportedProjectImage,
+    removeProjectImage,
     safeImageStem,
     verifyImportedProjectImage,
 )
@@ -91,6 +95,250 @@ def _writeCorruptApng(path: Path) -> None:
             output.extend(data[position : position + 12 + length])
         position += 12 + length
     path.write_bytes(output)
+
+
+def _createProjectImageStorage(tmp_path: Path) -> tuple[NWProject, Path]:
+    """Create a project with validated storage and return its image folder."""
+    project = NWProject()
+    projectPath = tmp_path / "project"
+    project.storage.createNewProject(projectPath)
+    assert project.storage.isOpen()
+    return project, projectPath / "assets" / "img"
+
+
+@pytest.mark.core
+def testProjectImages_ListOnlyFlatJpgPngRegularFiles(tmp_path: Path):
+    """Test that listing includes only flat JPG and PNG regular files."""
+    project, assetDir = _createProjectImageStorage(tmp_path)
+    assetDir.mkdir(parents=True)
+    (assetDir / "b.jpg").write_bytes(b"jpg")
+    (assetDir / "a.png").write_bytes(b"png")
+    (assetDir / "ignored.txt").write_bytes(b"not an image")
+    (assetDir / "invalid,name.png").write_bytes(b"not representable")
+    (assetDir / "directory.jpg").mkdir()
+    nestedDir = assetDir / "nested"
+    nestedDir.mkdir()
+    (nestedDir / "nested.jpg").write_bytes(b"nested")
+
+    images = listProjectImages(project)
+
+    assert [image.relativePath for image in images] == [
+        "assets/img/a.png",
+        "assets/img/b.jpg",
+    ]
+    assert [image.path for image in images] == [
+        assetDir / "a.png",
+        assetDir / "b.jpg",
+    ]
+
+
+@pytest.mark.core
+def testProjectImages_MissingImageDirectory(tmp_path: Path):
+    """Test that a missing image directory lists empty and cannot be read."""
+    project, assetDir = _createProjectImageStorage(tmp_path)
+
+    assert listProjectImages(project) == []
+    with pytest.raises(FileNotFoundError) as exc:
+        readProjectImageByPath(project, "assets/img/missing.png")
+    assert exc.value.errno == errno.ENOENT
+
+    assetDir.parent.mkdir()
+    assert listProjectImages(project) == []
+    with pytest.raises(FileNotFoundError) as exc:
+        readProjectImageByPath(project, "assets/img/missing.png")
+    assert exc.value.errno == errno.ENOENT
+
+
+@pytest.mark.core
+@pytest.mark.parametrize(
+    "relativePath",
+    [
+        "../outside.png",
+        "assets/img/../../outside.png",
+        "assets/img/nested/cover.png",
+        "assets/img/cover.gif",
+        "assets/img/cover",
+        "assets/img/.png",
+        "assets/img/cover.png/..",
+        "assets/img/cover,name.png",
+        "/assets/img/cover.png",
+        "assets\\img\\cover.png",
+    ],
+)
+def testProjectImages_ReadByPathRejectsTraversalAndUnsupportedSuffix(
+    tmp_path: Path,
+    relativePath: str,
+):
+    """Test that project image paths are strict and project-relative."""
+    project, assetDir = _createProjectImageStorage(tmp_path)
+    assetDir.mkdir(parents=True)
+    _writeImage(assetDir / "cover.png")
+
+    with pytest.raises(ValueError):
+        readProjectImageByPath(project, relativePath)
+
+
+@pytest.mark.core
+def testProjectImages_ReadReturnsValidatedBytes(tmp_path: Path):
+    """Test that a listed image can be read and fully validated by path."""
+    project, assetDir = _createProjectImageStorage(tmp_path)
+    assetDir.mkdir(parents=True)
+    imagePath = assetDir / "cover.png"
+    _writeImage(imagePath)
+    imageData = imagePath.read_bytes()
+    listed = listProjectImages(project)
+
+    assert len(listed) == 1
+    fromListing = readProjectImage(project, listed[0])
+    fromPath = readProjectImageByPath(project, "assets/img/cover.png")
+
+    assert fromListing.data == imageData
+    assert fromListing.imageFormat == "PNG"
+    assert fromListing.path == imagePath
+    assert fromListing.relativePath == "assets/img/cover.png"
+    assert fromListing.identity == listed[0].identity
+    assert fromPath.data == imageData
+    assert fromPath.imageFormat == "PNG"
+
+
+@pytest.mark.core
+def testProjectImages_ReadFullyDecodesEveryFrame(tmp_path: Path):
+    """Test that reading rejects corruption in a later animation frame."""
+    project, assetDir = _createProjectImageStorage(tmp_path)
+    assetDir.mkdir(parents=True)
+    _writeCorruptApng(assetDir / "animated.png")
+    listed = listProjectImages(project)
+
+    assert len(listed) == 1
+    with pytest.raises(ImageImportError) as exc:
+        readProjectImage(project, listed[0])
+
+    assert exc.value.reason == ImageImportReason.INVALID_IMAGE
+
+
+@pytest.mark.core
+@pytest.mark.parametrize(
+    ("fileName", "contentFormat"),
+    [
+        ("mismatch.jpg", "PNG"),
+        ("mismatch.png", "JPEG"),
+    ],
+)
+def testProjectImages_ReadRejectsExtensionContentMismatch(
+    tmp_path: Path,
+    fileName: str,
+    contentFormat: str,
+):
+    """Test that reading rejects image content that contradicts its suffix."""
+    project, assetDir = _createProjectImageStorage(tmp_path)
+    assetDir.mkdir(parents=True)
+    _writeImage(assetDir / fileName, contentFormat)
+
+    with pytest.raises(ImageImportError) as exc:
+        readProjectImageByPath(project, f"assets/img/{fileName}")
+
+    assert exc.value.reason == ImageImportReason.FORMAT_MISMATCH
+
+
+@pytest.mark.core
+def testProjectImages_RemoveUsesListedIdentity(tmp_path: Path):
+    """Test that deletion removes only the exact image object that was listed."""
+    project, assetDir = _createProjectImageStorage(tmp_path)
+    assetDir.mkdir(parents=True)
+    _writeImage(assetDir / "remove.png")
+    _writeImage(assetDir / "keep.jpg", "JPEG")
+    images = {image.relativePath: image for image in listProjectImages(project)}
+
+    assert removeProjectImage(project, images["assets/img/remove.png"]) is True
+
+    assert not (assetDir / "remove.png").exists()
+    assert (assetDir / "keep.jpg").is_file()
+    assert [image.relativePath for image in listProjectImages(project)] == [
+        "assets/img/keep.jpg",
+    ]
+
+
+@pytest.mark.core
+def testProjectImages_RemovePreservesRacedReplacement(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    """Test that a replacement raced into the deletion path is preserved."""
+    project, assetDir = _createProjectImageStorage(tmp_path)
+    assetDir.mkdir(parents=True)
+    imagePath = assetDir / "cover.png"
+    _writeImage(imagePath)
+    listed = listProjectImages(project)
+    assert len(listed) == 1
+    replacement = b"replacement image"
+    realUnlinkIfSameFile = imageimport.unlinkIfSameFile
+    raceTriggered = False
+
+    def replaceBeforeSafeUnlink(
+        path: Path,
+        expectedIdentity=None,
+        *,
+        dirFd=None,
+        quarantineParent=None,
+        expectedQuarantineParent=None,
+    ):
+        nonlocal raceTriggered
+        raceTriggered = True
+        targetPath = assetDir / path.name if dirFd is not None else path
+        targetPath.unlink()
+        targetPath.write_bytes(replacement)
+        return realUnlinkIfSameFile(
+            path,
+            expectedIdentity,
+            dirFd=dirFd,
+            quarantineParent=quarantineParent,
+            expectedQuarantineParent=expectedQuarantineParent,
+        )
+
+    monkeypatch.setattr(imageimport, "unlinkIfSameFile", replaceBeforeSafeUnlink)
+
+    with pytest.raises(OSError):
+        removeProjectImage(project, listed[0])
+
+    assert raceTriggered is True
+    assert imagePath.read_bytes() == replacement
+
+
+@pytest.mark.core
+def testProjectImages_RejectSymlinkedImageEntries(tmp_path: Path):
+    """Test that image symlinks are rejected by listing, reading, and removal."""
+    project, assetDir = _createProjectImageStorage(tmp_path)
+    assetDir.mkdir(parents=True)
+    outside = tmp_path / "outside.png"
+    _writeImage(outside)
+    imagePath = assetDir / "cover.png"
+    _writeImage(imagePath)
+    listed = listProjectImages(project)
+    assert len(listed) == 1
+    imagePath.unlink()
+    try:
+        os.symlink(outside, imagePath)
+    except OSError:
+        pytest.skip("Symbolic links are not supported on this platform")
+
+    with pytest.raises(OSError) as exc:
+        listProjectImages(project)
+    assert exc.value.errno == errno.ELOOP
+
+    with pytest.raises(OSError) as exc:
+        readProjectImage(project, listed[0])
+    assert exc.value.errno == errno.ELOOP
+
+    with pytest.raises(OSError) as exc:
+        readProjectImageByPath(project, "assets/img/cover.png")
+    assert exc.value.errno == errno.ELOOP
+
+    with pytest.raises(OSError) as exc:
+        removeProjectImage(project, listed[0])
+    assert exc.value.errno == errno.ELOOP
+
+    assert imagePath.is_symlink()
+    assert outside.read_bytes() == imagePath.read_bytes()
 
 
 @pytest.mark.core

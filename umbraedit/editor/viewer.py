@@ -284,6 +284,7 @@ class GuiDocViewer(QTextBrowser):
         indentFirst = CONFIG.viewFirstLineIndent if nwItem.isDocumentLayout() else False
 
         qDoc = ToQTextDocument(SHARED.project)
+        qDoc.setRenderImages(True)
         qDoc.setLanguage(None, SHARED.project.data.isRTL)
         qDoc.setJustify(CONFIG.doJustify, False)
         qDoc.setDialogHighlight(True)

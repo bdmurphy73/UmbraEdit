@@ -22,10 +22,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import PIL.Image
 import pytest
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QTextBlock, QTextCharFormat, QTextCursor, QTextFormat, QTextLength, QTextListFormat
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import (
+    QImage,
+    QTextBlock,
+    QTextCharFormat,
+    QTextCursor,
+    QTextDocument,
+    QTextFormat,
+    QTextLength,
+    QTextListFormat,
+)
 
 from umbraedit import CONFIG
 from umbraedit.constants import nwHeadFmt, nwUnicode
@@ -809,3 +821,133 @@ def testToQTextDocument_Problems(mockGUI: MockGuiMain):
     assert charFmtInBlock(block, 12).background() == THEME.error
     assert charFmtInBlock(block, 13).background() == THEME.error
     assert charFmtInBlock(block, 14).background() == QtTransparent
+
+
+def _createImageProject(tmpPath: Path, size: tuple[int, int] = (100, 50)) -> tuple[NWProject, Path]:
+    """Create a project with one validated PNG asset."""
+    project = NWProject()
+    projectPath = tmpPath / "project"
+    project.storage.createNewProject(projectPath)
+    assetPath = projectPath / "assets" / "img"
+    assetPath.mkdir(parents=True, exist_ok=True)
+    PIL.Image.new("RGB", size, (20, 40, 60)).save(assetPath / "image.png", format="PNG")
+    return project, assetPath
+
+
+def _convertImageMetadata(project: NWProject, metadata: str, *, render: bool = True) -> ToQTextDocument:
+    """Convert a single image metadata line."""
+    doc = ToQTextDocument(project)
+    doc.setRenderImages(render)
+    doc.setKeywords(True)
+    doc.initDocument()
+    doc._text = f"{metadata}\n"
+    doc.tokenizeText()
+    doc.doConvert()
+    return doc
+
+
+@pytest.mark.core
+def testToQTextDocument_ProjectImagesAreOptIn(tmp_path: Path, mockGUI: MockGuiMain):
+    """Test that project images are only rendered when explicitly enabled."""
+    project, _ = _createImageProject(tmp_path)
+    metadata = "@Image: assets/img/image.png | width=640 | height=480 | position=center"
+
+    doc = _convertImageMetadata(project, metadata, render=False)
+    block = doc.document.firstBlock()
+    assert block.text() == "Image: assets/img/image.png | width=640 | height=480 | position=center"
+    assert charFmtInBlock(block, 0).isImageFormat() is False
+
+    doc = _convertImageMetadata(project, metadata, render=True)
+    block = doc.document.firstBlock()
+    assert block.text() == "\N{OBJECT REPLACEMENT CHARACTER}"
+    assert charFmtInBlock(block, 0).isImageFormat() is True
+
+
+@pytest.mark.core
+@pytest.mark.parametrize(
+    ("attributes", "expectedSize"),
+    [
+        ("", (100, 50)),
+        (" | width=50", (50, 25)),
+        (" | height=25", (50, 25)),
+        (" | width=640 | height=480", (640, 320)),
+        (" | width=40 | height=40", (40, 20)),
+    ],
+)
+def testToQTextDocument_ProjectImageDimensions(
+    tmp_path: Path,
+    mockGUI: MockGuiMain,
+    attributes: str,
+    expectedSize: tuple[int, int],
+):
+    """Test intrinsic sizing and aspect-ratio-preserving bounds."""
+    project, _ = _createImageProject(tmp_path)
+    doc = _convertImageMetadata(
+        project,
+        f"@Image: assets/img/image.png{attributes} | position=center",
+    )
+
+    imageFormat = charFmtInBlock(doc.document.firstBlock(), 0).toImageFormat()
+    assert (round(imageFormat.width()), round(imageFormat.height())) == expectedSize
+
+
+@pytest.mark.core
+@pytest.mark.parametrize(
+    ("position", "alignment"),
+    [
+        ("left", QtAlignAbsolute | QtAlignLeft),
+        ("center", QtAlignCenter),
+        ("right", QtAlignAbsolute | QtAlignRight),
+    ],
+)
+def testToQTextDocument_ProjectImageAlignment(
+    tmp_path: Path,
+    mockGUI: MockGuiMain,
+    position: str,
+    alignment: int,
+):
+    """Test that image metadata controls the image block alignment."""
+    project, _ = _createImageProject(tmp_path)
+    doc = _convertImageMetadata(
+        project,
+        f"@Image: assets/img/image.png | position={position}",
+    )
+
+    assert doc.document.firstBlock().blockFormat().alignment() == alignment
+
+
+@pytest.mark.core
+def testToQTextDocument_ProjectImageFallbackIsLocal(tmp_path: Path, mockGUI: MockGuiMain):
+    """Test that a missing image falls back without breaking the preview."""
+    project, assetPath = _createImageProject(tmp_path)
+    assetPath.joinpath("image.png").unlink()
+
+    doc = _convertImageMetadata(
+        project,
+        "@Image: assets/img/image.png | width=640 | height=480 | position=center",
+    )
+    block = doc.document.firstBlock()
+    assert block.text() == "Image: assets/img/image.png | width=640 | height=480 | position=center"
+    assert charFmtInBlock(block, 0).isImageFormat() is False
+
+
+@pytest.mark.core
+def testToQTextDocument_ProjectImageResourcesAreOpaqueAndUnique(tmp_path: Path, mockGUI: MockGuiMain):
+    """Test that image resources do not expose paths and do not collide."""
+    project, _ = _createImageProject(tmp_path)
+    doc = ToQTextDocument(project)
+    doc.setRenderImages(True)
+    doc.setKeywords(True)
+    doc.initDocument()
+    doc._text = "@Image: assets/img/image.png | position=center\n@Image: assets/img/image.png | position=right\n"
+    doc.tokenizeText()
+    doc.doConvert()
+
+    imageFormats = [charFmtInBlock(doc.document.findBlockByNumber(number), 0).toImageFormat() for number in range(2)]
+    names = [imageFormat.name() for imageFormat in imageFormats]
+    assert names[0] != names[1]
+    assert all("assets/img" not in name and "image.png" not in name for name in names)
+
+    resource = doc.document.resource(QTextDocument.ResourceType.ImageResource, QUrl(names[0]))
+    assert isinstance(resource, QImage)
+    assert (resource.width(), resource.height()) == (100, 50)

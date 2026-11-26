@@ -390,6 +390,11 @@ class GuiMainMenu(QMenuBar):
         self.aHideTreePane.setShortcut("Shift+F8")
         self.aHideTreePane.triggered.connect(self.mainGui.toggleTreePane)
 
+        # View > Image Assets
+        self.aImageAssets = qtAddAction(self.viewMenu, self.tr("Image Assets"))
+        self.aImageAssets.setCheckable(True)
+        self.aImageAssets.triggered.connect(self.mainGui.setImageAssetsVisible)
+
         # View > Separator
         self.viewMenu.addSeparator()
 

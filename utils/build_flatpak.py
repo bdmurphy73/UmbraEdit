@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 import shutil
 import subprocess
@@ -56,6 +57,33 @@ NW_COMMIT_API = "https://api.github.com/repos/bdmurphy73/UmbraEdit/commits/v{ver
 FLATHUB_FILES = ("io.umbraedit.umbraedit.yml", "pypi-deps.json", "enchant.json", "umbraedit.appdata.xml")
 
 
+def enchantChecksum(fileName: str, url: str, version: str) -> str:
+    """Return the SHA256 checksum of an enchant release asset.
+
+    The checksum is looked up in the release metadata on the GitHub API
+    first, as that is the value published by the project. If the API
+    cannot be reached, which happens when the rate limit for anonymous
+    requests is exceeded, the asset is downloaded and the checksum is
+    computed from it instead.
+    """
+    apiUrl = ENCHANT_RELEASE_API.format(version=version)
+    log(f"Checking: {apiUrl}")
+    try:
+        with urllib.request.urlopen(apiUrl) as response:
+            release = json.loads(response.read())
+        assets = {a["name"]: a for a in release["assets"]}
+        if fileName not in assets:
+            raise ValueError(f"Asset '{fileName}' not found in release 'v{version}'")
+        return str(assets[fileName]["digest"]).removeprefix("sha256:")
+    except Exception as exc:
+        log(f"[wr]Could not read the release metadata: {exc}[e]")
+        log("Downloading the asset to compute the checksum instead ...")
+        log("")
+
+    with urllib.request.urlopen(url) as response:
+        return hashlib.sha256(response.read()).hexdigest()
+
+
 def processEnchant(bldDir: Path, enchantVersion: str) -> None:
     """Generate the enchant.json flatpak module for the pinned enchant version."""
     log("")
@@ -69,15 +97,7 @@ def processEnchant(bldDir: Path, enchantVersion: str) -> None:
         fileName = f"enchant-{enchantVersion}.tar.gz"
         url = f"https://github.com/rrthomas/enchant/releases/download/v{enchantVersion}/{fileName}"
 
-        apiUrl = ENCHANT_RELEASE_API.format(version=enchantVersion)
-        log(f"Checking: {apiUrl}")
-        with urllib.request.urlopen(apiUrl) as response:
-            release = json.loads(response.read())
-
-        assets = {a["name"]: a for a in release["assets"]}
-        if fileName not in assets:
-            raise ValueError(f"Asset '{fileName}' not found in release 'v{enchantVersion}'")
-        checksum = assets[fileName]["digest"].removeprefix("sha256:")
+        checksum = enchantChecksum(fileName, url, enchantVersion)
 
         log(f"Version: {enchantVersion}")
         log(f"SHA256: {checksum}")

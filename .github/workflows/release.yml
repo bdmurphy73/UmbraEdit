@@ -110,7 +110,11 @@ jobs:
     uses: ./.github/workflows/part_pypi.yml
     with:
       publish: false
+    # The called workflow has a job that requests an OIDC token for the
+    # PyPI trusted publisher. The token is not used here, as publishing is
+    # disabled, but the permission must still be granted to the workflow.
     permissions:
+      id-token: write
       contents: read
 
   # ---------------------------------------------------------------------------

@@ -163,8 +163,13 @@ def extractVersion(beQuiet: bool = False) -> tuple[str, str, str]:
     """
 
     def getValue(text: str) -> str:
+        """Extract the value of an assignment, ignoring any trailing
+        comment. The version entries in the main package are annotated
+        with a comment recording who changed them and when.
+        """
         bits = text.partition("=")
-        return bits[2].strip().strip('"')
+        value = bits[2].split("#", 1)[0].strip()
+        return value.strip('"').strip("'")
 
     numVers = "0"
     hexVers = "0x0"

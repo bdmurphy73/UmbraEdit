@@ -45,6 +45,18 @@ jobs:
           name: nw-assets
           path: umbraedit/assets
 
+      - name: Build Windows Launcher
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+          Set-Location setup\windows
+          .\make.ps1
+          if (-not (Test-Path .\UmbraEdit.exe)) {
+            Write-Output "::error::The Windows launcher was not built"
+            exit 1
+          }
+          Write-Output "Launcher: $((Get-Item .\UmbraEdit.exe).Length) bytes"
+
       - name: Build Setup Installer
         id: build
         run: |

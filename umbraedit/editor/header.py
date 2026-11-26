@@ -200,6 +200,7 @@ class GuiDocEditHeader(GuiDocHeaderBase):
     """
 
     gotoLineRequest = pyqtSignal(int)
+    formattedViewRequest = pyqtSignal()
     toggleFocusModeRequest = pyqtSignal()
     toggleSearchRequest = pyqtSignal()
     toggleToolBarRequest = pyqtSignal()
@@ -235,8 +236,14 @@ class GuiDocEditHeader(GuiDocHeaderBase):
         self.minmaxButton.setToolTip(self.tr("Toggle Focus Mode"))
         self.minmaxButton.clicked.connect(self.toggleFocusModeRequest)
 
+        self.formattedButton = NFlatIconButton(self, iSz, "view:action")
+        self.formattedButton.setVisible(False)
+        self.formattedButton.setToolTip(self.tr("Formatted view"))
+        self.formattedButton.clicked.connect(self.formattedViewRequest)
+
         # Keep the header height stable when no document is open
         self._retainSizeWhenHidden(self.minmaxButton)
+        self._retainSizeWhenHidden(self.formattedButton)
 
         # Assemble
         self.outerBox.addWidget(self.tbButton, 0, QtAlignMiddle)
@@ -247,6 +254,7 @@ class GuiDocEditHeader(GuiDocHeaderBase):
         self.outerBox.addSpacing(4)
         self.outerBox.addSpacing(iPx)
         self.outerBox.addWidget(self.minmaxButton, 0, QtAlignMiddle)
+        self.outerBox.addWidget(self.formattedButton, 0, QtAlignMiddle)
         self.outerBox.addWidget(self.closeButton, 0, QtAlignMiddle)
 
         self.setLayout(self.outerBox)
@@ -268,6 +276,7 @@ class GuiDocEditHeader(GuiDocHeaderBase):
         super().setHandle(tHandle)
         self.tbButton.setVisible(True)
         self.minmaxButton.setVisible(True)
+        self.formattedButton.setVisible(True)
         self.setFocusMode(SHARED.focusMode)
 
     def setFocusMode(self, focusMode: bool) -> None:
@@ -276,6 +285,7 @@ class GuiDocEditHeader(GuiDocHeaderBase):
         self.outlineButton.setVisible(isShown)
         self.searchButton.setVisible(isShown)
         self.itemTitle.setVisible(isShown)
+        self.formattedButton.setVisible(isShown)
         self.closeButton.setVisible(isShown)
 
     ##
@@ -289,6 +299,7 @@ class GuiDocEditHeader(GuiDocHeaderBase):
         self.tbButton.setVisible(False)
         self.searchButton.setVisible(False)
         self.minmaxButton.setVisible(False)
+        self.formattedButton.setVisible(False)
 
     def setOutline(self, data: dict[int, str]) -> None:
         """Set the document outline dataset."""
@@ -307,6 +318,7 @@ class GuiDocEditHeader(GuiDocHeaderBase):
             self.tbButton.refreshTheme()
             self.searchButton.refreshTheme()
             self.minmaxButton.refreshTheme()
+            self.formattedButton.refreshTheme()
         super().updateTheme(init=init)
 
     ##

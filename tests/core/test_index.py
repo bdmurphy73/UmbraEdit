@@ -33,7 +33,7 @@ import pytest
 from pytestqt.qtbot import QtBot
 
 from umbraedit import SHARED
-from umbraedit.constants import nwFiles
+from umbraedit.constants import nwFiles, nwKeyWords
 from umbraedit.core.index import Index, TagsIndex
 from umbraedit.core.item import ProjectItem
 from umbraedit.core.project import NWProject
@@ -409,6 +409,38 @@ def testIndex_CheckThese(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     assert index.checkThese(["@icon", "assets/img/icon.png"], nHandle) == [True, True]
     assert index.checkThese(["@Blurb"], nHandle) == [True]
 
+    # Image metadata uses its own grammar and accepts exactly one value
+    assert index.checkThese(
+        [
+            nwKeyWords.IMAGE_KEY,
+            "assets/img/foo.png | width=640 | height=480 | position=center",
+        ],
+        nHandle,
+    ) == [True, True]
+    assert index.checkThese(
+        [
+            nwKeyWords.IMAGE_KEY,
+            "assets/img/foo.png",
+        ],
+        nHandle,
+    ) == [True, True]
+    assert index.checkThese(
+        [
+            nwKeyWords.IMAGE_KEY,
+            "assets/img/foo.png | width=0",
+        ],
+        nHandle,
+    ) == [True, False]
+    assert index.checkThese([nwKeyWords.IMAGE_KEY], nHandle) == [False]
+    assert index.checkThese(
+        [
+            nwKeyWords.IMAGE_KEY,
+            "assets/img/foo.png",
+            "assets/img/bar.png",
+        ],
+        nHandle,
+    ) == [True, False, False]
+
     project.closeProject()
 
 
@@ -476,11 +508,13 @@ def testIndex_ScanText(monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, fncPath:
     nHandle = project.newFile("Hello", C.hNovelRoot)
     cHandle = project.newFile("Jane", C.hCharRoot)
     sHandle = project.newFile("Scene", C.hNovelRoot)
+    iHandle = project.newFile("Illustration", C.hNovelRoot)
     assert isinstance(tHandle, str)
     assert isinstance(pHandle, str)
     assert isinstance(nHandle, str)
     assert isinstance(cHandle, str)
     assert isinstance(sHandle, str)
+    assert isinstance(iHandle, str)
 
     # Text Indexing
     # =============
@@ -598,6 +632,15 @@ def testIndex_ScanText(monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, fncPath:
         "one": {"@pov"},
         "two": {"@char"},
     }
+
+    # Image metadata is not a project tag or heading reference
+    assert index.scanText(
+        iHandle,
+        "# Illustration\n@Image: assets/img/foo.png | width=640 | position=center\n",
+    )
+    assert index._itemIndex[iHandle]["T0001"].references == {}  # type: ignore
+    assert index.getDocumentTags(iHandle) == []
+    assert "assets/img/foo.png" not in index._tagsIndex
 
     # Special Titles
     # ==============

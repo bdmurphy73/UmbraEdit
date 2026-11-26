@@ -58,6 +58,7 @@ from umbraedit.dialogs.wordlist import GuiWordList
 from umbraedit.editor.docpanes import GuiDocPanes
 from umbraedit.enum import nwFocus, nwView
 from umbraedit.extensions.progressbars import NProgressSimple
+from umbraedit.gui.imageassets import GuiImageAssets
 from umbraedit.gui.itemdetails import GuiItemDetails
 from umbraedit.gui.mainmenu import GuiMainMenu
 from umbraedit.gui.noveltree import GuiNovelView
@@ -106,6 +107,7 @@ class GuiMain(QMainWindow):
         # Internal Variables
         self._lastTotalCount = 0
         self._treePaneHidden = False
+        self._imageAssetsHiddenForFocus = False
 
         # Initialise UserData Instance
         SHARED.initSharedData(self)
@@ -128,6 +130,9 @@ class GuiMain(QMainWindow):
         self.projSearch = GuiProjectSearch(self)
         self.novelView = GuiNovelView(self)
         self.docPanes = GuiDocPanes(self)
+        self.imageAssets = GuiImageAssets(self)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.imageAssets)
+        self.imageAssets.hide()
 
         self.docEditor = self.docPanes.docEditor
         self.docViewer = self.docPanes.docViewer
@@ -220,6 +225,11 @@ class GuiMain(QMainWindow):
         self.mainMenu.requestImageInsert.connect(self.docPanes.insertImage)
         self.mainMenu.requestFocusChange.connect(self._switchFocus)
         self.mainMenu.requestViewChange.connect(self.changeView)
+
+        self.imageAssets.addImageRequest.connect(self.docPanes.addProjectImage)
+        self.imageAssets.deleteImageRequest.connect(self.docPanes.deleteProjectImage)
+        self.imageAssets.selectImageRequest.connect(self.docPanes.insertProjectImage)
+        self.imageAssets.visibilityChanged.connect(self._imageAssetsVisibilityChanged)
 
         self.sideBar.requestViewChange.connect(self.changeView)
 
@@ -701,6 +711,7 @@ class GuiMain(QMainWindow):
         SHARED.project.updateTheme()
         self.setPalette(QApplication.palette())
         self.docPanes.updateTheme(syntax=syntax)
+        self.imageAssets.updateTheme()
         self.sideBar.updateTheme()
         self.projView.updateTheme()
         self.novelView.updateTheme()
@@ -745,6 +756,16 @@ class GuiMain(QMainWindow):
         if self.mainStack.currentWidget() == self.splitMain and not SHARED.focusMode:
             self.treePane.setVisible(not self.treePane.isVisible())
 
+    @pyqtSlot(bool)
+    def setImageAssetsVisible(self, visible: bool) -> None:
+        """Show or hide the project image asset manager."""
+        if SHARED.focusMode:
+            self.mainMenu.aImageAssets.setChecked(False)
+            return
+        self.imageAssets.setVisible(visible)
+        if visible:
+            self.imageAssets.refreshAssets()
+
     @pyqtSlot()
     def toggleFocusMode(self) -> None:
         """Toggle focus mode."""
@@ -763,6 +784,7 @@ class GuiMain(QMainWindow):
         if focusMode:
             logger.debug("Activating Focus Mode")
             self._treePaneHidden = self.treePane.isHidden()
+            self._imageAssetsHiddenForFocus = self.imageAssets.isHidden()
             self.changeView(nwView.EDITOR)
             self.docEditor.setFocus()
         else:
@@ -771,6 +793,7 @@ class GuiMain(QMainWindow):
         cursorVisible = self.docEditor.cursorIsVisible()
         isVisible = not focusMode
         self.treePane.setVisible(isVisible and not self._treePaneHidden)
+        self.imageAssets.setVisible(isVisible and not self._imageAssetsHiddenForFocus)
         self.mainStatus.setFocusMode(focusMode)
         self.mainMenu.setVisible(isVisible)
         self.sideBar.setVisible(isVisible)
@@ -778,6 +801,11 @@ class GuiMain(QMainWindow):
 
         if cursorVisible:
             self.docEditor.ensureCursorVisible(centre=False)
+
+    @pyqtSlot(bool)
+    def _imageAssetsVisibilityChanged(self, visible: bool) -> None:
+        """Keep the Image Assets menu action in sync with the dock."""
+        self.mainMenu.aImageAssets.setChecked(visible and not SHARED.focusMode)
 
     @pyqtSlot(nwFocus)
     def _switchFocus(self, paneNo: nwFocus) -> None:

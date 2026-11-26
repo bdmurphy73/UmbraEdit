@@ -43,6 +43,7 @@ from umbraedit.common import (
     jsonEncode,
 )
 from umbraedit.constants import nwFiles, nwKeyWords
+from umbraedit.core.imagemeta import ImageMetadataError, parseImageMetadataBits
 from umbraedit.core.indexdata import NOTE_TYPES, TT_NONE, IndexHeading, IndexNode, T_NoteTypes
 from umbraedit.core.safeio import (
     FileIdentity,
@@ -606,6 +607,10 @@ class Index:
             # UmbraEdit (P06/P07): entity sheet data is recorded on the
             # entity index, not stored as heading references.
             self._umbraEntities.recordKeyword(tHandle, tBits[0], tBits[1:])
+        elif tBits[0] == nwKeyWords.IMAGE_KEY:
+            # Image metadata describes an asset and is not a project
+            # reference, so it must not be added to the heading index.
+            pass
         elif tBits[0] in nwKeyWords.META_KEYS:
             # UmbraEdit (P23): book metadata values are free-form text,
             # and are not references to other project items.
@@ -696,7 +701,24 @@ class Index:
         # Check that the keyword is valid
         kBit = tBits[0]
         isGood[0] = kBit in nwKeyWords.VALID_KEYS
-        if not isGood[0] or nBits == 1:
+        if not isGood[0]:
+            return isGood
+
+        if kBit == nwKeyWords.IMAGE_KEY:
+            # Image metadata has its own grammar and exactly one value.
+            # It must be checked before the generic metadata handling.
+            try:
+                parseImageMetadataBits(tBits)
+            except ImageMetadataError:
+                if nBits == 1:
+                    isGood[0] = False
+                else:
+                    isGood[1:] = [False] * (nBits - 1)
+            else:
+                isGood[1:] = [True] * (nBits - 1)
+            return isGood
+
+        if nBits == 1:
             return isGood
 
         # For a tag, only the first value is accepted, the rest are ignored

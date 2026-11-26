@@ -689,6 +689,11 @@
     </message>
     <message>
       <location filename="../umbraedit/constants.py"/>
+      <source>Image</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/constants.py"/>
       <source>Open Document (.odt)</source>
       <translation type="unfinished"/>
     </message>
@@ -1315,6 +1320,11 @@
     <message>
       <location filename="../umbraedit/editor/header.py"/>
       <source>Toggle Focus Mode</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/header.py"/>
+      <source>Formatted view</source>
       <translation type="unfinished"/>
     </message>
     <message>
@@ -2080,6 +2090,139 @@
       <source>Imported image: {0}</source>
       <translation type="unfinished"/>
     </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The active project changed while selecting an image. Please try again.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The active project changed while importing the image. Please try again.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The active project or document changed while importing the image. Please try again.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The imported image could not be removed.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The selected image is not valid.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Please open a project before inserting an image.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Please open a document to insert the image into.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Inserted image: {0}</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Please open a project before deleting an image.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Could not verify whether the image is still in use.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>The selected image is referenced by a document and cannot be deleted.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Delete the selected image from the project?</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Could not delete the selected image from the project.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/editor/docpanes.py"/>
+      <source>Deleted image: {0}</source>
+      <translation type="unfinished"/>
+    </message>
+  </context>
+  <context>
+    <name>GuiImageAssets</name>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Image Assets</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Could not read the project image assets.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Images stored in this project can be inserted into the current document.</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Width</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Height</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Left</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Center</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Right</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Position</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Add</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Delete</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/imageassets.py"/>
+      <source>Select</source>
+      <translation type="unfinished"/>
+    </message>
   </context>
   <context>
     <name>GuiMainMenu</name>
@@ -2426,6 +2569,11 @@
     <message>
       <location filename="../umbraedit/gui/mainmenu.py"/>
       <source>Images</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../umbraedit/gui/mainmenu.py"/>
+      <source>Image Assets</source>
       <translation type="unfinished"/>
     </message>
     <message>

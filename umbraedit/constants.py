@@ -235,6 +235,7 @@ class nwKeyWords:
     ISBN_KEY = "@ISBN"
     COVER_KEY = "@Cover"
     ICON_KEY = "@icon"
+    IMAGE_KEY = "@Image"
 
     # Note: The order here affects the order of menu entries
     ALL_KEYS: ClassVar[list[str]] = [
@@ -319,9 +320,10 @@ class nwKeyWords:
         ISBN_KEY,
         COVER_KEY,
         ICON_KEY,
+        IMAGE_KEY,
     }
 
-    # Book metadata keywords that hold free-form values
+    # Metadata keywords that hold values rather than project references
     META_KEYS: ClassVar[list[str]] = [
         TITLE_KEY,
         SUBTITLE_KEY,
@@ -334,6 +336,7 @@ class nwKeyWords:
         ISBN_KEY,
         COVER_KEY,
         ICON_KEY,
+        IMAGE_KEY,
     ]
 
     # Map from Keys to Item Class
@@ -530,6 +533,7 @@ class nwLabels:
         nwKeyWords.ISBN_KEY: QT_TRANSLATE_NOOP("Constant", "ISBN"),
         nwKeyWords.COVER_KEY: QT_TRANSLATE_NOOP("Constant", "Cover"),
         nwKeyWords.ICON_KEY: QT_TRANSLATE_NOOP("Constant", "Icon"),
+        nwKeyWords.IMAGE_KEY: QT_TRANSLATE_NOOP("Constant", "Image"),
     }
     KEY_SHORTCUT: ClassVar[dict[str, str]] = {
         nwKeyWords.TAG_KEY: "Ctrl+K, G",

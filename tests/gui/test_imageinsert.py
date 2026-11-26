@@ -35,6 +35,7 @@ from pytestqt.qtbot import QtBot
 from umbraedit import CONFIG, SHARED
 from umbraedit.constants import nwKeyWords
 from umbraedit.core.imageimport import ImageImportError, ImageImportReason, importProjectImage
+from umbraedit.core.imagemeta import MAX_IMAGE_DIMENSION
 from umbraedit.core.project import NWProject
 from umbraedit.guimain import GuiMain
 from umbraedit.types import QtKeepAnchor, QtMoveAnchor
@@ -42,10 +43,14 @@ from umbraedit.types import QtKeepAnchor, QtMoveAnchor
 from tests.helpers import C, MockRnd, buildTestProject
 
 
-def _writeImage(path: Path, imageFormat: str = "PNG") -> None:
+def _writeImage(
+    path: Path,
+    imageFormat: str = "PNG",
+    size: tuple[int, int] = (4, 4),
+) -> None:
     """Write a small valid test image."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    PIL.Image.new("RGB", (4, 4), (20, 40, 60)).save(path, format=imageFormat)
+    PIL.Image.new("RGB", size, (20, 40, 60)).save(path, format=imageFormat)
 
 
 @pytest.mark.gui
@@ -63,8 +68,13 @@ def testImageInsert_MenuStructure(
     assert nwKeyWords.ICON_KEY in nwKeyWords.VALID_KEYS
     assert nwKeyWords.ICON_KEY in nwKeyWords.META_KEYS
     assert nwKeyWords.ICON_KEY not in nwKeyWords.ALL_KEYS
+    assert nwKeyWords.IMAGE_KEY in nwKeyWords.VALID_KEYS
+    assert nwKeyWords.IMAGE_KEY in nwKeyWords.META_KEYS
+    assert nwKeyWords.IMAGE_KEY not in nwKeyWords.ALL_KEYS
 
     menu = nwGUI.mainMenu
+    assert menu.aImageAssets.text() == "Image Assets"
+    assert menu.aImageAssets in menu.viewMenu.actions()
     assert menu.mInsImages.title() == "Images"
     assert [action.text() for action in menu.mInsImages.actions()] == ["Cover", "Icon"]
     assert "Icon" not in [action.text() for action in menu.mInsKeywords.actions()]
@@ -113,6 +123,10 @@ def testImageInsert_ImportCoverAndIcon(
     assert (projPath / "assets" / "img" / "cover.png").is_file()
     assert editor.textCursor().position() == len(editor.getText())
     assert filters == ["JPEG images (*.jpg);;PNG images (*.png)"]
+    assert nwGUI.imageAssets.imageList.count() == 1
+    coverItem = nwGUI.imageAssets.imageList.currentItem()
+    assert coverItem is not None
+    assert coverItem.text() == "cover.png"
 
     # The image tag is one undoable edit block.
     editor.undo()
@@ -127,6 +141,10 @@ def testImageInsert_ImportCoverAndIcon(
     nwGUI.mainMenu.aInsIcon.activate(QAction.ActionEvent.Trigger)
     assert editor.getText() == "Text\n@icon: assets/img/cover_1.png"
     assert (projPath / "assets" / "img" / "cover_1.png").is_file()
+    assert nwGUI.imageAssets.imageList.count() == 2
+    iconItem = nwGUI.imageAssets.imageList.currentItem()
+    assert iconItem is not None
+    assert iconItem.text() == "cover_1.png"
 
 
 @pytest.mark.gui
@@ -526,10 +544,13 @@ def testImageInsert_RequiresProjectAndDocument(
     monkeypatch: pytest.MonkeyPatch,
     nwGUI: GuiMain,
     projPath: Path,
+    fncPath: Path,
     mockRnd: MockRnd,
 ):
-    """Test that image imports require an open project and document."""
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: pytest.fail("Dialog shown"))
+    """Test that image imports require a project and fall back to a document."""
+    source = fncPath / "cover.png"
+    _writeImage(source)
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
 
     nwGUI.mainMenu.aInsCover.activate(QAction.ActionEvent.Trigger)
     assert SHARED.lastAlert[0] == "Please open a project before importing an image."
@@ -538,4 +559,422 @@ def testImageInsert_RequiresProjectAndDocument(
     assert nwGUI.openProject(projPath) is True
     nwGUI.docPanes.closeDocument()
     nwGUI.mainMenu.aInsCover.activate(QAction.ActionEvent.Trigger)
-    assert SHARED.lastAlert[0] == "Please open a document to import the image into."
+
+    assert nwGUI.docEditor.docHandle is not None
+    assert nwGUI.docEditor.getText().endswith("@Cover: assets/img/cover.png")
+    assert (projPath / "assets" / "img" / "cover.png").is_file()
+
+
+@pytest.mark.gui
+def testImageAssets_AddAndSelect(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that Add stores an asset and Select inserts it at the cursor."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+
+    editor = nwGUI.docEditor
+    editor.setPlainText("beforeafter")
+    editor.setCursorPosition(6)
+
+    source = fncPath / "landscape.png"
+    _writeImage(source, size=(40, 20))
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+
+    manager = nwGUI.imageAssets
+    assert manager.isHidden() is True
+    nwGUI.mainMenu.aImageAssets.activate(QAction.ActionEvent.Trigger)
+    assert manager.isVisible() is True
+    assert nwGUI.mainMenu.aImageAssets.isChecked() is True
+
+    manager.addButton.click()
+    assert manager.imageList.count() == 1
+    assert manager.imageList.currentRow() == 0
+    listItem = manager.imageList.item(0)
+    assert listItem is not None
+    assert listItem.text() == "landscape.png"
+    assert listItem.icon().isNull() is False
+    assert (projPath / "assets" / "img" / "landscape.png").is_file()
+    assert editor.getText() == "beforeafter"
+
+    manager.widthSpin.setValue(80)
+    assert manager.heightSpin.value() == 40
+    manager.positionCombo.setCurrentIndex(manager.positionCombo.findData("right"))
+    manager.selectButton.click()
+
+    assert editor.getText() == (
+        "before\n@Image: assets/img/landscape.png | width=80 | height=40 | position=right\nafter"
+    )
+    editor.undo()
+    assert editor.getText() == "beforeafter"
+
+
+@pytest.mark.gui
+def testImageInsert_CancelWithoutDocumentDoesNotOpenOne(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that cancelling an image import does not open a fallback document."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    nwGUI.docPanes.closeDocument()
+    assert nwGUI.docEditor.docHandle is None
+
+    lastAlert = SHARED.lastAlert
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: ("", ""))
+    nwGUI.mainMenu.aInsCover.activate(QAction.ActionEvent.Trigger)
+
+    assert nwGUI.docEditor.docHandle is None
+    assert not (projPath / "assets" / "img").exists()
+    assert SHARED.lastAlert == lastAlert
+
+
+@pytest.mark.gui
+def testImageAssets_SizeLimitPreservesAspectRatio(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that linked dimensions remain bounded without being distorted."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+
+    source = fncPath / "tall.png"
+    _writeImage(source, size=(100, 10000))
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+
+    manager = nwGUI.imageAssets
+    manager.addButton.click()
+    manager.widthSpin.setValue(MAX_IMAGE_DIMENSION)
+
+    # A 100 x 10000 image can use at most 1000 x 100000 pixels while
+    # retaining its aspect ratio and staying within the shared bounds.
+    assert manager.widthSpin.value() == 1000
+    assert manager.heightSpin.value() == MAX_IMAGE_DIMENSION
+
+
+@pytest.mark.gui
+def testImageAssets_RefreshRecalculatesChangedAspectRatio(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that changed image contents keep the saved width and aspect ratio."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+
+    source = fncPath / "landscape.png"
+    _writeImage(source, size=(40, 20))
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+
+    manager = nwGUI.imageAssets
+    manager.addButton.click()
+    manager.widthSpin.setValue(80)
+    assert manager.heightSpin.value() == 40
+
+    assetPath = projPath / "assets" / "img" / "landscape.png"
+    PIL.Image.new("RGB", (20, 40), (20, 40, 60)).save(assetPath, format="PNG")
+    manager.refreshAssets()
+
+    assert manager.widthSpin.value() == 80
+    assert manager.heightSpin.value() == 160
+
+
+@pytest.mark.gui
+def testImageAssets_AddCancellationIsDocumentNeutral(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that cancelling Add leaves both the project and document unchanged."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+
+    editor = nwGUI.docEditor
+    editor.setPlainText("Unchanged document")
+    editor.setCursorPosition(4)
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: ("", ""))
+
+    manager = nwGUI.imageAssets
+    manager.addButton.click()
+
+    assert manager.imageList.count() == 0
+    assert editor.getText() == "Unchanged document"
+    assert editor.getCursorPosition() == 4
+    assert not (projPath / "assets" / "img").exists()
+
+
+@pytest.mark.gui
+def testImageAssets_DeleteChecksDocumentReferences(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that referenced assets cannot be deleted from the manager."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+
+    source = fncPath / "landscape.png"
+    _writeImage(source, size=(40, 20))
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+
+    manager = nwGUI.imageAssets
+    manager.addButton.click()
+    manager.selectButton.click()
+    assetPath = projPath / "assets" / "img" / "landscape.png"
+    assert "@Image: assets/img/landscape.png" in nwGUI.docEditor.getText()
+
+    manager.deleteButton.click()
+    assert SHARED.lastAlert[0] == "The selected image is referenced by a document and cannot be deleted."
+    assert assetPath.is_file()
+
+    nwGUI.docEditor.setPlainText("No image reference")
+    manager.deleteButton.click()
+    assert assetPath.exists() is False
+    assert manager.imageList.count() == 0
+
+
+@pytest.mark.gui
+def testImageAssets_DeleteProtectsCaseEquivalentReference(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that a case-equivalent path protects an asset on case-insensitive systems."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+
+    source = fncPath / "landscape.png"
+    _writeImage(source, size=(40, 20))
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+
+    manager = nwGUI.imageAssets
+    manager.addButton.click()
+    assetPath = projPath / "assets" / "img" / "landscape.png"
+    upperPath = assetPath.with_name("LANDSCAPE.png")
+    if not upperPath.exists():
+        pytest.skip("The file system is case-sensitive")
+
+    nwGUI.docEditor.setPlainText("@Image: assets/img/LANDSCAPE.png | width=40 | height=20 | position=center")
+    manager.deleteButton.click()
+
+    assert SHARED.lastAlert[0] == "The selected image is referenced by a document and cannot be deleted."
+    assert assetPath.is_file()
+
+
+@pytest.mark.gui
+def testImageAssets_DeleteFindsNewNonNovelDocumentReference(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that deletion checks documents added after the tree cache was built."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+
+    # Populate the cached novel document list before adding a document
+    # below a non-novel root.
+    assert C.hSceneDoc in SHARED.project.tree.allDocs()
+    newHandle = SHARED.project.newFile("Character Notes", C.hCharRoot)
+    assert isinstance(newHandle, str)
+    newDocument = SHARED.project.storage.getDocument(newHandle)
+    assert (
+        newDocument.writeDocument("@Image: assets/img/landscape.png | width=40 | height=20 | position=center\n") is True
+    )
+
+    source = fncPath / "landscape.png"
+    _writeImage(source, size=(40, 20))
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+
+    manager = nwGUI.imageAssets
+    manager.addButton.click()
+    manager.deleteButton.click()
+
+    assert SHARED.lastAlert[0] == "The selected image is referenced by a document and cannot be deleted."
+    assert (projPath / "assets" / "img" / "landscape.png").is_file()
+
+
+@pytest.mark.gui
+def testImageAssets_DeleteRechecksReferencesAfterConfirmation(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that a reference added during confirmation prevents deletion."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+
+    source = fncPath / "landscape.png"
+    _writeImage(source, size=(40, 20))
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+
+    manager = nwGUI.imageAssets
+    manager.addButton.click()
+
+    def confirmDelete(*args, **kwargs):
+        nwGUI.docEditor.setPlainText("@Image: assets/img/landscape.png | width=40 | height=20 | position=center")
+        return True
+
+    monkeypatch.setattr(SHARED, "question", confirmDelete)
+    manager.deleteButton.click()
+
+    assert SHARED.lastAlert[0] == "The selected image is referenced by a document and cannot be deleted."
+    assert (projPath / "assets" / "img" / "landscape.png").is_file()
+
+
+@pytest.mark.gui
+def testImageAssets_SelectFallsBackToDocumentBottom(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that selecting without an active document inserts at the bottom."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+
+    source = fncPath / "landscape.png"
+    _writeImage(source, size=(40, 20))
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+
+    nwGUI.imageAssets.addButton.click()
+    nwGUI.docPanes.closeDocument()
+    nwGUI.imageAssets.selectButton.click()
+
+    assert nwGUI.docEditor.docHandle is not None
+    assert nwGUI.docEditor.getText().endswith(
+        "@Image: assets/img/landscape.png | width=40 | height=20 | position=center"
+    )
+
+
+@pytest.mark.gui
+def testImageAssets_FocusModeRestoresVisibility(
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that Focus Mode hides the manager and restores its visibility."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+
+    nwGUI.mainMenu.aImageAssets.activate(QAction.ActionEvent.Trigger)
+    assert nwGUI.imageAssets.isVisible() is True
+
+    nwGUI.toggleFocusMode()
+    assert nwGUI.imageAssets.isVisible() is False
+    assert nwGUI.mainMenu.aImageAssets.isChecked() is False
+
+    SHARED.setFocusMode(False)
+    assert nwGUI.imageAssets.isVisible() is True
+    assert nwGUI.mainMenu.aImageAssets.isChecked() is True
+
+
+@pytest.mark.gui
+def testImageInsert_FormattedViewShowsCurrentDocument(
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
+    """Test that the editor header opens the current document in the viewer."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+
+    source = fncPath / "landscape.png"
+    _writeImage(source, size=(40, 20))
+    imported = importProjectImage(SHARED.project, source)
+
+    editor = nwGUI.docEditor
+    editor.setPlainText(
+        f"### Scene\n\nFormatted text\n@Image: {imported.relativePath} | width=80 | height=40 | position=center"
+    )
+    header = editor.docHeader
+    assert header.outerBox.indexOf(header.minmaxButton) < header.outerBox.indexOf(header.formattedButton)
+    assert header.outerBox.indexOf(header.formattedButton) < header.outerBox.indexOf(header.closeButton)
+
+    # Point the viewer at another document first. The formatted action
+    # must still save and show the current editor document.
+    nwGUI.docPanes.viewDocument(C.hChapterDoc)
+    assert nwGUI.docViewer.docHandle == C.hChapterDoc
+
+    header.formattedButton.click()
+    assert nwGUI.docViewer.docHandle == C.hSceneDoc
+    assert nwGUI.docPanes.splitView.isVisible() is True
+    assert "Formatted text" in nwGUI.docViewer.toPlainText()
+
+    imageFound = False
+    viewerDocument = nwGUI.docViewer.document()
+    assert viewerDocument is not None
+    block = viewerDocument.firstBlock()
+    while block.isValid():
+        cursor = QTextCursor(block)
+        cursor.setPosition(block.position())
+        if cursor.charFormat().isImageFormat():
+            imageFound = True
+            imageFormat = cursor.charFormat().toImageFormat()
+            assert (round(imageFormat.width()), round(imageFormat.height())) == (80, 40)
+            break
+        block = block.next()
+    assert imageFound is True
+
+
+@pytest.mark.gui
+@pytest.mark.parametrize(
+    ("actionName", "metadata"),
+    [
+        ("aInsCover", "@Cover: assets/img/cover.png"),
+        ("aInsIcon", "@icon: assets/img/cover.png"),
+    ],
+)
+def testImageInsert_BookImagesAreNotInsertedAboveHeading(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    fncPath: Path,
+    mockRnd: MockRnd,
+    actionName: str,
+    metadata: str,
+):
+    """Test that Cover and Icon metadata are placed below the first heading."""
+    buildTestProject(NWProject(), projPath)
+    assert nwGUI.openProject(projPath) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+
+    editor = nwGUI.docEditor
+    editor.setPlainText("### Scene\nText")
+    editor.setCursorPosition(0)
+
+    source = fncPath / "cover.png"
+    _writeImage(source)
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(source), ""))
+    action = getattr(nwGUI.mainMenu, actionName)
+    action.activate(QAction.ActionEvent.Trigger)
+
+    assert editor.getText() == f"### Scene\n{metadata}\nText"

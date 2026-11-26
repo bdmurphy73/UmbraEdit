@@ -23,14 +23,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import logging
+import uuid
 
 from typing import TYPE_CHECKING, Optional
 
-from PyQt6.QtCore import QMarginsF, QSizeF
+from PyQt6.QtCore import QMarginsF, QSizeF, QUrl
 from PyQt6.QtGui import (
     QBrush,
     QColor,
     QFont,
+    QImage,
     QPageLayout,
     QPageSize,
     QTextBlockFormat,
@@ -38,6 +40,7 @@ from PyQt6.QtGui import (
     QTextCursor,
     QTextDocument,
     QTextFrameFormat,
+    QTextImageFormat,
     QTextLength,
     QTextListFormat,
     QTextTableCellFormat,
@@ -48,6 +51,8 @@ from PyQt6.QtPrintSupport import QPrinter
 from umbraedit import __version__
 from umbraedit.common import textDirection
 from umbraedit.constants import nwUnicode
+from umbraedit.core.imageimport import ImageImportError, readProjectImageByPath
+from umbraedit.core.imagemeta import ImageMetadataError, parseImageMetadata
 from umbraedit.formats.shared import BlockFmt, BlockTyp, T_Formats, TextFmt, stripEscape
 from umbraedit.formats.tokenizer import HEADING_BLOCKS, LIST_BLOCKS, META_BLOCKS, Tokenizer
 from umbraedit.types import (
@@ -109,6 +114,7 @@ class ToQTextDocument(Tokenizer):
         "_fixedHeadings",
         "_hWeight",
         "_iHead",
+        "_imageCache",
         "_init",
         "_listFmtO",
         "_listFmtU",
@@ -122,6 +128,7 @@ class ToQTextDocument(Tokenizer):
         "_pageMargins",
         "_pageSize",
         "_printer",
+        "_renderImages",
         "_sHead",
         "_tIndent",
         "_usedFields",
@@ -143,9 +150,11 @@ class ToQTextDocument(Tokenizer):
 
         self._usedNotes: dict[str, int] = {}
         self._usedFields: list[tuple[int, str]] = []
+        self._imageCache: dict[str, QImage] = {}
 
         self._init = False
         self._newPage = False
+        self._renderImages = False
 
         self._hWeight = QtFontBold
         self._dWeight = QtFontNormal
@@ -208,6 +217,10 @@ class ToQTextDocument(Tokenizer):
         """Use fixed heading sizes rather than scaling with the text font."""
         self._fixedHeadings = state
 
+    def setRenderImages(self, state: bool) -> None:
+        """Enable rendering of project images in the formatted document."""
+        self._renderImages = state
+
     ##
     #  Class Methods
     ##
@@ -219,6 +232,7 @@ class ToQTextDocument(Tokenizer):
         self._document.setUndoRedoEnabled(False)
         self._document.blockSignals(True)
         self._document.clear()
+        self._imageCache.clear()
 
         # Set Up PDF Printing
         # The hinting preference solves an issue with kerning on Windows, and
@@ -387,7 +401,13 @@ class ToQTextDocument(Tokenizer):
 
             elif tType in META_BLOCKS:
                 newBlock(cursor, bFmt)
-                self._insertFragments(tText, tFormat, cursor, self._charFmt)
+                if not (
+                    self._renderImages
+                    and tType == BlockTyp.KEYWORD
+                    and tMeta == "Image"
+                    and self._insertProjectImage(cursor, bFmt, tText)
+                ):
+                    self._insertFragments(tText, tFormat, cursor, self._charFmt)
 
             elif tType == BlockTyp.SEP:
                 newBlock(cursor, bFmt)
@@ -467,6 +487,74 @@ class ToQTextDocument(Tokenizer):
     ##
     #  Internal Functions
     ##
+
+    def _insertProjectImage(self, cursor: QTextCursor, bFmt: QTextBlockFormat, text: str) -> bool:
+        """Insert a validated project image, or return False for fallback."""
+        _, separator, rawValue = text.partition(": ")
+        if not separator:
+            return False
+
+        try:
+            metadata = parseImageMetadata(rawValue)
+            image = self._imageCache.get(metadata.relativePath)
+            if image is None:
+                imageData = readProjectImageByPath(self._project, metadata.relativePath)
+                image = QImage.fromData(imageData.data)
+                if image.isNull() or image.width() <= 0 or image.height() <= 0:
+                    logger.warning("Could not decode project image '%s'", metadata.relativePath)
+                    return False
+                self._imageCache[metadata.relativePath] = image
+        except (ImageImportError, ImageMetadataError, OSError, ValueError) as exc:
+            logger.warning("Could not render project image '%s': %s", rawValue, exc)
+            return False
+
+        width, height = self._fitImageSize(
+            image.width(),
+            image.height(),
+            metadata.width,
+            metadata.height,
+        )
+        if metadata.position == "left":
+            bFmt.setAlignment(QtAlignAbsolute | QtAlignLeft)
+        elif metadata.position == "right":
+            bFmt.setAlignment(QtAlignAbsolute | QtAlignRight)
+        else:
+            bFmt.setAlignment(QtAlignCenter)
+        cursor.setBlockFormat(bFmt)
+
+        resourceUrl = QUrl(f"urn:umbraedit:image:{uuid.uuid4().hex}")
+        self._document.addResource(QTextDocument.ResourceType.ImageResource, resourceUrl, image)
+
+        imageFormat = QTextImageFormat()
+        imageFormat.setName(resourceUrl.toString())
+        imageFormat.setWidth(width)
+        imageFormat.setHeight(height)
+        cursor.insertImage(imageFormat)
+        return True
+
+    @staticmethod
+    def _fitImageSize(
+        intrinsicWidth: int,
+        intrinsicHeight: int,
+        requestedWidth: Optional[int],
+        requestedHeight: Optional[int],
+    ) -> tuple[int, int]:
+        """Fit an image in the requested dimensions without distortion."""
+        if requestedWidth is None and requestedHeight is None:
+            return intrinsicWidth, intrinsicHeight
+        if requestedWidth is None:
+            assert requestedHeight is not None
+            scale = requestedHeight / intrinsicHeight
+            return max(1, round(intrinsicWidth * scale)), requestedHeight
+        if requestedHeight is None:
+            scale = requestedWidth / intrinsicWidth
+            return requestedWidth, max(1, round(intrinsicHeight * scale))
+
+        scale = min(requestedWidth / intrinsicWidth, requestedHeight / intrinsicHeight)
+        return (
+            max(1, round(intrinsicWidth * scale)),
+            max(1, round(intrinsicHeight * scale)),
+        )
 
     def _insertFragments(self, text: str, tFmt: T_Formats, cursor: QTextCursor, dFmt: QTextCharFormat) -> None:
         """Apply formatting tags to text."""

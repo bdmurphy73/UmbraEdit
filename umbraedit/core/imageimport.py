@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import contextlib
 import errno
+import io
 import logging
 import os
 import shutil
@@ -42,6 +43,7 @@ from typing import TYPE_CHECKING, BinaryIO, Optional, Union
 import PIL.Image
 
 from umbraedit.common import makeFileNameSafe
+from umbraedit.core.imagemeta import ImageMetadataError, validateImagePath
 from umbraedit.core.safeio import (
     FileIdentity,
     ensureDirectory,
@@ -53,6 +55,7 @@ from umbraedit.core.safeio import (
     openExclusiveFile,
     openRegularFile,
     renameNoReplaceIfSameFile,
+    scanRegularFiles,
     supportsDirectoryDescriptors,
     unlinkEntryIfSameFile,
     unlinkIfSameFile,
@@ -134,6 +137,368 @@ class ImportedImage:
     identity: FileIdentity
     rootIdentity: FileIdentity
     assetIdentity: FileIdentity
+
+
+@dataclass(frozen=True)
+class ProjectImage:
+    """A validated regular image stored in a project's image folder."""
+
+    path: Path
+    relativePath: str
+    identity: FileIdentity
+    rootIdentity: FileIdentity
+    assetsIdentity: FileIdentity
+    assetIdentity: FileIdentity
+
+
+@dataclass(frozen=True)
+class ProjectImageData:
+    """Validated image data together with its source project entry."""
+
+    image: ProjectImage
+    data: bytes
+    imageFormat: str
+
+    @property
+    def path(self) -> Path:
+        """Return the path of the source project image."""
+        return self.image.path
+
+    @property
+    def relativePath(self) -> str:
+        """Return the project-relative path of the source image."""
+        return self.image.relativePath
+
+    @property
+    def identity(self) -> FileIdentity:
+        """Return the identity of the source project image."""
+        return self.image.identity
+
+
+@dataclass(frozen=True)
+class _ProjectImageContext:
+    """Validated project and image-directory identities."""
+
+    projectPath: Path
+    rootIdentity: FileIdentity
+    assetsPath: Path
+    assetsIdentity: FileIdentity
+    assetDir: Path
+    assetIdentity: FileIdentity
+
+
+def listProjectImages(project: NWProject) -> list[ProjectImage]:
+    """List regular JPEG and PNG files directly in ``assets/img``.
+
+    The image directory is scanned through :mod:`umbraedit.core.safeio`,
+    which binds every returned entry to the exact filesystem object that
+    was observed. Symbolic links and other link-like entries are rejected
+    rather than followed. Files with unsupported extensions and nested
+    directories are omitted.
+    """
+    context = _projectImageContext(project, allowMissing=True)
+    if context is None:
+        return []
+
+    snapshot = scanRegularFiles(context.assetDir)
+    if snapshot.identity != context.assetIdentity:
+        raise OSError(errno.EINVAL, "The project image folder changed while it was being scanned")
+
+    _verifyProjectImageContext(context)
+    images: list[ProjectImage] = []
+    for imagePath in snapshot.files:
+        if imagePath.parent != context.assetDir or imagePath.suffix not in IMAGE_FORMATS:
+            continue
+        relativePath = f"{ASSET_DIR.as_posix()}/{imagePath.name}"
+        try:
+            relativePath = validateImagePath(relativePath)
+        except ImageMetadataError:
+            # A manually placed file whose name cannot be represented by
+            # the metadata grammar must not be exposed as insertable.
+            continue
+        identity = snapshot.fileIdentities.get(imagePath.name)
+        if identity is None:
+            continue
+        images.append(
+            ProjectImage(
+                path=imagePath,
+                relativePath=relativePath,
+                identity=identity,
+                rootIdentity=context.rootIdentity,
+                assetsIdentity=context.assetsIdentity,
+                assetIdentity=context.assetIdentity,
+            )
+        )
+
+    images.sort(key=lambda image: image.relativePath)
+    return images
+
+
+def readProjectImage(project: NWProject, image: ProjectImage) -> ProjectImageData:
+    """Read and fully validate a previously listed project image.
+
+    The open file handle is bound to the identity captured by the image
+    listing. The exact bytes returned by this function are decoded before
+    they are returned, so a concurrent content change cannot turn a
+    corrupt image into apparently valid data.
+    """
+    if not isinstance(image, ProjectImage):
+        raise TypeError("image must be a ProjectImage instance")
+
+    context = _projectImageContext(project, allowMissing=False)
+    assert context is not None
+    return _readValidatedProjectImage(project, image, context)
+
+
+def readProjectImageByPath(project: NWProject, relativePath: str) -> ProjectImageData:
+    """Read a project image by its strict project-relative path.
+
+    Only a flat ``assets/img/<name>.jpg`` or
+    ``assets/img/<name>.png`` path is accepted. Validation is lexical and
+    does not depend on ``Path.resolve()``.
+    """
+    canonicalPath = _validateProjectImagePath(relativePath)
+    context = _projectImageContext(project, allowMissing=False)
+    assert context is not None
+
+    fileName = canonicalPath.rsplit("/", 1)[1]
+    imagePath = context.assetDir / fileName
+    try:
+        imageStat = os.lstat(imagePath)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(errno.ENOENT, "The project image does not exist", str(imagePath)) from exc
+    if stat.S_ISLNK(imageStat.st_mode) or getattr(imageStat, "st_file_attributes", 0) & 0x400:
+        raise OSError(errno.ELOOP, "The project image cannot be a link", str(imagePath))
+    if not stat.S_ISREG(imageStat.st_mode):
+        raise OSError(errno.EINVAL, "The project image is not a regular file", str(imagePath))
+
+    image = ProjectImage(
+        path=imagePath,
+        relativePath=canonicalPath,
+        identity=fileIdentity(imageStat, imagePath),
+        rootIdentity=context.rootIdentity,
+        assetsIdentity=context.assetsIdentity,
+        assetIdentity=context.assetIdentity,
+    )
+    return _readValidatedProjectImage(project, image, context)
+
+
+def removeProjectImage(project: NWProject, image: ProjectImage) -> bool:
+    """Remove the exact project image object captured by a listing.
+
+    The file identity is checked before cleanup, and the safe-I/O layer
+    performs an identity-bound quarantine on POSIX or deletes the opened
+    object on Windows. A concurrently replaced file is preserved and
+    reported as an error. A file that is already missing is treated as a
+    successfully removed image.
+    """
+    if not isinstance(image, ProjectImage):
+        raise TypeError("image must be a ProjectImage instance")
+
+    context = _projectImageContext(project, allowMissing=True)
+    if context is None:
+        return True
+    imagePath = _validateProjectImageRecord(image, context)
+
+    try:
+        imageStat = os.lstat(imagePath)
+    except FileNotFoundError:
+        return True
+    if stat.S_ISLNK(imageStat.st_mode) or getattr(imageStat, "st_file_attributes", 0) & 0x400:
+        raise OSError(errno.ELOOP, "The project image cannot be a link", str(imagePath))
+    if not stat.S_ISREG(imageStat.st_mode):
+        raise OSError(errno.EINVAL, "The project image is not a regular file", str(imagePath))
+    if fileIdentity(imageStat, imagePath) != image.identity:
+        raise OSError(errno.EINVAL, "The project image changed before it could be removed", str(imagePath))
+
+    assetFd: Optional[int] = None
+    try:
+        if supportsDirectoryDescriptors():
+            assetFd = openDirectory(context.assetDir)
+            if fileIdentity(os.fstat(assetFd), fileDescriptor=assetFd) != context.assetIdentity:
+                raise OSError(errno.EINVAL, "The project image folder changed before the image could be removed")
+            return unlinkIfSameFile(
+                Path(imagePath.name),
+                image.identity,
+                dirFd=assetFd,
+                quarantineParent=context.projectPath,
+                expectedQuarantineParent=context.rootIdentity,
+            )
+        return unlinkIfSameFile(
+            imagePath,
+            image.identity,
+            quarantineParent=context.projectPath,
+            expectedQuarantineParent=context.rootIdentity,
+        )
+    finally:
+        if assetFd is not None:
+            os.close(assetFd)
+
+
+def _projectImageContext(project: NWProject, *, allowMissing: bool) -> Optional[_ProjectImageContext]:
+    """Validate the project root and image-directory identities."""
+    storage = project.storage
+    projectPath = storage.runtimePath
+    rootIdentity = storage.rootIdentity
+    if not storage.isOpen() or not isinstance(projectPath, Path) or rootIdentity is None:
+        raise OSError(errno.EINVAL, "No project is open")
+
+    try:
+        rootStat = os.lstat(projectPath)
+    except OSError as exc:
+        raise OSError(errno.EINVAL, "The project folder changed before the images could be used") from exc
+    if (
+        stat.S_ISLNK(rootStat.st_mode)
+        or getattr(rootStat, "st_file_attributes", 0) & 0x400
+        or not stat.S_ISDIR(rootStat.st_mode)
+        or fileIdentity(rootStat, projectPath) != rootIdentity
+    ):
+        raise OSError(errno.EINVAL, "The project folder changed before the images could be used")
+
+    assetsPath = projectPath / "assets"
+    assetDir = assetsPath / "img"
+    try:
+        assetsStat = os.lstat(assetsPath)
+    except FileNotFoundError:
+        if allowMissing:
+            return None
+        raise FileNotFoundError(errno.ENOENT, "The project image folder does not exist", str(assetDir)) from None
+    if stat.S_ISLNK(assetsStat.st_mode) or getattr(assetsStat, "st_file_attributes", 0) & 0x400:
+        raise OSError(errno.ELOOP, "The project assets folder cannot be a link", str(assetsPath))
+    if not stat.S_ISDIR(assetsStat.st_mode):
+        raise OSError(errno.ENOTDIR, "The project assets folder is not a directory", str(assetsPath))
+    assetsIdentity = fileIdentity(assetsStat, assetsPath)
+
+    try:
+        assetStat = os.lstat(assetDir)
+    except FileNotFoundError:
+        if allowMissing:
+            return None
+        raise FileNotFoundError(errno.ENOENT, "The project image folder does not exist", str(assetDir)) from None
+    if stat.S_ISLNK(assetStat.st_mode) or getattr(assetStat, "st_file_attributes", 0) & 0x400:
+        raise OSError(errno.ELOOP, "The project image folder cannot be a link", str(assetDir))
+    if not stat.S_ISDIR(assetStat.st_mode):
+        raise OSError(errno.ENOTDIR, "The project image folder is not a directory", str(assetDir))
+    assetIdentity = fileIdentity(assetStat, assetDir)
+
+    currentAssetsStat = os.lstat(assetsPath)
+    if (
+        stat.S_ISLNK(currentAssetsStat.st_mode)
+        or getattr(currentAssetsStat, "st_file_attributes", 0) & 0x400
+        or not stat.S_ISDIR(currentAssetsStat.st_mode)
+        or fileIdentity(currentAssetsStat, assetsPath) != assetsIdentity
+    ):
+        raise OSError(errno.EINVAL, "The project assets folder changed while it was being used")
+
+    return _ProjectImageContext(
+        projectPath=projectPath,
+        rootIdentity=rootIdentity,
+        assetsPath=assetsPath,
+        assetsIdentity=assetsIdentity,
+        assetDir=assetDir,
+        assetIdentity=assetIdentity,
+    )
+
+
+def _verifyProjectImageContext(context: _ProjectImageContext) -> None:
+    """Verify that the validated project image path is still current."""
+    try:
+        rootStat = os.lstat(context.projectPath)
+        assetsStat = os.lstat(context.assetsPath)
+        assetStat = os.lstat(context.assetDir)
+    except OSError as exc:
+        raise OSError(errno.EINVAL, "The project image folder changed while it was being used") from exc
+    if (
+        stat.S_ISLNK(rootStat.st_mode)
+        or getattr(rootStat, "st_file_attributes", 0) & 0x400
+        or not stat.S_ISDIR(rootStat.st_mode)
+        or fileIdentity(rootStat, context.projectPath) != context.rootIdentity
+    ):
+        raise OSError(errno.EINVAL, "The project folder changed while the images were being used")
+    if (
+        stat.S_ISLNK(assetsStat.st_mode)
+        or getattr(assetsStat, "st_file_attributes", 0) & 0x400
+        or not stat.S_ISDIR(assetsStat.st_mode)
+        or fileIdentity(assetsStat, context.assetsPath) != context.assetsIdentity
+    ):
+        raise OSError(errno.EINVAL, "The project assets folder changed while the images were being used")
+    if (
+        stat.S_ISLNK(assetStat.st_mode)
+        or getattr(assetStat, "st_file_attributes", 0) & 0x400
+        or not stat.S_ISDIR(assetStat.st_mode)
+        or fileIdentity(assetStat, context.assetDir) != context.assetIdentity
+    ):
+        raise OSError(errno.EINVAL, "The project image folder changed while the images were being used")
+
+
+def _validateProjectImagePath(relativePath: str) -> str:
+    """Validate and return a strict project-relative image path."""
+    try:
+        return validateImagePath(relativePath)
+    except ImageMetadataError as exc:
+        raise ValueError(str(exc)) from exc
+
+
+def _validateProjectImageRecord(image: ProjectImage, context: _ProjectImageContext) -> Path:
+    """Validate a listed image against the current project context."""
+    expectedPath = context.assetDir / image.path.name
+    expectedRelativePath = f"{ASSET_DIR.as_posix()}/{image.path.name}"
+    try:
+        canonicalRelativePath = validateImagePath(expectedRelativePath)
+    except ImageMetadataError as exc:
+        raise OSError(errno.EINVAL, "The project image path is not valid") from exc
+    if (
+        image.path != expectedPath
+        or image.relativePath != expectedRelativePath
+        or canonicalRelativePath != expectedRelativePath
+        or image.path.suffix not in IMAGE_FORMATS
+    ):
+        raise OSError(errno.EINVAL, "The project image is not a direct assets/img entry")
+    if image.rootIdentity != context.rootIdentity:
+        raise OSError(errno.EINVAL, "The project changed before the image could be used")
+    if image.assetsIdentity != context.assetsIdentity:
+        raise OSError(errno.EINVAL, "The project assets folder changed before the image could be used")
+    if image.assetIdentity != context.assetIdentity:
+        raise OSError(errno.EINVAL, "The project image folder changed before the image could be used")
+    return expectedPath
+
+
+def _readValidatedProjectImage(
+    project: NWProject,
+    image: ProjectImage,
+    context: _ProjectImageContext,
+) -> ProjectImageData:
+    """Read and validate an image against an already validated context."""
+    imagePath = _validateProjectImageRecord(image, context)
+    with openRegularFile(
+        imagePath,
+        expectedParent=context.assetIdentity,
+        expectedIdentity=image.identity,
+    ) as imageFile:
+        imageData = imageFile.read()
+
+    imageFormat = _validateImageFile(io.BytesIO(imageData))
+    expectedFormat = IMAGE_FORMATS.get(image.path.suffix)
+    if expectedFormat is None or imageFormat != expectedFormat:
+        raise ImageImportError(
+            ImageImportReason.FORMAT_MISMATCH,
+            f"Image format '{imageFormat}' does not match '{image.path.suffix}'",
+        )
+
+    _verifyProjectImageContext(context)
+    try:
+        currentStat = os.lstat(imagePath)
+    except OSError as exc:
+        raise OSError(errno.EINVAL, "The project image changed while it was being read") from exc
+    if (
+        stat.S_ISLNK(currentStat.st_mode)
+        or getattr(currentStat, "st_file_attributes", 0) & 0x400
+        or not stat.S_ISREG(currentStat.st_mode)
+        or fileIdentity(currentStat, imagePath) != image.identity
+    ):
+        raise OSError(errno.EINVAL, "The project image changed while it was being read")
+
+    return ProjectImageData(image=image, data=imageData, imageFormat=imageFormat)
 
 
 def importProjectImage(project: NWProject, source: Union[Path, str]) -> ImportedImage:

@@ -22,10 +22,11 @@ To edit a document, double-click it in the project tree, press the :kbd:`Return`
 it selected, or drag and drop it onto the editor panel. This will open the document in the document
 editor.
 
-The editor has a maximise button, which toggles the **Focus Mode**, and a close button in the
-top-right corner. On the top-left side you will find a tools button that opens a toolbar with a
-few buttons for applying text formatting, a drop down menu for navigating between headings, and a
-search button to open the search dialog.
+The editor has a maximise button, which toggles the **Focus Mode**, a **Formatted view** button,
+and a close button in the top-right corner. The **Formatted view** button saves the current document
+and opens it in the right-hand document viewer. On the top-left side you will find a tools button
+that opens a toolbar with a few buttons for applying text formatting, a drop down menu for
+navigating between headings, and a search button to open the search dialog.
 
 Both the document editor and viewer will show the label of the currently open document in the
 header at the top of the edit or view panel. Optionally, the full project path to the document can
@@ -165,6 +166,26 @@ buttons in the top-left corner of the viewer. If your mouse has backward and for
 buttons, these can be used as well. They work just like the backward and forward features in a
 browser. The left-most button is a dropdown menu for quickly navigation between headings in the
 document. The edit button on the right will open the viewed document in the editor.
+
+The **Formatted view** button in the editor header provides a quicker way to inspect the current
+document. It saves the editor contents first, then displays the current document in the right-hand
+viewer even if the viewer was previously showing a different document. The viewer uses its current
+settings, so the result is the same formatted view obtained from **Document > View Document**.
+
+
+Formatted Images
+----------------
+
+General project images inserted with the **Image Assets** panel are rendered in the document viewer.
+The ``width`` and ``height`` values in an ``@Image`` entry define the image's bounding box, and the
+image is fitted inside that box without changing its aspect ratio. The ``position`` value aligns
+the image to the left, centre, or right of the viewer page.
+
+.. note::
+
+   General project images are currently rendered only in the in-app document viewer. They are not
+   included in the manuscript build preview or in exported HTML, EPUB, PDF, or other document
+   formats.
 
 
 .. _docs_ui_edit_view_view_references:

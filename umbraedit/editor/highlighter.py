@@ -33,7 +33,7 @@ from PyQt6.QtGui import QBrush, QColor, QSyntaxHighlighter, QTextCharFormat, QTe
 
 from umbraedit import CONFIG, SHARED
 from umbraedit.common import checkInt, utf16CharMap
-from umbraedit.constants import nwUnicode
+from umbraedit.constants import nwKeyWords, nwUnicode
 from umbraedit.editor.textblock import T_TextMetaList, TextBlockData
 from umbraedit.enum import nwComment
 from umbraedit.text.formats import processComment
@@ -360,13 +360,18 @@ class GuiDocHighlighter(QSyntaxHighlighter):
                     if n == 0 and isGood[n]:
                         self.setFormat(pos, length, self._hStyles["keyword"])
                     elif isGood[n] and not self._isInactive:
-                        a, b = index.parseValue(bit)
-                        aLen = utf16Map[loc[n] + len(a)] - pos if utf16Map else len(a)
-                        self.setFormat(pos, aLen, self._hStyles["tag"])
-                        meta.append((pos, pos + aLen, a, "tag"))
-                        if b:
-                            bLen = utf16Map[loc[n] + len(b)] - pos if utf16Map else len(b)
-                            self.setFormat(pos + length - bLen, bLen, self._hStyles["optional"])
+                        if bits[0] == nwKeyWords.IMAGE_KEY:
+                            # Image metadata is a value, not a followable
+                            # project tag.
+                            self.setFormat(pos, length, self._hStyles["value"])
+                        else:
+                            a, b = index.parseValue(bit)
+                            aLen = utf16Map[loc[n] + len(a)] - pos if utf16Map else len(a)
+                            self.setFormat(pos, aLen, self._hStyles["tag"])
+                            meta.append((pos, pos + aLen, a, "tag"))
+                            if b:
+                                bLen = utf16Map[loc[n] + len(b)] - pos if utf16Map else len(b)
+                                self.setFormat(pos + length - bLen, bLen, self._hStyles["optional"])
                     elif not self._isInactive:
                         self.setFormat(pos, length, self._hStyles["invalid"])
 

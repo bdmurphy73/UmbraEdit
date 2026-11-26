@@ -263,6 +263,7 @@ class GuiDocEditor(QTextEdit):
     closeEditorRequest = pyqtSignal()
     docTextChanged = pyqtSignal(str, float)
     editedStatusChanged = pyqtSignal(bool)
+    formattedViewRequest = pyqtSignal()
     itemHandleChanged = pyqtSignal(str)
     loadDocumentTagRequest = pyqtSignal(str, Enum)
     openDocumentRequest = pyqtSignal(str, Enum, str, bool)
@@ -361,6 +362,7 @@ class GuiDocEditor(QTextEdit):
 
         # Connect Widget Signals
         self.docHeader.closeDocumentRequest.connect(self._closeCurrentDocument)
+        self.docHeader.formattedViewRequest.connect(self.formattedViewRequest)
         self.docHeader.gotoLineRequest.connect(self.setCursorLine)
         self.docHeader.requestProjectItemSelected.connect(self.requestProjectItemSelected)
         self.docHeader.toggleFocusModeRequest.connect(self.toggleFocusModeRequest)
@@ -1518,8 +1520,57 @@ class GuiDocEditor(QTextEdit):
         if keyword not in nwKeyWords.META_KEYS or not value:
             logger.error("Invalid metadata keyword or value")
             return False
+
         logger.debug("Inserting metadata '%s' with value '%s'", keyword, value)
         return self.insertNewBlock(f"{keyword}: {value}", atCursor=True)
+
+    def insertMetaValueAt(
+        self,
+        keyword: str,
+        value: str,
+        *,
+        afterHeading: bool = False,
+        atEnd: bool = False,
+    ) -> bool:
+        """Insert metadata at the cursor, after a heading, or at the end.
+
+        Cover and icon metadata must not be placed above the document's
+        first heading. General image metadata always follows the exact
+        cursor position unless an explicit end-of-document fallback is
+        requested.
+        """
+        cursor = self.textCursor()
+        if atEnd:
+            cursor.clearSelection()
+            cursor.movePosition(QtMoveEnd)
+            self.setTextCursor(cursor)
+        elif afterHeading and (headingEnd := self._firstHeadingEnd()) is not None and cursor.position() < headingEnd:
+            cursor.clearSelection()
+            cursor.setPosition(headingEnd)
+            self.setTextCursor(cursor)
+
+        return self.insertMetaValue(keyword, value)
+
+    def _firstHeadingEnd(self) -> Optional[int]:
+        """Return the document position immediately after its first heading."""
+        document = self.document()
+        if document is None:
+            return None
+        block = document.firstBlock()
+        while block.isValid():
+            text = block.text()
+            if text.startswith((
+                "# ",
+                "#! ",
+                "## ",
+                "##! ",
+                "### ",
+                "###! ",
+                "#### ",
+            )):
+                return block.position() + block.length()
+            block = block.next()
+        return None
 
     @pyqtSlot()
     def toggleSearch(self) -> None:
@@ -2951,7 +3002,12 @@ class GuiDocEditor(QTextEdit):
 
         if text.startswith("@") and self._docHandle:
             isGood, tBits, tPos = SHARED.project.index.scanThis(text)
-            if not isGood or not tBits or (key := tBits[0]) == nwKeyWords.TAG_KEY or key not in nwKeyWords.VALID_KEYS:
+            if (
+                not isGood
+                or not tBits
+                or (key := tBits[0]) in (nwKeyWords.TAG_KEY, nwKeyWords.IMAGE_KEY)
+                or key not in nwKeyWords.VALID_KEYS
+            ):
                 return status
 
             tag = ""

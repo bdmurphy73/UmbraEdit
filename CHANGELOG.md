@@ -87,6 +87,11 @@ Development release following the 2026.11 release cycle.
   the runner, and made the optional code signing step conditional on the signing service being
   configured. By B.D. Murphy.
 
+* Fixed the Linux package builds. The AppImage build now includes the short description file
+  that the build backend expects, the Flatpak build installs the packages that need a Rust
+  toolchain from a prebuilt wheel, and the Debian package build no longer runs the test suite,
+  which requires the complete source tree. By B.D. Murphy.
+
 ---
 
 ## Version 2026.11 [2026-11-05]

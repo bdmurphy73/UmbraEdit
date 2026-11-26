@@ -4,5 +4,10 @@ export PYBUILD_NAME=umbraedit
 %:
 	dh $@ --with python3 --buildsystem=pybuild
 
+# The test suite requires the complete source tree, including the utils and
+# setup directories, so it cannot be run as part of the package build. The
+# tests are run by the CI workflow instead.
+override_dh_auto_test:
+
 override_dh_gencontrol:
 	dh_gencontrol -- -DLicense=GPL-3.0-or-later

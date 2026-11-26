@@ -52,10 +52,12 @@ PIP_GEN_COMMIT = "737c0085912f9f7dabf9341d4608e2a77a51a73a"
 PIP_GEN_FILE = "pip/flatpak-pip-generator.py"
 PIP_GEN_URL = f"https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/{PIP_GEN_COMMIT}/{PIP_GEN_FILE}"
 FLATPAK_SDK = "org.kde.Sdk"
-# Packages that need a Rust toolchain to build from source are installed from
-# a prebuilt wheel instead. The wheel must match the Python version and the
-# architecture of the Flatpak runtime.
-PREFER_WHEELS = ("rpds-py",)
+# Packages that cannot be built from source in the Flatpak sandbox are
+# installed from a prebuilt wheel instead. The wheel must match the Python
+# version and the architecture of the Flatpak runtime. The rpds-py package
+# needs a Rust toolchain, and the pillow package needs the pybind11 module,
+# neither of which are available in the sandbox.
+PREFER_WHEELS = ("pillow", "rpds-py")
 ENCHANT_RELEASE_API = "https://api.github.com/repos/rrthomas/enchant/releases/tags/v{version}"
 NW_REPO_URL = "https://github.com/bdmurphy73/UmbraEdit.git"
 NW_COMMIT_API = "https://api.github.com/repos/bdmurphy73/UmbraEdit/commits/v{version}"

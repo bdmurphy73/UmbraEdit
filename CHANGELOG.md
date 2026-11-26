@@ -5,7 +5,7 @@ Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io)
 and is licenced under the same GPL v3.0 license.
 
-## Version 2026.11.0006 [2026-11-21] (Development)
+## Version 2026.11.0010 [2026-11-26] (Development)
 
 ### Release Notes
 
@@ -14,6 +14,18 @@ Development release following the 2026.11 release cycle.
 ### Detailed Changelog
 
 **Features**
+
+* Added a project **Image Assets** manager, available from the **View** menu. It lists every JPEG
+  or PNG image stored in the project's `assets/img` folder, with a thumbnail and the file name for
+  each image. The panel provides **Add**, **Delete** and **Select** actions, linked **Width** and
+  **Height** controls that preserve the source image's aspect ratio, and a **Position** control
+  for **Left**, **Center** and **Right** page placement. **Select** inserts the image metadata at
+  the exact cursor position, and an image referenced by a document cannot be deleted.
+  By B.D. Murphy.
+
+* Added a **Formatted view** button to the editor header, between **Focus Mode** and **Close**. It
+  opens the current document with the current formatting settings in the document viewer.
+  By B.D. Murphy.
 
 * Added **Insert > Images > Cover** and **Insert > Images > Icon** commands. They import a
   JPEG or PNG image into the project's `assets/img` folder and insert an `@Cover:` or `@icon:`
@@ -59,6 +71,21 @@ Development release following the 2026.11 release cycle.
   to a new location with an optional new name. All document files, metadata, project images,
   and the project XML are copied to the new location, and the new project is added to the
   recent projects list as a separate entry. By B.D. Murphy.
+
+**Code Maintenance**
+
+* Fixed the release workflow. A version tag now publishes the complete set of release artifacts:
+  the Linux source tarball, Debian packages, an AppImage, a Flatpak bundle, the PyPI packages,
+  the macOS disk images and the Windows installer. The workflow verifies that the tag matches the
+  application version before it starts building, and no longer relies on the deprecated release
+  asset upload action. By B.D. Murphy.
+
+* Fixed the asset build workflow failing on current Ubuntu runner images because it requested the
+  Qt 5 package name for the Linguist tools. By B.D. Murphy.
+
+* Fixed the Windows installer build failing because the Inno Setup compiler was not installed on
+  the runner, and made the optional code signing step conditional on the signing service being
+  configured. By B.D. Murphy.
 
 ---
 

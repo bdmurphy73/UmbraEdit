@@ -1,6 +1,7 @@
 name: Part Windows X64
 
-on: workflow_call
+on:
+  workflow_call
 
 jobs:
   buildWin-X64:
@@ -8,9 +9,13 @@ jobs:
     runs-on: windows-2022
     permissions:
       contents: read
+    env:
+      # The signing service is optional. When no API token is configured,
+      # the unsigned installer is built and published as-is.
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
     steps:
       - name: Python Setup
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           architecture: x64
@@ -18,8 +23,21 @@ jobs:
       - name: Install Packages (pip)
         run: pip install tzdata
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y --limit-output
+          $iscc = Get-ChildItem "C:\Program Files (x86)\Inno Setup*\ISCC.exe" `
+            -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) {
+            Write-Output "::error::The Inno Setup compiler (ISCC.exe) was not found"
+            exit 1
+          }
+          Write-Output $iscc.DirectoryName >> $env:GITHUB_PATH
+          Write-Output "Inno Setup compiler: $($iscc.FullName)"
+
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download Assets
         uses: actions/download-artifact@v4
@@ -43,12 +61,13 @@ jobs:
           retention-days: 14
 
       - name: Submit Signing Request
+        if: env.SIGNPATH_API_TOKEN != ''
         uses: signpath/github-action-submit-signing-request@v1
         with:
           api-token: "${{ secrets.SIGNPATH_API_TOKEN }}"
           organization-id: "0471e52c-66fa-4e9a-bfb9-36167095ca3f"
           project-slug: "UmbraEdit"
-          signing-policy-slug: "release-signing "
+          signing-policy-slug: "release-signing"
           github-artifact-id: "${{ steps.upload-unsigned-artifact.outputs.artifact-id }}"
           wait-for-completion: true
           output-artifact-directory: "dist/"
@@ -56,6 +75,7 @@ jobs:
             version: "${{ steps.build.outputs.BUILD_VERSION }}"
 
       - name: Upload Signed Artifacts
+        if: env.SIGNPATH_API_TOKEN != ''
         uses: actions/upload-artifact@v4
         with:
           name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-Win-Setup-Signed

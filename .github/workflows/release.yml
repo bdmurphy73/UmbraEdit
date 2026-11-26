@@ -9,49 +9,298 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Create Release
+  # ---------------------------------------------------------------------------
+  # Fail fast if the tag and the application version disagree. The version in
+  # umbraedit/__init__.py is the single source of truth for all package names,
+  # so a tag that does not match it would produce a release whose assets are
+  # labelled with the wrong version.
+  # ---------------------------------------------------------------------------
+  validate:
+    name: Validate Release Tag
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      tag: ${{ steps.check.outputs.tag }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout Source
+        uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install build dependencies
+      - name: Validate Tag and Version
+        id: check
         run: |
-          pip install --upgrade pip
-          pip install setuptools wheel build
+          set -euo pipefail
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="$(python3 pkgutils.py version)"
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not read the application version"
+            exit 1
+          fi
+          if [ "$TAG" != "v${VERSION}" ]; then
+            echo "::error::Release tag ${TAG} does not match the application version v${VERSION}"
+            echo "::error::Either update __version__ in umbraedit/__init__.py, or tag the commit as v${VERSION}"
+            exit 1
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Release tag ${TAG} matches application version ${VERSION}"
 
-      - name: Build package
-        run: python -m build
+  # ---------------------------------------------------------------------------
+  # Shared build assets. These are inputs to the platform builds, not release
+  # assets, so they are not attached to the release itself.
+  # ---------------------------------------------------------------------------
+  buildAssets:
+    name: Build Assets
+    uses: ./.github/workflows/part_assets.yml
+    permissions:
+      contents: read
 
-      - name: Get tag name
-        id: tag
+  # ---------------------------------------------------------------------------
+  # Linux source tarball
+  # ---------------------------------------------------------------------------
+  buildSource:
+    name: Build Linux Source Tarball
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v5
+
+      - name: Install System Packages
         run: |
-          TAG=${GITHUB_REF#refs/tags/}
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          sudo apt-get update
+          sudo apt-get install -y rsync
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: UmbraEdit ${{ steps.tag.outputs.tag }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true
+      - name: Build Source Tarball
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          bash setup/linux/build-tarball.sh "${VERSION}"
+          cd dist
+          TARBALL="umbraedit-${VERSION}.tar.gz"
+          # Rewrite the checksum file so that it only refers to the file name.
+          # The build script writes an absolute path, which cannot be verified
+          # from the folder the release assets are downloaded into.
+          sha256sum "${TARBALL}" > "${TARBALL}.sha256"
+          sha256sum -c "${TARBALL}.sha256"
+          ls -lh "${TARBALL}"
 
-      - name: Upload build artifacts
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Source Tarball
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: dist/umbraedit-*.tar.gz
-          asset_name: umbraedit-${{ steps.tag.outputs.tag }}-source.tar.gz
-          asset_content_type: application/gzip
+          name: release-source
+          path: |
+            dist/umbraedit-*.tar.gz
+            dist/umbraedit-*.tar.gz.sha256
+            dist/build-linux.sh
+            dist/install-linux.sh
+          if-no-files-found: error
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # PyPI source distribution and wheel
+  # ---------------------------------------------------------------------------
+  buildPyPI:
+    name: Build PyPI Packages
+    needs: [validate, buildAssets]
+    uses: ./.github/workflows/part_pypi.yml
+    with:
+      publish: false
+    permissions:
+      contents: read
+
+  # ---------------------------------------------------------------------------
+  # Debian packages
+  # ---------------------------------------------------------------------------
+  buildDebian:
+    name: Debian ${{ matrix.name }}
+    needs: [validate, buildAssets]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: 12 Bookworm
+            codename: bookworm
+            family: debian
+            image: debian:12
+          - name: 24.04 Noble
+            codename: noble
+            family: ubuntu
+            image: ubuntu:24.04
+          - name: 22 Wilma
+            codename: wilma
+            family: linuxmint
+            image: linuxmintd/mint22-amd64
+    uses: ./.github/workflows/part_debian.yml
+    with:
+      publish: false
+      build_number: "0"
+      codename: ${{ matrix.codename }}
+      family: ${{ matrix.family }}
+      image: ${{ matrix.image }}
+    secrets: inherit
+    permissions:
+      id-token: write
+      contents: read
+
+  # ---------------------------------------------------------------------------
+  # Linux AppImage and Flatpak
+  # ---------------------------------------------------------------------------
+  buildAppImage:
+    name: Build Linux AppImage
+    needs: [validate, buildAssets]
+    uses: ./.github/workflows/part_appimage.yml
+    secrets: inherit
+    permissions:
+      contents: read
+
+  buildFlatpak:
+    name: Build Linux Flatpak
+    needs: [validate, buildAssets]
+    uses: ./.github/workflows/part_flatpak.yml
+    secrets: inherit
+    permissions:
+      contents: read
+
+  # ---------------------------------------------------------------------------
+  # Windows installer
+  # ---------------------------------------------------------------------------
+  buildWindows:
+    name: Build Windows Installer
+    needs: [validate, buildAssets]
+    uses: ./.github/workflows/part_win_x64.yml
+    secrets: inherit
+    permissions:
+      contents: read
+
+  # ---------------------------------------------------------------------------
+  # macOS disk images
+  # ---------------------------------------------------------------------------
+  buildMacArm64:
+    name: Build macOS Disk Image (Apple Silicon)
+    needs: [validate, buildAssets]
+    uses: ./.github/workflows/part_macos_m1.yml
+    secrets: inherit
+    permissions:
+      contents: read
+
+  buildMacIntel:
+    name: Build macOS Disk Image (Intel)
+    needs: [validate, buildAssets]
+    uses: ./.github/workflows/part_macos_amd64.yml
+    secrets: inherit
+    permissions:
+      contents: read
+
+  # ---------------------------------------------------------------------------
+  # Collect every build artifact and publish it as a GitHub release
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish GitHub Release
+    needs:
+      - validate
+      - buildSource
+      - buildPyPI
+      - buildDebian
+      - buildAppImage
+      - buildFlatpak
+      - buildWindows
+      - buildMacArm64
+      - buildMacIntel
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*"
+          merge-multiple: false
+          path: release-files
+
+      - name: Verify Artifact Set
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          status=0
+          check () {
+            if compgen -G "$1" > /dev/null; then
+              echo "OK: $2"
+            else
+              echo "::error::Missing release artifact: $2 ($1)"
+              status=1
+            fi
+          }
+          check "release-files/release-source/umbraedit-${VERSION}.tar.gz" "Linux source tarball"
+          check "release-files/nw-pypi/*.whl" "PyPI wheel"
+          check "release-files/nw-pypi/*.tar.gz" "PyPI source distribution"
+          check "release-files/nw-deb-*/*.deb" "Debian packages"
+          check "release-files/UmbraEdit-*-Linux-AppImage/*.AppImage" "Linux AppImage"
+          check "release-files/UmbraEdit-*-Linux-Flatpak/*.flatpak" "Linux Flatpak bundle"
+          check "release-files/UmbraEdit-*-Win-Setup*/*.exe" "Windows installer"
+          check "release-files/UmbraEdit-*-MacOS-*-DMG/*.dmg" "macOS disk images"
+          if [ "${status}" -ne 0 ]; then
+            echo "::error::The release artifact set is incomplete"
+            exit 1
+          fi
+
+      - name: Write Release Notes
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          {
+            echo "UmbraEdit ${VERSION} is available for Linux, macOS, Windows and PyPI."
+            echo
+            echo "The macOS disk image and the Windows installer attached to this release are"
+            echo "**not code signed**. macOS Gatekeeper and Windows SmartScreen will warn about"
+            echo "them until signing and notarisation are set up."
+            echo
+            echo "### Assets"
+            echo
+            echo "| Platform | File |"
+            echo "| --- | --- |"
+            echo "| Linux source | \`umbraedit-${VERSION}.tar.gz\` |"
+            echo "| Linux | \`umbraedit-*.deb\`, \`umbraedit-*-amd64.AppImage\`, \`umbraedit-*-linux.flatpak\` |"
+            echo "| macOS | \`umbraedit-${VERSION}-arm64.dmg\`, \`umbraedit-${VERSION}-x86_64.dmg\` |"
+            echo "| Windows | \`umbraedit-${VERSION}-amd64-setup.exe\` |"
+            echo "| PyPI | \`umbraedit-*.whl\`, \`umbraedit-*.tar.gz\` |"
+            echo
+            echo "SHA-256 checksum files are attached next to each archive."
+          } > release-notes.md
+          cat release-notes.md
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.validate.outputs.tag }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          FILES=()
+          while IFS= read -r filePath; do
+            FILES+=("${filePath}")
+          done < <(find release-files -type f \
+            -not -path 'release-files/nw-assets/*' | sort)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "::error::No release artifacts were downloaded"
+            exit 1
+          fi
+          echo "Publishing ${#FILES[@]} files:"
+          printf '  %s\n' "${FILES[@]}"
+          if gh release view "${TAG}" > /dev/null 2>&1; then
+            gh release upload "${TAG}" "${FILES[@]}" --clobber
+          else
+            gh release create "${TAG}" "${FILES[@]}" \
+              --title "UmbraEdit ${VERSION}" \
+              --notes-file release-notes.md \
+              --generate-notes \
+              --verify-tag
+          fi
+          gh release view "${TAG}" --json url,tagName,name,isDraft,isPrerelease \
+            --jq '.url'

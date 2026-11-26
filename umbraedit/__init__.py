@@ -61,9 +61,9 @@ __license__    = "GPLv3"
 __author__     = "Veronica Berglyd Olsen"
 __maintainer__ = "Veronica Berglyd Olsen"
 __email__      = "code@vkbo.net"
-__version__    = "2026.11.0006"
+__version__    = "2026.11.0010"
 __hexversion__ = "0x01000000"  # Changed by B.D. Murphy 2026
-__date__       = "2026-11-05"  # Changed by B.D. Murphy 2026
+__date__       = "2026-11-26"  # Changed by B.D. Murphy 2026
 __status__     = "Stable"
 __domain__     = "UmbraEdit"
 # fmt: on

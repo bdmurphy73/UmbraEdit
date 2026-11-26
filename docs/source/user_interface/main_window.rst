@@ -54,7 +54,7 @@ General images are separate from the **Cover** and **Icon** book images describe
 an **Image Assets** insertion removes only the metadata from the document; the project image itself
 remains available in the asset panel.
 
-.. versionadded:: 2026.11.0006
+.. versionadded:: 2026.11.0010
 
 
 Book Cover and Icon
@@ -72,7 +72,7 @@ inserted immediately after that heading instead. If no document is open, UmbraEd
 available document and inserts the entry at its bottom. Undoing the insertion removes the tag from
 the document but leaves the imported image in the project.
 
-.. versionadded:: 2026.11.0006
+.. versionadded:: 2026.11.0010
 
 
 Project Tree and Editor View

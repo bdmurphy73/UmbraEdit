@@ -5,7 +5,7 @@ Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io)
 and is licenced under the same GPL v3.0 license.
 
-## Version 2026.11.0010 [2026-11-26] (Development)
+## Version 2026.11.0023 [2026-11-26] (Development)
 
 ### Release Notes
 

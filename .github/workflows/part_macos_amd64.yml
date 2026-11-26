@@ -38,5 +38,4 @@ jobs:
           name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-MacOS-${{ steps.build.outputs.DMG_ARCH }}-DMG
           path: dist_macos/umbraedit-*.dmg*
           if-no-files-found: error
-          if-no-files-found: error
           retention-days: 14

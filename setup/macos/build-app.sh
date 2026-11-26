@@ -246,14 +246,36 @@ DMG_ARGS=(
     --app-drop-link 600 185
 )
 
+# Run a command with a time limit. The command is killed if it has not
+# completed within the given number of seconds.
+run_with_timeout () {
+    local seconds="$1"
+    shift
+    "$@" &
+    local pid=$!
+    local waited=0
+    while kill -0 "$pid" 2> /dev/null; do
+        if [ "$waited" -ge "$seconds" ]; then
+            echo "WARNING: Timed out after ${seconds}s: $*" >&2
+            kill -9 "$pid" 2> /dev/null || true
+            wait "$pid" 2> /dev/null || true
+            return 124
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+    wait "$pid"
+}
+
 # Unmount any disk image left behind by a failed packaging attempt. The
 # image is not usable when it is still mounted, and a stale mount also
-# keeps the disk arbitration service busy.
+# keeps the disk arbitration service busy. The detach is given a time
+# limit because a busy volume can make it hang indefinitely.
 cleanup_mounts () {
     for mountPoint in /Volumes/dmg.*; do
         [ -e "${mountPoint}" ] || continue
         echo "Unmounting stale disk image: ${mountPoint}"
-        hdiutil detach -force "${mountPoint}" > /dev/null 2>&1 || true
+        run_with_timeout 30 hdiutil detach -force "${mountPoint}" > /dev/null 2>&1 || true
     done
 }
 

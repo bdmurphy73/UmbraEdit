@@ -5,6 +5,33 @@ Copyright (C) 2026 B.D. Murphy and novelWriter contributors.
 UmbraEdit is based on novelWrite 2026.02 by Veronica Berglyd Olsen (novelWriter.io)
 and is licenced under the same GPL v3.0 license.
 
+## Version 2026.11.0024 [2026-11-27] (Development)
+
+### Release Notes
+
+Development release following the 2026.11 release cycle.
+
+### Detailed Changelog
+
+**Fixes**
+
+* Removed the launcher executable from the upstream project the sources were forked from. The file
+  was carried in the repository as `setup/windows/novelWriter.exe`, and was included in the Linux
+  source tarball. The Windows launcher is built from source instead, and the Windows package is now
+  checked before it is packed, so that a missing launcher, or a file carrying the upstream product
+  name, fails the build.
+  By B.D. Murphy.
+
+* The brand audit now also covers file names, binary metadata and binary hashes, so that a file or
+  a copied upstream binary carrying the old product name cannot be added to the project unnoticed.
+  The audit runs as a gate in the release workflow and in CI.
+  By B.D. Murphy.
+
+* The Windows setup program now refers to the application icon by the same name it is installed
+  under, and the installed files are listed on the build runner so that the package contents are
+  verified before a release is published.
+  By B.D. Murphy.
+
 ## Version 2026.11.0023 [2026-11-26] (Development)
 
 ### Release Notes

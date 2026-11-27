@@ -37,7 +37,7 @@ def testPkg_extractVersion(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     pkgFile.parent.mkdir(parents=True)
     pkgFile.write_text(
         "\n".join([
-            '__version__    = "2026.11.0023"',
+            '__version__    = "2026.11.0024"',
             '__hexversion__ = "0x01000000"  # Changed by B.D. Murphy 2026',
             '__date__       = "2026-11-26"  # Changed by B.D. Murphy 2026',
             "",
@@ -50,7 +50,7 @@ def testPkg_extractVersion(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
         numVers, hexVers, relDate = extractVersion(beQuiet=True)
 
     # The trailing comments must not leak into the values
-    assert numVers == "2026.11.0023"
+    assert numVers == "2026.11.0024"
     assert hexVers == "0x01000000"
     assert relDate == "2026-11-26"
 

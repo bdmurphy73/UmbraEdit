@@ -28,7 +28,11 @@ from pathlib import Path
 
 import pytest
 
-from utils.check_workflows import checkFile, main
+# PyYAML is an optional dependency, and is not available in all environments.
+# The whole test module is skipped when it is missing.
+pytest.importorskip("yaml", reason="The PyYAML package is required for these tests")
+
+from utils.check_workflows import checkFile, main  # noqa: E402
 
 
 @pytest.mark.base

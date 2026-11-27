@@ -3882,6 +3882,7 @@ test = [
     { name = "pytest", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pytest-qt" },
     { name = "pytest-timeout" },
+    { name = "pyyaml" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
     { name = "uvicorn", version = "0.39.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "uvicorn", version = "0.54.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -3946,6 +3947,7 @@ test = [
     { name = "pytest", specifier = ">=7.0.0" },
     { name = "pytest-qt" },
     { name = "pytest-timeout" },
+    { name = "pyyaml" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
     { name = "uvicorn", specifier = ">=0.34" },
 ]

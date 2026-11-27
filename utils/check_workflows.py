@@ -25,49 +25,65 @@ from __future__ import annotations
 import sys
 
 from pathlib import Path
+from typing import Any
 
-import yaml
+try:
+    import yaml
+except ImportError:  # pragma: no cover
+    # PyYAML is an optional dependency, and is not available in all
+    # environments. The checks cannot run when it is missing.
+    yaml = None  # type: ignore[assignment]
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 WORKFLOW_DIR = ROOT_DIR / ".github" / "workflows"
 
 
-class StrictLoader(yaml.SafeLoader):
-    """A YAML loader that rejects duplicate mapping keys."""
+def _buildStrictLoader() -> Any:
+    """Build a YAML loader that rejects duplicate mapping keys."""
+    if yaml is None:
+        return None
+
+    class StrictLoader(yaml.SafeLoader):
+        """A YAML loader that rejects duplicate mapping keys."""
+
+    def _construct_mapping(loader: Any, node: Any) -> dict:
+        """Construct a mapping and fail on duplicate keys."""
+        mapping: dict = {}
+        for keyNode, valueNode in node.value:
+            key = loader.construct_object(keyNode, deep=True)
+            if key in mapping:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping",
+                    node.start_mark,
+                    f"found duplicate key {key!r}",
+                    keyNode.start_mark,
+                )
+            mapping[key] = loader.construct_object(valueNode, deep=True)
+        return mapping
+
+    StrictLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+        _construct_mapping,
+    )
+    return StrictLoader
 
 
-def _construct_mapping(loader: StrictLoader, node: yaml.MappingNode) -> dict:
-    """Construct a mapping and fail on duplicate keys."""
-    mapping: dict = {}
-    for keyNode, valueNode in node.value:
-        key = loader.construct_object(keyNode, deep=True)
-        if key in mapping:
-            raise yaml.constructor.ConstructorError(
-                "while constructing a mapping",
-                node.start_mark,
-                f"found duplicate key {key!r}",
-                keyNode.start_mark,
-            )
-        mapping[key] = loader.construct_object(valueNode, deep=True)
-    return mapping
-
-
-StrictLoader.add_constructor(
-    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-    _construct_mapping,
-)
+STRICT_LOADER = _buildStrictLoader() if yaml is not None else None
 
 
 def checkFile(path: Path) -> list[str]:
     """Check a single workflow file and return a list of problems."""
     problems = []
+    if yaml is None or STRICT_LOADER is None:
+        return [f"{path.name}: the PyYAML package is required for this check"]
+
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
         return [f"{path.name}: could not read file: {exc}"]
 
     try:
-        yaml.load(text, Loader=StrictLoader)
+        yaml.load(text, Loader=STRICT_LOADER)
     except yaml.YAMLError as exc:
         problems.append(f"{path.name}: {exc}")
 

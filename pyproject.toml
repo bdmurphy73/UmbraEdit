@@ -69,6 +69,7 @@ test = [
     "pytest-qt",
     "pytest-timeout",
     "pytest>=7.0.0",
+    "pyyaml",
     "tzdata; sys_platform == 'win32'",
     "uvicorn>=0.34",
 ]

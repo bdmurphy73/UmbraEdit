@@ -37,7 +37,21 @@ ALLOWED_OLD_NAME_FILES = [
     "utils/umbra_upstream_brand_hashes.txt",
 ]
 
+# Files whose name is allowed to contain the old product name. These are
+# documents that explain the rename, and must refer to the old name to do so.
+ALLOWED_OLD_NAME_PATHS = [
+    "docs/source/umbra/introduction/coming-from-novelwriter.rst",
+]
+
+# Binary file types that may carry the old product name in their metadata.
+BINARY_EXTENSIONS = {".exe", ".dll", ".msi"}
+
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".ico", ".icns", ".webp"}
+
+# Folders that are never part of the source tree.
+SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", "dist", "dist_macos", "dist_doc", "build"}
+
+OLD_NAME = "novelWriter"
 
 
 def sha256(data: bytes) -> str:
@@ -61,22 +75,86 @@ def findImageFiles() -> list[Path]:
     results = []
     for ext in IMAGE_EXTENSIONS:
         results.extend(ROOT_DIR.rglob(f"*{ext}"))
-    return [f for f in results if ".git" not in f.parts and ".venv" not in f.parts]
+    return [f for f in results if not SKIP_DIRS & set(f.parts)]
+
+
+def findBinaryFiles() -> list[Path]:
+    """Find all binary files in the repository."""
+    results = []
+    for ext in BINARY_EXTENSIONS:
+        results.extend(ROOT_DIR.rglob(f"*{ext}"))
+    return [f for f in results if not SKIP_DIRS & set(f.parts)]
+
+
+def findRepoFiles() -> list[Path]:
+    """Find all files in the working tree that are part of the source.
+
+    Generated content is skipped. Files that are not tracked by git are
+    included, so that a new file is flagged before it is committed.
+    """
+    results = []
+    for item in ROOT_DIR.rglob("*"):
+        if not item.is_file():
+            continue
+        if SKIP_DIRS & set(item.parts):
+            continue
+        results.append(item)
+    return results
+
+
+def checkFileNames() -> list[str]:
+    """Check for files whose name contains the old product name.
+
+    A file with the old name in it is a file a user can see, and it makes
+    the package look like it belongs to the upstream project.
+    """
+    failures = []
+    oldLower = OLD_NAME.lower()
+    for path in findRepoFiles():
+        # The paths are compared with forward slashes on all platforms, so
+        # that the allow list is the same everywhere.
+        relPath = path.relative_to(ROOT_DIR).as_posix()
+        if relPath in ALLOWED_OLD_NAME_PATHS:
+            continue
+        if oldLower in path.name.lower():
+            failures.append(f"  OLD NAME in file name: {relPath}")
+    return failures
+
+
+def checkBinaryNames() -> list[str]:
+    """Check binary files for the old product name in their metadata.
+
+    Windows executables carry the product name in their version resources,
+    and the name is also embedded in the file name of the launcher.
+    """
+    failures = []
+    oldLower = OLD_NAME.lower()
+    for path in findBinaryFiles():
+        relPath = path.relative_to(ROOT_DIR).as_posix()
+        try:
+            data = path.read_bytes()
+        except OSError:
+            continue
+        text = data.decode("latin-1", errors="ignore") + data.decode("utf-16-le", errors="ignore")
+        if oldLower in text.lower():
+            failures.append(f"  OLD NAME in binary: {relPath}")
+    return failures
 
 
 def checkHashes() -> list[str]:
-    """Check if any image file hash matches an upstream brand graphic."""
+    """Check if any file hash matches an upstream brand graphic."""
     upstreamHashes = loadUpstreamHashes()
     if not upstreamHashes:
         return []
 
     failures = []
-    for path in findImageFiles():
+    for path in findImageFiles() + findBinaryFiles():
         try:
             data = path.read_bytes()
             digest = sha256(data)
             if digest in upstreamHashes:
-                failures.append(f"  HASH MATCH: {path.relative_to(ROOT_DIR)} ({digest[:12]}...)")
+                relPath = path.relative_to(ROOT_DIR).as_posix()
+                failures.append(f"  HASH MATCH: {relPath} ({digest[:12]}...)")
         except OSError:  # noqa: PERF203
             pass
     return failures
@@ -85,12 +163,12 @@ def checkHashes() -> list[str]:
 def checkOldName() -> list[str]:
     """Check for old product name in visible strings and packaging files."""
     failures = []
-    oldName = "novelWriter"
-    oldLower = "novelwriter"
+    oldName = OLD_NAME
+    oldLower = oldName.lower()
 
     # Check Python files for user-visible strings
     for pyFile in (ROOT_DIR / "umbraedit").rglob("*.py"):
-        relPath = str(pyFile.relative_to(ROOT_DIR))
+        relPath = pyFile.relative_to(ROOT_DIR).as_posix()
         if any(relPath.endswith(f) or f in relPath for f in ALLOWED_OLD_NAME_FILES):
             continue
         try:
@@ -125,10 +203,14 @@ def checkOldName() -> list[str]:
     return failures
 
 
-def main() -> None:
+def main() -> int:
     """Run the brand audit."""
     hashFailures = checkHashes()
     nameFailures = checkOldName()
+    fileNameFailures = checkFileNames()
+    binaryFailures = checkBinaryNames()
+
+    allFailures = hashFailures + nameFailures + fileNameFailures + binaryFailures
 
     if hashFailures:
         print("Brand graphic hash audit FAILED:")
@@ -142,13 +224,29 @@ def main() -> None:
             print(f)
         print()
 
-    if not hashFailures and not nameFailures:
+    if fileNameFailures:
+        print("File name audit FAILED:")
+        for f in fileNameFailures:
+            print(f)
+        print()
+
+    if binaryFailures:
+        print("Binary metadata audit FAILED:")
+        for f in binaryFailures:
+            print(f)
+        print()
+
+    if not allFailures:
         print("Brand audit PASSED: no upstream graphics or old product name found.")
-        sys.exit(0)
-    else:
-        print(f"Brand audit FAILED: {len(hashFailures)} hash matches, {len(nameFailures)} name matches.")
-        sys.exit(1)
+        return 0
+
+    print(
+        f"Brand audit FAILED: {len(hashFailures)} hash matches, "
+        f"{len(nameFailures)} name matches, {len(fileNameFailures)} file names, "
+        f"{len(binaryFailures)} binaries."
+    )
+    return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

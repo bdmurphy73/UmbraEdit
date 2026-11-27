@@ -233,7 +233,7 @@ DMG_NAME="umbraedit-${VERSION}-${ARCH}.dmg"
 DMG_PATH="$RLS_DIR/$DMG_NAME"
 
 # Remove any previous build of the same version
-rm -f "$DMG_PATH" "$DMG_PATH.sha256"
+rm -f "$DMG_PATH" "$DMG_PATH.sha256" "$RLS_DIR"/rw.*."$DMG_NAME"
 
 DMG_ARGS=(
     --volname "UmbraEdit $VERSION"
@@ -246,6 +246,53 @@ DMG_ARGS=(
     --app-drop-link 600 185
 )
 
+# Run a command with a time limit. The command is killed if it has not
+# completed within the given number of seconds.
+run_with_timeout () {
+    local seconds="$1"
+    shift
+    "$@" &
+    local pid=$!
+    local waited=0
+    while kill -0 "$pid" 2> /dev/null; do
+        if [ "$waited" -ge "$seconds" ]; then
+            echo "WARNING: Timed out after ${seconds}s: $*" >&2
+            kill -9 "$pid" 2> /dev/null || true
+            wait "$pid" 2> /dev/null || true
+            return 124
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+    wait "$pid"
+}
+
+# Unmount any disk image left behind by a failed packaging attempt. The
+# image is not usable when it is still mounted, and a stale mount also
+# keeps the disk arbitration service busy. The detach is given a time
+# limit because a busy volume can make it hang indefinitely.
+cleanup_mounts () {
+    for mountPoint in /Volumes/dmg.*; do
+        [ -e "${mountPoint}" ] || continue
+        echo "Unmounting stale disk image: ${mountPoint}"
+        run_with_timeout 30 hdiutil detach -force "${mountPoint}" > /dev/null 2>&1 || true
+    done
+}
+
+# Build the disk image with hdiutil alone. This is the fallback for
+# systems where create-dmg cannot unmount the image it just mounted. The
+# image is functional, but it does not have the custom Finder layout.
+make_dmg_hdiutil () {
+    local staging
+    staging="$(mktemp -d "${TMPDIR:-/tmp}/umbraedit-dmg-XXXXXX")"
+    cp -a "$BUILD_DIR/UmbraEdit.app" "${staging}/"
+    ln -s /Applications "${staging}/Applications"
+    cp "$SRC_DIR/setup/macos/umbraedit.icns" "${staging}/.VolumeIcon.icns"
+    hdiutil create -volname "UmbraEdit $VERSION" -srcfolder "${staging}" \
+        -fs HFS+ -format UDZO -ov "$DMG_PATH"
+    rm -rf "${staging}"
+}
+
 # create-dmg normally asks Finder to polish the mounted window. Recent
 # macOS releases can reject that cosmetic AppleScript even though the disk
 # image itself was created correctly. Retry without the Finder step so a
@@ -253,8 +300,20 @@ DMG_ARGS=(
 if ! create-dmg "${DMG_ARGS[@]}" "$DMG_PATH" "$BUILD_DIR/"; then
     echo "WARNING: create-dmg could not apply the Finder layout; retrying without it." >&2
     rm -f "$DMG_PATH" "$RLS_DIR"/rw.*."$DMG_NAME"
-    create-dmg --skip-jenkins "${DMG_ARGS[@]}" "$DMG_PATH" "$BUILD_DIR/"
+    cleanup_mounts
+    if ! create-dmg --skip-jenkins "${DMG_ARGS[@]}" "$DMG_PATH" "$BUILD_DIR/"; then
+        echo "WARNING: create-dmg could not package the disk image." >&2
+        echo "WARNING: Falling back to a plain hdiutil disk image." >&2
+        rm -f "$DMG_PATH" "$RLS_DIR"/rw.*."$DMG_NAME"
+        cleanup_mounts
+        make_dmg_hdiutil || die "Could not package the disk image"
+    fi
 fi
+
+# Intermediate images are not release artifacts
+rm -f "$RLS_DIR"/rw.*."$DMG_NAME"
+
+[ -f "$DMG_PATH" ] || die "The disk image was not created"
 
 pushd "$RLS_DIR" || die "Could not enter $RLS_DIR"
 shasum -a 256 "umbraedit-${VERSION}-${ARCH}.dmg" | tee "umbraedit-${VERSION}-${ARCH}.dmg.sha256"

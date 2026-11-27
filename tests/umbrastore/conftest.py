@@ -13,7 +13,12 @@ from typing import Any
 
 import pytest
 
-from fastapi.testclient import TestClient
+try:
+    from fastapi.testclient import TestClient
+except ImportError:  # pragma: no cover
+    # FastAPI is an optional dependency, and is not available in all
+    # environments. The whole test module is skipped when it is missing.
+    pytest.skip("The fastapi package is required for these tests", allow_module_level=True)
 
 
 @pytest.fixture

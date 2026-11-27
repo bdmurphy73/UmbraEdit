@@ -6,3 +6,8 @@
 # Empty until upstream brand graphics are hashed from the original repository.
 # To regenerate: checkout the upstream base tag, hash the files listed in
 # BRAND_ASSETS.md, and paste the results here.
+
+# The upstream Windows launcher. It was carried in the fork as
+# setup/windows/novelWriter.exe, and was removed when the launcher was
+# built from source instead.
+a2bc79c6db0a1bfea762c7c64d2b8b09ecdc2d032b1e73417c16928733577ba4

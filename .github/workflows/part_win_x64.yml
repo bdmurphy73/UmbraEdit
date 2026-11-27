@@ -1,6 +1,7 @@
 name: Part Windows X64
 
-on: workflow_call
+on:
+  workflow_call
 
 jobs:
   buildWin-X64:
@@ -8,9 +9,13 @@ jobs:
     runs-on: windows-2022
     permissions:
       contents: read
+    env:
+      # The signing service is optional. When no API token is configured,
+      # the unsigned installer is built and published as-is.
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
     steps:
       - name: Python Setup
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
           architecture: x64
@@ -18,8 +23,21 @@ jobs:
       - name: Install Packages (pip)
         run: pip install tzdata
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y --limit-output
+          $iscc = Get-ChildItem "C:\Program Files (x86)\Inno Setup*\ISCC.exe" `
+            -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) {
+            Write-Output "::error::The Inno Setup compiler (ISCC.exe) was not found"
+            exit 1
+          }
+          Write-Output $iscc.DirectoryName >> $env:GITHUB_PATH
+          Write-Output "Inno Setup compiler: $($iscc.FullName)"
+
       - name: Checkout Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download Assets
         uses: actions/download-artifact@v4
@@ -27,11 +45,77 @@ jobs:
           name: nw-assets
           path: umbraedit/assets
 
+      - name: Build Windows Launcher
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+          Set-Location setup\windows
+          .\make.ps1
+          if (-not (Test-Path .\UmbraEdit.exe)) {
+            Write-Output "::error::The Windows launcher was not built"
+            exit 1
+          }
+          Write-Output "Launcher: $((Get-Item .\UmbraEdit.exe).Length) bytes"
+
       - name: Build Setup Installer
         id: build
         run: |
           echo "BUILD_VERSION=$(python pkgutils.py version)" >> $Env:GITHUB_OUTPUT
           python pkgutils.py build-win-exe
+
+      - name: Verify Installer Contents
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem .\dist\*-amd64-setup.exe -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+          if (-not $installer) {
+            Write-Output "::error::The setup installer was not built"
+            exit 1
+          }
+
+          # The installer is run into a temporary folder so that the files a
+          # user ends up with can be listed. The check makes sure the
+          # application is installed under the UmbraEdit name, and that no
+          # file from the upstream project is shipped.
+          $target = Join-Path $env:RUNNER_TEMP "umbraedit-install-check"
+          if (Test-Path $target) {
+            Remove-Item $target -Recurse -Force
+          }
+          New-Item -Path $target -ItemType Directory | Out-Null
+
+          $proc = Start-Process -FilePath $installer.FullName -PassThru -ArgumentList @(
+            "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-",
+            "/DIR=$target"
+          )
+          if (-not $proc.WaitForExit(300000)) {
+            $proc.Kill()
+            Write-Output "::error::The setup installer did not finish within five minutes"
+            exit 1
+          }
+          if ($proc.ExitCode -ne 0) {
+            Write-Output "::error::The setup installer failed with exit code $($proc.ExitCode)"
+            exit 1
+          }
+
+          $files = Get-ChildItem -Path $target -Recurse -File
+          Write-Output "The installer contains $($files.Count) files:"
+          $files | ForEach-Object {
+            Write-Output "  $($_.FullName.Substring($target.Length + 1))"
+          }
+
+          $legacy = $files | Where-Object { $_.Name -match "novelwriter" }
+          if ($legacy) {
+            Write-Output "::error::The installer contains files with the upstream product name"
+            $legacy | ForEach-Object { Write-Output "::error::$($_.Name)" }
+            exit 1
+          }
+
+          $launcher = Join-Path $target "UmbraEdit.exe"
+          if (-not (Test-Path $launcher)) {
+            Write-Output "::error::The installer does not contain UmbraEdit.exe"
+            exit 1
+          }
+          Write-Output "::notice::The installer contains UmbraEdit.exe and no upstream names"
 
       - name: Upload Unsigned Artifacts
         id: upload-unsigned-artifact
@@ -43,12 +127,13 @@ jobs:
           retention-days: 14
 
       - name: Submit Signing Request
+        if: env.SIGNPATH_API_TOKEN != ''
         uses: signpath/github-action-submit-signing-request@v1
         with:
           api-token: "${{ secrets.SIGNPATH_API_TOKEN }}"
           organization-id: "0471e52c-66fa-4e9a-bfb9-36167095ca3f"
           project-slug: "UmbraEdit"
-          signing-policy-slug: "release-signing "
+          signing-policy-slug: "release-signing"
           github-artifact-id: "${{ steps.upload-unsigned-artifact.outputs.artifact-id }}"
           wait-for-completion: true
           output-artifact-directory: "dist/"
@@ -56,6 +141,7 @@ jobs:
             version: "${{ steps.build.outputs.BUILD_VERSION }}"
 
       - name: Upload Signed Artifacts
+        if: env.SIGNPATH_API_TOKEN != ''
         uses: actions/upload-artifact@v4
         with:
           name: UmbraEdit-${{ steps.build.outputs.BUILD_VERSION }}-Win-Setup-Signed

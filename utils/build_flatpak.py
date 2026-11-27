@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 import shutil
 import subprocess
@@ -50,10 +51,44 @@ from utils.common import (
 PIP_GEN_COMMIT = "737c0085912f9f7dabf9341d4608e2a77a51a73a"
 PIP_GEN_FILE = "pip/flatpak-pip-generator.py"
 PIP_GEN_URL = f"https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/{PIP_GEN_COMMIT}/{PIP_GEN_FILE}"
+FLATPAK_SDK = "org.kde.Sdk"
+# Packages that cannot be built from source in the Flatpak sandbox are
+# installed from a prebuilt wheel instead. The wheel must match the Python
+# version and the architecture of the Flatpak runtime. The rpds-py package
+# needs a Rust toolchain, and the pillow package needs the pybind11 module,
+# neither of which are available in the sandbox.
+PREFER_WHEELS = ("pillow", "rpds-py")
 ENCHANT_RELEASE_API = "https://api.github.com/repos/rrthomas/enchant/releases/tags/v{version}"
 NW_REPO_URL = "https://github.com/bdmurphy73/UmbraEdit.git"
 NW_COMMIT_API = "https://api.github.com/repos/bdmurphy73/UmbraEdit/commits/v{version}"
 FLATHUB_FILES = ("io.umbraedit.umbraedit.yml", "pypi-deps.json", "enchant.json", "umbraedit.appdata.xml")
+
+
+def enchantChecksum(fileName: str, url: str, version: str) -> str:
+    """Return the SHA256 checksum of an enchant release asset.
+
+    The checksum is looked up in the release metadata on the GitHub API
+    first, as that is the value published by the project. If the API
+    cannot be reached, which happens when the rate limit for anonymous
+    requests is exceeded, the asset is downloaded and the checksum is
+    computed from it instead.
+    """
+    apiUrl = ENCHANT_RELEASE_API.format(version=version)
+    log(f"Checking: {apiUrl}")
+    try:
+        with urllib.request.urlopen(apiUrl) as response:
+            release = json.loads(response.read())
+        assets = {a["name"]: a for a in release["assets"]}
+        if fileName not in assets:
+            raise ValueError(f"Asset '{fileName}' not found in release 'v{version}'")
+        return str(assets[fileName]["digest"]).removeprefix("sha256:")
+    except Exception as exc:
+        log(f"[wr]Could not read the release metadata: {exc}[e]")
+        log("Downloading the asset to compute the checksum instead ...")
+        log("")
+
+    with urllib.request.urlopen(url) as response:
+        return hashlib.sha256(response.read()).hexdigest()
 
 
 def processEnchant(bldDir: Path, enchantVersion: str) -> None:
@@ -69,15 +104,7 @@ def processEnchant(bldDir: Path, enchantVersion: str) -> None:
         fileName = f"enchant-{enchantVersion}.tar.gz"
         url = f"https://github.com/rrthomas/enchant/releases/download/v{enchantVersion}/{fileName}"
 
-        apiUrl = ENCHANT_RELEASE_API.format(version=enchantVersion)
-        log(f"Checking: {apiUrl}")
-        with urllib.request.urlopen(apiUrl) as response:
-            release = json.loads(response.read())
-
-        assets = {a["name"]: a for a in release["assets"]}
-        if fileName not in assets:
-            raise ValueError(f"Asset '{fileName}' not found in release 'v{enchantVersion}'")
-        checksum = assets[fileName]["digest"].removeprefix("sha256:")
+        checksum = enchantChecksum(fileName, url, enchantVersion)
 
         log(f"Version: {enchantVersion}")
         log(f"SHA256: {checksum}")
@@ -106,7 +133,39 @@ def processEnchant(bldDir: Path, enchantVersion: str) -> None:
     log("")
 
 
-def processDependencies(bldDir: Path) -> None:
+def flatpakSdkRef(qtVersion: str) -> str:
+    """Return the Flatpak SDK reference for a given runtime version.
+
+    The SDK branch is the same as the runtime branch, as the SDK version
+    defaults to the runtime version in the Flatpak manifest.
+    """
+    return f"{FLATPAK_SDK}//{qtVersion}"
+
+
+def installFlatpakSdk(sdkRef: str) -> None:
+    """Install the Flatpak SDK if it isn't already installed.
+
+    The dependency generator needs the SDK to determine which prebuilt
+    wheels are compatible with the Flatpak runtime.
+    """
+    check = subprocess.run(["flatpak", "info", "--user", sdkRef], check=False, capture_output=True)
+    if check.returncode == 0:
+        return
+
+    log(f"Installing: {sdkRef}")
+    log("")
+    try:
+        subprocess.run(["flatpak", "install", "--user", "-y", "flathub", sdkRef], check=True)
+    except subprocess.CalledProcessError:
+        log("[cr]ERROR:[e] Could not install the Flatpak SDK")
+        log("")
+        log(f"Run: flatpak install --user -y flathub {sdkRef}")
+        log("")
+        sys.exit(1)
+    log("")
+
+
+def processDependencies(bldDir: Path, sdkRef: str) -> None:
     """Generate the pypi-deps.json file."""
     log("")
     log("[b]Generate PyPI Dependencies[e]")
@@ -131,6 +190,10 @@ def processDependencies(bldDir: Path) -> None:
                 str(ROOT_DIR / "pyproject.toml"),
                 "--ignore-pkg",
                 "pyqt6",
+                "--runtime",
+                sdkRef,
+                "--prefer-wheels",
+                ",".join(PREFER_WHEELS),
                 "-o",
                 str(outFile),
             ],
@@ -176,7 +239,9 @@ def flatpak(args: argparse.Namespace) -> None:
     bldDir.mkdir(exist_ok=True)
     outDir.mkdir(exist_ok=True)
 
-    processDependencies(bldDir)
+    sdkRef = flatpakSdkRef(qtVersion)
+    installFlatpakSdk(sdkRef)
+    processDependencies(bldDir, sdkRef)
     processEnchant(bldDir, enchantVersion)
     writeFile(bldDir / "umbraedit.appdata.xml", appdataXml())
     updateMetaFile(bldDir / "meta.toml", buildFormat="flatpak", installSource="github")
@@ -252,7 +317,9 @@ def flathub(args: argparse.Namespace) -> None:
     bldDir = ROOT_DIR / "dist_flathub"
     bldDir.mkdir(exist_ok=True)
 
-    processDependencies(bldDir)
+    sdkRef = flatpakSdkRef(qtVersion)
+    installFlatpakSdk(sdkRef)
+    processDependencies(bldDir, sdkRef)
     processEnchant(bldDir, enchantVersion)
     writeFile(bldDir / "umbraedit.appdata.xml", appdataXml())
 

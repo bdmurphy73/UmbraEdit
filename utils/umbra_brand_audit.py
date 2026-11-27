@@ -111,7 +111,9 @@ def checkFileNames() -> list[str]:
     failures = []
     oldLower = OLD_NAME.lower()
     for path in findRepoFiles():
-        relPath = str(path.relative_to(ROOT_DIR))
+        # The paths are compared with forward slashes on all platforms, so
+        # that the allow list is the same everywhere.
+        relPath = path.relative_to(ROOT_DIR).as_posix()
         if relPath in ALLOWED_OLD_NAME_PATHS:
             continue
         if oldLower in path.name.lower():
@@ -128,7 +130,7 @@ def checkBinaryNames() -> list[str]:
     failures = []
     oldLower = OLD_NAME.lower()
     for path in findBinaryFiles():
-        relPath = str(path.relative_to(ROOT_DIR))
+        relPath = path.relative_to(ROOT_DIR).as_posix()
         try:
             data = path.read_bytes()
         except OSError:
@@ -151,7 +153,8 @@ def checkHashes() -> list[str]:
             data = path.read_bytes()
             digest = sha256(data)
             if digest in upstreamHashes:
-                failures.append(f"  HASH MATCH: {path.relative_to(ROOT_DIR)} ({digest[:12]}...)")
+                relPath = path.relative_to(ROOT_DIR).as_posix()
+                failures.append(f"  HASH MATCH: {relPath} ({digest[:12]}...)")
         except OSError:  # noqa: PERF203
             pass
     return failures
@@ -165,7 +168,7 @@ def checkOldName() -> list[str]:
 
     # Check Python files for user-visible strings
     for pyFile in (ROOT_DIR / "umbraedit").rglob("*.py"):
-        relPath = str(pyFile.relative_to(ROOT_DIR))
+        relPath = pyFile.relative_to(ROOT_DIR).as_posix()
         if any(relPath.endswith(f) or f in relPath for f in ALLOWED_OLD_NAME_FILES):
             continue
         try:

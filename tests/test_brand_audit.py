@@ -61,6 +61,22 @@ def testBrand_allowedLegacyFileName(auditRoot: Path):
 
 
 @pytest.mark.base
+def testBrand_pathsUseForwardSlashes(auditRoot: Path):
+    """Test that the reported paths are the same on all platforms.
+
+    The paths are compared against the allow list, so they must not depend
+    on the path separator of the platform the audit runs on.
+    """
+    winDir = auditRoot / "setup" / "windows"
+    winDir.mkdir(parents=True)
+    (winDir / "novelWriter.exe").write_bytes(b"MZ")
+
+    failures = brand.checkFileNames()
+    assert len(failures) == 1
+    assert "setup/windows/novelWriter.exe" in failures[0]
+
+
+@pytest.mark.base
 def testBrand_legacyNameInBinary(auditRoot: Path):
     """Test that the old product name in binary metadata is caught."""
     winDir = auditRoot / "setup" / "windows"

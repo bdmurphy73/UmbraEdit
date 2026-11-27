@@ -4,9 +4,23 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, feature/**]
 
 jobs:
+  brand:
+    name: Brand Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The audit checks that no file in the tree carries the upstream product
+      # name, and that no upstream brand graphic or binary has been copied
+      # into the project.
+      - name: Run brand audit
+        run: python utils/umbra_brand_audit.py
+
   lint:
     runs-on: ubuntu-latest
     steps:

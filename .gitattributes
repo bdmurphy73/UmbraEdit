@@ -1,0 +1,6 @@
+# These files are stored with Windows line endings. The carriage return at
+# the end of a line is part of the line ending, and is not trailing
+# whitespace.
+setup/win_setup_embed.iss whitespace=cr-at-eol
+setup/iss_license.txt whitespace=cr-at-eol
+docs/make.bat whitespace=cr-at-eol

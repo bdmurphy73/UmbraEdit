@@ -47,6 +47,47 @@ from utils.common import (
     writeFile,
 )
 
+# The name of the launcher executable in the Windows package.
+LAUNCHER_NAME = "UmbraEdit.exe"
+
+# Names that must never appear in a shipped package. The upstream project
+# these sources were forked from used a different product name, and a file
+# carrying that name would make it look like the upstream application was
+# being distributed.
+LEGACY_NAMES = ("novelwriter",)
+
+
+def verifyPayload(outDir: Path) -> None:
+    """Check that the Windows package only carries the UmbraEdit name.
+
+    The package is installed as-is by the setup program, so any file with a
+    legacy name in it ends up on the user's machine. The check is done on
+    the staged package, before it is handed to the installer compiler.
+    """
+    log("[b]Verifying package contents ...[e]")
+
+    launcher = outDir / LAUNCHER_NAME
+    if not launcher.is_file():
+        log(f"[ee]The launcher {LAUNCHER_NAME} is missing from the package")
+        sys.exit(1)
+
+    offenders = []
+    for item in sorted(outDir.rglob("*")):
+        if not item.is_file():
+            continue
+        if any(name in item.name.lower() for name in LEGACY_NAMES):
+            offenders.append(item.relative_to(outDir))
+
+    if offenders:
+        for item in offenders:
+            log(f"[ee]Legacy name in package: {item}")
+        log("[ee]The package contains files that must not be shipped")
+        sys.exit(1)
+
+    log(f"[cg]Launcher:[e] {LAUNCHER_NAME}")
+    log("[cg]No legacy names in the package[e]")
+    log("")
+
 
 def prepareCode(outDir: Path) -> None:
     """Set up folders and copy code."""
@@ -60,8 +101,8 @@ def prepareCode(outDir: Path) -> None:
         ROOT_DIR / "CREDITS.md",
         ROOT_DIR / "LICENSE.md",
         SETUP_DIR / "iss_license.txt",
-        SETUP_DIR / "windows" / "UmbraEdit.ico",
-        SETUP_DIR / "windows" / "UmbraEdit.exe",
+        SETUP_DIR / "windows" / "umbraedit.ico",
+        SETUP_DIR / "windows" / LAUNCHER_NAME,
     ]
     for item in files:
         shutil.copyfile(item, outDir / item.name)
@@ -148,6 +189,8 @@ def main(args: argparse.Namespace) -> None:
     )
     log("[cg]Done[e]")
     log("")
+
+    verifyPayload(outDir)
 
     log("[b]Running Inno Setup[e]")
     log("[b]##################[e]")

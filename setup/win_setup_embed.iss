@@ -49,8 +49,8 @@ Type: filesandordirs; Name: "{app}\umbraedit\*"
 Source: "{#nwAppDir}\UmbraEdit\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\{#nwAppName}"; Filename: "{app}\UmbraEdit.exe"; IconFilename: "{app}\UmbraEdit.ico"
-Name: "{autodesktop}\{#nwAppName}"; Filename: "{app}\UmbraEdit.exe"; IconFilename: "{app}\UmbraEdit.ico"; Tasks: desktopicon;
+Name: "{autoprograms}\{#nwAppName}"; Filename: "{app}\UmbraEdit.exe"; IconFilename: "{app}\umbraedit.ico"
+Name: "{autodesktop}\{#nwAppName}"; Filename: "{app}\UmbraEdit.exe"; IconFilename: "{app}\umbraedit.ico"; Tasks: desktopicon;
 
 [Run]
 Filename: "{app}\UmbraEdit.exe"; Description: "{cm:LaunchProgram,{#StringChange(nwAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent

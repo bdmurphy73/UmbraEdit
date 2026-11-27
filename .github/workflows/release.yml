@@ -46,6 +46,14 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Release tag ${TAG} matches application version ${VERSION}"
 
+      - name: Check Brand Names
+        # The source tarball and the packages are built from this tree, so
+        # a file that still carries the upstream product name would be
+        # shipped to users. The audit must pass before anything is built.
+        run: |
+          set -euo pipefail
+          python3 utils/umbra_brand_audit.py
+
   # ---------------------------------------------------------------------------
   # Shared build assets. These are inputs to the platform builds, not release
   # assets, so they are not attached to the release itself.
